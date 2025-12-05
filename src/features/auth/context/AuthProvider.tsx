@@ -3,12 +3,37 @@ import { useQueryClient } from '@tanstack/react-query';
 import { AuthContext } from './AuthContext';
 import { authService } from '../services/authService';
 import { miroAuthService } from '../services/miroAuthService';
+import { supabase } from '@shared/lib/supabase';
 import { createLogger } from '@shared/lib/logger';
 import type { AuthState, AuthContextValue, LoginCredentials, AuthUser } from '../domain/auth.types';
 
 const logger = createLogger('AuthProvider');
 
 const AUTH_STORAGE_KEY = 'bd_auth_user';
+
+/**
+ * Verify if a user still exists in the database
+ * Returns true if user exists, false otherwise
+ */
+async function verifyUserExists(userId: string): Promise<boolean> {
+  try {
+    const { data, error } = await supabase
+      .from('users')
+      .select('id')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (error) {
+      logger.error('Error verifying user existence', error);
+      return false;
+    }
+
+    return data !== null;
+  } catch (err) {
+    logger.error('Failed to verify user existence', err);
+    return false;
+  }
+}
 
 const initialState: AuthState = {
   user: null,
@@ -51,15 +76,25 @@ export function AuthProvider({ children }: AuthProviderProps) {
             localStorage.removeItem(AUTH_STORAGE_KEY);
             // Don't return - fall through to trigger re-auth
           } else {
-            logger.debug('Using stored user', { name: user.name, role: user.role });
-            setState({
-              user,
-              session: null,
-              isLoading: false,
-              isAuthenticated: true,
-              error: null,
-            });
-            return;
+            // Verify user still exists in database before using cached data
+            logger.debug('Verifying stored user exists in database', { id: user.id });
+            const userExists = await verifyUserExists(user.id);
+
+            if (!userExists) {
+              logger.info('Stored user no longer exists in database, clearing cache', { id: user.id });
+              localStorage.removeItem(AUTH_STORAGE_KEY);
+              // Fall through to trigger re-auth
+            } else {
+              logger.debug('Using stored user', { name: user.name, role: user.role });
+              setState({
+                user,
+                session: null,
+                isLoading: false,
+                isAuthenticated: true,
+                error: null,
+              });
+              return;
+            }
           }
         }
 
