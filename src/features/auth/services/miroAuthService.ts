@@ -141,19 +141,31 @@ export const miroAuthService = {
       // Ensure main admin exists in database
       await this.ensureMainAdminExists(email, name || 'Admin', miroUserId);
 
-      return {
-        success: true,
-        user: {
-          id: 'main-admin',
-          email,
-          name: name || 'Admin',
-          role: 'admin',
-          primaryBoardId: null,
-          isSuperAdmin: true,
-          miroUserId,
-        },
-        redirectTo: '/admin',
-      };
+      // Fetch the actual admin user from database to get the real UUID
+      const { data: adminUser } = await supabase
+        .from('users')
+        .select('id, name, email, role, primary_board_id, is_super_admin, miro_user_id')
+        .eq('email', email.toLowerCase())
+        .single();
+
+      if (adminUser) {
+        return {
+          success: true,
+          user: {
+            id: adminUser.id,
+            email: adminUser.email,
+            name: adminUser.name || name || 'Admin',
+            role: adminUser.role as 'admin',
+            primaryBoardId: adminUser.primary_board_id,
+            isSuperAdmin: true,
+            miroUserId: adminUser.miro_user_id || miroUserId,
+          },
+          redirectTo: '/admin',
+        };
+      }
+
+      // Fallback if user fetch fails (shouldn't happen)
+      logger.warn('Failed to fetch admin user after creation');
     }
 
     // First, try to find user by Miro user ID
