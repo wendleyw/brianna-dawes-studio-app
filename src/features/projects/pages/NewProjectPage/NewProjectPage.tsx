@@ -308,42 +308,31 @@ ${formData.additionalNotes || 'Not specified'}
               <label className={styles.label}>
                 PROJECT OWNER <span className={styles.required}>*</span>
               </label>
-              {clientFromBoard ? (
-                <>
-                  <div className={styles.detectedClient}>
-                    <span className={styles.detectedIcon}>✓</span>
-                    <span>
-                      <strong>{clientFromBoard.name}</strong>
-                      <br />
-                      <small>{clientFromBoard.email}</small>
-                    </span>
-                  </div>
-                  <span className={styles.hint}>Client detected from this Miro board</span>
-                </>
-              ) : (
-                <>
-                  <select
-                    className={styles.select}
-                    value={formData.clientId}
-                    onChange={(e) => updateField('clientId', e.target.value)}
-                  >
-                    <option value="">Select project owner...</option>
-                    {/* Admin can create project for themselves */}
-                    <option value={user?.id || ''}>
-                      {user?.name} (Admin - Me)
-                    </option>
-                    {/* Divider */}
-                    <option disabled>──────────</option>
-                    {/* List of clients */}
-                    {clients.map((client) => (
-                      <option key={client.id} value={client.id}>
-                        {client.name} ({client.email})
-                      </option>
-                    ))}
-                  </select>
-                  <span className={styles.hint}>Who owns this project? Select yourself or a client</span>
-                </>
-              )}
+              <select
+                className={styles.select}
+                value={formData.clientId}
+                onChange={(e) => updateField('clientId', e.target.value)}
+              >
+                <option value="">Select project owner...</option>
+                {/* Admin can create project for themselves */}
+                <option value={user?.id || ''}>
+                  {user?.name} (Admin - Me)
+                </option>
+                {/* Divider */}
+                <option disabled>──────────</option>
+                {/* List of clients - highlight detected client if any */}
+                {clients.map((client) => (
+                  <option key={client.id} value={client.id}>
+                    {client.name} ({client.email}){clientFromBoard?.id === client.id ? ' ✓ Board' : ''}
+                  </option>
+                ))}
+              </select>
+              <span className={styles.hint}>
+                {clientFromBoard
+                  ? `Client "${clientFromBoard.name}" detected from this board, but you can choose differently`
+                  : 'Who owns this project? Select yourself or a client'
+                }
+              </span>
             </div>
           )}
 

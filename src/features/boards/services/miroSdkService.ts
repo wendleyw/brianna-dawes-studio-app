@@ -745,10 +745,14 @@ class MiroProjectRowService {
     log('MiroProject', `  Bottom edge: ${briefingY + FRAME.HEIGHT / 2}`);
     log('MiroProject', '========================================');
 
-    // Create Briefing Frame (include short projectId for clean display and lookup)
-    const shortId = project.id.substring(0, 6);
+    // Create project number based on existing projects count
+    const allFrames = await miro.board.get({ type: 'frame' }) as MiroFrame[];
+    const existingProjects = allFrames.filter(f => f.title?.includes('- BRIEFING')).length;
+    const projectNum = String(existingProjects + 1).padStart(2, '0');
+    const projectTag = `[PROJ-${projectNum}]`;
+
     const briefingFrame = await miro.board.createFrame({
-      title: `📋 ${project.name} - BRIEFING #${shortId}`,
+      title: `📋 ${project.name} - BRIEFING ${projectTag}`,
       x: briefingX,
       y: briefingY,
       width: FRAME.WIDTH,
@@ -766,7 +770,7 @@ class MiroProjectRowService {
     const stage1Y = rowY;
 
     const stage1Frame = await miro.board.createFrame({
-      title: `🎯 ${project.name} - STAGE 1 #${shortId}`,
+      title: `🎯 ${project.name} - STAGE 1 ${projectTag}`,
       x: stage1X,
       y: stage1Y,
       width: FRAME.WIDTH,
@@ -824,18 +828,23 @@ class MiroProjectRowService {
 
     // If row not in memory, try to find project frames on the board by projectId
     if (!row) {
-      const shortId = projectId.substring(0, 6);
-      log('MiroProject', `Project ${projectId} not in memory, scanning board for frames with #${shortId}...`);
+      log('MiroProject', `Project ${projectId} not in memory, scanning board for "${projectName}"...`);
 
       try {
         const allFrames = await miro.board.get({ type: 'frame' }) as Array<{ id: string; title: string; x: number; y: number; width: number; height: number }>;
 
-        // Find frames belonging to this specific project by short ID tag
-        // Frames have titles like "🎯 Project Name - STAGE 1 #abc123"
-        const shortIdTag = `#${shortId}`;
-        const projectFrames = allFrames.filter(f => f.title?.includes(shortIdTag));
+        // Find frames belonging to this project by matching project name in the title
+        // Titles are like "📋 Project Name - BRIEFING [PROJ-01]"
+        const searchName = projectName || '';
+        const projectFrames = allFrames.filter(f => {
+          if (!f.title) return false;
+          // Extract project name from title (between emoji and " - ")
+          const titleMatch = f.title.match(/^[📋🎯]\s*(.+?)\s*-\s*(BRIEFING|STAGE)/);
+          const frameProjName = titleMatch?.[1]?.trim();
+          return frameProjName === searchName;
+        });
 
-        log('MiroProject', `Found ${projectFrames.length} frames for project #${shortId}`);
+        log('MiroProject', `Found ${projectFrames.length} frames for project "${searchName}"`);
 
         if (projectFrames.length > 0) {
           // Find all STAGE frames for this project
@@ -914,10 +923,20 @@ class MiroProjectRowService {
 
     log('MiroProject', `Creating STAGE ${num} at X=${x} (right edge of prev: ${rightEdgeOfLastFrame})`);
 
-    // Include short projectId for clean display
-    const shortId = projectId.substring(0, 6);
+    // Extract project tag from existing briefing frame title
+    let projectTag = '';
+    if (row.briefingFrameId) {
+      try {
+        const briefingFrame = await miro.board.getById(row.briefingFrameId) as MiroFrame | null;
+        const tagMatch = briefingFrame?.title?.match(/\[PROJ-\d+\]/);
+        projectTag = tagMatch ? tagMatch[0] : '';
+      } catch {
+        projectTag = '';
+      }
+    }
+
     const frame = await miro.board.createFrame({
-      title: `🎯 ${row.projectName} - STAGE ${num} #${shortId}`,
+      title: `🎯 ${row.projectName} - STAGE ${num} ${projectTag}`.trim(),
       x, y,
       width: FRAME.WIDTH,
       height: FRAME.HEIGHT,

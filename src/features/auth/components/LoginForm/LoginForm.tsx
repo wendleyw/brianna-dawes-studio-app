@@ -6,15 +6,21 @@ import { useMiro } from '@features/boards';
 import type { LoginFormProps } from './LoginForm.types';
 import styles from './LoginForm.module.css';
 
+interface WrongBoardInfo {
+  correctBoardId: string;
+  correctBoardUrl: string;
+}
+
 export function LoginForm({ onSuccess }: LoginFormProps) {
   const navigate = useNavigate();
   const { authenticateFromMiro, loginWithMiro, isLoading, error } = useAuth();
-  const { isInMiro, isReady: miroReady } = useMiro();
+  const { isInMiro, isReady: miroReady, boardId: currentBoardId } = useMiro();
 
   const [authError, setAuthError] = useState<string | null>(null);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [accessDenied, setAccessDenied] = useState(false);
   const [miroUserId, setMiroUserId] = useState<string | null>(null);
+  const [wrongBoard, setWrongBoard] = useState<WrongBoardInfo | null>(null);
 
   // Use ref to track if auth has been attempted (prevents infinite loop)
   const authAttempted = useRef(false);
@@ -31,9 +37,27 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
     setIsAuthenticating(true);
     setAuthError(null);
     setAccessDenied(false);
+    setWrongBoard(null);
 
     try {
       const { redirectTo } = await authenticateFromMiro();
+
+      // After successful auth, check if client is on the wrong board
+      // We need to get the user from the auth context after authentication
+      // The redirectTo will contain the correct board path for clients
+      const boardIdMatch = redirectTo.match(/\/board\/([^/]+)/);
+      const userPrimaryBoardId = boardIdMatch ? boardIdMatch[1] : null;
+
+      // If user is a client with a primary board and current board doesn't match
+      if (userPrimaryBoardId && currentBoardId && userPrimaryBoardId !== currentBoardId) {
+        setWrongBoard({
+          correctBoardId: userPrimaryBoardId,
+          correctBoardUrl: `https://miro.com/app/board/${userPrimaryBoardId}/`,
+        });
+        setIsAuthenticating(false);
+        return;
+      }
+
       onSuccess?.();
       navigate(redirectTo, { replace: true });
     } catch (err) {
@@ -70,7 +94,14 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
     setAccessDenied(false);
     setAuthError(null);
     setMiroUserId(null);
+    setWrongBoard(null);
     handleMiroAuth();
+  };
+
+  const handleGoToCorrectBoard = () => {
+    if (wrongBoard) {
+      window.open(wrongBoard.correctBoardUrl, '_blank');
+    }
   };
 
   const displayError = authError || (error?.message);
@@ -148,6 +179,75 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
           >
             Try Again
           </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Show Wrong Board screen when client is accessing from a different board
+  if (wrongBoard) {
+    return (
+      <div className={styles.form}>
+        <div className={styles.header}>
+          <div className={styles.logo}>
+            <Logo size="xl" />
+          </div>
+          <h1 className={styles.title} style={{ color: 'var(--color-primary, #050038)' }}>
+            Wrong Board
+          </h1>
+          <p className={styles.subtitle}>
+            You're accessing from a different board than your assigned workspace.
+          </p>
+        </div>
+
+        <div style={{
+          background: 'var(--color-surface-secondary, #f5f5f5)',
+          padding: '20px',
+          borderRadius: '12px',
+          marginBottom: '16px',
+          textAlign: 'center'
+        }}>
+          <div style={{
+            width: '48px',
+            height: '48px',
+            margin: '0 auto 12px',
+            background: 'var(--color-primary, #050038)',
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'white',
+            fontSize: '24px'
+          }}>
+            →
+          </div>
+          <p style={{ fontSize: '14px', color: 'var(--color-text-secondary)', marginBottom: '16px' }}>
+            Click below to open your assigned board:
+          </p>
+          <button
+            type="button"
+            className={styles.miroButton}
+            onClick={handleGoToCorrectBoard}
+            style={{
+              background: 'var(--color-primary, #050038)',
+              width: '100%'
+            }}
+          >
+            <svg
+              style={{ width: '20px', height: '20px', marginRight: '8px' }}
+              viewBox="0 0 24 24"
+              fill="currentColor"
+            >
+              <path d="M17.392 4H14.15l3.242 8.333L14.15 20h3.242L20.634 12 17.392 4zM12.15 4H8.908l3.242 8.333L8.908 20h3.242L15.392 12 12.15 4zM6.908 4H3.366l3.542 8.333L3.366 20h3.542l3.542-8-3.542-7.667V4z" />
+            </svg>
+            Open My Board
+          </button>
+        </div>
+
+        <div className={styles.info}>
+          <p className={styles.infoText}>
+            Each client has a dedicated board. Please use the button above to access yours.
+          </p>
         </div>
       </div>
     );
