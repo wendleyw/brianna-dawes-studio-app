@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { LoginForm } from '../../components/LoginForm';
@@ -6,8 +7,18 @@ import styles from './LoginPage.module.css';
 
 export function LoginPage() {
   const { isAuthenticated, isLoading } = useAuth();
+  // Track if we've shown the login form at least once
+  // This prevents unmounting during auth which would reset the ref
+  const [hasShownForm, setHasShownForm] = useState(false);
 
-  if (isLoading) {
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      setHasShownForm(true);
+    }
+  }, [isLoading, isAuthenticated]);
+
+  // Only show skeleton on initial load, not during auth
+  if (isLoading && !hasShownForm) {
     return (
       <div className={styles.container}>
         <div className={styles.card}>
