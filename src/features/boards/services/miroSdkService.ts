@@ -1040,19 +1040,27 @@ class MiroProjectRowService {
     try {
       // Import env dynamically to get logo URL
       const { env } = await import('@shared/config/env');
+      const logoUrl = env.brand.logoUrl;
+      log('MiroProject', `Attempting to add logo from URL: ${logoUrl}`);
+
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const board = miro.board as any;
-      if (board.createImage) {
-        await board.createImage({
-          url: env.brand.logoUrl,
+      log('MiroProject', `Available board methods: ${Object.keys(board).join(', ')}`);
+
+      if (typeof board.createImage === 'function') {
+        const logoImage = await board.createImage({
+          url: logoUrl,
           x: frameX,
           y: logoY,
           width: 120,
         });
-        log('MiroProject', 'Logo added to briefing frame');
+        log('MiroProject', 'Logo added to briefing frame', logoImage);
+      } else {
+        log('MiroProject', 'createImage method not available on board');
       }
     } catch (e) {
-      log('MiroProject', 'Could not add logo to briefing', e);
+      log('MiroProject', 'Error adding logo to briefing:', e);
+      console.error('Logo creation error:', e);
     }
 
     // === HEADER (clean, dark) - positioned below logo ===
