@@ -23,22 +23,24 @@
   flex-direction: column;
   gap: 6px;
   margin-bottom: var(--space-2);
-  overflow: hidden;
 }
 
 /* Reviewed Banner - highlighted at top */
 .reviewedBanner {
   display: flex;
   justify-content: center;
-  padding: 6px 0;
-  margin: -16px -16px 4px -16px;
+  align-items: center;
+  padding: 8px 12px;
+  margin: -16px -16px 8px -16px;
   background: linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%);
   border-radius: 10px 10px 0 0;
+  min-height: 32px;
 }
 
 .reviewedBanner > * {
   background: transparent !important;
   box-shadow: none !important;
+  white-space: nowrap;
 }
 
 .badges {

@@ -723,7 +723,7 @@ export function ProjectCard({
             </Badge>
           </div>
         )}
-        {/* Badges row: Priority | Status | Type */}
+        {/* Badges row: Priority | Type | Status */}
         <div className={styles.badges}>
           {/* 1. Priority badge */}
           {priority && (
@@ -735,9 +735,7 @@ export function ProjectCard({
               {priority.label}
             </Badge>
           )}
-          {/* 2. Status badge */}
-          <Badge variant={statusVariant} size="sm">{statusColumn.label}</Badge>
-          {/* 3. Project Type badge */}
+          {/* 2. Project Type badge */}
           {(() => {
             const projectType = getProjectType(project);
             return projectType ? (
@@ -750,6 +748,8 @@ export function ProjectCard({
               </Badge>
             ) : null;
           })()}
+          {/* 3. Status badge */}
+          <Badge variant={statusVariant} size="sm">{statusColumn.label}</Badge>
         </div>
       </div>
 
