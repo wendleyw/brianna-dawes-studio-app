@@ -125,6 +125,8 @@ class MiroMasterTimelineService {
   private frameCenterX: number = 0;
   private frameCenterY: number = 0;
   private initialized: boolean = false;
+  // Track projects currently being synced to prevent concurrent syncs
+  private syncingProjects: Set<string> = new Set();
 
   isInitialized(): boolean {
     return this.initialized && this.state !== null;
@@ -309,6 +311,27 @@ class MiroMasterTimelineService {
   async syncProject(project: Project, options?: { markAsReviewed?: boolean }): Promise<TimelineCard> {
     if (!this.state) throw new Error('Timeline not initialized');
 
+    // Prevent concurrent syncs for the same project
+    if (this.syncingProjects.has(project.id)) {
+      log('MiroTimeline', `Already syncing project "${project.name}", skipping duplicate call`);
+      // Return existing card info if available
+      const existingCard = this.state.cards.find(c => c.projectId === project.id);
+      if (existingCard) return existingCard;
+      throw new Error('Sync already in progress');
+    }
+
+    this.syncingProjects.add(project.id);
+
+    try {
+      return await this._syncProjectInternal(project, options);
+    } finally {
+      this.syncingProjects.delete(project.id);
+    }
+  }
+
+  private async _syncProjectInternal(project: Project, options?: { markAsReviewed?: boolean }): Promise<TimelineCard> {
+    if (!this.state) throw new Error('Timeline not initialized');
+
     const miro = getMiroSDK();
     const status = getTimelineStatus(project);
     const column = this.state.columns.find(c => c.id === status);
@@ -476,6 +499,44 @@ class MiroMasterTimelineService {
     }
 
     // STEP 6: Create new card ONLY if none exists
+    // IMPORTANT: Double-check for existing cards before creating to avoid duplicates
+    // This handles race conditions where getById failed but card still exists
+    try {
+      const freshBoardCards = await miro.board.get({ type: 'card' }) as MiroCard[];
+      const existingCardFinalCheck = freshBoardCards.find(c => c.description?.includes(`projectId:${project.id}`));
+
+      if (existingCardFinalCheck) {
+        log('MiroTimeline', `Found existing card in final check: ${existingCardFinalCheck.id}, updating instead of creating`);
+        // Update the existing card instead of creating a new one
+        existingCardFinalCheck.title = title;
+        existingCardFinalCheck.description = description;
+        existingCardFinalCheck.x = cardX;
+        existingCardFinalCheck.y = cardY;
+        existingCardFinalCheck.style = { cardTheme: column.color };
+        await miro.board.sync(existingCardFinalCheck);
+
+        const updatedCard: TimelineCard = {
+          id: crypto.randomUUID(),
+          projectId: project.id,
+          projectName: project.name,
+          clientName: project.client?.name || null,
+          dueDate: project.dueDate,
+          status,
+          miroCardId: existingCardFinalCheck.id,
+          x: cardX,
+          y: cardY,
+        };
+
+        // Update memory state
+        this.state.cards = this.state.cards.filter(c => c.projectId !== project.id);
+        this.state.cards.push(updatedCard);
+
+        return updatedCard;
+      }
+    } catch (e) {
+      log('MiroTimeline', 'Final check for existing card failed, proceeding with create', e);
+    }
+
     log('MiroTimeline', `Creating NEW card for "${project.name}" at position (${cardX}, ${cardY})`);
     const newMiroCard = await miro.board.createCard({
       title,
@@ -576,6 +637,7 @@ class MiroMasterTimelineService {
     this.frameCenterX = 0;
     this.frameCenterY = 0;
     this.initialized = false;
+    this.syncingProjects.clear();
     log('MiroTimeline', 'Service reset');
   }
 }

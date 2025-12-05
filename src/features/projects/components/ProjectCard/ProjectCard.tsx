@@ -328,6 +328,8 @@ export function ProjectCard({
   const isAdmin = user?.role === 'admin';
   const isClient = user?.role === 'client';
   const isInReview = project.status === 'review';
+  // Check if current user is the assigned client for this project
+  const isAssignedClient = isClient && project.clientId === user?.id;
 
   // Get status column info (status is now direct from DB)
   const statusColumn = getStatusColumn(project.status);
@@ -1018,34 +1020,38 @@ export function ProjectCard({
             </div>
           )}
 
-          {/* Client Actions - Only visible for clients when project is in review */}
-          {isClient && isInReview && (
+          {/* Client Actions - Only visible for the ASSIGNED client of this project */}
+          {isAssignedClient && (
             <div className={styles.adminActions}>
               <h4 className={styles.actionsTitle}>YOUR ACTIONS</h4>
               <div className={styles.actionsGrid}>
-                {/* 1. Reviewed/Approve - sends back to designer */}
-                <button className={`${styles.adminBtn} ${styles.primary}`} onClick={handleClientApproveClick}>
-                  <div className={styles.adminBtnIcon}><CheckIcon /></div>
-                  <span>Reviewed</span>
-                </button>
-
-                {/* 2. Complete - mark as done */}
-                <button className={`${styles.adminBtn} ${styles.success}`} onClick={handleCompleteClick}>
-                  <div className={styles.adminBtnIcon}><CheckIcon /></div>
-                  <span>Complete</span>
-                </button>
-
-                {/* 3. Stage - create new stage */}
+                {/* Stage - always available for client */}
                 <button className={styles.adminBtn} onClick={handleStageClick}>
                   <div className={styles.adminBtnIcon}><PlusIcon /></div>
                   <span>Stage</span>
                 </button>
 
-                {/* 4. Move to Critical */}
+                {/* Move to Critical - always available for client */}
                 <button className={`${styles.adminBtn} ${styles.danger}`} onClick={handleClientCriticalClick}>
                   <div className={styles.adminBtnIcon}><StarIcon /></div>
                   <span>Critical</span>
                 </button>
+
+                {/* Reviewed/Approve - ONLY when in review status */}
+                {isInReview && (
+                  <button className={`${styles.adminBtn} ${styles.primary}`} onClick={handleClientApproveClick}>
+                    <div className={styles.adminBtnIcon}><CheckIcon /></div>
+                    <span>Reviewed</span>
+                  </button>
+                )}
+
+                {/* Complete - ONLY when in review status */}
+                {isInReview && (
+                  <button className={`${styles.adminBtn} ${styles.success}`} onClick={handleCompleteClick}>
+                    <div className={styles.adminBtnIcon}><CheckIcon /></div>
+                    <span>Complete</span>
+                  </button>
+                )}
               </div>
             </div>
           )}
