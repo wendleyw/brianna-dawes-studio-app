@@ -117,6 +117,10 @@ export function ProjectsPage() {
     if (options?.markAsReviewed) {
       updateInput.wasReviewed = true;
     }
+    // Clear wasReviewed when moving back to review status (so client can review again)
+    if (status === 'review' && !options?.markAsReviewed) {
+      updateInput.wasReviewed = false;
+    }
 
     updateProject(
       { id: projectId, input: updateInput },
