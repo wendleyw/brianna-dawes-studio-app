@@ -1,0 +1,131 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.header {
+  margin-bottom: 8px;
+}
+
+.title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--color-text-primary, #1f2937);
+  margin: 0 0 4px 0;
+}
+
+.subtitle {
+  font-size: 14px;
+  color: var(--color-text-secondary, #6b7280);
+  margin: 0;
+}
+
+.section {
+  background: var(--color-surface, #ffffff);
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.sectionTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text-primary, #1f2937);
+  margin: 0 0 8px 0;
+}
+
+.sectionDescription {
+  font-size: 14px;
+  color: var(--color-text-secondary, #6b7280);
+  margin: 0 0 16px 0;
+  line-height: 1.5;
+}
+
+.warning {
+  background: #fef3c7;
+  border: 1px solid #f59e0b;
+  border-radius: 6px;
+  padding: 12px 16px;
+  font-size: 13px;
+  color: #92400e;
+  margin-bottom: 16px;
+}
+
+.warningDanger {
+  background: #fef2f2;
+  border: 1px solid #ef4444;
+  border-radius: 6px;
+  padding: 12px 16px;
+  font-size: 13px;
+  color: #b91c1c;
+  margin-bottom: 16px;
+}
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+.connected {
+  color: #10b981;
+  font-weight: 500;
+}
+
+.disconnected {
+  color: #ef4444;
+  font-weight: 500;
+}
+
+.dangerButton {
+  background: #ef4444 !important;
+  border-color: #ef4444 !important;
+}
+
+.dangerButton:hover {
+  background: #dc2626 !important;
+  border-color: #dc2626 !important;
+}
+
+.primaryButton {
+  background: #2563eb !important;
+  border-color: #2563eb !important;
+}
+
+.primaryButton:hover {
+  background: #1d4ed8 !important;
+  border-color: #1d4ed8 !important;
+}
+
+.error {
+  background: #fef2f2;
+  border: 1px solid #ef4444;
+  border-radius: 6px;
+  padding: 12px 16px;
+  font-size: 13px;
+  color: #b91c1c;
+  margin-top: 16px;
+}
+
+.progressLog {
+  margin-top: 16px;
+  background: #1f2937;
+  border-radius: 6px;
+  padding: 16px;
+  font-family: monospace;
+  font-size: 12px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.progressLine {
+  color: #d1d5db;
+  line-height: 1.6;
+}
+
+.progressLine:empty {
+  height: 12px;
+}

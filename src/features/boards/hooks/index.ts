@@ -1,0 +1,1 @@
+export { useMiroBoardSync } from './useMiroBoardSync';

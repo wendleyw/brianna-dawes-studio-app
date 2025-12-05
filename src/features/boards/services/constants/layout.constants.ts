@@ -1,0 +1,81 @@
+/**
+ * Centralized Layout Constants for Miro Board Services
+ *
+ * All layout dimensions, spacing, and positioning values
+ * should be defined here to ensure consistency across services.
+ */
+
+// ==================== FRAME SIZES ====================
+
+/** Project frame dimensions (briefing and stages) */
+export const FRAME = {
+  WIDTH: 800,
+  HEIGHT: 600,
+  GAP: 30,           // Gap between frames horizontally
+  ROW_GAP: 50,       // Gap between project rows vertically
+} as const;
+
+// ==================== TIMELINE LAYOUT ====================
+
+/** Master Timeline frame and column configuration */
+export const TIMELINE = {
+  FRAME_WIDTH: 600,
+  FRAME_HEIGHT: 500,
+  COLUMN_WIDTH: 75,
+  COLUMN_HEIGHT: 380,
+  COLUMN_GAP: 6,
+  HEADER_HEIGHT: 26,
+  TITLE_HEIGHT: 35,
+  CARD_WIDTH: 68,
+  CARD_HEIGHT: 32,
+  CARD_GAP: 4,
+  PADDING: 12,
+  GAP_TO_PROJECTS: 50,  // Gap between timeline and projects
+} as const;
+
+// ==================== BRIEFING LAYOUT ====================
+
+/** Briefing frame internal layout */
+export const BRIEFING = {
+  PADDING: 20,
+  HEADER_HEIGHT: 50,
+  FORM: {
+    COLS: 3,
+    ROWS: 3,
+    CELL_WIDTH: 240,
+    CELL_HEIGHT: 80,
+    CELL_GAP: 10,
+  },
+  CREATIVE: {
+    HEADER_HEIGHT: 35,
+    PADDING: 15,
+  },
+} as const;
+
+// ==================== TITLE STYLING ====================
+
+/** Title text styling */
+export const TITLE = {
+  HEIGHT: 30,
+  GAP: 10,
+  FONT_SIZE: 18,
+} as const;
+
+// ==================== TEXT LIMITS ====================
+
+/** Text truncation limits */
+export const TEXT_LIMITS = {
+  MAX_DISPLAY_LENGTH: 60,
+  TRUNCATE_AT: 57,
+} as const;
+
+// ==================== TYPOGRAPHY ====================
+
+/** Font sizes for different contexts */
+export const FONT_SIZES = {
+  TITLE: 18,
+  HEADER: 13,
+  BODY: 10,
+  SMALL: 9,
+  TINY: 8,
+} as const;

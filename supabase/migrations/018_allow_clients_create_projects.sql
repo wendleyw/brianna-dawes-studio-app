@@ -1,0 +1,1 @@
+logger.ts:82 [NewProjectPage] [ERROR] Failed to create project {code: 'PGRST204', details: null, hint: null, message: "Could not find the 'briefing' column of 'projects' in the schema cache"}
