@@ -13,24 +13,62 @@ const AUTH_STORAGE_KEY = 'bd_auth_user';
 
 /**
  * Verify if a user still exists in the database
- * Returns true if user exists, false otherwise
+ * Returns the user data if exists, null otherwise
  */
-async function verifyUserExists(userId: string): Promise<boolean> {
+async function verifyUserExists(userId: string): Promise<{ exists: boolean; role?: string; primaryBoardId?: string | null }> {
   try {
     const { data, error } = await supabase
       .from('users')
-      .select('id')
+      .select('id, role, primary_board_id')
       .eq('id', userId)
       .maybeSingle();
 
     if (error) {
       logger.error('Error verifying user existence', error);
+      return { exists: false };
+    }
+
+    if (!data) {
+      return { exists: false };
+    }
+
+    return {
+      exists: true,
+      role: data.role as string,
+      primaryBoardId: data.primary_board_id as string | null
+    };
+  } catch (err) {
+    logger.error('Failed to verify user existence', err);
+    return { exists: false };
+  }
+}
+
+/**
+ * Verify if a client has a board assignment
+ * Returns true if client has primary_board_id or any entry in user_boards
+ */
+async function verifyClientHasBoardAssignment(userId: string, primaryBoardId: string | null): Promise<boolean> {
+  // If user has primary board, they have access
+  if (primaryBoardId) {
+    return true;
+  }
+
+  try {
+    // Check user_boards table
+    const { data, error } = await supabase
+      .from('user_boards')
+      .select('id')
+      .eq('user_id', userId)
+      .limit(1);
+
+    if (error) {
+      logger.error('Error checking board assignment', error);
       return false;
     }
 
-    return data !== null;
+    return !!(data && data.length > 0);
   } catch (err) {
-    logger.error('Failed to verify user existence', err);
+    logger.error('Failed to check board assignment', err);
     return false;
   }
 }
@@ -78,13 +116,32 @@ export function AuthProvider({ children }: AuthProviderProps) {
           } else {
             // Verify user still exists in database before using cached data
             logger.debug('Verifying stored user exists in database', { id: user.id });
-            const userExists = await verifyUserExists(user.id);
+            const userCheck = await verifyUserExists(user.id);
 
-            if (!userExists) {
+            if (!userCheck.exists) {
               logger.info('Stored user no longer exists in database, clearing cache', { id: user.id });
               localStorage.removeItem(AUTH_STORAGE_KEY);
               // Fall through to trigger re-auth
+            } else if (userCheck.role === 'client') {
+              // For clients, also verify they have a board assignment
+              const hasBoardAssignment = await verifyClientHasBoardAssignment(user.id, userCheck.primaryBoardId ?? null);
+              if (!hasBoardAssignment) {
+                logger.info('Client has no board assignment, clearing cache to trigger re-auth', { id: user.id });
+                localStorage.removeItem(AUTH_STORAGE_KEY);
+                // Fall through to trigger re-auth (will show "Pending Board Assignment" screen)
+              } else {
+                logger.debug('Using stored client user with board assignment', { name: user.name, role: user.role });
+                setState({
+                  user,
+                  session: null,
+                  isLoading: false,
+                  isAuthenticated: true,
+                  error: null,
+                });
+                return;
+              }
             } else {
+              // Non-client users (admin, designer) don't need board assignment
               logger.debug('Using stored user', { name: user.name, role: user.role });
               setState({
                 user,
