@@ -704,9 +704,9 @@ export function ProjectCard({
     <article className={`${styles.card} ${isSelected ? styles.selected : ''}`} data-project-id={project.id}>
       {/* Header */}
       <div className={styles.header}>
-        <div className={styles.badges}>
-          {/* Reviewed badge - shows first when client has reviewed */}
-          {project.wasReviewed && (
+        {/* Reviewed badge - highlighted at top when client has reviewed */}
+        {project.wasReviewed && (
+          <div className={styles.reviewedBanner}>
             <Badge
               variant="neutral"
               size="sm"
@@ -716,12 +716,28 @@ export function ProjectCard({
                 border: 'none',
                 fontWeight: 700,
                 letterSpacing: '0.5px',
+                padding: '4px 12px',
               }}
             >
-              REVIEWED
+              ✓ REVIEWED BY CLIENT
+            </Badge>
+          </div>
+        )}
+        {/* Badges row: Priority | Status | Type */}
+        <div className={styles.badges}>
+          {/* 1. Priority badge */}
+          {priority && (
+            <Badge
+              variant="neutral"
+              size="sm"
+              style={{ backgroundColor: priority.color, color: '#fff', border: 'none' }}
+            >
+              {priority.label}
             </Badge>
           )}
-          {/* Project Type badge */}
+          {/* 2. Status badge */}
+          <Badge variant={statusVariant} size="sm">{statusColumn.label}</Badge>
+          {/* 3. Project Type badge */}
           {(() => {
             const projectType = getProjectType(project);
             return projectType ? (
@@ -734,18 +750,6 @@ export function ProjectCard({
               </Badge>
             ) : null;
           })()}
-          {/* Status badge */}
-          <Badge variant={statusVariant} size="sm">{statusColumn.label}</Badge>
-          {/* Priority badge */}
-          {priority && (
-            <Badge
-              variant="neutral"
-              size="sm"
-              style={{ backgroundColor: priority.color, color: '#fff', border: 'none' }}
-            >
-              {priority.label}
-            </Badge>
-          )}
         </div>
       </div>
 

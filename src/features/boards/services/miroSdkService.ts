@@ -1034,42 +1034,11 @@ class MiroProjectRowService {
     const top = frameY - FRAME.HEIGHT / 2;
     const contentWidth = FRAME.WIDTH - BRIEFING.PADDING * 2;
 
-    // === LOGO (Brianna Dawes Studios) ===
-    const logoY = top + BRIEFING.PADDING + 30;
-    const LOGO_HEIGHT = 50;
-    try {
-      // Import env dynamically to get logo URL
-      const { env } = await import('@shared/config/env');
-      const logoUrl = env.brand.logoUrl;
-      log('MiroProject', `Attempting to add logo from URL: ${logoUrl}`);
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const board = miro.board as any;
-      log('MiroProject', `Available board methods: ${Object.keys(board).join(', ')}`);
-
-      if (typeof board.createImage === 'function') {
-        const logoImage = await board.createImage({
-          title: 'Brianna Dawes Studios',
-          url: logoUrl,
-          x: frameX,
-          y: logoY,
-          width: 120,
-          rotation: 0,
-        });
-        log('MiroProject', 'Logo added to briefing frame', logoImage?.id);
-      } else {
-        log('MiroProject', 'createImage method not available. Available methods:', Object.keys(board).filter(k => k.startsWith('create')));
-      }
-    } catch (e) {
-      log('MiroProject', 'Error adding logo to briefing:', e);
-      console.error('Logo creation error:', e);
-    }
-
-    // === HEADER (clean, dark) - positioned below logo ===
-    const headerY = logoY + LOGO_HEIGHT + 10;
+    // === HEADER (clean, dark with star icon) ===
+    const headerY = top + BRIEFING.PADDING + 20;
     await miro.board.createShape({
       shape: 'rectangle',
-      content: `<p><b>${project.name.toUpperCase()} - BRIEFING</b></p>`,
+      content: `<p><b>⋆ ${project.name.toUpperCase()} - BRIEFING ⋆</b></p>`,
       x: frameX,
       y: headerY,
       width: contentWidth,
