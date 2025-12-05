@@ -180,7 +180,7 @@ export function DashboardPage() {
         </div>
         <p className={styles.brandName}>BRIANNA DAWES STUDIOS</p>
         <h1 className={styles.welcome}>
-          Welcome, <em>{user?.name?.split(' ')[0] || 'User'}</em>
+          Welcome, <span className={styles.userName}>{user?.name?.split(' ')[0] || 'User'}</span>
         </h1>
       </header>
 
@@ -193,7 +193,7 @@ export function DashboardPage() {
               className={styles.actionCard}
               onClick={() => navigate('/projects/new')}
             >
-              <div className={styles.actionIcon} style={{ backgroundColor: '#D4A574' }}>
+              <div className={styles.actionIcon} style={{ backgroundColor: '#050038' }}>
                 <PlusIcon />
               </div>
               <span className={styles.actionLabel}>New</span>
