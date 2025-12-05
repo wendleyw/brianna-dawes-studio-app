@@ -90,15 +90,25 @@ export function UserManagement() {
   };
 
   const handleDelete = async (user: User) => {
+    console.log('[UserManagement] handleDelete called for:', user.name, user.id);
+
     if (isMainAdmin(user.email)) {
+      console.log('[UserManagement] Cannot delete main admin');
       setError('Cannot delete the main admin');
       return;
     }
-    if (!confirm(`Are you sure you want to delete ${user.name}?`)) return;
+
+    const confirmed = confirm(`Are you sure you want to delete ${user.name}?`);
+    console.log('[UserManagement] User confirmed:', confirmed);
+
+    if (!confirmed) return;
 
     try {
+      console.log('[UserManagement] Calling deleteUser.mutateAsync...');
       await deleteUser.mutateAsync(user.id);
+      console.log('[UserManagement] Delete successful');
     } catch (err) {
+      console.error('[UserManagement] Delete failed:', err);
       setError(err instanceof Error ? err.message : 'Failed to delete user');
     }
   };

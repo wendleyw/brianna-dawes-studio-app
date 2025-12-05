@@ -104,12 +104,22 @@ export const adminService = {
    * Delete a user
    */
   async deleteUser(id: string): Promise<void> {
-    const { error } = await supabase
+    console.log('[adminService] Deleting user:', id);
+
+    const { error, count } = await supabase
       .from('users')
       .delete()
-      .eq('id', id);
+      .eq('id', id)
+      .select();
 
-    if (error) throw error;
+    console.log('[adminService] Delete result:', { error, count });
+
+    if (error) {
+      console.error('[adminService] Delete error:', error);
+      throw error;
+    }
+
+    console.log('[adminService] User deleted successfully');
   },
 
   // ============ BOARD ASSIGNMENTS ============
