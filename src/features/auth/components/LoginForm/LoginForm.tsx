@@ -19,6 +19,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
   const [authError, setAuthError] = useState<string | null>(null);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [accessDenied, setAccessDenied] = useState(false);
+  const [pendingBoardAssignment, setPendingBoardAssignment] = useState(false);
   const [miroUserId, setMiroUserId] = useState<string | null>(null);
   const [wrongBoard, setWrongBoard] = useState<WrongBoardInfo | null>(null);
 
@@ -37,6 +38,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
     setIsAuthenticating(true);
     setAuthError(null);
     setAccessDenied(false);
+    setPendingBoardAssignment(false);
     setWrongBoard(null);
 
     try {
@@ -62,6 +64,18 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
       navigate(redirectTo, { replace: true });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Authentication failed. Please try again.';
+
+      // Check if this is a "pending board assignment" error
+      if (errorMessage.startsWith('PENDING_BOARD_ASSIGNMENT:')) {
+        setPendingBoardAssignment(true);
+        // Extract Miro ID from error message (format: PENDING_BOARD_ASSIGNMENT:miroId:message)
+        const parts = errorMessage.split(':');
+        if (parts[1]) {
+          setMiroUserId(parts[1]);
+        }
+        setIsAuthenticating(false);
+        return;
+      }
 
       // Check if this is a "user not found" error and extract Miro ID
       if (errorMessage.includes('Your Miro ID is:')) {
@@ -92,6 +106,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
   const handleRetry = () => {
     authAttempted.current = false;
     setAccessDenied(false);
+    setPendingBoardAssignment(false);
     setAuthError(null);
     setMiroUserId(null);
     setWrongBoard(null);
@@ -107,7 +122,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
   const displayError = authError || (error?.message);
 
   // Show loading state when auto-authenticating in Miro
-  if (isInMiro && isAuthenticating && !accessDenied) {
+  if (isInMiro && isAuthenticating && !accessDenied && !pendingBoardAssignment) {
     return (
       <div className={styles.form} style={{ padding: '24px' }}>
         <div className={styles.header}>
@@ -235,6 +250,128 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
             }}
           >
             Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Show Pending Board Assignment screen when user is registered but has no board
+  if (pendingBoardAssignment) {
+    return (
+      <div className={styles.form} style={{ padding: '24px' }}>
+        <div className={styles.header}>
+          <div className={styles.logo}>
+            <Logo size="xl" />
+          </div>
+          <h1 style={{
+            fontSize: '24px',
+            fontWeight: 700,
+            color: '#2563EB',
+            marginBottom: '8px',
+            fontFamily: 'Inter, system-ui, sans-serif'
+          }}>
+            Setup in Progress
+          </h1>
+          <p style={{
+            fontSize: '14px',
+            color: '#666666',
+            margin: 0
+          }}>
+            Your account has been registered successfully!
+          </p>
+        </div>
+
+        <div style={{
+          background: '#EFF6FF',
+          padding: '20px',
+          borderRadius: '12px',
+          marginTop: '20px',
+          marginBottom: '16px',
+          textAlign: 'center',
+          border: '1px solid #BFDBFE'
+        }}>
+          <div style={{
+            width: '48px',
+            height: '48px',
+            margin: '0 auto 12px',
+            background: '#2563EB',
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'white',
+            fontSize: '24px'
+          }}>
+            ⏳
+          </div>
+          <p style={{ fontSize: '14px', color: '#1E40AF', margin: '0 0 8px 0', fontWeight: 500 }}>
+            Waiting for Board Assignment
+          </p>
+          <p style={{ fontSize: '13px', color: '#3B82F6', margin: 0 }}>
+            An administrator needs to assign a workspace to your account before you can access the application.
+          </p>
+        </div>
+
+        {miroUserId && (
+          <div style={{
+            background: '#f5f5f5',
+            padding: '12px',
+            borderRadius: '8px',
+            marginBottom: '16px',
+            textAlign: 'center'
+          }}>
+            <p style={{ fontSize: '11px', color: '#888888', margin: '0 0 4px 0' }}>
+              Your Miro ID (for reference):
+            </p>
+            <code style={{
+              fontSize: '12px',
+              fontFamily: 'monospace',
+              color: '#050038'
+            }}>
+              {miroUserId}
+            </code>
+          </div>
+        )}
+
+        <div style={{
+          padding: '16px',
+          background: '#f9f9f9',
+          borderRadius: '8px'
+        }}>
+          <p style={{
+            fontSize: '12px',
+            color: '#888888',
+            textAlign: 'center',
+            margin: 0,
+            lineHeight: 1.5
+          }}>
+            Please contact the administrator if you believe this is taking too long.
+          </p>
+        </div>
+
+        <div style={{ marginTop: '20px' }}>
+          <button
+            type="button"
+            onClick={handleRetry}
+            style={{
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              padding: '12px',
+              backgroundColor: '#050038',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '14px',
+              fontWeight: 500,
+              cursor: 'pointer',
+              opacity: 0.8
+            }}
+          >
+            Check Again
           </button>
         </div>
       </div>

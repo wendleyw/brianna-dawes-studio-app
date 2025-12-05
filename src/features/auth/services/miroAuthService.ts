@@ -210,6 +210,31 @@ export const miroAuthService = {
       };
     }
 
+    // For clients, verify they have a board assignment before allowing access
+    if (user.role === 'client') {
+      // Check if client has a primary board OR any board assignment
+      let hasBoardAssignment = !!user.primary_board_id;
+
+      if (!hasBoardAssignment) {
+        // Check user_boards table for any assignment
+        const { data: boardAssignments } = await supabase
+          .from('user_boards')
+          .select('id')
+          .eq('user_id', user.id)
+          .limit(1);
+
+        hasBoardAssignment = !!(boardAssignments && boardAssignments.length > 0);
+      }
+
+      if (!hasBoardAssignment) {
+        logger.warn('Client has no board assignment', { userId: user.id, email: user.email });
+        return {
+          success: false,
+          error: `PENDING_BOARD_ASSIGNMENT:${miroUserId}:Your account is registered but no board has been assigned yet. Please wait for an administrator to assign your workspace.`,
+        };
+      }
+    }
+
     // Determine redirect based on role
     let redirectTo = '/dashboard';
 

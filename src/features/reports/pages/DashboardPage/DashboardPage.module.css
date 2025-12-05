@@ -293,6 +293,7 @@
   text-align: center;
   padding: var(--space-6);
   margin: 0;
+  flex: 1;
 }
 
 
