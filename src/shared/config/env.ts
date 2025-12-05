@@ -15,6 +15,12 @@ export const env = {
     env: (import.meta.env.VITE_APP_ENV as string) || 'development',
     isDev: import.meta.env.DEV,
     isProd: import.meta.env.PROD,
+    // App URL for public assets (logo, etc.)
+    url: (import.meta.env.VITE_APP_URL as string) || 'https://brianna-dawes-studio-app.vercel.app',
+  },
+  // Brand assets
+  brand: {
+    logoUrl: `${(import.meta.env.VITE_APP_URL as string) || 'https://brianna-dawes-studio-app.vercel.app'}/logo-brianna.png`,
   },
 } as const;
 

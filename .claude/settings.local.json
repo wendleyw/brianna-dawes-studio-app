@@ -15,7 +15,8 @@
       "Bash(git push:*)",
       "Bash(git commit -m \"$(cat <<''EOF''\nfix: resolve TypeScript build errors for Vercel deployment\n\n- Fix undefined checks in LoginForm and miroAuthService\n- Remove unsupported borderOpacity from Miro SDK styles\n- Add initialized property to MiroProjectRowService\n- Change JSX.Element to React.ReactElement for type compatibility\n- Fix exactOptionalPropertyTypes issues in ProjectForm, ProjectFilters, etc\n- Handle Supabase array/object return types in reportService\n- Add googleDriveUrl to CreateProjectInput type\n- Fix type assertions in useRealtimeSubscription\n- Rename ProjectFilters component export to avoid duplicate identifier\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
       "Bash(git commit -m \"$(cat <<''EOF''\nfix: use explicit colors in LoginForm screens for Miro SDK compatibility\n\nCSS variables were not resolving in the Miro SDK iframe context,\ncausing invisible text. Replaced all CSS variable references with\nexplicit hex colors on:\n- Access Restricted screen\n- Authenticating... screen  \n- Wrong Board screen\n- Welcome/Login screen\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(cat:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

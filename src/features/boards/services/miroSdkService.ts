@@ -1034,8 +1034,29 @@ class MiroProjectRowService {
     const top = frameY - FRAME.HEIGHT / 2;
     const contentWidth = FRAME.WIDTH - BRIEFING.PADDING * 2;
 
-    // === HEADER (clean, dark) ===
-    const headerY = top + BRIEFING.PADDING + 20;
+    // === LOGO (Brianna Dawes Studios) ===
+    const logoY = top + BRIEFING.PADDING + 30;
+    const LOGO_HEIGHT = 50;
+    try {
+      // Import env dynamically to get logo URL
+      const { env } = await import('@shared/config/env');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const board = miro.board as any;
+      if (board.createImage) {
+        await board.createImage({
+          url: env.brand.logoUrl,
+          x: frameX,
+          y: logoY,
+          width: 120,
+        });
+        log('MiroProject', 'Logo added to briefing frame');
+      }
+    } catch (e) {
+      log('MiroProject', 'Could not add logo to briefing', e);
+    }
+
+    // === HEADER (clean, dark) - positioned below logo ===
+    const headerY = logoY + LOGO_HEIGHT + 10;
     await miro.board.createShape({
       shape: 'rectangle',
       content: `<p><b>${project.name.toUpperCase()} - BRIEFING</b></p>`,
