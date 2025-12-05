@@ -1,8 +1,10 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { useEffect } from 'react';
+import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { LoginPage, ProtectedRoute } from '@features/auth';
 import { ProjectsPage, ProjectDetailPage, NewProjectPage } from '@features/projects';
 import { DashboardPage } from '@features/reports';
 import { AdminSettingsPage } from '@features/admin';
+import { useMiro } from '@features/boards';
 
 // Board redirect page - opens Miro board
 function BoardPage() {
@@ -28,6 +30,24 @@ const routerStyles: React.CSSProperties = {
 };
 
 export function Router() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { miro, isInMiro } = useMiro();
+
+  // Register icon:click handler to navigate to home when clicked
+  useEffect(() => {
+    if (!isInMiro || !miro) return;
+
+    const handleIconClick = () => {
+      // If not on home page, navigate to home
+      if (location.pathname !== '/') {
+        navigate('/');
+      }
+    };
+
+    miro.board.ui.on('icon:click', handleIconClick);
+  }, [isInMiro, miro, navigate, location.pathname]);
+
   return (
     <div style={routerStyles}>
     <Routes>
