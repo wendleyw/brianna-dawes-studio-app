@@ -288,9 +288,13 @@ ${formData.additionalNotes || 'Not specified'}
           </div>
         </div>
         <div className={styles.headerRight}>
-          <div className={styles.avatar}>
-            {user?.name?.charAt(0).toUpperCase() || 'U'}
-          </div>
+          {user?.avatarUrl && (
+            <img
+              src={user.avatarUrl}
+              alt={user.name || 'User'}
+              className={styles.avatar}
+            />
+          )}
         </div>
       </header>
 

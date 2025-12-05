@@ -63,7 +63,7 @@
   font-size: var(--text-xs);
   font-weight: var(--font-bold);
   letter-spacing: var(--tracking-widest);
-  color: #D4A574;
+  color: #050038;
   margin: 0;
 }
 
@@ -102,13 +102,7 @@
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background-color: #D4A574;
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: var(--font-semibold);
-  font-size: var(--text-sm);
+  object-fit: cover;
 }
 
 /* Search Bar */
