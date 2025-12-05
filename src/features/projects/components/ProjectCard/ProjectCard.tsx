@@ -1020,38 +1020,34 @@ export function ProjectCard({
             </div>
           )}
 
-          {/* Client Actions - Only visible for the ASSIGNED client of this project */}
-          {isAssignedClient && (
+          {/* Client Actions - Only visible for the ASSIGNED client when project is IN REVIEW */}
+          {isAssignedClient && isInReview && (
             <div className={styles.adminActions}>
               <h4 className={styles.actionsTitle}>YOUR ACTIONS</h4>
               <div className={styles.actionsGrid}>
-                {/* Stage - always available for client */}
+                {/* Stage - request new revision stage */}
                 <button className={styles.adminBtn} onClick={handleStageClick}>
                   <div className={styles.adminBtnIcon}><PlusIcon /></div>
                   <span>Stage</span>
                 </button>
 
-                {/* Move to Critical - always available for client */}
+                {/* Move to Critical - urgent attention needed */}
                 <button className={`${styles.adminBtn} ${styles.danger}`} onClick={handleClientCriticalClick}>
                   <div className={styles.adminBtnIcon}><StarIcon /></div>
                   <span>Critical</span>
                 </button>
 
-                {/* Reviewed/Approve - ONLY when in review status */}
-                {isInReview && (
-                  <button className={`${styles.adminBtn} ${styles.primary}`} onClick={handleClientApproveClick}>
-                    <div className={styles.adminBtnIcon}><CheckIcon /></div>
-                    <span>Reviewed</span>
-                  </button>
-                )}
+                {/* Reviewed - send back to designer for more work */}
+                <button className={`${styles.adminBtn} ${styles.primary}`} onClick={handleClientApproveClick}>
+                  <div className={styles.adminBtnIcon}><CheckIcon /></div>
+                  <span>Reviewed</span>
+                </button>
 
-                {/* Complete - ONLY when in review status */}
-                {isInReview && (
-                  <button className={`${styles.adminBtn} ${styles.success}`} onClick={handleCompleteClick}>
-                    <div className={styles.adminBtnIcon}><CheckIcon /></div>
-                    <span>Complete</span>
-                  </button>
-                )}
+                {/* Complete - approve and finalize project */}
+                <button className={`${styles.adminBtn} ${styles.success}`} onClick={handleCompleteClick}>
+                  <div className={styles.adminBtnIcon}><CheckIcon /></div>
+                  <span>Complete</span>
+                </button>
               </div>
             </div>
           )}
