@@ -57,7 +57,7 @@ function getMonthKey(dateString: string): string {
 // Get month label from key (e.g., "NOV" from "2024-11")
 function getMonthLabel(monthKey: string): string {
   const [year, month] = monthKey.split('-');
-  const date = new Date(parseInt(year), parseInt(month) - 1, 1);
+  const date = new Date(parseInt(year || '2024', 10), parseInt(month || '1', 10) - 1, 1);
   return date.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
 }
 

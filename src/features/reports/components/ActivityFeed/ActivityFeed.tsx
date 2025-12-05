@@ -1,17 +1,16 @@
 import { Skeleton } from '@shared/ui';
 import { useRecentActivity } from '../../hooks/useRecentActivity';
-import type { ActivityItem } from '../../domain/report.types';
 import styles from './ActivityFeed.module.css';
 
-const ACTIVITY_CONFIG: Record<ActivityItem['type'], { label: string; iconClass: string }> = {
-  deliverable_created: { label: 'criou', iconClass: styles.iconDeliverable },
-  version_uploaded: { label: 'enviou versão de', iconClass: styles.iconVersion },
-  feedback_added: { label: 'comentou em', iconClass: styles.iconFeedback },
-  status_changed: { label: 'atualizou status de', iconClass: styles.iconStatus },
-  project_created: { label: 'criou projeto', iconClass: styles.iconDeliverable },
+const ACTIVITY_CONFIG: Record<string, { label: string; iconClass: string }> = {
+  deliverable_created: { label: 'criou', iconClass: styles.iconDeliverable || '' },
+  version_uploaded: { label: 'enviou versão de', iconClass: styles.iconVersion || '' },
+  feedback_added: { label: 'comentou em', iconClass: styles.iconFeedback || '' },
+  status_changed: { label: 'atualizou status de', iconClass: styles.iconStatus || '' },
+  project_created: { label: 'criou projeto', iconClass: styles.iconDeliverable || '' },
 };
 
-const ACTIVITY_ICONS: Record<ActivityItem['type'], JSX.Element> = {
+const ACTIVITY_ICONS: Record<string, React.ReactElement> = {
   deliverable_created: (
     <svg className={styles.icon} fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -89,11 +88,11 @@ export function ActivityFeed({ limit = 20 }: ActivityFeedProps) {
       ) : (
         <div className={styles.list}>
           {activities.map((activity) => {
-            const config = ACTIVITY_CONFIG[activity.type];
+            const config = ACTIVITY_CONFIG[activity.type] || { label: 'atualizou', iconClass: '' };
 
             return (
               <div key={`${activity.id}-${activity.timestamp}`} className={styles.item}>
-                <div className={`${styles.iconWrapper} ${config.iconClass}`}>
+                <div className={`${styles.iconWrapper} ${config.iconClass || ''}`}>
                   {ACTIVITY_ICONS[activity.type]}
                 </div>
                 <div className={styles.content}>
@@ -101,7 +100,7 @@ export function ActivityFeed({ limit = 20 }: ActivityFeedProps) {
                     {activity.userName && (
                       <span className={styles.textHighlight}>{activity.userName} </span>
                     )}
-                    {config.label}{' '}
+                    {config.label || 'atualizou'}{' '}
                     <span className={styles.textHighlight}>{activity.itemName}</span>
                   </p>
                   <div className={styles.meta}>

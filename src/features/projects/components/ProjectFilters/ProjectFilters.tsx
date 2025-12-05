@@ -54,24 +54,36 @@ export function ProjectFilters({
     // Only update if debounced search actually changed
     if (debouncedSearch !== prevSearchRef.current) {
       prevSearchRef.current = debouncedSearch;
-      onFiltersChange({ ...filtersRef.current, search: debouncedSearch || undefined });
+      const newFilters = { ...filtersRef.current };
+      if (debouncedSearch) {
+        newFilters.search = debouncedSearch;
+      } else {
+        delete newFilters.search;
+      }
+      onFiltersChange(newFilters);
     }
   }, [debouncedSearch, onFiltersChange]);
 
   const handleStatusChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const value = e.target.value as ProjectStatus | '';
-    onFiltersChange({
-      ...filters,
-      status: value || undefined,
-    });
+    const newFilters = { ...filters };
+    if (value) {
+      newFilters.status = value;
+    } else {
+      delete newFilters.status;
+    }
+    onFiltersChange(newFilters);
   };
 
   const handlePriorityChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const value = e.target.value as ProjectPriority | '';
-    onFiltersChange({
-      ...filters,
-      priority: value || undefined,
-    });
+    const newFilters = { ...filters };
+    if (value) {
+      newFilters.priority = value;
+    } else {
+      delete newFilters.priority;
+    }
+    onFiltersChange(newFilters);
   };
 
   const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {

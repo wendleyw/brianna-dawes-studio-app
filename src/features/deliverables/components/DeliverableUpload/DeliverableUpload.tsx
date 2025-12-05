@@ -123,7 +123,7 @@ export function DeliverableUpload({
       await uploadVersion.mutateAsync({
         deliverableId,
         file: selectedFile,
-        comment: comment || undefined,
+        ...(comment ? { comment } : {}),
       });
       handleRemoveFile();
       onSuccess?.();

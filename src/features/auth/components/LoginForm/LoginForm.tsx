@@ -44,7 +44,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
         setAccessDenied(true);
         // Extract Miro ID from error message
         const match = errorMessage.match(/Your Miro ID is: (\d+)/);
-        if (match) {
+        if (match && match[1]) {
           setMiroUserId(match[1]);
         }
       }

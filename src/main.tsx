@@ -10,19 +10,7 @@ import '@shared/ui/styles/global.css';
 
 const logger = createLogger('Main');
 
-declare global {
-  interface Window {
-    miro: {
-      board: {
-        ui: {
-          on: (event: string, handler: () => void) => void;
-          openPanel: (options: { url: string; height?: number }) => Promise<void>;
-        };
-        getInfo: () => Promise<{ id: string }>;
-      };
-    };
-  }
-}
+// Miro types are declared in MiroContext.tsx
 
 // Wait for Miro SDK to be available (injected by Miro)
 function waitForMiro(timeout = 3000): Promise<boolean> {

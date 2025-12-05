@@ -117,7 +117,7 @@ export const miroAuthService = {
       const miroUser: MiroUser = {
         id: userInfo.id,
         email: userEmail,
-        name: userInfo.name || (userEmail ? userEmail.split('@')[0] : `User-${userInfo.id.slice(0, 8)}`),
+        name: userInfo.name || (userEmail ? userEmail.split('@')[0] : `User-${userInfo.id.slice(0, 8)}`) || `User-${userInfo.id.slice(0, 8)}`,
       };
 
       logger.debug('Final MiroUser', miroUser);

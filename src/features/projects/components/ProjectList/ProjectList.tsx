@@ -61,10 +61,10 @@ export function ProjectList({
           <ProjectCard
             key={project.id}
             project={project}
-            onView={onProjectClick}
-            onEdit={onProjectEdit}
-            onViewBoard={onViewBoard}
-            onUpdateGoogleDrive={onUpdateGoogleDrive}
+            {...(onProjectClick ? { onView: onProjectClick } : {})}
+            {...(onProjectEdit ? { onEdit: onProjectEdit } : {})}
+            {...(onViewBoard ? { onViewBoard: onViewBoard } : {})}
+            {...(onUpdateGoogleDrive ? { onUpdateGoogleDrive: onUpdateGoogleDrive } : {})}
           />
         ))}
       </div>

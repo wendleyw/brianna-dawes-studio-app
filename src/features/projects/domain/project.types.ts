@@ -81,6 +81,7 @@ export interface CreateProjectInput {
   miroBoardId?: string | null;
   miroBoardUrl?: string | null;
   briefing?: Partial<ProjectBriefing> | null;
+  googleDriveUrl?: string | null;
 }
 
 export interface UpdateProjectInput {

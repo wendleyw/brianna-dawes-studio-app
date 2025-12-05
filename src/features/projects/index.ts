@@ -47,7 +47,7 @@ export {
 } from './hooks';
 
 // Components
-export { ProjectCard, ProjectList, ProjectFilters, ProjectForm } from './components';
+export { ProjectCard, ProjectList, ProjectFilters as ProjectFiltersComponent, ProjectForm } from './components';
 export type {
   ProjectCardProps,
   ProjectListProps,

@@ -54,15 +54,15 @@ export function useRealtimeSubscription<T extends Record<string, unknown>>({
 
     const channel = supabase.channel(channelName);
 
-    const subscription = channel.on(
-      'postgres_changes',
+    const subscription = (channel as ReturnType<typeof supabase.channel>).on(
+      'postgres_changes' as unknown as 'system',
       {
         event,
         schema,
         table,
         filter,
-      },
-      handleChange
+      } as unknown as { event: 'system' },
+      handleChange as unknown as () => void
     );
 
     subscription.subscribe((status) => {

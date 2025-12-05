@@ -228,7 +228,6 @@ class MiroMasterTimelineService {
           fillColor: col.color,
           borderColor: 'transparent',
           borderWidth: 0,
-          borderOpacity: 0,
           color: '#FFFFFF',
           fontSize: 8,
           textAlign: 'center',
@@ -590,9 +589,12 @@ interface StageState {
   centerY: number;
 }
 
-interface ExtendedProjectRow extends ProjectRowState {
+interface ExtendedProjectRow extends Omit<ProjectRowState, 'y' | 'processFrameId'> {
   stages: StageState[];
   rowY: number;
+  clientName: string;
+  processFrameId: string;
+  y: number;
 }
 
 class MiroProjectRowService {
@@ -600,6 +602,7 @@ class MiroProjectRowService {
   private baseX: number = 0;
   private nextY: number = 0;
   private projectsHeaderCreated: boolean = false;
+  public initialized: boolean = false;
 
   /**
    * Scan the board for existing project frames and calculate next Y position
@@ -799,12 +802,12 @@ class MiroProjectRowService {
 
     // Zoom to show both the Timeline and the new project frames
     const timelineFrameId = miroTimelineService.getState()?.frameId;
-    const itemsToZoom: Array<{ id: string }> = [briefingFrame, stage1Frame];
+    const itemsToZoom = [briefingFrame, stage1Frame];
     if (timelineFrameId) {
       try {
         const timelineFrame = await miro.board.getById(timelineFrameId);
         if (timelineFrame) {
-          itemsToZoom.unshift(timelineFrame);
+          itemsToZoom.unshift(timelineFrame as typeof briefingFrame);
         }
       } catch (e) {
         log('MiroProject', 'Could not get timeline frame for zoom', e);
@@ -842,8 +845,9 @@ class MiroProjectRowService {
 
           if (stageFrames.length > 0) {
             // Extract project name from frame title: "🎯 Project Name - STAGE 1 [id]" -> "Project Name"
-            const firstStageTitle = stageFrames[0].title || '';
+            const firstStageTitle = stageFrames[0]?.title || '';
             const extractedName = firstStageTitle.replace(/^[📋🎯]\s*/, '').split(' - ')[0]?.trim() || projectName || 'Unknown';
+            const firstStageFrame = stageFrames[0];
 
             // Reconstruct the row state
             const stages: StageState[] = stageFrames.map((f, idx) => ({
@@ -856,8 +860,11 @@ class MiroProjectRowService {
             row = {
               projectId,
               projectName: extractedName,
-              rowY: stageFrames[0].y,
+              clientName: 'Client',
+              rowY: firstStageFrame?.y || 0,
+              y: firstStageFrame?.y || 0,
               briefingFrameId: projectFrames.find(f => f.title?.includes('- BRIEFING'))?.id || '',
+              processFrameId: firstStageFrame?.id || '',
               stages,
               briefingItems: [],
               processStages: stageFrames.map(f => ({
@@ -882,15 +889,15 @@ class MiroProjectRowService {
     }
 
     const num = row.stages.length + 1;
-    const last = row.stages[row.stages.length - 1];
-    if (!last) return null; // No existing stages to position from
+    const lastStage = row.stages[row.stages.length - 1];
+    if (!lastStage) return null; // No existing stages to position from
 
     // Get the actual frame from the board to check its real width (in case client expanded it)
-    let actualLastFrameWidth = FRAME.WIDTH;
-    let actualLastFrameX = last.centerX;
+    let actualLastFrameWidth: number = FRAME.WIDTH;
+    let actualLastFrameX: number = lastStage.centerX;
 
     try {
-      const lastFrame = await miro.board.getById(last.frameId) as { x: number; width: number } | null;
+      const lastFrame = await miro.board.getById(lastStage.frameId) as { x: number; width: number } | null;
       if (lastFrame) {
         actualLastFrameWidth = lastFrame.width || FRAME.WIDTH;
         actualLastFrameX = lastFrame.x;
@@ -987,7 +994,6 @@ class MiroProjectRowService {
         fillColor: PRIORITY_COLORS[project.priority] || '#6B7280',
         borderColor: 'transparent',
         borderWidth: 0,
-        borderOpacity: 0,
         color: '#FFFFFF',
         fontSize: 10,
         textAlign: 'center',
@@ -1010,7 +1016,6 @@ class MiroProjectRowService {
         fillColor: '#6366F1',
         borderColor: 'transparent',
         borderWidth: 0,
-        borderOpacity: 0,
         color: '#FFFFFF',
         fontSize: 10,
         textAlign: 'center',
@@ -1038,7 +1043,6 @@ class MiroProjectRowService {
         fillColor: isOverdue ? '#EF4444' : '#3B82F6',
         borderColor: 'transparent',
         borderWidth: 0,
-        borderOpacity: 0,
         color: '#FFFFFF',
         fontSize: 10,
         textAlign: 'center',
@@ -1063,7 +1067,6 @@ class MiroProjectRowService {
           fillColor: projectType.color,
           borderColor: 'transparent',
           borderWidth: 0,
-          borderOpacity: 0,
           color: '#FFFFFF',
           fontSize: 10,
           textAlign: 'center',

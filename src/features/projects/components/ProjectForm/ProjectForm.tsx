@@ -80,7 +80,8 @@ export function ProjectForm({
     }
 
     try {
-      await onSubmit(result.data);
+      // Cast to the expected type for onSubmit
+      await onSubmit(result.data as Parameters<typeof onSubmit>[0]);
     } catch (error) {
       setSubmitError(
         error instanceof Error ? error.message : 'Erro ao salvar projeto'
@@ -101,7 +102,7 @@ export function ProjectForm({
             placeholder="Ex: Redesign Website Corporativo"
             value={formData.name}
             onChange={handleChange('name')}
-            error={errors.name}
+            {...(errors.name ? { error: errors.name } : {})}
             disabled={isLoading}
             required
           />
@@ -191,7 +192,7 @@ export function ProjectForm({
             placeholder="UUID do cliente"
             value={formData.clientId}
             onChange={handleChange('clientId')}
-            error={errors.clientId}
+            {...(errors.clientId ? { error: errors.clientId } : {})}
             disabled={isLoading}
             required
             helperText="Selecione o cliente responsável pelo projeto"

@@ -60,18 +60,25 @@ class ReportService {
       .order('due_date', { ascending: true })
       .limit(10);
 
-    const upcomingDeadlines: DeadlineItem[] = (deadlines || []).map((d) => ({
-      id: d.id,
-      name: d.name,
-      projectId: (d.project as { id: string })?.id || '',
-      projectName: (d.project as { name: string })?.name || '',
-      dueDate: d.due_date,
-      daysRemaining: Math.ceil(
-        (new Date(d.due_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
-      ),
-      status: d.status,
-      priority: (d.project as { priority: string })?.priority || 'medium',
-    }));
+    const upcomingDeadlines: DeadlineItem[] = (deadlines || []).map((d) => {
+      // d.project can be an array or single object depending on Supabase version
+      const projectData = d.project;
+      const project = Array.isArray(projectData)
+        ? projectData[0] as { id: string; name: string; priority: string } | undefined
+        : projectData as { id: string; name: string; priority: string } | null;
+      return {
+        id: d.id,
+        name: d.name,
+        projectId: project?.id || '',
+        projectName: project?.name || '',
+        dueDate: d.due_date,
+        daysRemaining: Math.ceil(
+          (new Date(d.due_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+        ),
+        status: d.status,
+        priority: project?.priority || 'medium',
+      };
+    });
 
     // Calculate completion rate
     const { count: totalDeliverables } = await supabase
@@ -197,18 +204,29 @@ class ReportService {
       `)
       .eq('uploaded_by_id', designerId);
 
+    const deliverableIds = (deliverables || [])
+      .map((d) => {
+        const delData = d.deliverable;
+        const del = Array.isArray(delData)
+          ? delData[0] as { id: string; status: string } | undefined
+          : delData as { id: string; status: string } | null;
+        return del?.id;
+      })
+      .filter((id): id is string => Boolean(id));
+
     const { data: feedback } = await supabase
       .from('deliverable_feedback')
       .select('id')
-      .in(
-        'deliverable_id',
-        (deliverables || []).map((d) => (d.deliverable as { id: string })?.id).filter(Boolean)
-      );
+      .in('deliverable_id', deliverableIds.length > 0 ? deliverableIds : ['']);
 
     const created = deliverables?.length || 0;
-    const approved = deliverables?.filter(
-      (d) => (d.deliverable as { status: string })?.status === 'approved'
-    ).length || 0;
+    const approved = deliverables?.filter((d) => {
+      const delData = d.deliverable;
+      const del = Array.isArray(delData)
+        ? delData[0] as { id: string; status: string } | undefined
+        : delData as { id: string; status: string } | null;
+      return del?.status === 'approved';
+    }).length || 0;
 
     return {
       designerId,
