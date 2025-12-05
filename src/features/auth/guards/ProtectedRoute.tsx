@@ -171,7 +171,6 @@ function PendingBoardAssignment({ miroUserId }: { miroUserId: string | null }) {
  * Component shown when client is on the wrong board
  */
 function WrongBoardAccess({ correctBoardId }: { correctBoardId: string }) {
-  const { logout } = useAuth();
   const correctBoardUrl = `https://miro.com/app/board/${correctBoardId}/`;
 
   const handleGoToCorrectBoard = () => {
@@ -275,8 +274,7 @@ function WrongBoardAccess({ correctBoardId }: { correctBoardId: string }) {
         <div style={{
           padding: '16px',
           background: '#f9f9f9',
-          borderRadius: '8px',
-          marginBottom: '20px'
+          borderRadius: '8px'
         }}>
           <p style={{
             fontSize: '12px',
@@ -288,28 +286,6 @@ function WrongBoardAccess({ correctBoardId }: { correctBoardId: string }) {
             Each client has a dedicated board. Please use the button above to access yours.
           </p>
         </div>
-
-        <button
-          type="button"
-          onClick={logout}
-          style={{
-            width: '100%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px',
-            padding: '12px',
-            backgroundColor: 'transparent',
-            color: '#666666',
-            border: '1px solid #e0e0e0',
-            borderRadius: '8px',
-            fontSize: '14px',
-            fontWeight: 500,
-            cursor: 'pointer'
-          }}
-        >
-          Sign Out
-        </button>
       </div>
     </div>
   );
