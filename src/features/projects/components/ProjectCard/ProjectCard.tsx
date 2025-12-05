@@ -390,21 +390,34 @@ export function ProjectCard({
     // Try to zoom to project frame on Miro board
     if (typeof miro !== 'undefined') {
       try {
-        const allItems = await miro.board.get();
-
         // First try to find by miroBoardId (stored Miro item ID)
         if (project.miroBoardId) {
-          const itemById = allItems.find((item: { id?: string }) => item.id === project.miroBoardId);
-          if (itemById) {
-            await miro.board.viewport.zoomTo([itemById]);
-            return;
+          try {
+            const itemById = await miro.board.getById(project.miroBoardId);
+            if (itemById) {
+              await miro.board.viewport.zoomTo([itemById]);
+              return;
+            }
+          } catch {
+            // Item not found by ID, continue with other methods
           }
         }
 
-        // Try to find frame with project ID in title
-        const frames = await miro.board.get({ type: 'frame' });
-        const projectFrame = frames.find((frame: { title?: string; id?: string }) =>
-          frame.title?.includes(project.id)
+        // Try to find BRIEFING frame by project NAME in title
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const frames = await miro.board.get({ type: 'frame' }) as any[];
+        const briefingFrame = frames.find((frame) =>
+          frame.title?.includes(project.name) && frame.title?.includes('BRIEFING')
+        );
+
+        if (briefingFrame) {
+          await miro.board.viewport.zoomTo([briefingFrame]);
+          return;
+        }
+
+        // Try to find any frame with project name
+        const projectFrame = frames.find((frame) =>
+          frame.title?.includes(project.name)
         );
 
         if (projectFrame) {
@@ -412,27 +425,66 @@ export function ProjectCard({
           return;
         }
 
-        // Try to find card/sticky with project ID in content
-        const projectItem = allItems.find((item: { content?: string; title?: string }) =>
-          item.content?.includes(project.id) ||
-          item.title?.includes(project.id)
+        // Try to find timeline card by projectId in description
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const cards = await miro.board.get({ type: 'card' }) as any[];
+        const projectCard = cards.find((card) =>
+          card.description?.includes(`projectId:${project.id}`)
         );
 
-        if (projectItem) {
-          await miro.board.viewport.zoomTo([projectItem]);
+        if (projectCard) {
+          await miro.board.viewport.zoomTo([projectCard]);
           return;
         }
+
+        logger.debug('Could not find project on board', { name: project.name, id: project.id });
       } catch (err) {
-        logger.debug('Could not find project on board', err);
+        logger.debug('Error searching for project on board', err);
       }
     }
 
-    // Fall back to callback or opening URL
+    // Fall back to callback
     if (onViewBoard) {
       onViewBoard(project);
-    } else if (project.miroBoardUrl) {
-      window.open(project.miroBoardUrl, '_blank');
     }
+  };
+
+  /**
+   * Zoom to a Miro item by URL or ID
+   * Extracts item ID from Miro URL and zooms to it
+   */
+  const zoomToMiroItem = async (urlOrId: string): Promise<boolean> => {
+    if (typeof miro === 'undefined') return false;
+
+    try {
+      // Extract item ID from Miro URL if it's a URL
+      // Miro URLs look like: https://miro.com/app/board/xxx/?moveToWidget=ID
+      // or just an ID directly
+      let itemId = urlOrId;
+
+      if (urlOrId.includes('miro.com')) {
+        // Try to extract moveToWidget parameter
+        const url = new URL(urlOrId);
+        const moveToWidget = url.searchParams.get('moveToWidget');
+        if (moveToWidget) {
+          itemId = moveToWidget;
+        } else {
+          // Can't extract ID from URL, return false
+          return false;
+        }
+      }
+
+      // Try to get the item and zoom to it
+      const item = await miro.board.getById(itemId);
+      if (item) {
+        await miro.board.viewport.zoomTo([item]);
+        return true;
+      }
+    } catch (err) {
+      logger.debug('Could not zoom to Miro item', err);
+    }
+
+    return false;
   };
 
   const handleGoogleDrive = (e: React.MouseEvent) => {
@@ -788,8 +840,14 @@ export function ProjectCard({
                     {d.miroUrl && (
                       <button
                         className={styles.deliverableLink}
-                        onClick={(e) => { e.stopPropagation(); window.open(d.miroUrl!, '_blank'); }}
-                        title="Miro"
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          const zoomed = await zoomToMiroItem(d.miroUrl!);
+                          if (!zoomed) {
+                            window.open(d.miroUrl!, '_blank');
+                          }
+                        }}
+                        title="View on Board"
                       >
                         <BoardIcon />
                       </button>
@@ -1240,7 +1298,15 @@ export function ProjectCard({
                   <span>{d.name}</span>
                   <div className={styles.deliverableItemLinks}>
                     {d.miroUrl && (
-                      <button onClick={() => window.open(d.miroUrl!, '_blank')} title="View on Board">
+                      <button
+                        onClick={async () => {
+                          const zoomed = await zoomToMiroItem(d.miroUrl!);
+                          if (!zoomed) {
+                            window.open(d.miroUrl!, '_blank');
+                          }
+                        }}
+                        title="View on Board"
+                      >
                         <BoardIcon />
                       </button>
                     )}
