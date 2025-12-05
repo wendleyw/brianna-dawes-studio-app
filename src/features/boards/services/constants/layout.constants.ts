@@ -19,17 +19,17 @@ export const FRAME = {
 
 /** Master Timeline frame and column configuration */
 export const TIMELINE = {
-  FRAME_WIDTH: 600,
+  FRAME_WIDTH: 800,      // Increased to fit all 7 columns
   FRAME_HEIGHT: 500,
-  COLUMN_WIDTH: 75,
+  COLUMN_WIDTH: 95,      // Wider columns for better readability
   COLUMN_HEIGHT: 380,
-  COLUMN_GAP: 6,
-  HEADER_HEIGHT: 26,
+  COLUMN_GAP: 8,         // Slightly larger gap
+  HEADER_HEIGHT: 28,
   TITLE_HEIGHT: 35,
-  CARD_WIDTH: 68,
+  CARD_WIDTH: 88,        // Wider cards
   CARD_HEIGHT: 32,
   CARD_GAP: 4,
-  PADDING: 12,
+  PADDING: 15,
   GAP_TO_PROJECTS: 50,  // Gap between timeline and projects
 } as const;
 
