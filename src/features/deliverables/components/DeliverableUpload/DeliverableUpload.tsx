@@ -41,7 +41,7 @@ export function DeliverableUpload({
     (file: File): string | null => {
       const maxSizeBytes = maxSizeMB * 1024 * 1024;
       if (file.size > maxSizeBytes) {
-        return `Arquivo muito grande. Tamanho máximo: ${maxSizeMB}MB`;
+        return `File too large. Maximum size: ${maxSizeMB}MB`;
       }
       return null;
     },
@@ -128,7 +128,7 @@ export function DeliverableUpload({
       handleRemoveFile();
       onSuccess?.();
     } catch (err) {
-      const error = err instanceof Error ? err : new Error('Erro ao fazer upload');
+      const error = err instanceof Error ? err : new Error('Upload failed');
       setError(error.message);
       onError?.(error);
     }
@@ -163,10 +163,10 @@ export function DeliverableUpload({
           </svg>
           <div className={styles.text}>
             <p className={styles.title}>
-              Arraste e solte ou <span className={styles.highlight}>clique para selecionar</span>
+              Drag and drop or <span className={styles.highlight}>click to select</span>
             </p>
             <p className={styles.subtitle}>
-              Tamanho máximo: {maxSizeMB}MB
+              Maximum size: {maxSizeMB}MB
             </p>
           </div>
           <input
@@ -198,7 +198,7 @@ export function DeliverableUpload({
               className={styles.previewRemove}
               onClick={handleRemoveFile}
               disabled={uploadVersion.isPending}
-              aria-label="Remover arquivo"
+              aria-label="Remove file"
             >
               <svg className={styles.previewRemoveIcon} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -207,10 +207,10 @@ export function DeliverableUpload({
           </div>
 
           <div className={styles.commentField}>
-            <label className={styles.commentLabel}>Comentário (opcional)</label>
+            <label className={styles.commentLabel}>Comment (optional)</label>
             <textarea
               className={styles.commentInput}
-              placeholder="Descreva as alterações nesta versão..."
+              placeholder="Describe the changes in this version..."
               value={comment}
               onChange={(e) => setComment(e.target.value)}
               disabled={uploadVersion.isPending}
@@ -219,10 +219,10 @@ export function DeliverableUpload({
 
           <div className={styles.actions}>
             <Button variant="secondary" onClick={handleRemoveFile} disabled={uploadVersion.isPending}>
-              Cancelar
+              Cancel
             </Button>
             <Button variant="primary" onClick={handleUpload} isLoading={uploadVersion.isPending}>
-              Fazer Upload
+              Upload
             </Button>
           </div>
         </>

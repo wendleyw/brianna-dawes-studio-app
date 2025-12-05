@@ -8,7 +8,12 @@
       "Bash(npm run build:*)",
       "Bash(npx tsc:*)",
       "Bash(npm run dev:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nInitial commit: Miro App for Brianna Dawes Studios\n\nProject management system that transforms Miro boards into a comprehensive \nproject management hub for design studios.\n\nFeatures:\n- React 19 + Vite 6 + TypeScript\n- Supabase backend with RLS\n- Miro SDK v2 integration\n- Role-based access (Admin, Designer, Client)\n- Real-time sync between DB and Miro boards\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git remote add:*)",
+      "Bash(git branch:*)",
+      "Bash(git push:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nfix: resolve TypeScript build errors for Vercel deployment\n\n- Fix undefined checks in LoginForm and miroAuthService\n- Remove unsupported borderOpacity from Miro SDK styles\n- Add initialized property to MiroProjectRowService\n- Change JSX.Element to React.ReactElement for type compatibility\n- Fix exactOptionalPropertyTypes issues in ProjectForm, ProjectFilters, etc\n- Handle Supabase array/object return types in reportService\n- Add googleDriveUrl to CreateProjectInput type\n- Fix type assertions in useRealtimeSubscription\n- Rename ProjectFilters component export to avoid duplicate identifier\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")"
     ]
   },
   "enableAllProjectMcpServers": true,

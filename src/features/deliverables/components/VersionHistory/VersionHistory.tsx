@@ -13,7 +13,7 @@ function formatFileSize(bytes: number): string {
 }
 
 function formatDate(dateString: string): string {
-  return new Date(dateString).toLocaleDateString('pt-BR', {
+  return new Date(dateString).toLocaleDateString('en-US', {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
@@ -37,7 +37,7 @@ export function VersionHistory({
   if (isLoading) {
     return (
       <div className={styles.container}>
-        <h3 className={styles.title}>Histórico de Versões</h3>
+        <h3 className={styles.title}>Version History</h3>
         <div className={styles.loading}>
           {Array.from({ length: 3 }).map((_, i) => (
             <Skeleton key={i} className={styles.skeleton} />
@@ -50,15 +50,15 @@ export function VersionHistory({
   if (!versions || versions.length === 0) {
     return (
       <div className={styles.container}>
-        <h3 className={styles.title}>Histórico de Versões</h3>
-        <div className={styles.empty}>Nenhuma versão disponível</div>
+        <h3 className={styles.title}>Version History</h3>
+        <div className={styles.empty}>No versions available</div>
       </div>
     );
   }
 
   return (
     <div className={styles.container}>
-      <h3 className={styles.title}>Histórico de Versões ({versions.length})</h3>
+      <h3 className={styles.title}>Version History ({versions.length})</h3>
       <div className={styles.list}>
         {versions.map((version) => {
           const isCurrent = version.id === currentVersionId;
@@ -78,7 +78,7 @@ export function VersionHistory({
               <div className={styles.content}>
                 <div className={styles.header}>
                   <span className={styles.fileName}>{version.fileName}</span>
-                  {isCurrent && <span className={styles.currentBadge}>Atual</span>}
+                  {isCurrent && <span className={styles.currentBadge}>Current</span>}
                 </div>
 
                 <div className={styles.meta}>

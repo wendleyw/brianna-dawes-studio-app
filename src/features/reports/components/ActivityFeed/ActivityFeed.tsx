@@ -3,11 +3,11 @@ import { useRecentActivity } from '../../hooks/useRecentActivity';
 import styles from './ActivityFeed.module.css';
 
 const ACTIVITY_CONFIG: Record<string, { label: string; iconClass: string }> = {
-  deliverable_created: { label: 'criou', iconClass: styles.iconDeliverable || '' },
-  version_uploaded: { label: 'enviou versão de', iconClass: styles.iconVersion || '' },
-  feedback_added: { label: 'comentou em', iconClass: styles.iconFeedback || '' },
-  status_changed: { label: 'atualizou status de', iconClass: styles.iconStatus || '' },
-  project_created: { label: 'criou projeto', iconClass: styles.iconDeliverable || '' },
+  deliverable_created: { label: 'created', iconClass: styles.iconDeliverable || '' },
+  version_uploaded: { label: 'uploaded version of', iconClass: styles.iconVersion || '' },
+  feedback_added: { label: 'commented on', iconClass: styles.iconFeedback || '' },
+  status_changed: { label: 'updated status of', iconClass: styles.iconStatus || '' },
+  project_created: { label: 'created project', iconClass: styles.iconDeliverable || '' },
 };
 
 const ACTIVITY_ICONS: Record<string, React.ReactElement> = {
@@ -47,12 +47,12 @@ function formatRelativeTime(timestamp: string): string {
   const hours = Math.floor(diff / 3600000);
   const days = Math.floor(diff / 86400000);
 
-  if (minutes < 1) return 'agora';
-  if (minutes < 60) return `${minutes}m atrás`;
-  if (hours < 24) return `${hours}h atrás`;
-  if (days < 7) return `${days}d atrás`;
+  if (minutes < 1) return 'now';
+  if (minutes < 60) return `${minutes}m ago`;
+  if (hours < 24) return `${hours}h ago`;
+  if (days < 7) return `${days}d ago`;
 
-  return new Date(timestamp).toLocaleDateString('pt-BR');
+  return new Date(timestamp).toLocaleDateString('en-US');
 }
 
 interface ActivityFeedProps {
@@ -66,7 +66,7 @@ export function ActivityFeed({ limit = 20 }: ActivityFeedProps) {
     return (
       <div className={styles.container}>
         <div className={styles.header}>
-          <h3 className={styles.title}>Atividade Recente</h3>
+          <h3 className={styles.title}>Recent Activity</h3>
         </div>
         <div className={styles.loading}>
           {Array.from({ length: 5 }).map((_, i) => (
@@ -80,15 +80,15 @@ export function ActivityFeed({ limit = 20 }: ActivityFeedProps) {
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <h3 className={styles.title}>Atividade Recente</h3>
+        <h3 className={styles.title}>Recent Activity</h3>
       </div>
 
       {!activities || activities.length === 0 ? (
-        <div className={styles.empty}>Nenhuma atividade recente</div>
+        <div className={styles.empty}>No recent activity</div>
       ) : (
         <div className={styles.list}>
           {activities.map((activity) => {
-            const config = ACTIVITY_CONFIG[activity.type] || { label: 'atualizou', iconClass: '' };
+            const config = ACTIVITY_CONFIG[activity.type] || { label: 'updated', iconClass: '' };
 
             return (
               <div key={`${activity.id}-${activity.timestamp}`} className={styles.item}>
@@ -100,7 +100,7 @@ export function ActivityFeed({ limit = 20 }: ActivityFeedProps) {
                     {activity.userName && (
                       <span className={styles.textHighlight}>{activity.userName} </span>
                     )}
-                    {config.label || 'atualizou'}{' '}
+                    {config.label || 'updated'}{' '}
                     <span className={styles.textHighlight}>{activity.itemName}</span>
                   </p>
                   <div className={styles.meta}>

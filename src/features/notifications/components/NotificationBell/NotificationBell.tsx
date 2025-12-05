@@ -13,12 +13,12 @@ function formatRelativeTime(timestamp: string): string {
   const hours = Math.floor(diff / 3600000);
   const days = Math.floor(diff / 86400000);
 
-  if (minutes < 1) return 'agora';
+  if (minutes < 1) return 'now';
   if (minutes < 60) return `${minutes}m`;
   if (hours < 24) return `${hours}h`;
   if (days < 7) return `${days}d`;
 
-  return new Date(timestamp).toLocaleDateString('pt-BR');
+  return new Date(timestamp).toLocaleDateString('en-US');
 }
 
 const NOTIFICATION_ICONS: Record<string, React.ReactElement> = {
@@ -87,7 +87,7 @@ export function NotificationBell() {
       <button
         className={styles.button}
         onClick={() => setIsOpen(!isOpen)}
-        aria-label="Notificações"
+        aria-label="Notifications"
       >
         <svg className={styles.icon} fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path
@@ -105,16 +105,16 @@ export function NotificationBell() {
       {isOpen && (
         <div className={styles.dropdown}>
           <div className={styles.header}>
-            <h3 className={styles.title}>Notificações</h3>
+            <h3 className={styles.title}>Notifications</h3>
             {unreadCount > 0 && (
               <button className={styles.markAllRead} onClick={markAllAsRead}>
-                Marcar todas como lidas
+                Mark all as read
               </button>
             )}
           </div>
 
           {notifications.length === 0 ? (
-            <div className={styles.empty}>Nenhuma notificação</div>
+            <div className={styles.empty}>No notifications</div>
           ) : (
             <div className={styles.list}>
               {notifications.slice(0, 10).map((notification) => (
@@ -140,7 +140,7 @@ export function NotificationBell() {
 
           <div className={styles.footer}>
             <Link to="/notifications" className={styles.viewAll} onClick={() => setIsOpen(false)}>
-              Ver todas as notificações
+              View all notifications
             </Link>
           </div>
         </div>

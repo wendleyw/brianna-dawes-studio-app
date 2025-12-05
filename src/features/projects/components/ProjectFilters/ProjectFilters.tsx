@@ -103,7 +103,7 @@ export function ProjectFilters({
       <div className={styles.row}>
         <div className={styles.searchWrapper}>
           <Input
-            placeholder="Buscar projetos..."
+            placeholder="Search projects..."
             value={searchValue}
             onChange={(e) => setSearchValue(e.target.value)}
             leftAddon={
@@ -130,7 +130,7 @@ export function ProjectFilters({
         </div>
 
         <div className={styles.filterGroup}>
-          <label className={styles.label}>Prioridade</label>
+          <label className={styles.label}>Priority</label>
           <select
             className={styles.select}
             value={(filters.priority as string) || ''}
@@ -145,7 +145,7 @@ export function ProjectFilters({
         </div>
 
         <div className={styles.filterGroup}>
-          <label className={styles.label}>Ordenar por</label>
+          <label className={styles.label}>Sort by</label>
           <select
             className={styles.select}
             value={`${sort.field}:${sort.direction}`}
@@ -162,7 +162,7 @@ export function ProjectFilters({
         {hasActiveFilters && (
           <div className={styles.actions}>
             <Button variant="ghost" size="sm" onClick={handleReset}>
-              Limpar filtros
+              Clear filters
             </Button>
           </div>
         )}

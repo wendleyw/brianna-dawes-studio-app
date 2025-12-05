@@ -84,7 +84,7 @@ export function ProjectForm({
       await onSubmit(result.data as Parameters<typeof onSubmit>[0]);
     } catch (error) {
       setSubmitError(
-        error instanceof Error ? error.message : 'Erro ao salvar projeto'
+        error instanceof Error ? error.message : 'Error saving project'
       );
     }
   };
@@ -94,12 +94,12 @@ export function ProjectForm({
       {submitError && <div className={styles.submitError}>{submitError}</div>}
 
       <div className={styles.section}>
-        <h3 className={styles.sectionTitle}>Informações Básicas</h3>
+        <h3 className={styles.sectionTitle}>Basic Information</h3>
 
         <div className={styles.field}>
           <Input
-            label="Nome do Projeto"
-            placeholder="Ex: Redesign Website Corporativo"
+            label="Project Name"
+            placeholder="E.g.: Corporate Website Redesign"
             value={formData.name}
             onChange={handleChange('name')}
             {...(errors.name ? { error: errors.name } : {})}
@@ -109,10 +109,10 @@ export function ProjectForm({
         </div>
 
         <div className={styles.field}>
-          <label className={styles.label}>Descrição</label>
+          <label className={styles.label}>Description</label>
           <textarea
             className={styles.textarea}
-            placeholder="Descreva os objetivos e escopo do projeto..."
+            placeholder="Describe the project goals and scope..."
             value={formData.description}
             onChange={handleChange('description')}
             disabled={isLoading}
@@ -138,7 +138,7 @@ export function ProjectForm({
           </div>
 
           <div className={styles.field}>
-            <label className={styles.label}>Prioridade</label>
+            <label className={styles.label}>Priority</label>
             <select
               className={styles.select}
               value={formData.priority}
@@ -156,11 +156,11 @@ export function ProjectForm({
       </div>
 
       <div className={styles.section}>
-        <h3 className={styles.sectionTitle}>Datas</h3>
+        <h3 className={styles.sectionTitle}>Dates</h3>
 
         <div className={styles.row}>
           <div className={styles.field}>
-            <label className={styles.label}>Data de Início</label>
+            <label className={styles.label}>Start Date</label>
             <input
               type="date"
               className={styles.dateInput}
@@ -171,7 +171,7 @@ export function ProjectForm({
           </div>
 
           <div className={styles.field}>
-            <label className={styles.label}>Prazo de Entrega</label>
+            <label className={styles.label}>Due Date</label>
             <input
               type="date"
               className={styles.dateInput}
@@ -184,18 +184,18 @@ export function ProjectForm({
       </div>
 
       <div className={styles.section}>
-        <h3 className={styles.sectionTitle}>Atribuição</h3>
+        <h3 className={styles.sectionTitle}>Assignment</h3>
 
         <div className={styles.field}>
           <Input
-            label="ID do Cliente"
-            placeholder="UUID do cliente"
+            label="Client ID"
+            placeholder="Client UUID"
             value={formData.clientId}
             onChange={handleChange('clientId')}
             {...(errors.clientId ? { error: errors.clientId } : {})}
             disabled={isLoading}
             required
-            helperText="Selecione o cliente responsável pelo projeto"
+            helperText="Select the client responsible for this project"
           />
         </div>
       </div>
@@ -203,11 +203,11 @@ export function ProjectForm({
       <div className={styles.actions}>
         {onCancel && (
           <Button type="button" variant="secondary" onClick={onCancel} disabled={isLoading}>
-            Cancelar
+            Cancel
           </Button>
         )}
         <Button type="submit" variant="primary" isLoading={isLoading}>
-          {isEditing ? 'Salvar Alterações' : 'Criar Projeto'}
+          {isEditing ? 'Save Changes' : 'Create Project'}
         </Button>
       </div>
     </form>

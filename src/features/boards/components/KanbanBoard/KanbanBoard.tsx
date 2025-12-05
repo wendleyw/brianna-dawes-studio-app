@@ -52,7 +52,7 @@ export function KanbanBoard({
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return null;
-    return new Date(dateString).toLocaleDateString('pt-BR', {
+    return new Date(dateString).toLocaleDateString('en-US', {
       day: '2-digit',
       month: 'short',
     });
@@ -110,7 +110,7 @@ export function KanbanBoard({
               >
                 {columnCards.length === 0 ? (
                   <div className={styles.empty}>
-                    Nenhum item
+                    No items
                   </div>
                 ) : (
                   columnCards.map((card) => (
@@ -130,7 +130,7 @@ export function KanbanBoard({
                           className={`${styles.cardPriority} ${
                             PRIORITY_CLASS[card.priority] || styles.priorityMedium
                           }`}
-                          title={`Prioridade: ${card.priority}`}
+                          title={`Priority: ${card.priority}`}
                         />
                       </div>
 
@@ -169,7 +169,7 @@ export function KanbanBoard({
 
       {state.lastSyncAt && (
         <div className={styles.lastSync}>
-          Última sincronização: {new Date(state.lastSyncAt).toLocaleString('pt-BR')}
+          Last sync: {new Date(state.lastSyncAt).toLocaleString('en-US')}
         </div>
       )}
     </>
