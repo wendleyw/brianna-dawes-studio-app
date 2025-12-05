@@ -1049,14 +1049,16 @@ class MiroProjectRowService {
 
       if (typeof board.createImage === 'function') {
         const logoImage = await board.createImage({
+          title: 'Brianna Dawes Studios',
           url: logoUrl,
           x: frameX,
           y: logoY,
           width: 120,
+          rotation: 0,
         });
-        log('MiroProject', 'Logo added to briefing frame', logoImage);
+        log('MiroProject', 'Logo added to briefing frame', logoImage?.id);
       } else {
-        log('MiroProject', 'createImage method not available on board');
+        log('MiroProject', 'createImage method not available. Available methods:', Object.keys(board).filter(k => k.startsWith('create')));
       }
     } catch (e) {
       log('MiroProject', 'Error adding logo to briefing:', e);
