@@ -309,8 +309,9 @@
 }
 
 .prioritySelected {
-  border-color: var(--color-accent);
-  background-color: var(--color-accent-light);
+  border-color: #050038;
+  background-color: #050038;
+  color: white;
 }
 
 .priorityDot {

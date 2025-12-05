@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { Button, Input, Skeleton } from '@shared/ui';
 import { useUsers, useUserMutations } from '../../hooks';
 import { isMainAdmin } from '@shared/config/env';
@@ -11,11 +11,11 @@ const ROLES: { value: UserRole; label: string }[] = [
   { value: 'client', label: 'Client' },
 ];
 
-// Camera icon for avatar upload
-const CameraIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/>
-    <circle cx="12" cy="13" r="4"/>
+// User icon for avatar placeholder
+const UserIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+    <circle cx="12" cy="7" r="4"/>
   </svg>
 );
 
@@ -32,30 +32,7 @@ export function UserManagement() {
     avatarUrl: '',
     miroUserId: '',
   });
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      // Create preview URL
-      const previewUrl = URL.createObjectURL(file);
-      setAvatarPreview(previewUrl);
-
-      // For now, we'll use base64 encoding for the avatar
-      // In production, you'd upload to storage and get a URL
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData({ ...formData, avatarUrl: reader.result as string });
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleAvatarClick = () => {
-    fileInputRef.current?.click();
-  };
 
   const handleCreate = async () => {
     setError(null);
@@ -63,7 +40,6 @@ export function UserManagement() {
       await createUser.mutateAsync(formData);
       setShowCreateForm(false);
       setFormData({ email: '', name: '', role: 'client', avatarUrl: '', miroUserId: '' });
-      setAvatarPreview(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create user');
     }
@@ -78,12 +54,11 @@ export function UserManagement() {
         input: {
           name: formData.name,
           role: formData.role as UserRole,
-          avatarUrl: formData.avatarUrl || editingUser.avatarUrl,
+          avatarUrl: formData.avatarUrl || null,
           miroUserId: formData.miroUserId || null,
         },
       });
       setEditingUser(null);
-      setAvatarPreview(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update user');
     }
@@ -122,7 +97,6 @@ export function UserManagement() {
       avatarUrl: user.avatarUrl || '',
       miroUserId: user.miroUserId || '',
     });
-    setAvatarPreview(user.avatarUrl);
   };
 
   if (isLoading) {
@@ -148,30 +122,17 @@ export function UserManagement() {
         <div className={styles.form}>
           <h3 className={styles.formTitle}>Create New User</h3>
           <div className={styles.formContent}>
-            {/* Avatar Upload */}
+            {/* Avatar Preview */}
             <div className={styles.avatarUpload}>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleFileChange}
-                style={{ display: 'none' }}
-              />
-              <button
-                type="button"
-                className={styles.avatarButton}
-                onClick={handleAvatarClick}
-              >
-                {avatarPreview ? (
-                  <img src={avatarPreview} alt="Avatar preview" className={styles.avatarImage} />
+              <div className={styles.avatarButton}>
+                {formData.avatarUrl ? (
+                  <img src={formData.avatarUrl} alt="Avatar preview" className={styles.avatarImage} />
                 ) : (
                   <div className={styles.avatarPlaceholder}>
-                    <CameraIcon />
-                    <span>Add Logo</span>
+                    <UserIcon />
                   </div>
                 )}
-              </button>
-              <span className={styles.avatarHint}>Click to upload logo/avatar</span>
+              </div>
             </div>
 
             <div className={styles.formGrid}>
@@ -203,6 +164,12 @@ export function UserManagement() {
                 </select>
               </div>
               <Input
+                label="Avatar URL (optional)"
+                value={formData.avatarUrl || ''}
+                onChange={(e) => setFormData({ ...formData, avatarUrl: e.target.value })}
+                placeholder="https://example.com/avatar.jpg"
+              />
+              <Input
                 label="Miro User ID (optional)"
                 value={formData.miroUserId || ''}
                 onChange={(e) => setFormData({ ...formData, miroUserId: e.target.value })}
@@ -214,7 +181,7 @@ export function UserManagement() {
             </p>
           </div>
           <div className={styles.formActions}>
-            <Button variant="ghost" onClick={() => { setShowCreateForm(false); setAvatarPreview(null); }}>
+            <Button variant="ghost" onClick={() => setShowCreateForm(false)}>
               Cancel
             </Button>
             <Button onClick={handleCreate} isLoading={isCreating}>
@@ -238,29 +205,23 @@ export function UserManagement() {
           <div key={user.id} className={styles.tableRow}>
             {editingUser?.id === user.id ? (
               <div className={styles.editingRow}>
-                {/* Avatar Edit */}
+                {/* Avatar Preview */}
                 <div className={styles.avatarUploadSmall}>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleFileChange}
-                    style={{ display: 'none' }}
-                    id={`avatar-edit-${user.id}`}
-                  />
-                  <label htmlFor={`avatar-edit-${user.id}`} className={styles.avatarButtonSmall}>
-                    {avatarPreview ? (
-                      <img src={avatarPreview} alt="Avatar preview" className={styles.avatarImageSmall} />
+                  <div className={styles.avatarButtonSmall}>
+                    {formData.avatarUrl ? (
+                      <img src={formData.avatarUrl} alt="Avatar preview" className={styles.avatarImageSmall} />
                     ) : (
                       <div className={styles.avatarPlaceholderSmall}>
-                        <CameraIcon />
+                        <UserIcon />
                       </div>
                     )}
-                  </label>
+                  </div>
                 </div>
                 <div className={styles.editFields}>
                   <Input
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    placeholder="Name"
                   />
                   <span className={styles.email}>{user.email}</span>
                   <select
@@ -276,6 +237,11 @@ export function UserManagement() {
                     ))}
                   </select>
                   <Input
+                    value={formData.avatarUrl || ''}
+                    onChange={(e) => setFormData({ ...formData, avatarUrl: e.target.value })}
+                    placeholder="Avatar URL"
+                  />
+                  <Input
                     value={formData.miroUserId || ''}
                     onChange={(e) => setFormData({ ...formData, miroUserId: e.target.value })}
                     placeholder="Miro User ID"
@@ -283,7 +249,7 @@ export function UserManagement() {
                 </div>
                 <div className={styles.actions}>
                   <Button size="sm" onClick={handleUpdate}>Save</Button>
-                  <Button size="sm" variant="ghost" onClick={() => { setEditingUser(null); setAvatarPreview(null); }}>
+                  <Button size="sm" variant="ghost" onClick={() => setEditingUser(null)}>
                     Cancel
                   </Button>
                 </div>

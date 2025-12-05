@@ -38,11 +38,11 @@ interface ProjectBriefing {
 
 // Project types with durations in business days
 const PROJECT_TYPES = [
-  { value: 'website-ui-design', label: 'Website UI Design', days: 45, icon: '🌐' },
-  { value: 'marketing-campaign', label: 'Marketing Campaign', days: 14, icon: '📣' },
-  { value: 'video-production', label: 'Video Production', days: 9, icon: '🎬' },
-  { value: 'email-design', label: 'Email Design', days: 7, icon: '📧' },
-  { value: 'social-post-carousel', label: 'Social Post Design', days: 5, icon: '📱' },
+  { value: 'website-ui-design', label: 'Website UI Design', days: 45 },
+  { value: 'marketing-campaign', label: 'Marketing Campaign', days: 14 },
+  { value: 'video-production', label: 'Video Production', days: 9 },
+  { value: 'email-design', label: 'Email Design', days: 7 },
+  { value: 'social-post-carousel', label: 'Social Post Design', days: 5 },
 ] as const;
 
 const PRIORITY_OPTIONS = [
@@ -366,7 +366,7 @@ ${formData.additionalNotes || 'Not specified'}
               <option value="">Select project type...</option>
               {PROJECT_TYPES.map((type) => (
                 <option key={type.value} value={type.value}>
-                  {type.icon} {type.label} ({type.days} days)
+                  {type.label} ({type.days} days)
                 </option>
               ))}
             </select>
