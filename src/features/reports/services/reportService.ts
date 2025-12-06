@@ -12,6 +12,27 @@ import type {
 
 const logger = createLogger('ReportService');
 
+/**
+ * ReportService - Handles analytics and reporting operations
+ *
+ * This service provides functionality for:
+ * - Dashboard metrics (project counts, completion rates, deadlines)
+ * - Project-specific metrics (deliverable stats, approval times)
+ * - Designer performance metrics
+ * - Timeline/historical metrics with date filtering
+ * - Activity feed aggregation
+ *
+ * Uses Supabase RPC functions for complex aggregations.
+ *
+ * @example
+ * ```typescript
+ * // Get dashboard overview
+ * const metrics = await reportService.getDashboardMetrics();
+ *
+ * // Get project-specific stats
+ * const projectStats = await reportService.getProjectMetrics(projectId);
+ * ```
+ */
 class ReportService {
   async getDashboardMetrics(): Promise<DashboardMetrics> {
     // Get basic metrics using RPC function

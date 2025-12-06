@@ -17,6 +17,26 @@ import type {
   DeliverablesResponse,
 } from '../domain/deliverable.types';
 
+/**
+ * DeliverableService - Handles all deliverable-related database operations
+ *
+ * This service provides CRUD operations for deliverables, including:
+ * - Fetching deliverables with filtering, sorting, and pagination
+ * - Creating, updating, and deleting deliverables
+ * - Managing deliverable versions and file uploads
+ * - Handling feedback on deliverables
+ *
+ * All operations respect Supabase RLS policies for security.
+ *
+ * @example
+ * ```typescript
+ * const { data, total } = await deliverableService.getDeliverables({
+ *   filters: { projectId: 'uuid', status: 'pending' },
+ *   page: 1,
+ *   pageSize: 10
+ * });
+ * ```
+ */
 class DeliverableService {
   async getDeliverables(params: DeliverablesQueryParams = {}): Promise<DeliverablesResponse> {
     const { filters = {}, sort = { field: 'createdAt', direction: 'desc' }, page = 1, pageSize = 10 } = params;

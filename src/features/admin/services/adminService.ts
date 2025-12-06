@@ -13,8 +13,28 @@ import type {
 const logger = createLogger('AdminService');
 
 /**
- * Admin Service
- * Handles user management, board assignments, and app settings
+ * AdminService - Handles administrative operations for the Miro app
+ *
+ * This service provides functionality for:
+ * - User management (CRUD operations, role assignments)
+ * - Board assignments (linking users to Miro boards)
+ * - App settings management (global configuration)
+ *
+ * All operations respect Supabase RLS policies for security.
+ * Only admin users can access most of these operations.
+ *
+ * @example
+ * ```typescript
+ * // Get all users
+ * const users = await adminService.getUsers();
+ *
+ * // Create a new user
+ * const user = await adminService.createUser({
+ *   email: 'user@example.com',
+ *   name: 'John Doe',
+ *   role: 'designer'
+ * });
+ * ```
  */
 export const adminService = {
   // ============ USER MANAGEMENT ============
