@@ -371,13 +371,12 @@ class MiroMasterTimelineService {
       log('MiroTimeline', 'Failed to get board cards', e);
     }
 
-    // STEP 1.5: Check if card was previously reviewed (stored in DB or description)
-    let wasReviewed = options?.markAsReviewed || project.wasReviewed || false;
+    // STEP 1.5: Check if card was reviewed - DB is source of truth
+    // markAsReviewed option is used when client explicitly marks as reviewed
+    // project.wasReviewed comes from DB and is reset when status changes back to 'review'
+    const wasReviewed = options?.markAsReviewed || project.wasReviewed || false;
     const existingCard = allBoardCards.find(c => c.description?.includes(`projectId:${project.id}`));
-    if (existingCard?.description?.includes('|reviewed:true')) {
-      wasReviewed = true;
-      log('MiroTimeline', `Card was previously reviewed by client`);
-    }
+    log('MiroTimeline', `Review status: wasReviewed=${wasReviewed} (from DB/options)`)
 
     // Format due date with days left
     const formatDueDate = (dateStr: string | null): string => {
