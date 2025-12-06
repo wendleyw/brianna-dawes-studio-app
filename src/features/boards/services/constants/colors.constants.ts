@@ -18,6 +18,14 @@ export const PRIORITY_COLORS: Record<ProjectPriority, string> = {
   low: '#10B981',      // Green (matches form)
 } as const;
 
+/** Priority configuration with labels and colors */
+export const PRIORITY_CONFIG: Record<ProjectPriority, { label: string; color: string }> = {
+  low: { label: 'STANDARD', color: '#10B981' },
+  medium: { label: 'MEDIUM', color: '#F59E0B' },
+  high: { label: 'HIGH', color: '#F97316' },
+  urgent: { label: 'URGENT', color: '#EF4444' },
+} as const;
+
 // ==================== TIMELINE STATUS COLORS ====================
 
 /** Timeline column configuration with colors - unified 7-status system */

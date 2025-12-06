@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import type { Project, ProjectStatus } from '../../domain/project.types';
 import { useProjectMutations } from '../../hooks';
 import { createLogger } from '@shared/lib/logger';
+import { STATUS_COLUMNS } from '@shared/lib/timelineStatus';
 import styles from './ProjectBoardModal.module.css';
 
 const logger = createLogger('ProjectBoardModal');
@@ -12,16 +13,7 @@ interface ProjectBoardModalProps {
   projects: Project[];
 }
 
-// Status columns configuration - matches unified 7-status system
-const STATUS_COLUMNS: { id: ProjectStatus; label: string; color: string }[] = [
-  { id: 'critical', label: 'Critical', color: '#EF4444' },
-  { id: 'overdue', label: 'Overdue', color: '#F97316' },
-  { id: 'urgent', label: 'Urgent', color: '#EAB308' },
-  { id: 'on_track', label: 'On Track', color: '#3B82F6' },
-  { id: 'in_progress', label: 'In Progress', color: '#8B5CF6' },
-  { id: 'review', label: 'Review', color: '#6366F1' },
-  { id: 'done', label: 'Done', color: '#22C55E' },
-];
+// STATUS_COLUMNS is now imported from timelineStatus.ts
 
 // Icons
 const CloseIcon = () => (

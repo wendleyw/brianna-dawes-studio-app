@@ -11,17 +11,11 @@ import {
   getStatusColumn,
   getStatusVariant,
 } from '@shared/lib/timelineStatus';
+import { PRIORITY_CONFIG, PROJECT_TYPE_CONFIG } from '@features/boards/services/constants/colors.constants';
 import type { ProjectCardProps } from './ProjectCard.types';
 import styles from './ProjectCard.module.css';
 
 const logger = createLogger('ProjectCard');
-
-const PRIORITY_MAP = {
-  low: { label: 'STANDARD', color: '#10B981' },      // Green - matches form
-  medium: { label: 'MEDIUM', color: '#F59E0B' },     // Yellow/Amber - matches form
-  high: { label: 'HIGH', color: '#F97316' },         // Orange - matches form
-  urgent: { label: 'URGENT', color: '#EF4444' },     // Red - matches form
-};
 
 // Deliverable type options
 const DELIVERABLE_TYPES = [
@@ -54,14 +48,7 @@ const initialDeliverableForm = {
   miroUrl: '',
 };
 
-// Project type configuration with colors
-const PROJECT_TYPE_CONFIG: Record<string, { label: string; color: string; icon: string }> = {
-  'website-ui-design': { label: 'Website UI', color: '#3B82F6', icon: '🌐' },
-  'marketing-campaign': { label: 'Marketing', color: '#8B5CF6', icon: '📣' },
-  'video-production': { label: 'Video', color: '#EF4444', icon: '🎬' },
-  'email-design': { label: 'Email', color: '#10B981', icon: '📧' },
-  'social-post-carousel': { label: 'Social Post', color: '#F59E0B', icon: '📱' },
-};
+// PROJECT_TYPE_CONFIG is now imported from colors.constants.ts
 
 // Extract project type from briefing timeline or description
 function getProjectType(project: { briefing?: { timeline?: string | null; projectType?: string | null } | null; description?: string | null }): { label: string; color: string; icon: string } | null {
@@ -338,7 +325,7 @@ export function ProjectCard({
   // Debug: log status
   logger.debug('Status mapping', { name: project.name, dbStatus: project.status, badge: statusColumn.label });
 
-  const priority = PRIORITY_MAP[project.priority];
+  const priority = PRIORITY_CONFIG[project.priority];
 
   // Calculate days left/overdue
   const getDaysInfo = () => {
