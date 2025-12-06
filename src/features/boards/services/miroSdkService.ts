@@ -364,30 +364,36 @@ class MiroMasterTimelineService {
       const diffDays = Math.ceil((date.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
       const formatted = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
-      if (diffDays < 0) return `${formatted} • ${Math.abs(diffDays)}d overdue`;
-      if (diffDays === 0) return `${formatted} • Today`;
-      if (diffDays <= 7) return `${formatted} • ${diffDays}d left`;
+      if (diffDays < 0) return `${formatted} · ${Math.abs(diffDays)}d late`;
+      if (diffDays === 0) return `${formatted} · Today`;
+      if (diffDays <= 7) return `${formatted} · ${diffDays}d`;
       return formatted;
     };
 
-    // Build priority indicator (subtle)
-    const priorityIndicator = project.priority === 'urgent' ? '● ' :
-                              project.priority === 'high' ? '◐ ' : '';
+    // Build priority indicator
+    const priorityBadge = project.priority === 'urgent' ? '🔴 ' :
+                          project.priority === 'high' ? '🟠 ' : '';
 
-    // Build clean card title
-    // Line 1: Project Name (bold, with priority dot)
-    // Line 2: Separator line
-    // Line 3: Client name
-    // Line 4: Due date with days left
-    const reviewedBadge = wasReviewed ? '✓ REVIEWED\n' : '';
-    const separator = '─────────';
+    // Build badges for author and date
+    const authorBadge = project.client?.name ? `◉ ${project.client.name}` : '';
+    const dateBadge = project.dueDate ? `◷ ${formatDueDate(project.dueDate)}` : '';
+
+    // Build clean card title with visual hierarchy
+    // Line 1: ✓ REVIEWED (if applicable)
+    // Line 2: Priority + PROJECT NAME (uppercase for emphasis)
+    // Line 3: Separator
+    // Line 4: Author badge
+    // Line 5: Date badge
+    const reviewedLine = wasReviewed ? '✓ REVIEWED' : '';
+    const projectTitle = `${priorityBadge}${project.name.toUpperCase()}`;
+    const separator = '━━━━━━━━━━━━━━';
 
     const titleLines = [
-      reviewedBadge,
-      `${priorityIndicator}${project.name}`,
+      reviewedLine,
+      projectTitle,
       separator,
-      project.client?.name || '',
-      formatDueDate(project.dueDate),
+      authorBadge,
+      dateBadge,
     ].filter(Boolean);
 
     const title = titleLines.join('\n');
