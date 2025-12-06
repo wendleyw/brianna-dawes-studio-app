@@ -1,0 +1,113 @@
+/* ErrorBoundary.module.css */
+
+.container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100%;
+  padding: 24px;
+  background: #fafafa;
+}
+
+.card {
+  max-width: 420px;
+  width: 100%;
+  background: white;
+  border-radius: 16px;
+  padding: 32px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  text-align: center;
+}
+
+.iconWrapper {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 20px;
+  background: #fef2f2;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon {
+  font-size: 32px;
+  font-weight: 700;
+  color: #ef4444;
+}
+
+.title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 12px 0;
+  font-family: Inter, system-ui, sans-serif;
+}
+
+.message {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0 0 20px 0;
+  line-height: 1.5;
+}
+
+.errorDetails {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 20px;
+  text-align: left;
+}
+
+.errorName {
+  font-size: 12px;
+  font-weight: 600;
+  color: #ef4444;
+  margin: 0 0 4px 0;
+  font-family: monospace;
+}
+
+.errorMessage {
+  font-size: 12px;
+  color: #6b7280;
+  margin: 0;
+  font-family: monospace;
+  word-break: break-word;
+}
+
+.actions {
+  display: flex;
+  gap: 12px;
+}
+
+.buttonPrimary,
+.buttonSecondary {
+  flex: 1;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.buttonPrimary {
+  background-color: #050038;
+  color: white;
+  border: none;
+}
+
+.buttonPrimary:hover {
+  background-color: #0a0050;
+}
+
+.buttonSecondary {
+  background-color: transparent;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+
+.buttonSecondary:hover {
+  background-color: #f9fafb;
+}

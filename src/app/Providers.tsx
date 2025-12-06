@@ -6,6 +6,7 @@ import { ToastProvider } from '@shared/ui';
 import { AuthProvider } from '@features/auth';
 import { NotificationProvider } from '@features/notifications';
 import { MiroProvider } from '@features/boards';
+import { ErrorBoundary } from '@shared/components';
 
 interface ProvidersProps {
   children: ReactNode;
@@ -13,21 +14,23 @@ interface ProvidersProps {
 
 export function Providers({ children }: ProvidersProps) {
   return (
-    <BrowserRouter
-      future={{
-        v7_startTransition: true,
-        v7_relativeSplatPath: true,
-      }}
-    >
-      <QueryClientProvider client={queryClient}>
-        <MiroProvider>
-          <AuthProvider>
-            <NotificationProvider>
-              <ToastProvider position="bottom-right">{children}</ToastProvider>
-            </NotificationProvider>
-          </AuthProvider>
-        </MiroProvider>
-      </QueryClientProvider>
-    </BrowserRouter>
+    <ErrorBoundary>
+      <BrowserRouter
+        future={{
+          v7_startTransition: true,
+          v7_relativeSplatPath: true,
+        }}
+      >
+        <QueryClientProvider client={queryClient}>
+          <MiroProvider>
+            <AuthProvider>
+              <NotificationProvider>
+                <ToastProvider position="bottom-right">{children}</ToastProvider>
+              </NotificationProvider>
+            </AuthProvider>
+          </MiroProvider>
+        </QueryClientProvider>
+      </BrowserRouter>
+    </ErrorBoundary>
   );
 }
