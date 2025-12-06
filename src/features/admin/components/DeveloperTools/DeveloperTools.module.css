@@ -129,3 +129,48 @@
 .progressLine:empty {
   height: 12px;
 }
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text-primary, #1f2937);
+}
+
+.select {
+  padding: 10px 12px;
+  font-size: 14px;
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: 6px;
+  background-color: var(--color-surface, #ffffff);
+  color: var(--color-text-primary, #1f2937);
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+
+.select:hover {
+  border-color: #2563eb;
+}
+
+.select:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.loadingText {
+  font-size: 12px;
+  color: var(--color-text-secondary, #6b7280);
+  font-style: italic;
+}

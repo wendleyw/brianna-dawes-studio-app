@@ -42,6 +42,7 @@ export {
   addStageToProject,
   getProjectStageCount,
   zoomToProject,
+  miroReportService,
 } from './services';
 
 // Hooks

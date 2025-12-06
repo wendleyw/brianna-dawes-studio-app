@@ -11,5 +11,8 @@ export {
   zoomToProject,
 } from './miroSdkService';
 
+// Report generation service
+export { miroReportService } from './miroReportService';
+
 // Centralized constants
 export * from './constants';
