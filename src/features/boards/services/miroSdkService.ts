@@ -1251,7 +1251,8 @@ class MiroProjectRowService {
 
       const value = briefing[field.key];
       const hasValue = Boolean(value);
-      const display = hasValue && value ? (value.length > 80 ? value.substring(0, 77) + '...' : value) : 'NEEDS ATTENTION!';
+      // Show full text - Miro shapes handle overflow automatically
+      const display = hasValue && value ? value : 'NEEDS ATTENTION!';
 
       // Create section title (bold, above the container)
       await miro.board.createText({
