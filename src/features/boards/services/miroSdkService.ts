@@ -1379,19 +1379,52 @@ class MiroProjectRowService {
     try {
       console.log('[MiroProject] [updateBriefingStatus] Searching for status badge on board for project:', projectName || projectId);
 
-      // Get all frames and find the briefing frame for this project
-      const allFrames = await miro.board.get({ type: 'frame' }) as MiroFrame[];
-      console.log('[MiroProject] [updateBriefingStatus] Found', allFrames.length, 'frames on board');
+      let briefingFrame: MiroFrame | undefined;
 
-      // Log all frame titles for debugging
-      console.log('[MiroProject] [updateBriefingStatus] All frame titles:', allFrames.map(f => f.title));
+      // First try using stored briefingFrameId from memory
+      if (row?.briefingFrameId) {
+        try {
+          const frame = await miro.board.getById(row.briefingFrameId) as MiroFrame;
+          if (frame) {
+            console.log('[MiroProject] [updateBriefingStatus] Using stored briefingFrameId:', row.briefingFrameId);
+            briefingFrame = frame;
+          }
+        } catch {
+          console.log('[MiroProject] [updateBriefingStatus] Stored briefingFrameId invalid, searching...');
+        }
+      }
 
-      const briefingFrame = allFrames.find(f => {
-        if (!f.title) return false;
-        const isBriefing = f.title.toUpperCase().includes('BRIEFING');
-        const matchesProject = projectName ? f.title.toUpperCase().includes(projectName.toUpperCase()) : true;
-        return isBriefing && matchesProject;
-      });
+      // If not found in memory, search all frames
+      if (!briefingFrame) {
+        const allFrames = await miro.board.get({ type: 'frame' }) as MiroFrame[];
+        console.log('[MiroProject] [updateBriefingStatus] Found', allFrames.length, 'frames on board');
+        console.log('[MiroProject] [updateBriefingStatus] All frame titles:', allFrames.map(f => f.title));
+
+        // Look for exact match first: title starts with project name after emoji
+        briefingFrame = allFrames.find(f => {
+          if (!f.title) return false;
+          const isBriefing = f.title.toUpperCase().includes('BRIEFING');
+          if (!isBriefing) return false;
+          // Match "📋 ProjectName - BRIEFING" exactly at the start
+          if (projectName) {
+            // Remove emoji and check if starts with project name
+            const titleWithoutEmoji = f.title.replace(/^[^\w\s]+\s*/, '');
+            return titleWithoutEmoji.toUpperCase().startsWith(projectName.toUpperCase() + ' -');
+          }
+          return false;
+        });
+
+        // If no exact match, try contains (fallback)
+        if (!briefingFrame && projectName) {
+          console.log('[MiroProject] [updateBriefingStatus] No exact match, trying contains...');
+          briefingFrame = allFrames.find(f => {
+            if (!f.title) return false;
+            const isBriefing = f.title.toUpperCase().includes('BRIEFING');
+            const matchesProject = f.title.toUpperCase().includes(projectName.toUpperCase());
+            return isBriefing && matchesProject;
+          });
+        }
+      }
 
       if (!briefingFrame) {
         console.log('[MiroProject] [updateBriefingStatus] No briefing frame found for project:', projectName || projectId);
