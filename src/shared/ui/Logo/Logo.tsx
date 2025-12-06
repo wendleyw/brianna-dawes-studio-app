@@ -67,8 +67,7 @@ export function Logo({ size = 'md', className, animated = false, onAnimationComp
           playsInline
           autoPlay
         >
-          <source src="/logo-animation.MOV" type="video/quicktime" />
-          <source src="/logo-animation.MOV" type="video/mp4" />
+          <source src="/logo-animation.webm" type="video/webm" />
         </video>
       </div>
     );
