@@ -1,8 +1,10 @@
 import { useState } from 'react';
+import { Button } from '@shared/ui';
 import { UserManagement } from '../../components/UserManagement';
 import { BoardAssignments } from '../../components/BoardAssignments';
 import { AppSettings } from '../../components/AppSettings';
 import { DeveloperTools } from '../../components/DeveloperTools';
+import { ReportModal } from '../../components/ReportModal';
 import type { AdminTab } from '../../domain';
 import styles from './AdminSettingsPage.module.css';
 
@@ -15,14 +17,26 @@ const TABS: { id: AdminTab; label: string }[] = [
 
 export function AdminSettingsPage() {
   const [activeTab, setActiveTab] = useState<AdminTab>('users');
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
 
   return (
     <div className={styles.container}>
       <header className={styles.header}>
-        <h1 className={styles.title}>Admin Settings</h1>
-        <p className={styles.subtitle}>
-          Manage users, board assignments, and application settings
-        </p>
+        <div className={styles.headerContent}>
+          <div>
+            <h1 className={styles.title}>Admin Settings</h1>
+            <p className={styles.subtitle}>
+              Manage users, board assignments, and application settings
+            </p>
+          </div>
+          <Button
+            variant="primary"
+            onClick={() => setIsReportModalOpen(true)}
+            className={styles.reportButton}
+          >
+            Generate Report
+          </Button>
+        </div>
       </header>
 
       <nav className={styles.tabs}>
@@ -43,6 +57,11 @@ export function AdminSettingsPage() {
         {activeTab === 'settings' && <AppSettings />}
         {activeTab === 'developer' && <DeveloperTools />}
       </div>
+
+      <ReportModal
+        open={isReportModalOpen}
+        onClose={() => setIsReportModalOpen(false)}
+      />
     </div>
   );
 }

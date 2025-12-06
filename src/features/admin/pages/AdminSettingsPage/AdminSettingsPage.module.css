@@ -16,6 +16,17 @@
   flex-shrink: 0;
 }
 
+.headerContent {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+.reportButton {
+  flex-shrink: 0;
+}
+
 .title {
   font-family: var(--font-ui);
   font-size: var(--text-lg);

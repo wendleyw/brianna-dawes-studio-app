@@ -1,21 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Button } from '@shared/ui';
 import { useMiro } from '@features/boards';
 import { miroTimelineService, miroProjectRowService } from '@features/boards/services/miroSdkService';
-import { miroReportService } from '@features/boards/services/miroReportService';
 import { projectService } from '@features/projects/services/projectService';
 import { supabase } from '@shared/lib/supabase';
 import { createLogger } from '@shared/lib/logger';
-import { useAuth } from '@features/auth';
-import type { CreateProjectInput, ProjectBriefing, ProjectStatus, ProjectPriority, Project } from '@features/projects/domain/project.types';
-import type { Deliverable } from '@features/deliverables/domain/deliverable.types';
+import type { CreateProjectInput, ProjectBriefing, ProjectStatus, ProjectPriority } from '@features/projects/domain/project.types';
 import styles from './DeveloperTools.module.css';
-
-interface ClientOption {
-  id: string;
-  name: string;
-  email: string;
-}
 
 const logger = createLogger('DeveloperTools');
 
@@ -182,44 +173,10 @@ const TEST_PROJECTS: Array<{
 
 export function DeveloperTools() {
   const { isInMiro, miro } = useMiro();
-  const { user } = useAuth();
   const [isResetting, setIsResetting] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
-  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [progress, setProgress] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
-
-  // Report generation state
-  const [clients, setClients] = useState<ClientOption[]>([]);
-  const [selectedClientId, setSelectedClientId] = useState<string>('');
-  const [isLoadingClients, setIsLoadingClients] = useState(false);
-
-  // Fetch clients on mount
-  useEffect(() => {
-    const fetchClients = async () => {
-      setIsLoadingClients(true);
-      try {
-        const { data, error: fetchError } = await supabase
-          .from('users')
-          .select('id, name, email')
-          .eq('role', 'client')
-          .order('name');
-
-        if (fetchError) {
-          logger.error('Failed to fetch clients', fetchError);
-          return;
-        }
-
-        setClients(data || []);
-      } catch (err) {
-        logger.error('Error fetching clients', err);
-      } finally {
-        setIsLoadingClients(false);
-      }
-    };
-
-    fetchClients();
-  }, []);
 
   const addProgress = (message: string) => {
     setProgress((prev) => [...prev, message]);
@@ -574,90 +531,6 @@ export function DeveloperTools() {
     }
   };
 
-  // Generate client report on Miro board
-  const handleGenerateReport = async () => {
-    if (!isInMiro) {
-      setError('Must be running inside Miro to generate reports');
-      return;
-    }
-
-    const selectedClient = clients.find(c => c.id === selectedClientId);
-    if (!selectedClient && selectedClientId !== 'all') {
-      setError('Please select a client');
-      return;
-    }
-
-    setIsGeneratingReport(true);
-    setProgress([]);
-    setError(null);
-
-    try {
-      addProgress('📊 Starting report generation...');
-
-      // Fetch projects
-      addProgress('Fetching projects...');
-      let projectsQuery = supabase.from('projects').select('*');
-
-      if (selectedClientId !== 'all' && selectedClient) {
-        projectsQuery = projectsQuery.eq('client_id', selectedClient.id);
-      }
-
-      const { data: projectsData, error: projectsError } = await projectsQuery;
-
-      if (projectsError) {
-        throw new Error(`Failed to fetch projects: ${projectsError.message}`);
-      }
-
-      const projects = (projectsData || []) as Project[];
-      addProgress(`✓ Found ${projects.length} projects`);
-
-      // Fetch deliverables for these projects
-      addProgress('Fetching deliverables...');
-      const projectIds = projects.map(p => p.id);
-
-      let deliverables: Deliverable[] = [];
-      if (projectIds.length > 0) {
-        const { data: deliverablesData, error: deliverablesError } = await supabase
-          .from('deliverables')
-          .select('*')
-          .in('project_id', projectIds);
-
-        if (deliverablesError) {
-          addProgress(`⚠ Could not fetch deliverables: ${deliverablesError.message}`);
-        } else {
-          deliverables = (deliverablesData || []) as Deliverable[];
-        }
-      }
-      addProgress(`✓ Found ${deliverables.length} deliverables`);
-
-      // Generate report on Miro
-      addProgress('Creating report on Miro board...');
-
-      const reportData = {
-        clientName: selectedClientId === 'all' ? 'All Clients' : (selectedClient?.name || 'Unknown Client'),
-        ...(selectedClient?.email ? { clientEmail: selectedClient.email } : {}),
-        projects,
-        deliverables,
-        generatedAt: new Date().toISOString(),
-        generatedBy: user?.name || user?.email || 'Admin',
-      };
-
-      const frameId = await miroReportService.generateClientReport(reportData);
-
-      addProgress('');
-      addProgress('✅ REPORT GENERATED SUCCESSFULLY!');
-      addProgress(`Frame ID: ${frameId}`);
-      addProgress('The board has been zoomed to show the report.');
-
-    } catch (err) {
-      logger.error('Report generation failed', err);
-      setError(err instanceof Error ? err.message : 'Failed to generate report');
-      addProgress(`❌ ERROR: ${err instanceof Error ? err.message : 'Unknown error'}`);
-    } finally {
-      setIsGeneratingReport(false);
-    }
-  };
-
   return (
     <div className={styles.container}>
       <div className={styles.header}>
@@ -712,59 +585,6 @@ export function DeveloperTools() {
         >
           {isResetting ? 'Resetting...' : 'Reset & Create 10 Test Projects'}
         </Button>
-      </div>
-
-      {/* Generate Report Section */}
-      <div className={styles.section}>
-        <h3 className={styles.sectionTitle}>📊 Generate Client Report</h3>
-        <p className={styles.sectionDescription}>
-          Create a visual report on the Miro board with project metrics, status breakdown, and deliverables summary.
-        </p>
-
-        <div className={styles.status}>
-          <span>Miro Connection: </span>
-          <span className={isInMiro ? styles.connected : styles.disconnected}>
-            {isInMiro ? '✓ Connected' : '✗ Not in Miro'}
-          </span>
-        </div>
-
-        <div className={styles.formGroup}>
-          <label htmlFor="clientSelect" className={styles.label}>
-            Select Client:
-          </label>
-          <select
-            id="clientSelect"
-            value={selectedClientId}
-            onChange={(e) => setSelectedClientId(e.target.value)}
-            className={styles.select}
-            disabled={isLoadingClients || isGeneratingReport}
-          >
-            <option value="">-- Select a client --</option>
-            <option value="all">All Clients (Full Report)</option>
-            {clients.map((client) => (
-              <option key={client.id} value={client.id}>
-                {client.name} ({client.email})
-              </option>
-            ))}
-          </select>
-          {isLoadingClients && <span className={styles.loadingText}>Loading clients...</span>}
-        </div>
-
-        <Button
-          onClick={handleGenerateReport}
-          isLoading={isGeneratingReport}
-          variant="primary"
-          className={styles.primaryButton}
-          disabled={!isInMiro || !selectedClientId}
-        >
-          {isGeneratingReport ? 'Generating Report...' : '📊 Generate Report on Miro'}
-        </Button>
-
-        {!isInMiro && (
-          <div className={styles.warning}>
-            <strong>Note:</strong> You must be running inside Miro to generate reports.
-          </div>
-        )}
       </div>
 
       {/* Progress & Error */}

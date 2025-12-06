@@ -27,7 +27,8 @@ export {
 } from './hooks';
 
 // Components
-export { UserManagement, BoardAssignments, AppSettings } from './components';
+export { UserManagement, BoardAssignments, AppSettings, ReportModal } from './components';
+export type { ReportModalProps } from './components';
 
 // Pages
 export { AdminSettingsPage } from './pages';
