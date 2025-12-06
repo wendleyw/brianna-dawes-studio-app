@@ -24,19 +24,19 @@ export function AccessDenied({ userRole, requiredRoles }: AccessDeniedProps) {
         />
       </svg>
 
-      <h1 className={styles.title}>Acesso Negado</h1>
+      <h1 className={styles.title}>Access Denied</h1>
       <p className={styles.description}>
-        Você não tem permissão para acessar esta página. Entre em contato com o
-        administrador se acredita que isso é um erro.
+        You don't have permission to access this page. Please contact an
+        administrator if you believe this is an error.
       </p>
 
       <div className={styles.roleInfo}>
         <div className={styles.roleRow}>
-          <span className={styles.roleLabel}>Seu perfil:</span>
+          <span className={styles.roleLabel}>Your role:</span>
           <span className={styles.roleValue}>{ROLE_LABELS[userRole]}</span>
         </div>
         <div className={styles.roleRow}>
-          <span className={styles.roleLabel}>Perfis necessários:</span>
+          <span className={styles.roleLabel}>Required roles:</span>
           <span className={styles.roleValue}>
             {requiredRoles.map((role) => ROLE_LABELS[role]).join(', ')}
           </span>
@@ -45,10 +45,10 @@ export function AccessDenied({ userRole, requiredRoles }: AccessDeniedProps) {
 
       <div className={styles.actions}>
         <Button variant="secondary" onClick={() => navigate(-1)}>
-          Voltar
+          Go Back
         </Button>
         <Button variant="primary" onClick={() => navigate('/')}>
-          Ir para Home
+          Go to Home
         </Button>
       </div>
     </div>
