@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Skeleton } from '@shared/ui';
 import { useRecentActivity } from '../../hooks/useRecentActivity';
 import styles from './ActivityFeed.module.css';
@@ -59,7 +60,11 @@ interface ActivityFeedProps {
   limit?: number;
 }
 
-export function ActivityFeed({ limit = 20 }: ActivityFeedProps) {
+/**
+ * ActivityFeed - Displays recent activity items
+ * Memoized to prevent unnecessary re-renders in dashboard
+ */
+export const ActivityFeed = memo(function ActivityFeed({ limit = 20 }: ActivityFeedProps) {
   const { data: activities, isLoading } = useRecentActivity(limit);
 
   if (isLoading) {
@@ -116,4 +121,4 @@ export function ActivityFeed({ limit = 20 }: ActivityFeedProps) {
       )}
     </div>
   );
-}
+});

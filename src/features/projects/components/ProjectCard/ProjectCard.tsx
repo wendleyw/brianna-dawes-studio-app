@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, memo } from 'react';
 import { Badge, Dialog, Input, Button } from '@shared/ui';
 import { useAuth } from '@features/auth';
 import { useDeliverables, useCreateDeliverable, useUpdateDeliverable, useDeleteDeliverable } from '@features/deliverables/hooks';
@@ -224,7 +224,11 @@ const TrashIcon = () => (
   </svg>
 );
 
-export function ProjectCard({
+/**
+ * ProjectCard - Displays a project with expandable details and admin actions
+ * Memoized to prevent unnecessary re-renders in project lists
+ */
+export const ProjectCard = memo(function ProjectCard({
   project,
   onEdit,
   onViewBoard,
@@ -1613,4 +1617,4 @@ export function ProjectCard({
       </Dialog>
     </article>
   );
-}
+});
