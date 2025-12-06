@@ -193,7 +193,7 @@ export function DashboardPage() {
               className={styles.actionCard}
               onClick={() => navigate('/projects/new')}
             >
-              <div className={styles.actionIcon} style={{ backgroundColor: '#050038' }}>
+              <div className={styles.actionIconPrimary}>
                 <PlusIcon />
               </div>
               <span className={styles.actionLabel}>New</span>
@@ -205,7 +205,7 @@ export function DashboardPage() {
             className={styles.actionCard}
             onClick={() => navigate('/projects')}
           >
-            <div className={styles.actionIcon} style={{ backgroundColor: '#E5E7EB' }}>
+            <div className={styles.actionIconSecondary}>
               <GridIcon />
             </div>
             <span className={styles.actionLabel}>Projects</span>
@@ -217,7 +217,7 @@ export function DashboardPage() {
               className={styles.actionCard}
               onClick={() => navigate('/admin')}
             >
-              <div className={styles.actionIcon} style={{ backgroundColor: '#1F2937' }}>
+              <div className={styles.actionIconDark}>
                 <SettingsIcon />
               </div>
               <span className={styles.actionLabel}>Settings</span>
@@ -236,7 +236,7 @@ export function DashboardPage() {
             <span className={styles.analyticsLabel}>Active</span>
           </div>
           <div className={styles.analyticsCard}>
-            <span className={styles.analyticsValue} style={{ color: '#22C55E' }}>{completedProjects}</span>
+            <span className={styles.analyticsValueSuccess}>{completedProjects}</span>
             <span className={styles.analyticsLabel}>Done</span>
           </div>
           <div className={`${styles.analyticsCard} ${styles.deliveredCard}`}>

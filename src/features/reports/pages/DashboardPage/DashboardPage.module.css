@@ -109,6 +109,22 @@
   height: 20px;
 }
 
+.actionIconPrimary {
+  composes: actionIcon;
+  background-color: #050038;
+}
+
+.actionIconSecondary {
+  composes: actionIcon;
+  background-color: #E5E7EB;
+  color: #1F2937;
+}
+
+.actionIconDark {
+  composes: actionIcon;
+  background-color: #1F2937;
+}
+
 .actionLabel {
   font-size: var(--text-sm);
   font-weight: var(--font-semibold);
@@ -152,6 +168,11 @@
   font-weight: var(--font-bold);
   color: var(--color-text-primary);
   line-height: 1;
+}
+
+.analyticsValueSuccess {
+  composes: analyticsValue;
+  color: #22C55E;
 }
 
 /* Delivered Card - highlighted */

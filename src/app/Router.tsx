@@ -3,6 +3,7 @@ import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-
 import { ProtectedRoute } from '@features/auth';
 import { useMiro } from '@features/boards';
 import { Skeleton } from '@shared/ui';
+import styles from './Router.module.css';
 
 // Lazy load pages for code splitting
 const LoginPage = lazy(() =>
@@ -27,10 +28,10 @@ const AdminSettingsPage = lazy(() =>
 // Loading fallback component
 function PageLoader() {
   return (
-    <div style={{ padding: 'var(--space-6)' }}>
-      <Skeleton width="100%" height={200} style={{ marginBottom: 'var(--space-4)' }} />
-      <Skeleton width="60%" height={24} style={{ marginBottom: 'var(--space-3)' }} />
-      <Skeleton width="80%" height={16} style={{ marginBottom: 'var(--space-2)' }} />
+    <div className={styles.pageLoader}>
+      <Skeleton width="100%" height={200} className={styles.pageLoaderSkeleton1} />
+      <Skeleton width="60%" height={24} className={styles.pageLoaderSkeleton2} />
+      <Skeleton width="80%" height={16} className={styles.pageLoaderSkeleton3} />
       <Skeleton width="40%" height={16} />
     </div>
   );
@@ -46,18 +47,11 @@ function BoardPage() {
   }
 
   return (
-    <div style={{ padding: 'var(--space-6)', textAlign: 'center' }}>
+    <div className={styles.boardRedirect}>
       <p>Redirecting to your board...</p>
     </div>
   );
 }
-
-const routerStyles: React.CSSProperties = {
-  width: '100%',
-  height: '100%',
-  flex: 1,
-  overflow: 'hidden',
-};
 
 export function Router() {
   const navigate = useNavigate();
@@ -79,7 +73,7 @@ export function Router() {
   }, [isInMiro, miro, navigate, location.pathname]);
 
   return (
-    <div style={routerStyles}>
+    <div className={styles.routerContainer}>
       <Suspense fallback={<PageLoader />}>
         <Routes>
           {/* Public routes */}
