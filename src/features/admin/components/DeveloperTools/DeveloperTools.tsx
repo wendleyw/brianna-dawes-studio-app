@@ -4,8 +4,11 @@ import { useMiro } from '@features/boards';
 import { miroTimelineService, miroProjectRowService } from '@features/boards/services/miroSdkService';
 import { projectService } from '@features/projects/services/projectService';
 import { supabase } from '@shared/lib/supabase';
+import { createLogger } from '@shared/lib/logger';
 import type { CreateProjectInput, ProjectBriefing, ProjectStatus, ProjectPriority } from '@features/projects/domain/project.types';
 import styles from './DeveloperTools.module.css';
+
+const logger = createLogger('DeveloperTools');
 
 // Test project data - realistic design studio projects
 const TEST_PROJECTS: Array<{
@@ -279,7 +282,7 @@ export function DeveloperTools() {
           } else {
             failedProjects.push(project.name);
             addProgress(`  ⚠ Failed: ${project.name} - ${deleteError.message}`);
-            console.error('Delete error for project:', project.id, deleteError);
+            logger.error('Delete error for project', { id: project.id, error: deleteError });
           }
         }
 
@@ -339,7 +342,7 @@ export function DeveloperTools() {
           addProgress(`✓ ${removed}/${allItems.length} elements removed from Miro`);
         } catch (e) {
           addProgress('⚠ Could not clear all Miro elements');
-          console.error('Miro clear error:', e);
+          logger.error('Miro clear error', e);
         }
       }
 
@@ -348,7 +351,7 @@ export function DeveloperTools() {
       addProgress('Refresh the page to start fresh.');
 
     } catch (err) {
-      console.error('Clear failed:', err);
+      logger.error('Clear failed', err);
       setError(err instanceof Error ? err.message : 'Failed to clear data');
       addProgress(`❌ ERROR: ${err instanceof Error ? err.message : 'Unknown error'}`);
     } finally {
@@ -374,7 +377,7 @@ export function DeveloperTools() {
         .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all (neq trick)
 
       if (deleteError) {
-        console.error('Delete error:', deleteError);
+        logger.error('Delete error', deleteError);
         addProgress(`Warning: Delete may have failed - ${deleteError.message}`);
       } else {
         addProgress(`Database cleared! (${count || 'all'} projects deleted)`);
@@ -396,7 +399,7 @@ export function DeveloperTools() {
             try {
               await miro.board.remove(frame);
             } catch (e) {
-              console.warn('Failed to remove frame:', e);
+              logger.warn('Failed to remove frame', e);
             }
           }
 
@@ -406,7 +409,7 @@ export function DeveloperTools() {
             try {
               await miro.board.remove(shape);
             } catch (e) {
-              console.warn('Failed to remove shape:', e);
+              logger.warn('Failed to remove shape', e);
             }
           }
 
@@ -415,7 +418,7 @@ export function DeveloperTools() {
             try {
               await miro.board.remove(card);
             } catch (e) {
-              console.warn('Failed to remove card:', e);
+              logger.warn('Failed to remove card', e);
             }
           }
 
@@ -521,7 +524,7 @@ export function DeveloperTools() {
       addProgress('Refresh the page to see the new projects');
 
     } catch (err) {
-      console.error('Reset failed:', err);
+      logger.error('Reset failed', err);
       setError(err instanceof Error ? err.message : 'Failed to reset and seed data');
     } finally {
       setIsResetting(false);

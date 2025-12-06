@@ -149,3 +149,229 @@
   margin: 0;
   line-height: 1.5;
 }
+
+/* ============================================
+   Screen-specific styles (explicit colors for Miro SDK compatibility)
+   CSS variables don't resolve in Miro iframe context
+   ============================================ */
+
+.formPadding {
+  padding: 24px;
+}
+
+.screenTitle {
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  font-family: Inter, system-ui, sans-serif;
+}
+
+.screenTitlePrimary {
+  composes: screenTitle;
+  color: #050038;
+}
+
+.screenTitleWarning {
+  composes: screenTitle;
+  color: #F59E0B;
+}
+
+.screenTitleBlue {
+  composes: screenTitle;
+  color: #2563EB;
+}
+
+.screenSubtitle {
+  font-size: 14px;
+  color: #666666;
+  margin: 0;
+}
+
+/* Info Box - Blue variant (Setup in Progress) */
+.infoBoxBlue {
+  background: #EFF6FF;
+  padding: 20px;
+  border-radius: 12px;
+  margin-top: 20px;
+  margin-bottom: 16px;
+  text-align: center;
+  border: 1px solid #BFDBFE;
+}
+
+.iconCircleBlue {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 12px;
+  background: #2563EB;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 24px;
+}
+
+.infoBoxBlueTitle {
+  font-size: 14px;
+  color: #1E40AF;
+  margin: 0 0 8px 0;
+  font-weight: 500;
+}
+
+.infoBoxBlueText {
+  font-size: 13px;
+  color: #3B82F6;
+  margin: 0;
+}
+
+/* Info Box - Neutral variant (Wrong Board) */
+.infoBoxNeutral {
+  background: #f5f5f5;
+  padding: 20px;
+  border-radius: 12px;
+  margin-top: 20px;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.iconCircleNeutral {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 12px;
+  background: #050038;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 24px;
+}
+
+.infoBoxNeutralText {
+  font-size: 14px;
+  color: #666666;
+  margin: 0 0 16px 0;
+}
+
+/* Miro ID Box */
+.miroIdBox {
+  background: #f5f5f5;
+  padding: 16px;
+  border-radius: 8px;
+  margin-top: 20px;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.miroIdBoxSmall {
+  composes: miroIdBox;
+  padding: 12px;
+  margin-top: 0;
+}
+
+.miroIdLabel {
+  font-size: 12px;
+  color: #666666;
+  margin: 0 0 8px 0;
+}
+
+.miroIdLabelSmall {
+  font-size: 11px;
+  color: #888888;
+  margin: 0 0 4px 0;
+}
+
+.miroIdValue {
+  display: block;
+  padding: 12px 16px;
+  background: #ffffff;
+  border-radius: 4px;
+  font-size: 14px;
+  font-family: monospace;
+  user-select: all;
+  cursor: pointer;
+  color: #050038;
+  font-weight: 600;
+  border: 1px solid #e0e0e0;
+}
+
+.miroIdValueSmall {
+  font-size: 12px;
+  font-family: monospace;
+  color: #050038;
+}
+
+/* Help Box */
+.helpBox {
+  margin-top: 16px;
+  padding: 16px;
+  background: #f9f9f9;
+  border-radius: 8px;
+}
+
+.helpText {
+  font-size: 12px;
+  color: #888888;
+  text-align: center;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Buttons */
+.buttonPrimary {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px;
+  background-color: #050038;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.buttonPrimary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.buttonSecondary {
+  composes: buttonPrimary;
+  opacity: 0.8;
+}
+
+.buttonIcon {
+  width: 20px;
+  height: 20px;
+}
+
+/* Actions Container */
+.actionsContainer {
+  margin-top: 20px;
+}
+
+/* Error Alert */
+.errorAlert {
+  padding: 12px;
+  background: #FEF2F2;
+  border: 1px solid #EF4444;
+  border-radius: 8px;
+  color: #EF4444;
+  font-size: 14px;
+  margin-top: 16px;
+}
+
+/* Spinner Animation */
+.spinner {
+  width: 40px;
+  height: 40px;
+  margin: 24px auto;
+  border: 3px solid #e0e0e0;
+  border-top-color: #2563EB;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}

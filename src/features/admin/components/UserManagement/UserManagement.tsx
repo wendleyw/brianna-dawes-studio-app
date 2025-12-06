@@ -2,8 +2,11 @@ import { useState } from 'react';
 import { Button, Input, Skeleton } from '@shared/ui';
 import { useUsers, useUserMutations } from '../../hooks';
 import { isMainAdmin } from '@shared/config/env';
+import { createLogger } from '@shared/lib/logger';
 import type { User, CreateUserInput, UserRole } from '../../domain';
 import styles from './UserManagement.module.css';
+
+const logger = createLogger('UserManagement');
 
 const ROLES: { value: UserRole; label: string }[] = [
   { value: 'admin', label: 'Admin' },
@@ -65,25 +68,26 @@ export function UserManagement() {
   };
 
   const handleDelete = async (user: User) => {
-    console.log('[UserManagement] handleDelete called for:', user.name, user.id);
+    logger.debug('handleDelete called', { name: user.name, id: user.id });
 
     if (isMainAdmin(user.email)) {
-      console.log('[UserManagement] Cannot delete main admin');
+      logger.warn('Attempted to delete main admin');
       setError('Cannot delete the main admin');
       return;
     }
 
     const confirmed = confirm(`Are you sure you want to delete ${user.name}?`);
-    console.log('[UserManagement] User confirmed:', confirmed);
-
-    if (!confirmed) return;
+    if (!confirmed) {
+      logger.debug('Delete cancelled by user');
+      return;
+    }
 
     try {
-      console.log('[UserManagement] Calling deleteUser.mutateAsync...');
+      logger.debug('Deleting user...', { id: user.id });
       await deleteUser.mutateAsync(user.id);
-      console.log('[UserManagement] Delete successful');
+      logger.info('User deleted successfully', { id: user.id, name: user.name });
     } catch (err) {
-      console.error('[UserManagement] Delete failed:', err);
+      logger.error('Delete failed', err);
       setError(err instanceof Error ? err.message : 'Failed to delete user');
     }
   };

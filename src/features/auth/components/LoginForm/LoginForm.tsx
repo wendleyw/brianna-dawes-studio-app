@@ -124,33 +124,15 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
   // Show loading state when auto-authenticating in Miro
   if (isInMiro && isAuthenticating && !accessDenied && !pendingBoardAssignment) {
     return (
-      <div className={styles.form} style={{ padding: '24px' }}>
+      <div className={`${styles.form} ${styles.formPadding}`}>
         <div className={styles.header}>
           <div className={styles.logo}>
             <Logo size="xl" />
           </div>
-          <h1 style={{
-            fontSize: '24px',
-            fontWeight: 700,
-            color: '#050038',
-            marginBottom: '8px',
-            fontFamily: 'Inter, system-ui, sans-serif'
-          }}>Authenticating...</h1>
-          <p style={{
-            fontSize: '14px',
-            color: '#666666',
-            margin: 0
-          }}>Please wait while we verify your Miro account</p>
+          <h1 className={styles.screenTitlePrimary}>Authenticating...</h1>
+          <p className={styles.screenSubtitle}>Please wait while we verify your Miro account</p>
         </div>
-        <div style={{
-          width: '40px',
-          height: '40px',
-          margin: '24px auto',
-          border: '3px solid #e0e0e0',
-          borderTopColor: '#2563EB',
-          borderRadius: '50%',
-          animation: 'spin 1s linear infinite'
-        }} />
+        <div className={styles.spinner} />
       </div>
     );
   }
@@ -158,97 +140,34 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
   // Show Access Restricted screen when user is not found
   if (accessDenied) {
     return (
-      <div className={styles.form} style={{ padding: '24px' }}>
+      <div className={`${styles.form} ${styles.formPadding}`}>
         <div className={styles.header}>
           <div className={styles.logo}>
             <Logo size="xl" />
           </div>
-          <h1 style={{
-            fontSize: '24px',
-            fontWeight: 700,
-            color: '#F59E0B',
-            marginBottom: '8px',
-            fontFamily: 'Inter, system-ui, sans-serif'
-          }}>
-            Access Restricted
-          </h1>
-          <p style={{
-            fontSize: '14px',
-            color: '#666666',
-            margin: 0
-          }}>
+          <h1 className={styles.screenTitleWarning}>Access Restricted</h1>
+          <p className={styles.screenSubtitle}>
             Your account is not registered in this application.
           </p>
         </div>
 
         {miroUserId && (
-          <div style={{
-            background: '#f5f5f5',
-            padding: '16px',
-            borderRadius: '8px',
-            marginTop: '20px',
-            marginBottom: '16px',
-            textAlign: 'center'
-          }}>
-            <p style={{ fontSize: '12px', color: '#666666', marginBottom: '8px', margin: '0 0 8px 0' }}>
+          <div className={styles.miroIdBox}>
+            <p className={styles.miroIdLabel}>
               Share this ID with an administrator to get access:
             </p>
-            <code style={{
-              display: 'block',
-              padding: '12px 16px',
-              background: '#ffffff',
-              borderRadius: '4px',
-              fontSize: '14px',
-              fontFamily: 'monospace',
-              userSelect: 'all',
-              cursor: 'pointer',
-              color: '#050038',
-              fontWeight: 600,
-              border: '1px solid #e0e0e0'
-            }}>
-              {miroUserId}
-            </code>
+            <code className={styles.miroIdValue}>{miroUserId}</code>
           </div>
         )}
 
-        <div style={{
-          marginTop: '16px',
-          padding: '16px',
-          background: '#f9f9f9',
-          borderRadius: '8px'
-        }}>
-          <p style={{
-            fontSize: '12px',
-            color: '#888888',
-            textAlign: 'center',
-            margin: 0,
-            lineHeight: 1.5
-          }}>
+        <div className={styles.helpBox}>
+          <p className={styles.helpText}>
             Please contact an administrator and provide your Miro ID above to request access.
           </p>
         </div>
 
-        <div style={{ marginTop: '20px' }}>
-          <button
-            type="button"
-            onClick={handleRetry}
-            style={{
-              width: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-              padding: '12px',
-              backgroundColor: '#050038',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              fontSize: '14px',
-              fontWeight: 500,
-              cursor: 'pointer',
-              opacity: 0.8
-            }}
-          >
+        <div className={styles.actionsContainer}>
+          <button type="button" onClick={handleRetry} className={styles.buttonSecondary}>
             Try Again
           </button>
         </div>
@@ -259,118 +178,40 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
   // Show Pending Board Assignment screen when user is registered but has no board
   if (pendingBoardAssignment) {
     return (
-      <div className={styles.form} style={{ padding: '24px' }}>
+      <div className={`${styles.form} ${styles.formPadding}`}>
         <div className={styles.header}>
           <div className={styles.logo}>
             <Logo size="xl" />
           </div>
-          <h1 style={{
-            fontSize: '24px',
-            fontWeight: 700,
-            color: '#2563EB',
-            marginBottom: '8px',
-            fontFamily: 'Inter, system-ui, sans-serif'
-          }}>
-            Setup in Progress
-          </h1>
-          <p style={{
-            fontSize: '14px',
-            color: '#666666',
-            margin: 0
-          }}>
+          <h1 className={styles.screenTitleBlue}>Setup in Progress</h1>
+          <p className={styles.screenSubtitle}>
             Your account has been registered successfully!
           </p>
         </div>
 
-        <div style={{
-          background: '#EFF6FF',
-          padding: '20px',
-          borderRadius: '12px',
-          marginTop: '20px',
-          marginBottom: '16px',
-          textAlign: 'center',
-          border: '1px solid #BFDBFE'
-        }}>
-          <div style={{
-            width: '48px',
-            height: '48px',
-            margin: '0 auto 12px',
-            background: '#2563EB',
-            borderRadius: '50%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'white',
-            fontSize: '24px'
-          }}>
-            ⏳
-          </div>
-          <p style={{ fontSize: '14px', color: '#1E40AF', margin: '0 0 8px 0', fontWeight: 500 }}>
-            Waiting for Board Assignment
-          </p>
-          <p style={{ fontSize: '13px', color: '#3B82F6', margin: 0 }}>
+        <div className={styles.infoBoxBlue}>
+          <div className={styles.iconCircleBlue}>⏳</div>
+          <p className={styles.infoBoxBlueTitle}>Waiting for Board Assignment</p>
+          <p className={styles.infoBoxBlueText}>
             An administrator needs to assign a workspace to your account before you can access the application.
           </p>
         </div>
 
         {miroUserId && (
-          <div style={{
-            background: '#f5f5f5',
-            padding: '12px',
-            borderRadius: '8px',
-            marginBottom: '16px',
-            textAlign: 'center'
-          }}>
-            <p style={{ fontSize: '11px', color: '#888888', margin: '0 0 4px 0' }}>
-              Your Miro ID (for reference):
-            </p>
-            <code style={{
-              fontSize: '12px',
-              fontFamily: 'monospace',
-              color: '#050038'
-            }}>
-              {miroUserId}
-            </code>
+          <div className={styles.miroIdBoxSmall}>
+            <p className={styles.miroIdLabelSmall}>Your Miro ID (for reference):</p>
+            <code className={styles.miroIdValueSmall}>{miroUserId}</code>
           </div>
         )}
 
-        <div style={{
-          padding: '16px',
-          background: '#f9f9f9',
-          borderRadius: '8px'
-        }}>
-          <p style={{
-            fontSize: '12px',
-            color: '#888888',
-            textAlign: 'center',
-            margin: 0,
-            lineHeight: 1.5
-          }}>
+        <div className={styles.helpBox}>
+          <p className={styles.helpText}>
             Please contact the administrator if you believe this is taking too long.
           </p>
         </div>
 
-        <div style={{ marginTop: '20px' }}>
-          <button
-            type="button"
-            onClick={handleRetry}
-            style={{
-              width: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-              padding: '12px',
-              backgroundColor: '#050038',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              fontSize: '14px',
-              fontWeight: 500,
-              cursor: 'pointer',
-              opacity: 0.8
-            }}
-          >
+        <div className={styles.actionsContainer}>
+          <button type="button" onClick={handleRetry} className={styles.buttonSecondary}>
             Check Again
           </button>
         </div>
@@ -381,97 +222,30 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
   // Show Wrong Board screen when client is accessing from a different board
   if (wrongBoard) {
     return (
-      <div className={styles.form} style={{ padding: '24px' }}>
+      <div className={`${styles.form} ${styles.formPadding}`}>
         <div className={styles.header}>
           <div className={styles.logo}>
             <Logo size="xl" />
           </div>
-          <h1 style={{
-            fontSize: '24px',
-            fontWeight: 700,
-            color: '#050038',
-            marginBottom: '8px',
-            fontFamily: 'Inter, system-ui, sans-serif'
-          }}>
-            Wrong Board
-          </h1>
-          <p style={{
-            fontSize: '14px',
-            color: '#666666',
-            margin: 0
-          }}>
+          <h1 className={styles.screenTitlePrimary}>Wrong Board</h1>
+          <p className={styles.screenSubtitle}>
             You're accessing from a different board than your assigned workspace.
           </p>
         </div>
 
-        <div style={{
-          background: '#f5f5f5',
-          padding: '20px',
-          borderRadius: '12px',
-          marginTop: '20px',
-          marginBottom: '16px',
-          textAlign: 'center'
-        }}>
-          <div style={{
-            width: '48px',
-            height: '48px',
-            margin: '0 auto 12px',
-            background: '#050038',
-            borderRadius: '50%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'white',
-            fontSize: '24px'
-          }}>
-            →
-          </div>
-          <p style={{ fontSize: '14px', color: '#666666', marginBottom: '16px', margin: '0 0 16px 0' }}>
-            Click below to open your assigned board:
-          </p>
-          <button
-            type="button"
-            onClick={handleGoToCorrectBoard}
-            style={{
-              width: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-              padding: '12px',
-              backgroundColor: '#050038',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              fontSize: '14px',
-              fontWeight: 500,
-              cursor: 'pointer'
-            }}
-          >
-            <svg
-              style={{ width: '20px', height: '20px' }}
-              viewBox="0 0 24 24"
-              fill="currentColor"
-            >
+        <div className={styles.infoBoxNeutral}>
+          <div className={styles.iconCircleNeutral}>→</div>
+          <p className={styles.infoBoxNeutralText}>Click below to open your assigned board:</p>
+          <button type="button" onClick={handleGoToCorrectBoard} className={styles.buttonPrimary}>
+            <svg className={styles.buttonIcon} viewBox="0 0 24 24" fill="currentColor">
               <path d="M17.392 4H14.15l3.242 8.333L14.15 20h3.242L20.634 12 17.392 4zM12.15 4H8.908l3.242 8.333L8.908 20h3.242L15.392 12 12.15 4zM6.908 4H3.366l3.542 8.333L3.366 20h3.542l3.542-8-3.542-7.667V4z" />
             </svg>
             Open My Board
           </button>
         </div>
 
-        <div style={{
-          marginTop: '16px',
-          padding: '16px',
-          background: '#f9f9f9',
-          borderRadius: '8px'
-        }}>
-          <p style={{
-            fontSize: '12px',
-            color: '#888888',
-            textAlign: 'center',
-            margin: 0,
-            lineHeight: 1.5
-          }}>
+        <div className={styles.helpBox}>
+          <p className={styles.helpText}>
             Each client has a dedicated board. Please use the button above to access yours.
           </p>
         </div>
@@ -480,23 +254,13 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
   }
 
   return (
-    <div className={styles.form} style={{ padding: '24px' }}>
+    <div className={`${styles.form} ${styles.formPadding}`}>
       <div className={styles.header}>
         <div className={styles.logo}>
           <Logo size="xl" />
         </div>
-        <h1 style={{
-          fontSize: '24px',
-          fontWeight: 700,
-          color: '#050038',
-          marginBottom: '8px',
-          fontFamily: 'Inter, system-ui, sans-serif'
-        }}>Welcome</h1>
-        <p style={{
-          fontSize: '14px',
-          color: '#666666',
-          margin: 0
-        }}>
+        <h1 className={styles.screenTitlePrimary}>Welcome</h1>
+        <p className={styles.screenSubtitle}>
           {isInMiro
             ? 'Click below to authenticate with your Miro account'
             : 'Sign in with your Miro account to continue'}
@@ -504,61 +268,25 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
       </div>
 
       {displayError && !accessDenied && (
-        <div style={{
-          padding: '12px',
-          background: '#FEF2F2',
-          border: '1px solid #EF4444',
-          borderRadius: '8px',
-          color: '#EF4444',
-          fontSize: '14px',
-          marginTop: '16px'
-        }}>
-          {displayError}
-        </div>
+        <div className={styles.errorAlert}>{displayError}</div>
       )}
 
-      <div style={{ marginTop: '20px' }}>
+      <div className={styles.actionsContainer}>
         <button
           type="button"
           onClick={isInMiro ? handleMiroAuth : handleMiroOAuth}
           disabled={isLoading || isAuthenticating}
-          style={{
-            width: '100%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px',
-            padding: '12px',
-            backgroundColor: '#050038',
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
-            fontSize: '14px',
-            fontWeight: 500,
-            cursor: isLoading || isAuthenticating ? 'not-allowed' : 'pointer',
-            opacity: isLoading || isAuthenticating ? 0.5 : 1
-          }}
+          className={styles.buttonPrimary}
         >
-          <svg style={{ width: '20px', height: '20px' }} viewBox="0 0 24 24" fill="currentColor">
+          <svg className={styles.buttonIcon} viewBox="0 0 24 24" fill="currentColor">
             <path d="M17.392 4H14.15l3.242 8.333L14.15 20h3.242L20.634 12 17.392 4zM12.15 4H8.908l3.242 8.333L8.908 20h3.242L15.392 12 12.15 4zM6.908 4H3.366l3.542 8.333L3.366 20h3.542l3.542-8-3.542-7.667V4z" />
           </svg>
           {isLoading || isAuthenticating ? 'Authenticating...' : 'Sign in with Miro'}
         </button>
       </div>
 
-      <div style={{
-        marginTop: '16px',
-        padding: '16px',
-        background: '#f9f9f9',
-        borderRadius: '8px'
-      }}>
-        <p style={{
-          fontSize: '12px',
-          color: '#888888',
-          textAlign: 'center',
-          margin: 0,
-          lineHeight: 1.5
-        }}>
+      <div className={styles.helpBox}>
+        <p className={styles.helpText}>
           Your role (Admin, Designer, or Client) is determined by your account settings.
           Contact an administrator if you need access.
         </p>
