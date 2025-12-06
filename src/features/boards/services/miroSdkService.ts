@@ -1068,32 +1068,59 @@ class MiroProjectRowService {
     const top = frameY - FRAME.HEIGHT / 2;
     const contentWidth = FRAME.WIDTH - BRIEFING.PADDING * 2;
 
-    // === HEADER (clean, dark with star icon) ===
+    // === HEADER (clean, dark with due date on left) ===
     const headerY = top + BRIEFING.PADDING + 20;
+    const dueDateText = project.dueDate
+      ? new Date(project.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+      : 'No deadline';
+
+    // Header background
     await miro.board.createShape({
       shape: 'rectangle',
-      content: `<p><b>⋆ ${project.name.toUpperCase()} - BRIEFING ⋆</b></p>`,
+      content: '',
       x: frameX,
       y: headerY,
       width: contentWidth,
       height: 36,
       style: {
         fillColor: '#1F2937',
+      },
+    });
+
+    // Due date text on the left
+    await miro.board.createText({
+      content: `<b>${dueDateText}</b>`,
+      x: left + BRIEFING.PADDING + 60,
+      y: headerY,
+      width: 120,
+      style: {
+        color: '#FFFFFF',
+        fontSize: 11,
+        textAlign: 'left',
+      },
+    });
+
+    // Project name centered
+    await miro.board.createText({
+      content: `<b>⋆ ${project.name.toUpperCase()} - BRIEFING ⋆</b>`,
+      x: frameX,
+      y: headerY,
+      width: contentWidth - 160,
+      style: {
         color: '#FFFFFF',
         fontSize: 13,
         textAlign: 'center',
-        textAlignVertical: 'middle',
       },
     });
 
     // Project info row (badges style)
-    // Sequence: Priority, Project Type, Status, Author, Due Date
+    // Sequence: Priority, Project Type, Status, Author + Answered text
     const infoY = headerY + 32;
 
-    // Badge dimensions and spacing (5 badges)
+    // Badge dimensions and spacing (4 badges + text)
     const BADGE_HEIGHT = 26;
     const BADGE_GAP = 8;
-    const BADGE_WIDTHS = { priority: 70, type: 85, status: 90, author: 80, date: 105, briefing: 85 };
+    const BADGE_WIDTHS = { priority: 70, type: 85, status: 90, author: 80 };
 
     // Calculate positions with equal gaps
     let badgeX = left + BRIEFING.PADDING + BADGE_WIDTHS.priority / 2;
@@ -1186,56 +1213,23 @@ class MiroProjectRowService {
       },
     });
 
-    // Move to next badge position
-    badgeX += BADGE_WIDTHS.author / 2 + BADGE_GAP + BADGE_WIDTHS.date / 2;
-
-    // 5. Due Date badge
-    const dueDateText = project.dueDate
-      ? new Date(project.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-      : 'No deadline';
-    const isOverdue = project.dueDate && new Date(project.dueDate) < new Date();
-
-    await miro.board.createShape({
-      shape: 'round_rectangle',
-      content: `<p><b>${dueDateText}</b></p>`,
-      x: badgeX,
-      y: infoY,
-      width: BADGE_WIDTHS.date,
-      height: BADGE_HEIGHT,
-      style: {
-        fillColor: isOverdue ? '#EF4444' : '#3B82F6',
-        borderColor: 'transparent',
-        borderWidth: 0,
-        color: '#FFFFFF',
-        fontSize: 10,
-        textAlign: 'center',
-        textAlignVertical: 'middle',
-      },
-    });
-
-    // Move to next badge position
-    badgeX += BADGE_WIDTHS.date / 2 + BADGE_GAP + BADGE_WIDTHS.briefing / 2;
-
-    // 6. Briefing completion badge (X/9 Answered)
+    // 5. Briefing completion text (X/9 Answered) - simple text, no badge
     const answeredCount = BRIEFING_FIELDS.filter(field => briefing[field.key]).length;
     const totalFields = BRIEFING_FIELDS.length;
     const allAnswered = answeredCount === totalFields;
 
-    await miro.board.createShape({
-      shape: 'round_rectangle',
-      content: `<p><b>${answeredCount}/${totalFields} Answered</b></p>`,
-      x: badgeX,
+    // Position text after the last badge
+    const textX = badgeX + BADGE_WIDTHS.author / 2 + BADGE_GAP + 50;
+
+    await miro.board.createText({
+      content: `<b>${answeredCount}/${totalFields} Answered</b>`,
+      x: textX,
       y: infoY,
-      width: BADGE_WIDTHS.briefing,
-      height: BADGE_HEIGHT,
+      width: 100,
       style: {
-        fillColor: allAnswered ? '#10B981' : '#F59E0B',
-        borderColor: 'transparent',
-        borderWidth: 0,
-        color: '#FFFFFF',
-        fontSize: 10,
-        textAlign: 'center',
-        textAlignVertical: 'middle',
+        color: allAnswered ? '#10B981' : '#F59E0B',
+        fontSize: 11,
+        textAlign: 'left',
       },
     });
 
