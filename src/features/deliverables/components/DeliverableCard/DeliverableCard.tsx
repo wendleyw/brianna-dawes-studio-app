@@ -1,6 +1,18 @@
+import { memo } from 'react';
 import { Badge } from '@shared/ui';
 import type { DeliverableCardProps } from './DeliverableCard.types';
 import styles from './DeliverableCard.module.css';
+
+/**
+ * Format date string to "DD Mon" format
+ */
+function formatDate(dateString: string | null): string | null {
+  if (!dateString) return null;
+  return new Date(dateString).toLocaleDateString('en-US', {
+    day: '2-digit',
+    month: 'short',
+  });
+}
 
 const STATUS_MAP = {
   draft: { label: 'Draft', variant: 'neutral' as const },
@@ -39,17 +51,13 @@ const TYPE_ICONS: Record<string, React.ReactElement> = {
   ),
 };
 
-export function DeliverableCard({ deliverable, onView }: DeliverableCardProps) {
+/**
+ * DeliverableCard - Displays a deliverable item with preview and status
+ * Memoized to prevent unnecessary re-renders in deliverable lists
+ */
+export const DeliverableCard = memo(function DeliverableCard({ deliverable, onView }: DeliverableCardProps) {
   const status = STATUS_MAP[deliverable.status];
   const isOverdue = deliverable.dueDate && new Date(deliverable.dueDate) < new Date() && deliverable.status !== 'delivered';
-
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return null;
-    return new Date(dateString).toLocaleDateString('en-US', {
-      day: '2-digit',
-      month: 'short',
-    });
-  };
 
   return (
     <article className={styles.card} onClick={() => onView?.(deliverable)}>
@@ -101,4 +109,4 @@ export function DeliverableCard({ deliverable, onView }: DeliverableCardProps) {
       </div>
     </article>
   );
-}
+});

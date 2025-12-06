@@ -7,7 +7,42 @@ import type {
   ProjectsResponse,
 } from '../domain/project.types';
 
+/**
+ * ProjectService - Handles all project-related database operations
+ *
+ * This service provides CRUD operations for projects, including:
+ * - Fetching projects with filtering, sorting, and pagination
+ * - Creating new projects with briefing and designer assignments
+ * - Updating project details and status
+ * - Deleting projects (admin only)
+ *
+ * All operations respect Supabase RLS policies for security.
+ *
+ * @example
+ * ```typescript
+ * // Get paginated projects with filters
+ * const { data, total } = await projectService.getProjects({
+ *   filters: { status: 'in_progress' },
+ *   sort: { field: 'dueDate', direction: 'asc' },
+ *   page: 1,
+ *   pageSize: 10
+ * });
+ *
+ * // Create a new project
+ * const project = await projectService.createProject({
+ *   name: 'Website Redesign',
+ *   clientId: 'uuid',
+ *   priority: 'high'
+ * });
+ * ```
+ */
 class ProjectService {
+  /**
+   * Get projects with optional filtering, sorting, and pagination
+   *
+   * @param params - Query parameters for filtering and pagination
+   * @returns Paginated project list with total count
+   */
   async getProjects(params: ProjectsQueryParams = {}): Promise<ProjectsResponse> {
     const { filters = {}, sort = { field: 'createdAt', direction: 'desc' }, page = 1, pageSize = 10 } = params;
 

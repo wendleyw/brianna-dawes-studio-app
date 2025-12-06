@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import styles from './MetricCard.module.css';
 
 interface MetricCardProps {
@@ -11,7 +12,11 @@ interface MetricCardProps {
   description?: string;
 }
 
-export function MetricCard({ label, value, icon }: MetricCardProps) {
+/**
+ * MetricCard - Displays a single metric with label and value
+ * Memoized to prevent unnecessary re-renders in dashboard grids
+ */
+export const MetricCard = memo(function MetricCard({ label, value, icon }: MetricCardProps) {
   return (
     <div className={styles.card}>
       <div className={styles.header}>
@@ -21,4 +26,4 @@ export function MetricCard({ label, value, icon }: MetricCardProps) {
       {icon && <span className={styles.icon}>{icon}</span>}
     </div>
   );
-}
+});
