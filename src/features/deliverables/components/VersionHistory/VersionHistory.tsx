@@ -1,4 +1,5 @@
 import { Skeleton } from '@shared/ui';
+import { formatDateTime } from '@shared/lib/dateFormat';
 import { useDeliverableVersions } from '../../hooks/useDeliverableVersions';
 import type { VersionHistoryProps } from './VersionHistory.types';
 import type { DeliverableVersion } from '../../domain/deliverable.types';
@@ -12,15 +13,7 @@ function formatFileSize(bytes: number): string {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
-function formatDate(dateString: string): string {
-  return new Date(dateString).toLocaleDateString('en-US', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
+// formatDate replaced by formatDateTime from @shared/lib/dateFormat
 
 export function VersionHistory({
   deliverableId,
@@ -94,7 +87,7 @@ export function VersionHistory({
                     )}
                     <span>{version.uploadedBy.name}</span>
                   </div>
-                  <span>{formatDate(version.createdAt)}</span>
+                  <span>{formatDateTime(version.createdAt)}</span>
                   <span className={styles.fileSize}>{formatFileSize(version.fileSize)}</span>
                 </div>
 

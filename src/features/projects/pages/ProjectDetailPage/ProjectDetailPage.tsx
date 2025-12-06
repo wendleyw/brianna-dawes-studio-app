@@ -3,24 +3,17 @@ import { Button, Badge, Skeleton } from '@shared/ui';
 import { useProject } from '../../hooks/useProject';
 import { getStatusColumn, getStatusVariant } from '@shared/lib/timelineStatus';
 import { PRIORITY_CONFIG } from '@shared/lib/priorityConfig';
+import { formatDateFull } from '@shared/lib/dateFormat';
 import styles from './ProjectDetailPage.module.css';
 
 // STATUS_MAP replaced by getStatusColumn and getStatusVariant from timelineStatus
 // PRIORITY_MAP replaced by PRIORITY_CONFIG from priorityConfig
+// formatDate replaced by formatDateFull from @shared/lib/dateFormat
 
 export function ProjectDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: project, isLoading, isError, error } = useProject(id);
-
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return '—';
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
-  };
 
   if (isLoading) {
     return (
@@ -132,11 +125,11 @@ export function ProjectDetailPage() {
             <div className={styles.infoList}>
               <div className={styles.infoItem}>
                 <span className={styles.infoLabel}>Start Date</span>
-                <span className={styles.infoValue}>{formatDate(project.startDate)}</span>
+                <span className={styles.infoValue}>{formatDateFull(project.startDate)}</span>
               </div>
               <div className={styles.infoItem}>
                 <span className={styles.infoLabel}>Due Date</span>
-                <span className={styles.infoValue}>{formatDate(project.dueDate)}</span>
+                <span className={styles.infoValue}>{formatDateFull(project.dueDate)}</span>
               </div>
               <div className={styles.infoItem}>
                 <span className={styles.infoLabel}>Deliverables</span>
@@ -144,7 +137,7 @@ export function ProjectDetailPage() {
               </div>
               <div className={styles.infoItem}>
                 <span className={styles.infoLabel}>Created</span>
-                <span className={styles.infoValue}>{formatDate(project.createdAt)}</span>
+                <span className={styles.infoValue}>{formatDateFull(project.createdAt)}</span>
               </div>
             </div>
           </div>

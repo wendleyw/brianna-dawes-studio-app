@@ -1,25 +1,18 @@
 import { useState, FormEvent } from 'react';
 import { Input, Button } from '@shared/ui';
 import { createProjectSchema, updateProjectSchema } from '../../domain/project.schema';
+import { STATUS_COLUMNS } from '@shared/lib/timelineStatus';
+import { PRIORITY_OPTIONS } from '@shared/lib/priorityConfig';
 import type { ProjectFormProps, ProjectFormData } from './ProjectForm.types';
 import styles from './ProjectForm.module.css';
 
-const STATUS_OPTIONS = [
-  { value: 'critical', label: 'Critical' },
-  { value: 'overdue', label: 'Overdue' },
-  { value: 'urgent', label: 'Urgent' },
-  { value: 'on_track', label: 'On Track' },
-  { value: 'in_progress', label: 'In Progress' },
-  { value: 'review', label: 'Review' },
-  { value: 'done', label: 'Done' },
-];
+// Generate STATUS_OPTIONS from centralized STATUS_COLUMNS
+const STATUS_OPTIONS = STATUS_COLUMNS.map(col => ({
+  value: col.id,
+  label: col.label,
+}));
 
-const PRIORITY_OPTIONS = [
-  { value: 'urgent', label: 'Urgent', color: '#EF4444' },
-  { value: 'high', label: 'High', color: '#F97316' },
-  { value: 'medium', label: 'Medium', color: '#F59E0B' },
-  { value: 'low', label: 'Standard', color: '#10B981' },
-];
+// PRIORITY_OPTIONS is now imported from @shared/lib/priorityConfig
 
 export function ProjectForm({
   project,

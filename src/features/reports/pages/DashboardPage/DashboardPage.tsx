@@ -5,6 +5,8 @@ import { useAuth } from '@features/auth';
 import { useProjects } from '@features/projects';
 import { zoomToProject } from '@features/boards';
 import { supabase } from '@shared/lib/supabase';
+import { STATUS_COLUMNS, getStatusColumn } from '@shared/lib/timelineStatus';
+import { formatDateShort } from '@shared/lib/dateFormat';
 import styles from './DashboardPage.module.css';
 import type { ProjectStatus } from '@features/projects/domain/project.types';
 
@@ -32,20 +34,11 @@ const SettingsIcon = () => (
   </svg>
 );
 
-// Timeline status colors - unified 7-status system (same as Miro board)
-const STATUS_COLORS: Record<ProjectStatus, { color: string; label: string }> = {
-  critical: { color: '#EF4444', label: 'CRITICAL' },
-  overdue: { color: '#F97316', label: 'OVERDUE' },
-  urgent: { color: '#EAB308', label: 'URGENT' },
-  on_track: { color: '#3B82F6', label: 'ON TRACK' },
-  in_progress: { color: '#8B5CF6', label: 'IN PROGRESS' },
-  review: { color: '#6366F1', label: 'REVIEW' },
-  done: { color: '#22C55E', label: 'DONE' },
-};
+// STATUS_COLORS replaced by STATUS_COLUMNS from @shared/lib/timelineStatus
 
-// Get color for a project based on its status
+// Get color for a project based on its status (using centralized config)
 function getProjectColor(project: { status: ProjectStatus }): string {
-  return STATUS_COLORS[project.status]?.color || '#6B7280';
+  return getStatusColumn(project.status).color;
 }
 
 // Get month key for grouping (e.g., "2024-11" for November 2024)
@@ -98,11 +91,7 @@ function groupProjectsByMonth<T extends { dueDate: string | null }>(projects: T[
   return grouped;
 }
 
-// Format date to "Dec 11" format
-function formatDate(dateString: string): string {
-  const date = new Date(dateString);
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-}
+// formatDate replaced by formatDateShort from @shared/lib/dateFormat
 
 export function DashboardPage() {
   const navigate = useNavigate();
@@ -260,19 +249,19 @@ export function DashboardPage() {
           <div className={styles.legend}>
             {/* First row: CRITICAL, OVERDUE, URGENT, ON TRACK */}
             <div className={styles.legendRow}>
-              {Object.entries(STATUS_COLORS).slice(0, 4).map(([key, { color, label }]) => (
-                <span key={key} className={styles.legendItem}>
-                  <span className={styles.legendDot} style={{ backgroundColor: color }}/>
-                  {label}
+              {STATUS_COLUMNS.slice(0, 4).map((col) => (
+                <span key={col.id} className={styles.legendItem}>
+                  <span className={styles.legendDot} style={{ backgroundColor: col.color }}/>
+                  {col.label}
                 </span>
               ))}
             </div>
             {/* Second row: IN PROGRESS, REVIEW, DONE */}
             <div className={styles.legendRow}>
-              {Object.entries(STATUS_COLORS).slice(4).map(([key, { color, label }]) => (
-                <span key={key} className={styles.legendItem}>
-                  <span className={styles.legendDot} style={{ backgroundColor: color }}/>
-                  {label}
+              {STATUS_COLUMNS.slice(4).map((col) => (
+                <span key={col.id} className={styles.legendItem}>
+                  <span className={styles.legendDot} style={{ backgroundColor: col.color }}/>
+                  {col.label}
                 </span>
               ))}
             </div>
@@ -299,7 +288,7 @@ export function DashboardPage() {
                           title="Click to zoom • Double-click to open"
                         >
                           <span className={styles.timelineName}>{project.name}</span>
-                          <span className={styles.timelineDate}>{formatDate(project.dueDate!)}</span>
+                          <span className={styles.timelineDate}>{formatDateShort(project.dueDate!)}</span>
                         </button>
                       ))}
                     </div>
