@@ -1327,32 +1327,104 @@ class MiroProjectRowService {
   /**
    * Update the status badge in the briefing frame
    * Called when project status changes in the panel
+   * Searches for the badge on the board if not in memory
    */
-  async updateBriefingStatus(projectId: string, status: ProjectStatus): Promise<boolean> {
+  async updateBriefingStatus(projectId: string, status: ProjectStatus, projectName?: string): Promise<boolean> {
+    const miro = getMiroSDK();
+    const statusConfig = getStatusConfig(status);
     const row = this.rows.get(projectId);
 
-    if (!row?.statusBadgeId) {
-      log('MiroProject', `No status badge ID found for project ${projectId}, cannot update`);
-      return false;
+    // All possible status labels to search for
+    const STATUS_LABELS = ['CRITICAL', 'OVERDUE', 'URGENT', 'ON TRACK', 'IN PROGRESS', 'REVIEW', 'DONE'];
+
+    // Try using stored ID first
+    if (row?.statusBadgeId) {
+      try {
+        const shape = await miro.board.getById(row.statusBadgeId);
+        if (shape && 'content' in shape) {
+          (shape as { content: string }).content = `<p><b>${statusConfig.label}</b></p>`;
+          if ('style' in shape && shape.style) {
+            (shape.style as { fillColor: string }).fillColor = statusConfig.color;
+          }
+          await miro.board.sync(shape);
+          log('MiroProject', `Updated status badge for project ${projectId} to ${status} (using stored ID)`);
+          return true;
+        }
+      } catch {
+        log('MiroProject', `Stored badge ID invalid, searching on board...`);
+      }
     }
 
+    // Search for the badge on the board by finding briefing frame and status shape
     try {
-      const miro = getMiroSDK();
-      const statusConfig = getStatusConfig(status);
+      log('MiroProject', `Searching for status badge on board for project: ${projectName || projectId}`);
 
-      // Get the existing shape and update it
-      const shape = await miro.board.getById(row.statusBadgeId);
-      if (shape && 'content' in shape) {
-        (shape as { content: string }).content = `<p><b>${statusConfig.label}</b></p>`;
-        if ('style' in shape && shape.style) {
-          (shape.style as { fillColor: string }).fillColor = statusConfig.color;
+      // Get all frames and find the briefing frame for this project
+      const allFrames = await miro.board.get({ type: 'frame' }) as MiroFrame[];
+      const briefingFrame = allFrames.find(f => {
+        if (!f.title) return false;
+        const isBriefing = f.title.includes('BRIEFING');
+        const matchesProject = projectName ? f.title.includes(projectName) : true;
+        return isBriefing && matchesProject;
+      });
+
+      if (!briefingFrame) {
+        log('MiroProject', `No briefing frame found for project ${projectName || projectId}`);
+        return false;
+      }
+
+      log('MiroProject', `Found briefing frame: ${briefingFrame.title}`);
+
+      // Get all shapes on the board
+      const allShapes = await miro.board.get({ type: 'shape' }) as Array<{
+        id: string;
+        x: number;
+        y: number;
+        content?: string;
+        style?: { fillColor?: string };
+      }>;
+
+      // Find shapes that are inside/near the briefing frame and have status content
+      const frameLeft = briefingFrame.x - (briefingFrame.width || 800) / 2;
+      const frameRight = briefingFrame.x + (briefingFrame.width || 800) / 2;
+      const frameTop = briefingFrame.y - (briefingFrame.height || 600) / 2;
+      const frameBottom = briefingFrame.y + (briefingFrame.height || 600) / 2;
+
+      const statusShape = allShapes.find(s => {
+        // Check if shape is inside the frame
+        const insideFrame = s.x >= frameLeft && s.x <= frameRight && s.y >= frameTop && s.y <= frameBottom;
+        if (!insideFrame) return false;
+
+        // Check if content matches any status label
+        const content = s.content || '';
+        return STATUS_LABELS.some(label => content.toUpperCase().includes(label));
+      });
+
+      if (statusShape) {
+        log('MiroProject', `Found status shape with content: ${statusShape.content}`);
+
+        // Update the shape
+        const shape = await miro.board.getById(statusShape.id);
+        if (shape && 'content' in shape) {
+          (shape as { content: string }).content = `<p><b>${statusConfig.label}</b></p>`;
+          if ('style' in shape && shape.style) {
+            (shape.style as { fillColor: string }).fillColor = statusConfig.color;
+          }
+          await miro.board.sync(shape);
+
+          // Store the ID for future updates
+          if (row) {
+            row.statusBadgeId = statusShape.id;
+          }
+
+          log('MiroProject', `Updated status badge to ${status} (found on board)`);
+          return true;
         }
-        await miro.board.sync(shape);
-        log('MiroProject', `Updated status badge for project ${projectId} to ${status}`);
-        return true;
+      } else {
+        log('MiroProject', `No status shape found in briefing frame`);
       }
     } catch (error) {
-      log('MiroProject', `Failed to update status badge for project ${projectId}`, error);
+      log('MiroProject', `Failed to search/update status badge`, error);
     }
 
     return false;

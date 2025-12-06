@@ -103,7 +103,7 @@ export function useUpdateProjectWithMiro() {
 
           // Update the status badge in the briefing frame if status changed
           if (input.status) {
-            await miroProjectRowService.updateBriefingStatus(project.id, project.status);
+            await miroProjectRowService.updateBriefingStatus(project.id, project.status, project.name);
           }
 
           logger.debug('Project synced to Miro', { name: project.name, status: project.status });
