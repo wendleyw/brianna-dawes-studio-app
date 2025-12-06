@@ -10,32 +10,16 @@ const SIZES = {
   xl: 60,
 };
 
-// Session key to track if animation has been shown
-const ANIMATION_SHOWN_KEY = 'logo_animation_shown';
-
 export function Logo({ size = 'md', className, animated = false, onAnimationComplete }: LogoProps) {
   const dimension = SIZES[size];
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  // Check if animation was already shown this session
-  const getAlreadyShown = () => {
-    try {
-      return sessionStorage.getItem(ANIMATION_SHOWN_KEY) === 'true';
-    } catch {
-      // sessionStorage might not be available in iframe
-      return false;
-    }
-  };
-
-  const [showAnimation, setShowAnimation] = useState(() => {
-    const shouldAnimate = animated && !getAlreadyShown();
-    console.log('[Logo] Initial state:', { animated, alreadyShown: getAlreadyShown(), shouldAnimate });
-    return shouldAnimate;
-  });
+  // Always show animation when animated=true (every time app opens)
+  const [showAnimation, setShowAnimation] = useState(animated);
   const [fadeOut, setFadeOut] = useState(false);
 
   const handleVideoEnd = useCallback(() => {
-    console.log('[Logo] Video ended naturally');
+    console.log('[Logo] Video ended');
     setFadeOut(true);
     setTimeout(() => {
       setShowAnimation(false);
@@ -51,15 +35,6 @@ export function Logo({ size = 'md', className, animated = false, onAnimationComp
 
   useEffect(() => {
     if (!showAnimation) return;
-
-    console.log('[Logo] Animation starting...');
-
-    // Mark as shown for this session
-    try {
-      sessionStorage.setItem(ANIMATION_SHOWN_KEY, 'true');
-    } catch {
-      // Ignore if sessionStorage not available
-    }
 
     // Fallback timer in case video doesn't end properly
     const fallbackTimer = setTimeout(() => {
