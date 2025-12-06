@@ -9,6 +9,7 @@ import { useMiro, useMiroBoardSync } from '@features/boards';
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { STATUS_COLUMNS } from '@shared/lib/timelineStatus';
+import { formatDateShort } from '@shared/lib/dateFormat';
 import { projectKeys } from '@features/projects/services/projectKeys';
 import { broadcastProjectChange } from '@shared/lib/projectBroadcast';
 import { useRealtimeSubscription } from '@shared/hooks/useRealtimeSubscription';
@@ -253,7 +254,7 @@ export function BoardModalApp() {
                       )}
                       {project.dueDate && (
                         <span className={styles.cardDue}>
-                          {new Date(project.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                          {formatDateShort(project.dueDate)}
                         </span>
                       )}
                     </div>

@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import { Skeleton } from '@shared/ui';
 import { useRecentActivity } from '../../hooks/useRecentActivity';
+import { formatRelativeTime } from '@shared/lib/dateFormat';
 import styles from './ActivityFeed.module.css';
 
 const ACTIVITY_CONFIG: Record<string, { label: string; iconClass: string }> = {
@@ -39,22 +40,7 @@ const ACTIVITY_ICONS: Record<string, React.ReactElement> = {
   ),
 };
 
-function formatRelativeTime(timestamp: string): string {
-  const now = Date.now();
-  const time = new Date(timestamp).getTime();
-  const diff = now - time;
-
-  const minutes = Math.floor(diff / 60000);
-  const hours = Math.floor(diff / 3600000);
-  const days = Math.floor(diff / 86400000);
-
-  if (minutes < 1) return 'now';
-  if (minutes < 60) return `${minutes}m ago`;
-  if (hours < 24) return `${hours}h ago`;
-  if (days < 7) return `${days}d ago`;
-
-  return new Date(timestamp).toLocaleDateString('en-US');
-}
+// formatRelativeTime imported from @shared/lib/dateFormat
 
 interface ActivityFeedProps {
   limit?: number;

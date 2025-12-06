@@ -3,6 +3,7 @@ import type { Project, ProjectStatus } from '../../domain/project.types';
 import { useProjectMutations } from '../../hooks';
 import { createLogger } from '@shared/lib/logger';
 import { STATUS_COLUMNS } from '@shared/lib/timelineStatus';
+import { formatDateShort } from '@shared/lib/dateFormat';
 import styles from './ProjectBoardModal.module.css';
 
 const logger = createLogger('ProjectBoardModal');
@@ -137,7 +138,7 @@ export function ProjectBoardModal({ isOpen, onClose, projects }: ProjectBoardMod
                         )}
                         {project.dueDate && (
                           <span className={styles.cardDue}>
-                            {new Date(project.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                            {formatDateShort(project.dueDate)}
                           </span>
                         )}
                       </div>

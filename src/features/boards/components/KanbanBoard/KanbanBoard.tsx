@@ -1,5 +1,6 @@
 import { useState, DragEvent } from 'react';
 import { Skeleton } from '@shared/ui';
+import { formatDateShort } from '@shared/lib/dateFormat';
 import type { KanbanBoardProps } from './KanbanBoard.types';
 import type { KanbanCard, KanbanColumnId } from '../../domain/board.types';
 import styles from './KanbanBoard.module.css';
@@ -50,13 +51,7 @@ export function KanbanBoard({
     setDropTarget(null);
   };
 
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return null;
-    return new Date(dateString).toLocaleDateString('en-US', {
-      day: '2-digit',
-      month: 'short',
-    });
-  };
+  // formatDate replaced by formatDateShort from @shared/lib/dateFormat
 
   const isOverdue = (dueDate: string | null) => {
     if (!dueDate) return false;
@@ -154,7 +149,7 @@ export function KanbanBoard({
                                 d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
                               />
                             </svg>
-                            {formatDate(card.dueDate)}
+                            {formatDateShort(card.dueDate)}
                           </span>
                         </div>
                       )}
