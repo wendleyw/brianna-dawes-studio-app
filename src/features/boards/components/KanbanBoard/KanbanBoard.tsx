@@ -1,6 +1,6 @@
 import { useState, DragEvent } from 'react';
 import { Skeleton } from '@shared/ui';
-import { formatDateShort } from '@shared/lib/dateFormat';
+import { formatDateShort, formatDateTime } from '@shared/lib/dateFormat';
 import type { KanbanBoardProps } from './KanbanBoard.types';
 import type { KanbanCard, KanbanColumnId } from '../../domain/board.types';
 import styles from './KanbanBoard.module.css';
@@ -164,7 +164,7 @@ export function KanbanBoard({
 
       {state.lastSyncAt && (
         <div className={styles.lastSync}>
-          Last sync: {new Date(state.lastSyncAt).toLocaleString('en-US')}
+          Last sync: {formatDateTime(state.lastSyncAt)}
         </div>
       )}
     </>

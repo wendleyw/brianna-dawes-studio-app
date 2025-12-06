@@ -6,7 +6,7 @@ import { useProjects } from '@features/projects';
 import { zoomToProject } from '@features/boards';
 import { supabase } from '@shared/lib/supabase';
 import { STATUS_COLUMNS, getStatusColumn } from '@shared/lib/timelineStatus';
-import { formatDateShort } from '@shared/lib/dateFormat';
+import { formatDateShort, formatDateMonth } from '@shared/lib/dateFormat';
 import styles from './DashboardPage.module.css';
 import type { ProjectStatus } from '@features/projects/domain/project.types';
 
@@ -51,7 +51,7 @@ function getMonthKey(dateString: string): string {
 function getMonthLabel(monthKey: string): string {
   const [year, month] = monthKey.split('-');
   const date = new Date(parseInt(year || '2024', 10), parseInt(month || '1', 10) - 1, 1);
-  return date.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
+  return formatDateMonth(date);
 }
 
 // Get all months between earliest and latest project dates
