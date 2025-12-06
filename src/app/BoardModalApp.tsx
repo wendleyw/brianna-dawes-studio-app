@@ -5,7 +5,7 @@
  * Syncs with Miro Master Timeline when projects are moved
  */
 import { useProjects, useProjectMutations } from '@features/projects';
-import { useMiro, useMiroBoardSync } from '@features/boards';
+import { useMiro, useMiroBoardSync, miroProjectRowService } from '@features/boards';
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { STATUS_COLUMNS } from '@shared/lib/timelineStatus';
@@ -106,6 +106,10 @@ export function BoardModalApp() {
         try {
           const fullProject = await projectService.getProject(projectId);
           await syncProject(fullProject, { markAsReviewed: fullProject.wasReviewed });
+
+          // Also update briefing status badge
+          await miroProjectRowService.updateBriefingStatus(projectId, fullProject.status, fullProject.name);
+
           logger.info('BoardModal: Miro sync completed', { projectId, status: fullProject.status });
         } catch (err) {
           logger.error('BoardModal: Miro sync failed', err);
@@ -174,7 +178,17 @@ export function BoardModalApp() {
       // 2. Sync with Miro Master Timeline using the DB response
       await syncProject(updatedProjectFromDB);
 
-      // 3. Invalidate and refetch to ensure UI is in sync
+      // 3. Update the status badge in the briefing frame
+      console.log('[BoardModal] Updating briefing status badge for:', projectName, newStatus);
+      miroProjectRowService.updateBriefingStatus(projectId, newStatus, projectName)
+        .then(result => {
+          console.log('[BoardModal] Briefing status update result:', result);
+        })
+        .catch(err => {
+          console.error('[BoardModal] Briefing status update failed:', err);
+        });
+
+      // 4. Invalidate and refetch to ensure UI is in sync
       await queryClient.invalidateQueries({ queryKey: projectKeys.lists() });
       await refetch();
 

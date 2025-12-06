@@ -123,10 +123,14 @@ export function ProjectsPage() {
       updateInput.wasReviewed = false;
     }
 
+    console.log('[ProjectsPage] handleUpdateStatus called with:', { projectId, status, options });
+
     updateProject(
       { id: projectId, input: updateInput },
       {
         onSuccess: (updatedProject) => {
+          console.log('[ProjectsPage] updateProject onSuccess, updatedProject:', updatedProject.name, updatedProject.status);
+
           // Sync with Miro board using the response from database
           // Pass markAsReviewed option if client reviewed the project
           syncProject(updatedProject, options).catch(err => {
