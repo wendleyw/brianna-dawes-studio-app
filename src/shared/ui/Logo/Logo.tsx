@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import type { LogoProps } from './Logo.types';
 import logoImage from '../../../assets/brand/logo-brianna.png';
 import styles from './Logo.module.css';
@@ -18,39 +18,61 @@ export function Logo({ size = 'md', className, animated = false, onAnimationComp
   const videoRef = useRef<HTMLVideoElement>(null);
 
   // Check if animation was already shown this session
-  const alreadyShown = sessionStorage.getItem(ANIMATION_SHOWN_KEY) === 'true';
-  const [showAnimation, setShowAnimation] = useState(animated && !alreadyShown);
+  const getAlreadyShown = () => {
+    try {
+      return sessionStorage.getItem(ANIMATION_SHOWN_KEY) === 'true';
+    } catch {
+      // sessionStorage might not be available in iframe
+      return false;
+    }
+  };
+
+  const [showAnimation, setShowAnimation] = useState(() => {
+    const shouldAnimate = animated && !getAlreadyShown();
+    console.log('[Logo] Initial state:', { animated, alreadyShown: getAlreadyShown(), shouldAnimate });
+    return shouldAnimate;
+  });
   const [fadeOut, setFadeOut] = useState(false);
+
+  const handleVideoEnd = useCallback(() => {
+    console.log('[Logo] Video ended naturally');
+    setFadeOut(true);
+    setTimeout(() => {
+      setShowAnimation(false);
+      onAnimationComplete?.();
+    }, 300);
+  }, [onAnimationComplete]);
+
+  const handleVideoError = useCallback(() => {
+    console.log('[Logo] Video error - showing static');
+    setShowAnimation(false);
+    onAnimationComplete?.();
+  }, [onAnimationComplete]);
 
   useEffect(() => {
     if (!showAnimation) return;
 
-    // Mark as shown for this session
-    sessionStorage.setItem(ANIMATION_SHOWN_KEY, 'true');
+    console.log('[Logo] Animation starting...');
 
-    // Play video
-    if (videoRef.current) {
-      videoRef.current.play().catch(() => {
-        // If video fails to play, show static immediately
-        setShowAnimation(false);
-        onAnimationComplete?.();
-      });
+    // Mark as shown for this session
+    try {
+      sessionStorage.setItem(ANIMATION_SHOWN_KEY, 'true');
+    } catch {
+      // Ignore if sessionStorage not available
     }
 
-    // Animation duration is ~4 seconds, start fade at 3.7s
-    const fadeTimer = setTimeout(() => {
+    // Fallback timer in case video doesn't end properly
+    const fallbackTimer = setTimeout(() => {
+      console.log('[Logo] Fallback timer triggered');
       setFadeOut(true);
-    }, 3700);
-
-    // Switch to static logo after 4s
-    const switchTimer = setTimeout(() => {
-      setShowAnimation(false);
-      onAnimationComplete?.();
-    }, 4000);
+      setTimeout(() => {
+        setShowAnimation(false);
+        onAnimationComplete?.();
+      }, 300);
+    }, 5000); // 5s fallback
 
     return () => {
-      clearTimeout(fadeTimer);
-      clearTimeout(switchTimer);
+      clearTimeout(fallbackTimer);
     };
   }, [showAnimation, onAnimationComplete]);
 
@@ -66,6 +88,8 @@ export function Logo({ size = 'md', className, animated = false, onAnimationComp
           muted
           playsInline
           autoPlay
+          onEnded={handleVideoEnd}
+          onError={handleVideoError}
         >
           <source src="/logo-animation.webm" type="video/webm" />
         </video>
