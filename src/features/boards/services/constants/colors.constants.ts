@@ -28,19 +28,22 @@ export const PRIORITY_CONFIG: Record<ProjectPriority, { label: string; color: st
 
 // ==================== TIMELINE STATUS COLORS ====================
 
-/** Timeline column configuration with colors - unified 7-status system */
+/**
+ * Timeline column configuration with colors - unified 7-status system
+ * Uses 'label' property to match timelineStatus.ts single source of truth
+ */
 export const TIMELINE_COLUMNS: Array<{
   id: TimelineStatus;
-  title: string;
+  label: string;
   color: string;
 }> = [
-  { id: 'critical', title: 'CRITICAL', color: '#EF4444' },
-  { id: 'overdue', title: 'OVERDUE', color: '#F97316' },
-  { id: 'urgent', title: 'URGENT', color: '#EAB308' },
-  { id: 'on_track', title: 'ON TRACK', color: '#3B82F6' },
-  { id: 'in_progress', title: 'IN PROGRESS', color: '#8B5CF6' },
-  { id: 'review', title: 'REVIEW', color: '#6366F1' },
-  { id: 'done', title: 'DONE', color: '#22C55E' },
+  { id: 'critical', label: 'CRITICAL', color: '#EF4444' },
+  { id: 'overdue', label: 'OVERDUE', color: '#F97316' },
+  { id: 'urgent', label: 'URGENT', color: '#EAB308' },
+  { id: 'on_track', label: 'ON TRACK', color: '#3B82F6' },
+  { id: 'in_progress', label: 'IN PROGRESS', color: '#8B5CF6' },
+  { id: 'review', label: 'REVIEW', color: '#6366F1' },
+  { id: 'done', label: 'DONE', color: '#22C55E' },
 ] as const;
 
 // ==================== PROJECT TYPE COLORS ====================

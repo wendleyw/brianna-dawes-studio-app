@@ -221,7 +221,7 @@ class MiroMasterTimelineService {
       // Header with color (no border)
       await miro.board.createShape({
         shape: 'round_rectangle',
-        content: `<p><b>${col.title}</b></p>`,
+        content: `<p><b>${col.label}</b></p>`,
         x: colX,
         y: statusHeaderY,
         width: TIMELINE.COLUMN_WIDTH,
@@ -254,7 +254,7 @@ class MiroMasterTimelineService {
 
       columns.push({
         id: col.id,
-        title: col.title,
+        label: col.label,
         color: col.color,
         x: colX,
         y: dropZoneTopY, // Store TOP of drop zone for card placement
@@ -297,7 +297,7 @@ class MiroMasterTimelineService {
       const colX = startX + TIMELINE.COLUMN_WIDTH / 2 + i * (TIMELINE.COLUMN_WIDTH + TIMELINE.COLUMN_GAP);
       columns.push({
         id: col.id,
-        title: col.title,
+        label: col.label,
         color: col.color,
         x: colX,
         y: dropZoneTopY, // TOP of drop zone

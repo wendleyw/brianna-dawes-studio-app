@@ -120,7 +120,7 @@ export type TimelineStatus = 'critical' | 'overdue' | 'urgent' | 'on_track' | 'i
 
 export interface TimelineColumn {
   id: TimelineStatus;
-  title: string;
+  label: string;
   color: string;
   x: number;
   y?: number;  // Y position for vertical layout
