@@ -1093,7 +1093,7 @@ class MiroProjectRowService {
     // Badge dimensions and spacing (5 badges)
     const BADGE_HEIGHT = 26;
     const BADGE_GAP = 8;
-    const BADGE_WIDTHS = { priority: 70, type: 85, status: 90, author: 80, date: 105 };
+    const BADGE_WIDTHS = { priority: 70, type: 85, status: 90, author: 80, date: 105, briefing: 85 };
 
     // Calculate positions with equal gaps
     let badgeX = left + BRIEFING.PADDING + BADGE_WIDTHS.priority / 2;
@@ -1213,6 +1213,32 @@ class MiroProjectRowService {
       },
     });
 
+    // Move to next badge position
+    badgeX += BADGE_WIDTHS.date / 2 + BADGE_GAP + BADGE_WIDTHS.briefing / 2;
+
+    // 6. Briefing completion badge (X/9 Answered)
+    const answeredCount = BRIEFING_FIELDS.filter(field => briefing[field.key]).length;
+    const totalFields = BRIEFING_FIELDS.length;
+    const allAnswered = answeredCount === totalFields;
+
+    await miro.board.createShape({
+      shape: 'round_rectangle',
+      content: `<p><b>${answeredCount}/${totalFields} Answered</b></p>`,
+      x: badgeX,
+      y: infoY,
+      width: BADGE_WIDTHS.briefing,
+      height: BADGE_HEIGHT,
+      style: {
+        fillColor: allAnswered ? '#10B981' : '#F59E0B',
+        borderColor: 'transparent',
+        borderWidth: 0,
+        color: '#FFFFFF',
+        fontSize: 10,
+        textAlign: 'center',
+        textAlignVertical: 'middle',
+      },
+    });
+
     // === FORM GRID (top ~40%) ===
     const formStartY = infoY + 25;
     const { COLS, ROWS, CELL_WIDTH, CELL_HEIGHT, CELL_GAP } = BRIEFING.FORM;
@@ -1224,7 +1250,8 @@ class MiroProjectRowService {
       const cellY = formStartY + field.row * (CELL_HEIGHT + CELL_GAP) + CELL_HEIGHT / 2;
 
       const value = briefing[field.key];
-      const display = value ? (value.length > 80 ? value.substring(0, 77) + '...' : value) : '—';
+      const hasValue = Boolean(value);
+      const display = hasValue && value ? (value.length > 80 ? value.substring(0, 77) + '...' : value) : 'NEEDS ATTENTION!';
 
       // Create section title (bold, above the container)
       await miro.board.createText({
@@ -1240,21 +1267,22 @@ class MiroProjectRowService {
       });
 
       // Create content container with border
+      // Empty fields get red/warning styling with "NEEDS ATTENTION!"
       const shape = await miro.board.createShape({
         shape: 'rectangle',
-        content: `<p>${display}</p>`,
+        content: hasValue ? `<p>${display}</p>` : `<p><b>${display}</b></p>`,
         x: cellX,
         y: cellY + 15,
         width: CELL_WIDTH,
         height: CELL_HEIGHT - 30,
         style: {
-          fillColor: '#FFFFFF',
-          borderColor: '#E5E7EB',
-          borderWidth: 1,
-          color: '#1F2937',
+          fillColor: hasValue ? '#FFFFFF' : '#FEF2F2',
+          borderColor: hasValue ? '#E5E7EB' : '#EF4444',
+          borderWidth: hasValue ? 1 : 2,
+          color: hasValue ? '#1F2937' : '#EF4444',
           fontSize: 10,
-          textAlign: 'left',
-          textAlignVertical: 'top',
+          textAlign: hasValue ? 'left' : 'center',
+          textAlignVertical: hasValue ? 'top' : 'middle',
         },
       });
 

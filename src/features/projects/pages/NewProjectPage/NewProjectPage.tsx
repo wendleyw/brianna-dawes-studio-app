@@ -391,7 +391,7 @@ ${formData.additionalNotes || 'Not specified'}
 
           <div className={styles.field}>
             <label className={styles.label}>
-              PROJECT OVERVIEW <span className={styles.required}>*</span>
+              PROJECT OVERVIEW
             </label>
             <textarea
               className={styles.textarea}
@@ -406,7 +406,7 @@ ${formData.additionalNotes || 'Not specified'}
 
           <div className={styles.field}>
             <label className={styles.label}>
-              TARGET AUDIENCE <span className={styles.required}>*</span>
+              TARGET AUDIENCE
             </label>
             <textarea
               className={styles.textarea}
@@ -426,7 +426,7 @@ ${formData.additionalNotes || 'Not specified'}
 
           <div className={styles.field}>
             <label className={styles.label}>
-              FINAL MESSAGING / COPY <span className={styles.required}>*</span>
+              FINAL MESSAGING / COPY
             </label>
             <textarea
               className={styles.textarea}
@@ -436,7 +436,6 @@ ${formData.additionalNotes || 'Not specified'}
               value={formData.finalMessaging}
               onChange={(e) => updateField('finalMessaging', e.target.value)}
             />
-            <span className={styles.warning}>Required later if blank</span>
             <span className={styles.charCount}>{formData.finalMessaging.length} / 2000</span>
           </div>
 
