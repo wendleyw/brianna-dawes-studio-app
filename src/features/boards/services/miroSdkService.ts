@@ -371,29 +371,22 @@ class MiroMasterTimelineService {
     };
 
     // Build priority indicator
-    const priorityBadge = project.priority === 'urgent' ? '🔴 ' :
-                          project.priority === 'high' ? '🟠 ' : '';
+    const priorityIcon = project.priority === 'urgent' ? '🔴 ' :
+                         project.priority === 'high' ? '🟠 ' : '';
 
-    // Build badges for author and date
-    const authorBadge = project.client?.name ? `◉ ${project.client.name}` : '';
-    const dateBadge = project.dueDate ? `◷ ${formatDueDate(project.dueDate)}` : '';
-
-    // Build clean card title with visual hierarchy
-    // Line 1: ✓ REVIEWED (if applicable)
-    // Line 2: Priority + PROJECT NAME (uppercase for emphasis)
-    // Line 3: Separator
-    // Line 4: Author badge
-    // Line 5: Date badge
-    const reviewedLine = wasReviewed ? '✓ REVIEWED' : '';
-    const projectTitle = `${priorityBadge}${project.name.toUpperCase()}`;
-    const separator = '━━━━━━━━━━━━━━';
+    // Build clean card title - simple 3-line layout
+    // Line 1: Priority + Project Name (bold via uppercase)
+    // Line 2: Client/Author name
+    // Line 3: Due date with countdown
+    const reviewedPrefix = wasReviewed ? '✓ ' : '';
+    const projectTitle = `${priorityIcon}${reviewedPrefix}${project.name}`;
+    const authorLine = project.client?.name || '';
+    const dateLine = formatDueDate(project.dueDate);
 
     const titleLines = [
-      reviewedLine,
       projectTitle,
-      separator,
-      authorBadge,
-      dateBadge,
+      authorLine,
+      dateLine,
     ].filter(Boolean);
 
     const title = titleLines.join('\n');
