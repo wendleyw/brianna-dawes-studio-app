@@ -1356,9 +1356,6 @@ class MiroProjectRowService {
 
     console.log('[MiroProject] [updateBriefingStatus] Status config:', statusConfig, 'has row in memory:', !!row);
 
-    // All possible status labels to search for
-    const STATUS_LABELS = ['CRITICAL', 'OVERDUE', 'URGENT', 'ON TRACK', 'IN PROGRESS', 'REVIEW', 'DONE'];
-
     // Try using stored ID first
     if (row?.statusBadgeId) {
       try {
@@ -1400,7 +1397,6 @@ class MiroProjectRowService {
       if (!briefingFrame) {
         const allFrames = await miro.board.get({ type: 'frame' }) as MiroFrame[];
         console.log('[MiroProject] [updateBriefingStatus] Found', allFrames.length, 'frames on board');
-        console.log('[MiroProject] [updateBriefingStatus] All frame titles:', allFrames.map(f => f.title));
 
         // First, try to find by projectId in the tag (new format: [PROJ-XX:shortId])
         const shortId = projectId.substring(0, 8);
@@ -1417,12 +1413,10 @@ class MiroProjectRowService {
 
         // If not found by ID, try exact match by project name
         if (!briefingFrame && projectName) {
-          console.log('[MiroProject] [updateBriefingStatus] No ID match, trying name match...');
           briefingFrame = allFrames.find(f => {
             if (!f.title) return false;
             const isBriefing = f.title.toUpperCase().includes('BRIEFING');
             if (!isBriefing) return false;
-            // Remove emoji and check if starts with project name
             const titleWithoutEmoji = f.title.replace(/^[^\w\s]+\s*/, '');
             return titleWithoutEmoji.toUpperCase().startsWith(projectName.toUpperCase() + ' -');
           });
@@ -1430,7 +1424,6 @@ class MiroProjectRowService {
 
         // Last resort: contains (fallback for old frames without ID)
         if (!briefingFrame && projectName) {
-          console.log('[MiroProject] [updateBriefingStatus] No exact match, trying contains...');
           briefingFrame = allFrames.find(f => {
             if (!f.title) return false;
             const isBriefing = f.title.toUpperCase().includes('BRIEFING');
@@ -1456,35 +1449,122 @@ class MiroProjectRowService {
         style?: { fillColor?: string };
       }>;
 
-      console.log('[MiroProject] [updateBriefingStatus] Found', allShapes.length, 'shapes on board');
-
-      // Find shapes that are inside/near the briefing frame and have status content
+      // Find shapes that are inside the briefing frame
       const frameLeft = briefingFrame.x - (briefingFrame.width || 800) / 2;
       const frameRight = briefingFrame.x + (briefingFrame.width || 800) / 2;
       const frameTop = briefingFrame.y - (briefingFrame.height || 600) / 2;
       const frameBottom = briefingFrame.y + (briefingFrame.height || 600) / 2;
 
-      console.log('[MiroProject] [updateBriefingStatus] Frame bounds:', { frameLeft, frameRight, frameTop, frameBottom });
-
-      // Find all shapes inside the frame first
       const shapesInFrame = allShapes.filter(s => {
         return s.x >= frameLeft && s.x <= frameRight && s.y >= frameTop && s.y <= frameBottom;
       });
 
       console.log('[MiroProject] [updateBriefingStatus] Found', shapesInFrame.length, 'shapes inside frame');
 
-      // Log shapes inside frame with their content
-      console.log('[MiroProject] [updateBriefingStatus] Shapes in frame:', shapesInFrame.map(s => ({ id: s.id, content: s.content?.substring(0, 30) })));
+      // Priority labels that should NOT be considered as status badges
+      const PRIORITY_LABELS = ['URGENT', 'HIGH', 'MEDIUM', 'STANDARD'];
+      // Status labels - these are the actual status values (pure = not shared with priority)
+      const PURE_STATUS_LABELS = ['CRITICAL', 'OVERDUE', 'ON TRACK', 'IN PROGRESS', 'REVIEW', 'DONE'];
 
-      const statusShape = shapesInFrame.find(s => {
-        // Check if content matches any status label
-        const content = s.content || '';
-        const matches = STATUS_LABELS.some(label => content.toUpperCase().includes(label));
-        return matches;
-      });
+      // Log all shapes with content for debugging
+      const shapesWithContent = shapesInFrame.filter(s => s.content && s.content.length > 0);
+      console.log('[MiroProject] [updateBriefingStatus] Shapes with content:', shapesWithContent.map(s => ({
+        x: Math.round(s.x),
+        y: Math.round(s.y),
+        content: s.content?.replace(/<[^>]*>/g, '').substring(0, 15),
+        color: s.style?.fillColor
+      })));
+
+      // Find all shapes that could be badges - look for shapes in a horizontal line (same Y)
+      // Group shapes by Y position (within tolerance) to find the badge row
+      const yGroups: Map<number, typeof shapesWithContent> = new Map();
+      for (const shape of shapesWithContent) {
+        // Round Y to nearest 10 to group nearby shapes
+        const roundedY = Math.round(shape.y / 10) * 10;
+        const group = yGroups.get(roundedY) || [];
+        group.push(shape);
+        yGroups.set(roundedY, group);
+      }
+
+      // Find the row with the most badge-like shapes (should be 5 badges)
+      // The badge row is near the top and has multiple items
+      let badgeRow: typeof shapesWithContent = [];
+      let badgeRowY = 0;
+      for (const [y, group] of yGroups) {
+        // Badge row should have 3-6 items and be in top half of frame
+        if (group.length >= 3 && group.length <= 7 && y < frameTop + (frameBottom - frameTop) / 3) {
+          if (group.length > badgeRow.length) {
+            badgeRow = group;
+            badgeRowY = y;
+          }
+        }
+      }
+
+      console.log('[MiroProject] [updateBriefingStatus] Found badge row at Y=', badgeRowY, 'with', badgeRow.length, 'items');
+
+      // Sort badges by X position (left to right)
+      badgeRow.sort((a, b) => a.x - b.x);
+
+      // Log badges in order for debugging
+      console.log('[MiroProject] [updateBriefingStatus] Badges left-to-right:', badgeRow.map(s => ({
+        x: Math.round(s.x),
+        content: s.content?.replace(/<[^>]*>/g, '').substring(0, 15)
+      })));
+
+      let statusShape: typeof shapesInFrame[0] | undefined;
+
+      // Strategy 1: Find status badge by matching PURE status labels (not shared with priority)
+      // Look in the badge row first
+      if (badgeRow.length > 0) {
+        statusShape = badgeRow.find(s => {
+          const content = (s.content || '').toUpperCase();
+          // Must match a pure status label AND not match a priority label
+          const matchesStatus = PURE_STATUS_LABELS.some(label => content.includes(label));
+          const matchesPriority = PRIORITY_LABELS.some(label => content.includes(label));
+          return matchesStatus && !matchesPriority;
+        });
+        if (statusShape) {
+          console.log('[MiroProject] [updateBriefingStatus] Strategy 1: Found pure status label');
+        }
+      }
+
+      // Strategy 2: Use the 3rd badge from left (position-based)
+      // Badge order: Priority (1st), Project Type (2nd), Status (3rd), Author (4th), Due Date (5th)
+      if (!statusShape && badgeRow.length >= 3) {
+        const thirdBadge = badgeRow[2];
+        if (thirdBadge) {
+          console.log('[MiroProject] [updateBriefingStatus] Strategy 2: Using 3rd badge:', thirdBadge.content);
+          statusShape = thirdBadge;
+        }
+      }
+
+      // Strategy 3: Find by unique status color (colors not shared with priority)
+      if (!statusShape && badgeRow.length > 0) {
+        // These colors are ONLY used by status badges, not priority badges
+        const uniqueStatusColors = ['#3B82F6', '#8B5CF6', '#6366F1', '#22C55E', '#EAB308'];
+        statusShape = badgeRow.find(s => {
+          const fillColor = s.style?.fillColor?.toUpperCase();
+          return fillColor && uniqueStatusColors.some(c => c.toUpperCase() === fillColor);
+        });
+        if (statusShape) {
+          console.log('[MiroProject] [updateBriefingStatus] Strategy 3: Found by unique color:', statusShape.style?.fillColor);
+        }
+      }
+
+      // Strategy 4: LAST RESORT - search all shapes for pure status labels only
+      if (!statusShape) {
+        console.log('[MiroProject] [updateBriefingStatus] Strategy 4: Searching all shapes for pure status labels');
+        statusShape = shapesWithContent.find(s => {
+          const content = (s.content || '').toUpperCase();
+          // Only match pure status labels that are NOT also priority labels
+          const matchesPureStatus = PURE_STATUS_LABELS.some(label => content.includes(label));
+          const matchesPriority = PRIORITY_LABELS.some(label => content.includes(label));
+          return matchesPureStatus && !matchesPriority;
+        });
+      }
 
       if (statusShape) {
-        console.log('[MiroProject] [updateBriefingStatus] Found status shape:', statusShape.content);
+        console.log('[MiroProject] [updateBriefingStatus] Found status shape:', statusShape.content, 'at X:', Math.round(statusShape.x));
 
         // Update the shape
         const shape = await miro.board.getById(statusShape.id);
