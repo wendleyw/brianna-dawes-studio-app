@@ -4,6 +4,7 @@ import { Logo } from '@shared/ui';
 import { useAuth } from '@features/auth';
 import { useMiro, zoomToProject, addStageToProject } from '@features/boards';
 import { useMiroBoardSync } from '@features/boards/hooks';
+import { miroProjectRowService } from '@features/boards/services/miroSdkService';
 import { useProjects, useUpdateProject, useArchiveProject } from '../../hooks';
 import { ProjectCard } from '../../components/ProjectCard';
 import { createLogger } from '@shared/lib/logger';
@@ -131,6 +132,18 @@ export function ProjectsPage() {
           syncProject(updatedProject, options).catch(err => {
             logger.error('Miro sync failed', err);
           });
+
+          // Update the status badge in the briefing frame
+          if (isInMiro) {
+            miroProjectRowService.updateBriefingStatus(
+              updatedProject.id,
+              updatedProject.status,
+              updatedProject.name
+            ).catch(err => {
+              logger.error('Briefing status badge update failed', err);
+            });
+          }
+
           // Broadcast to other contexts
           broadcastProjectChange({
             type: 'PROJECT_UPDATED',
@@ -141,7 +154,7 @@ export function ProjectsPage() {
         },
       }
     );
-  }, [updateProject, syncProject]);
+  }, [updateProject, syncProject, isInMiro]);
 
   // Review - Send for client validation (no extra sync needed, handleUpdateStatus does it)
   const handleReview = useCallback((project: Project) => {
