@@ -347,7 +347,7 @@ class MiroMasterTimelineService {
     const column = this.state.columns.find(c => c.id === status);
     if (!column) throw new Error(`Column ${status} not found`);
 
-    log('MiroTimeline', `Syncing project "${project.name}" (${project.id}) to status: ${status}`);
+    console.log('[MiroTimeline] Syncing project:', project.name, '(', project.id, ') to status:', status);
 
     // STEP 1: Get all cards from board
     let allBoardCards: MiroCard[] = [];
@@ -459,11 +459,13 @@ class MiroMasterTimelineService {
       return inColumnX && notThisProjectCard;
     });
 
-    log('MiroTimeline', `Found ${cardsInColumnOnBoard.length} other cards in column ${status}`);
+    console.log('[MiroTimeline] Found', cardsInColumnOnBoard.length, 'other cards in column', status);
 
     const cardX = columnX;
     const firstCardY = columnY + 10 + TIMELINE.CARD_HEIGHT / 2;
     const cardY = firstCardY + cardsInColumnOnBoard.length * (TIMELINE.CARD_HEIGHT + TIMELINE.CARD_GAP);
+
+    console.log('[MiroTimeline] Card position:', { cardX, cardY, firstCardY, columnY });
 
     // STEP 5: Update or create card
     // Use the card found on board (source of truth) or memory as fallback
