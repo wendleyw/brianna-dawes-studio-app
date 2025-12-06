@@ -180,7 +180,7 @@ export function UserManagement() {
                 placeholder="e.g., 3458764647297922215"
               />
             </div>
-            <p className={styles.hint} style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginTop: '8px' }}>
+            <p className={styles.hint}>
               The Miro User ID will be shown when a user tries to access the app. Ask them to share this ID with you.
             </p>
           </div>
@@ -280,7 +280,7 @@ export function UserManagement() {
                     {user.role || 'No role'}
                   </span>
                   {user.miroUserId && (
-                    <span className={styles.miroId} style={{ fontSize: '11px', color: 'var(--color-text-tertiary)', fontFamily: 'monospace' }}>
+                    <span className={styles.miroId}>
                       Miro: {user.miroUserId.slice(0, 10)}...
                     </span>
                   )}

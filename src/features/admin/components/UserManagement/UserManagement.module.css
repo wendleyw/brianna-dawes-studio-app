@@ -306,3 +306,17 @@
 .avatarPlaceholderSmall {
   color: var(--color-text-muted);
 }
+
+/* Hint text for form fields */
+.hint {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  margin-top: var(--space-2);
+}
+
+/* Miro User ID display */
+.miroId {
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+  font-family: monospace;
+}
