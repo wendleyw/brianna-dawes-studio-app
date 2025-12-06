@@ -1067,7 +1067,7 @@ class MiroProjectRowService {
     const top = frameY - FRAME.HEIGHT / 2;
     const contentWidth = FRAME.WIDTH - BRIEFING.PADDING * 2;
 
-    // === HEADER (clean, dark with Author and Due Date badges on left) ===
+    // === HEADER (clean, dark with project name centered) ===
     const headerY = top + BRIEFING.PADDING + 20;
     const dueDateText = project.dueDate
       ? new Date(project.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
@@ -1077,79 +1077,30 @@ class MiroProjectRowService {
     // Header background
     await miro.board.createShape({
       shape: 'rectangle',
-      content: '',
+      content: `<p><b>${project.name.toUpperCase()} - BRIEFING</b></p>`,
       x: frameX,
       y: headerY,
       width: contentWidth,
       height: 36,
       style: {
         fillColor: '#1F2937',
-      },
-    });
-
-    // Author badge on the left (white background, black text)
-    const authorBadgeX = left + BRIEFING.PADDING + 50;
-    await miro.board.createShape({
-      shape: 'round_rectangle',
-      content: `<p><b>${project.client?.name || 'Client'}</b></p>`,
-      x: authorBadgeX,
-      y: headerY,
-      width: 80,
-      height: 22,
-      style: {
-        fillColor: '#FFFFFF',
-        borderColor: 'transparent',
-        borderWidth: 0,
-        color: '#1F2937',
-        fontSize: 9,
-        textAlign: 'center',
-        textAlignVertical: 'middle',
-      },
-    });
-
-    // Due Date badge next to Author (green or red if overdue)
-    const dueDateBadgeX = authorBadgeX + 50 + 55;
-    await miro.board.createShape({
-      shape: 'round_rectangle',
-      content: `<p><b>${dueDateText}</b></p>`,
-      x: dueDateBadgeX,
-      y: headerY,
-      width: 95,
-      height: 22,
-      style: {
-        fillColor: isOverdue ? '#F59E0B' : '#10B981',
-        borderColor: 'transparent',
-        borderWidth: 0,
-        color: '#FFFFFF',
-        fontSize: 9,
-        textAlign: 'center',
-        textAlignVertical: 'middle',
-      },
-    });
-
-    // Project name centered
-    await miro.board.createText({
-      content: `<b>⋆ ${project.name.toUpperCase()} - BRIEFING ⋆</b>`,
-      x: frameX + 60,
-      y: headerY,
-      width: contentWidth - 240,
-      style: {
         color: '#FFFFFF',
         fontSize: 13,
         textAlign: 'center',
+        textAlignVertical: 'middle',
       },
     });
 
     // Project info row (badges style)
-    // Sequence: Priority, Project Type, Status + Answered text
+    // Sequence: Priority, Project Type, Status (left) + Due Date (right)
     const infoY = headerY + 32;
 
-    // Badge dimensions and spacing (3 badges + text)
+    // Badge dimensions and spacing
     const BADGE_HEIGHT = 26;
     const BADGE_GAP = 8;
-    const BADGE_WIDTHS = { priority: 70, type: 85, status: 90 };
+    const BADGE_WIDTHS = { priority: 70, type: 100, status: 90, date: 100 };
 
-    // Calculate positions with equal gaps
+    // Calculate positions with equal gaps (left side)
     let badgeX = left + BRIEFING.PADDING + BADGE_WIDTHS.priority / 2;
 
     // 1. Priority badge
@@ -1178,7 +1129,7 @@ class MiroProjectRowService {
     const projectType = getProjectTypeFromBriefing(briefing);
     await miro.board.createShape({
       shape: 'round_rectangle',
-      content: `<p><b>${projectType?.label || 'Project'}</b></p>`,
+      content: `<p><b>${(projectType?.label || 'Project').toUpperCase()}</b></p>`,
       x: badgeX,
       y: infoY,
       width: BADGE_WIDTHS.type,
@@ -1201,7 +1152,7 @@ class MiroProjectRowService {
     const statusConfig = getStatusConfig(project.status);
     const statusBadge = await miro.board.createShape({
       shape: 'round_rectangle',
-      content: `<p><b>${statusConfig.label}</b></p>`,
+      content: `<p><b>${statusConfig.label.toUpperCase()}</b></p>`,
       x: badgeX,
       y: infoY,
       width: BADGE_WIDTHS.status,
@@ -1218,23 +1169,24 @@ class MiroProjectRowService {
     });
     statusBadgeId = statusBadge.id;
 
-    // 4. Briefing completion text (X/9 Answered) - simple text, no badge
-    const answeredCount = BRIEFING_FIELDS.filter(field => briefing[field.key]).length;
-    const totalFields = BRIEFING_FIELDS.length;
-    const allAnswered = answeredCount === totalFields;
-
-    // Position text after the last badge
-    const textX = badgeX + BADGE_WIDTHS.status / 2 + BADGE_GAP + 50;
-
-    await miro.board.createText({
-      content: `<b>${answeredCount}/${totalFields} Answered</b>`,
-      x: textX,
+    // 4. Due Date badge (right side, green or orange if overdue)
+    const right = frameX + FRAME.WIDTH / 2;
+    const dueDateBadgeX = right - BRIEFING.PADDING - BADGE_WIDTHS.date / 2;
+    await miro.board.createShape({
+      shape: 'round_rectangle',
+      content: `<p><b>${dueDateText}</b></p>`,
+      x: dueDateBadgeX,
       y: infoY,
-      width: 100,
+      width: BADGE_WIDTHS.date,
+      height: BADGE_HEIGHT,
       style: {
-        color: allAnswered ? '#10B981' : '#F59E0B',
-        fontSize: 11,
-        textAlign: 'left',
+        fillColor: isOverdue ? '#F59E0B' : '#10B981',
+        borderColor: 'transparent',
+        borderWidth: 0,
+        color: '#FFFFFF',
+        fontSize: 10,
+        textAlign: 'center',
+        textAlignVertical: 'middle',
       },
     });
 
@@ -1267,7 +1219,7 @@ class MiroProjectRowService {
       });
 
       // Create content container with border
-      // Empty fields get red/warning styling with "NEEDS ATTENTION!"
+      // All fields have light gray border, empty fields show "NEEDS ATTENTION!" in red text
       const shape = await miro.board.createShape({
         shape: 'rectangle',
         content: hasValue ? `<p>${display}</p>` : `<p><b>${display}</b></p>`,
@@ -1277,8 +1229,8 @@ class MiroProjectRowService {
         height: CELL_HEIGHT - 30,
         style: {
           fillColor: hasValue ? '#FFFFFF' : '#FEF2F2',
-          borderColor: hasValue ? '#E5E7EB' : '#EF4444',
-          borderWidth: hasValue ? 1 : 2,
+          borderColor: '#E5E7EB',
+          borderWidth: 1,
           color: hasValue ? '#1F2937' : '#EF4444',
           fontSize: 10,
           textAlign: hasValue ? 'left' : 'center',
