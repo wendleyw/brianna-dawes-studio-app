@@ -137,6 +137,8 @@ class MiroMasterTimelineService {
   private initialized: boolean = false;
   // Track projects currently being synced to prevent concurrent syncs
   private syncingProjects: Set<string> = new Set();
+  // Global sync lock to prevent race conditions when multiple projects sync concurrently
+  private syncLock: Promise<void> = Promise.resolve();
 
   isInitialized(): boolean {
     return this.initialized && this.state !== null;
@@ -332,10 +334,21 @@ class MiroMasterTimelineService {
 
     this.syncingProjects.add(project.id);
 
+    // Wait for any in-progress sync to complete before starting (serializes syncs)
+    const previousLock = this.syncLock;
+    let resolveMyLock: () => void = () => {};
+    this.syncLock = new Promise<void>(resolve => {
+      resolveMyLock = resolve;
+    });
+
     try {
+      // Wait for previous sync to complete
+      await previousLock;
       return await this._syncProjectInternal(project, options);
     } finally {
       this.syncingProjects.delete(project.id);
+      // Release the lock for next sync
+      resolveMyLock();
     }
   }
 
