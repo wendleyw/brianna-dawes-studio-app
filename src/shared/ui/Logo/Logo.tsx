@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import type { LogoProps } from './Logo.types';
 import logoImage from '../../../assets/brand/logo-brianna.png';
 import styles from './Logo.module.css';
@@ -14,47 +14,35 @@ export function Logo({ size = 'md', className, animated = false, onAnimationComp
   const dimension = SIZES[size];
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  // Always show animation when animated=true (every time app opens)
-  const [showAnimation, setShowAnimation] = useState(animated);
-  const [fadeOut, setFadeOut] = useState(false);
-
   const handleVideoEnd = useCallback(() => {
-    console.log('[Logo] Video ended');
-    setFadeOut(true);
-    setTimeout(() => {
-      setShowAnimation(false);
-      onAnimationComplete?.();
-    }, 300);
+    console.log('[Logo] Video ended - staying on last frame');
+    // Video stays on last frame (no switch to static image)
+    onAnimationComplete?.();
   }, [onAnimationComplete]);
 
   const handleVideoError = useCallback(() => {
-    console.log('[Logo] Video error - showing static');
-    setShowAnimation(false);
+    console.log('[Logo] Video error');
     onAnimationComplete?.();
   }, [onAnimationComplete]);
 
   useEffect(() => {
-    if (!showAnimation) return;
+    if (!animated) return;
 
     // Fallback timer in case video doesn't end properly
     const fallbackTimer = setTimeout(() => {
       console.log('[Logo] Fallback timer triggered');
-      setFadeOut(true);
-      setTimeout(() => {
-        setShowAnimation(false);
-        onAnimationComplete?.();
-      }, 300);
+      onAnimationComplete?.();
     }, 5000); // 5s fallback
 
     return () => {
       clearTimeout(fallbackTimer);
     };
-  }, [showAnimation, onAnimationComplete]);
+  }, [animated, onAnimationComplete]);
 
-  // Show animated logo
-  if (showAnimation) {
+  // Show animated video logo (plays once and stays on last frame)
+  if (animated) {
     return (
-      <div className={`${styles.container} ${fadeOut ? styles.fadeOut : ''} ${className || ''}`}>
+      <div className={`${styles.container} ${className || ''}`}>
         <video
           ref={videoRef}
           className={styles.video}
@@ -72,7 +60,7 @@ export function Logo({ size = 'md', className, animated = false, onAnimationComp
     );
   }
 
-  // Show static logo
+  // Show static logo (when animated=false)
   return (
     <img
       src={logoImage}
