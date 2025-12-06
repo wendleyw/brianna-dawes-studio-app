@@ -4,6 +4,7 @@ import { useMiro } from '@features/boards';
 import { Skeleton, Logo } from '@shared/ui';
 import type { ProtectedRouteProps } from '../domain/auth.types';
 import { AccessDenied } from '../components/AccessDenied';
+import styles from './ProtectedRoute.module.css';
 
 /**
  * Component shown when client has no board assigned
@@ -12,154 +13,47 @@ function PendingBoardAssignment({ miroUserId }: { miroUserId: string | null }) {
   const { logout } = useAuth();
 
   return (
-    <div style={{
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      minHeight: '100%',
-      padding: '24px',
-      background: '#fafafa'
-    }}>
-      <div style={{
-        maxWidth: '400px',
-        width: '100%',
-        background: 'white',
-        borderRadius: '16px',
-        padding: '32px',
-        boxShadow: '0 4px 20px rgba(0,0,0,0.08)'
-      }}>
-        <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+    <div className={styles.container}>
+      <div className={styles.card}>
+        <div className={styles.header}>
+          <div className={styles.logoWrapper}>
             <Logo size="xl" />
           </div>
-          <h1 style={{
-            fontSize: '24px',
-            fontWeight: 700,
-            color: '#2563EB',
-            marginBottom: '8px',
-            fontFamily: 'Inter, system-ui, sans-serif'
-          }}>
-            Setup in Progress
-          </h1>
-          <p style={{
-            fontSize: '14px',
-            color: '#666666',
-            margin: 0
-          }}>
-            Your account has been registered successfully!
-          </p>
+          <h1 className={styles.titleBlue}>Setup in Progress</h1>
+          <p className={styles.subtitle}>Your account has been registered successfully!</p>
         </div>
 
-        <div style={{
-          background: '#EFF6FF',
-          padding: '20px',
-          borderRadius: '12px',
-          marginBottom: '20px',
-          textAlign: 'center',
-          border: '1px solid #BFDBFE'
-        }}>
-          <div style={{
-            width: '48px',
-            height: '48px',
-            margin: '0 auto 12px',
-            background: '#2563EB',
-            borderRadius: '50%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'white',
-            fontSize: '24px'
-          }}>
-            ⏳
+        <div className={styles.infoBoxBlue}>
+          <div className={styles.iconCircleBlue}>
+            <span role="img" aria-label="hourglass">
+              &#9203;
+            </span>
           </div>
-          <p style={{ fontSize: '14px', color: '#1E40AF', margin: '0 0 8px 0', fontWeight: 500 }}>
-            Waiting for Board Assignment
-          </p>
-          <p style={{ fontSize: '13px', color: '#3B82F6', margin: 0 }}>
-            An administrator needs to assign a workspace to your account before you can access the application.
+          <p className={styles.infoTitleBlue}>Waiting for Board Assignment</p>
+          <p className={styles.infoTextBlue}>
+            An administrator needs to assign a workspace to your account before you can access the
+            application.
           </p>
         </div>
 
         {miroUserId && (
-          <div style={{
-            background: '#f5f5f5',
-            padding: '12px',
-            borderRadius: '8px',
-            marginBottom: '20px',
-            textAlign: 'center'
-          }}>
-            <p style={{ fontSize: '11px', color: '#888888', margin: '0 0 4px 0' }}>
-              Your Miro ID (for reference):
-            </p>
-            <code style={{
-              fontSize: '12px',
-              fontFamily: 'monospace',
-              color: '#050038'
-            }}>
-              {miroUserId}
-            </code>
+          <div className={styles.miroIdBox}>
+            <p className={styles.miroIdLabel}>Your Miro ID (for reference):</p>
+            <code className={styles.miroIdValue}>{miroUserId}</code>
           </div>
         )}
 
-        <div style={{
-          padding: '16px',
-          background: '#f9f9f9',
-          borderRadius: '8px',
-          marginBottom: '20px'
-        }}>
-          <p style={{
-            fontSize: '12px',
-            color: '#888888',
-            textAlign: 'center',
-            margin: 0,
-            lineHeight: 1.5
-          }}>
+        <div className={styles.helpBox}>
+          <p className={styles.helpText}>
             Please contact the administrator if you believe this is taking too long.
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={() => window.location.reload()}
-          style={{
-            width: '100%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px',
-            padding: '12px',
-            backgroundColor: '#050038',
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
-            fontSize: '14px',
-            fontWeight: 500,
-            cursor: 'pointer',
-            marginBottom: '12px'
-          }}
-        >
+        <button type="button" onClick={() => window.location.reload()} className={styles.buttonPrimary}>
           Check Again
         </button>
 
-        <button
-          type="button"
-          onClick={logout}
-          style={{
-            width: '100%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px',
-            padding: '12px',
-            backgroundColor: 'transparent',
-            color: '#666666',
-            border: '1px solid #e0e0e0',
-            borderRadius: '8px',
-            fontSize: '14px',
-            fontWeight: 500,
-            cursor: 'pointer'
-          }}
-        >
+        <button type="button" onClick={logout} className={styles.buttonSecondary}>
           Sign Out
         </button>
       </div>
@@ -178,111 +72,37 @@ function WrongBoardAccess({ correctBoardId }: { correctBoardId: string }) {
   };
 
   return (
-    <div style={{
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      minHeight: '100%',
-      padding: '24px',
-      background: '#fafafa'
-    }}>
-      <div style={{
-        maxWidth: '400px',
-        width: '100%',
-        background: 'white',
-        borderRadius: '16px',
-        padding: '32px',
-        boxShadow: '0 4px 20px rgba(0,0,0,0.08)'
-      }}>
-        <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+    <div className={styles.container}>
+      <div className={styles.card}>
+        <div className={styles.header}>
+          <div className={styles.logoWrapper}>
             <Logo size="xl" />
           </div>
-          <h1 style={{
-            fontSize: '24px',
-            fontWeight: 700,
-            color: '#F59E0B',
-            marginBottom: '8px',
-            fontFamily: 'Inter, system-ui, sans-serif'
-          }}>
-            Wrong Board
-          </h1>
-          <p style={{
-            fontSize: '14px',
-            color: '#666666',
-            margin: 0
-          }}>
+          <h1 className={styles.titleWarning}>Wrong Board</h1>
+          <p className={styles.subtitle}>
             You're accessing from a different board than your assigned workspace.
           </p>
         </div>
 
-        <div style={{
-          background: '#FEF3C7',
-          padding: '20px',
-          borderRadius: '12px',
-          marginBottom: '20px',
-          textAlign: 'center',
-          border: '1px solid #FCD34D'
-        }}>
-          <div style={{
-            width: '48px',
-            height: '48px',
-            margin: '0 auto 12px',
-            background: '#F59E0B',
-            borderRadius: '50%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'white',
-            fontSize: '24px'
-          }}>
-            →
+        <div className={styles.infoBoxWarning}>
+          <div className={styles.iconCircleWarning}>
+            <span role="img" aria-label="arrow">
+              &#8594;
+            </span>
           </div>
-          <p style={{ fontSize: '14px', color: '#92400E', margin: '0 0 16px 0', fontWeight: 500 }}>
+          <p className={styles.infoTitleWarning} style={{ marginBottom: '16px' }}>
             Click below to open your assigned board:
           </p>
-          <button
-            type="button"
-            onClick={handleGoToCorrectBoard}
-            style={{
-              width: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-              padding: '12px',
-              backgroundColor: '#F59E0B',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              fontSize: '14px',
-              fontWeight: 500,
-              cursor: 'pointer'
-            }}
-          >
-            <svg
-              style={{ width: '20px', height: '20px' }}
-              viewBox="0 0 24 24"
-              fill="currentColor"
-            >
+          <button type="button" onClick={handleGoToCorrectBoard} className={styles.buttonWarning}>
+            <svg style={{ width: '20px', height: '20px' }} viewBox="0 0 24 24" fill="currentColor">
               <path d="M17.392 4H14.15l3.242 8.333L14.15 20h3.242L20.634 12 17.392 4zM12.15 4H8.908l3.242 8.333L8.908 20h3.242L15.392 12 12.15 4zM6.908 4H3.366l3.542 8.333L3.366 20h3.542l3.542-8-3.542-7.667V4z" />
             </svg>
             Open My Board
           </button>
         </div>
 
-        <div style={{
-          padding: '16px',
-          background: '#f9f9f9',
-          borderRadius: '8px'
-        }}>
-          <p style={{
-            fontSize: '12px',
-            color: '#888888',
-            textAlign: 'center',
-            margin: 0,
-            lineHeight: 1.5
-          }}>
+        <div className={styles.helpBox}>
+          <p className={styles.helpText}>
             Each client has a dedicated board. Please use the button above to access yours.
           </p>
         </div>
@@ -302,7 +122,7 @@ export function ProtectedRoute({
 
   if (isLoading || !miroReady) {
     return (
-      <div style={{ padding: 'var(--space-8)' }}>
+      <div className={styles.loadingWrapper}>
         <Skeleton width="100%" height={400} />
       </div>
     );
@@ -328,9 +148,5 @@ export function ProtectedRoute({
     return <AccessDenied userRole={user.role} requiredRoles={allowedRoles} />;
   }
 
-  return (
-    <div style={{ width: '100%', height: '100%', flex: 1, overflow: 'hidden' }}>
-      {children}
-    </div>
-  );
+  return <div className={styles.routeWrapper}>{children}</div>;
 }

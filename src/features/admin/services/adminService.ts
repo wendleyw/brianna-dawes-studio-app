@@ -1,4 +1,5 @@
 import { supabase } from '@shared/lib/supabase';
+import { createLogger } from '@shared/lib/logger';
 import type {
   User,
   UserBoard,
@@ -8,6 +9,8 @@ import type {
   AssignBoardInput,
   UpdateAppSettingInput,
 } from '../domain';
+
+const logger = createLogger('AdminService');
 
 /**
  * Admin Service
@@ -104,7 +107,7 @@ export const adminService = {
    * Delete a user
    */
   async deleteUser(id: string): Promise<void> {
-    console.log('[adminService] Deleting user:', id);
+    logger.debug('Deleting user', { id });
 
     const { error, count } = await supabase
       .from('users')
@@ -112,14 +115,14 @@ export const adminService = {
       .eq('id', id)
       .select();
 
-    console.log('[adminService] Delete result:', { error, count });
+    logger.debug('Delete result', { error, count });
 
     if (error) {
-      console.error('[adminService] Delete error:', error);
+      logger.error('Delete user failed', error);
       throw error;
     }
 
-    console.log('[adminService] User deleted successfully');
+    logger.info('User deleted successfully', { id });
   },
 
   // ============ BOARD ASSIGNMENTS ============

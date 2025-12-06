@@ -1,4 +1,11 @@
 import { supabase } from '@shared/lib/supabase';
+import {
+  mapDeliverableStatusToDb,
+  mapDeliverableStatusArrayToDb,
+  mapDeliverableTypeToDb,
+  mapDeliverableTypeArrayToDb,
+  mapMimeTypeToDeliverableType,
+} from '@shared/lib/statusMapping';
 import type {
   Deliverable,
   DeliverableVersion,
@@ -8,58 +15,7 @@ import type {
   UploadVersionInput,
   DeliverablesQueryParams,
   DeliverablesResponse,
-  DeliverableType,
 } from '../domain/deliverable.types';
-
-const MIME_TYPE_MAP: Record<string, DeliverableType> = {
-  'image/jpeg': 'image',
-  'image/png': 'image',
-  'image/gif': 'image',
-  'image/webp': 'image',
-  'image/svg+xml': 'image',
-  'video/mp4': 'video',
-  'video/webm': 'video',
-  'video/quicktime': 'video',
-  'application/pdf': 'document',
-  'application/msword': 'document',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'document',
-  'application/vnd.ms-excel': 'document',
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'document',
-  'application/zip': 'archive',
-  'application/x-rar-compressed': 'archive',
-  'application/x-7z-compressed': 'archive',
-};
-
-// Map UI types to DB enum values - use 'other' for new types until DB is updated
-// To add new types to DB, run: ALTER TYPE deliverable_type ADD VALUE IF NOT EXISTS 'concept';
-const DB_TYPE_MAP: Record<string, string> = {
-  'concept': 'other',
-  'design': 'other',
-  'revision': 'other',
-  'final': 'other',
-  // These already exist in DB
-  'image': 'image',
-  'video': 'video',
-  'document': 'document',
-  'archive': 'archive',
-  'other': 'other',
-};
-
-// Map UI statuses to DB enum values
-// DB has: pending, wip, review, approved (per CLAUDE.md)
-// UI has: draft, in_progress, in_review, approved, rejected, delivered
-const DB_STATUS_MAP: Record<string, string> = {
-  'draft': 'pending',
-  'in_progress': 'wip',
-  'in_review': 'review',
-  'approved': 'approved',
-  'rejected': 'pending', // fallback
-  'delivered': 'approved', // fallback
-  // DB values
-  'pending': 'pending',
-  'wip': 'wip',
-  'review': 'review',
-};
 
 class DeliverableService {
   async getDeliverables(params: DeliverablesQueryParams = {}): Promise<DeliverablesResponse> {
@@ -86,10 +42,10 @@ class DeliverableService {
     if (filters.status) {
       // Map UI status to DB status
       if (Array.isArray(filters.status)) {
-        const mappedStatuses = filters.status.map(s => DB_STATUS_MAP[s] || s);
+        const mappedStatuses = mapDeliverableStatusArrayToDb(filters.status);
         query = query.in('status', mappedStatuses);
       } else {
-        const mappedStatus = DB_STATUS_MAP[filters.status] || filters.status;
+        const mappedStatus = mapDeliverableStatusToDb(filters.status);
         query = query.eq('status', mappedStatus);
       }
     }
@@ -97,10 +53,10 @@ class DeliverableService {
     if (filters.type) {
       // Map UI type to DB type
       if (Array.isArray(filters.type)) {
-        const mappedTypes = filters.type.map(t => DB_TYPE_MAP[t] || t);
+        const mappedTypes = mapDeliverableTypeArrayToDb(filters.type);
         query = query.in('type', mappedTypes);
       } else {
-        const mappedType = DB_TYPE_MAP[filters.type] || filters.type;
+        const mappedType = mapDeliverableTypeToDb(filters.type);
         query = query.eq('type', mappedType);
       }
     }
@@ -156,9 +112,9 @@ class DeliverableService {
   async createDeliverable(input: CreateDeliverableInput): Promise<Deliverable> {
     // Map type and status to DB-compatible values
     const inputType = input.type || 'design';
-    const dbType = DB_TYPE_MAP[inputType] || 'other';
+    const dbType = mapDeliverableTypeToDb(inputType);
     const inputStatus = input.status || 'draft';
-    const dbStatus = DB_STATUS_MAP[inputStatus] || 'pending';
+    const dbStatus = mapDeliverableStatusToDb(inputStatus);
 
     const insertData: Record<string, unknown> = {
       project_id: input.projectId,
@@ -189,8 +145,8 @@ class DeliverableService {
     const updateData: Record<string, unknown> = {};
     if (input.name !== undefined) updateData.name = input.name;
     if (input.description !== undefined) updateData.description = input.description;
-    if (input.type !== undefined) updateData.type = DB_TYPE_MAP[input.type] || 'other';
-    if (input.status !== undefined) updateData.status = DB_STATUS_MAP[input.status] || 'pending';
+    if (input.type !== undefined) updateData.type = mapDeliverableTypeToDb(input.type);
+    if (input.status !== undefined) updateData.status = mapDeliverableStatusToDb(input.status);
     if (input.dueDate !== undefined) updateData.due_date = input.dueDate;
     if (input.externalUrl !== undefined) updateData.external_url = input.externalUrl;
     if (input.miroUrl !== undefined) updateData.miro_url = input.miroUrl;
@@ -270,7 +226,7 @@ class DeliverableService {
     if (versionError) throw versionError;
 
     // Update deliverable with new current version and type
-    const fileType = MIME_TYPE_MAP[file.type] || 'other';
+    const fileType = mapMimeTypeToDeliverableType(file.type);
     await supabase
       .from('deliverables')
       .update({

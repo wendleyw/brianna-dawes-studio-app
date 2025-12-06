@@ -1,4 +1,5 @@
 import { supabase } from '@shared/lib/supabase';
+import { createLogger } from '@shared/lib/logger';
 import type {
   DashboardMetrics,
   ProjectMetrics,
@@ -8,6 +9,8 @@ import type {
   ActivityItem,
   DeadlineItem,
 } from '../domain/report.types';
+
+const logger = createLogger('ReportService');
 
 class ReportService {
   async getDashboardMetrics(): Promise<DashboardMetrics> {
@@ -60,25 +63,34 @@ class ReportService {
       .order('due_date', { ascending: true })
       .limit(10);
 
-    const upcomingDeadlines: DeadlineItem[] = (deadlines || []).map((d) => {
-      // d.project can be an array or single object depending on Supabase version
-      const projectData = d.project;
-      const project = Array.isArray(projectData)
-        ? projectData[0] as { id: string; name: string; priority: string } | undefined
-        : projectData as { id: string; name: string; priority: string } | null;
-      return {
-        id: d.id,
-        name: d.name,
-        projectId: project?.id || '',
-        projectName: project?.name || '',
-        dueDate: d.due_date,
-        daysRemaining: Math.ceil(
-          (new Date(d.due_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
-        ),
-        status: d.status,
-        priority: project?.priority || 'medium',
-      };
-    });
+    const upcomingDeadlines: DeadlineItem[] = (deadlines || [])
+      .map((d) => {
+        try {
+          // d.project can be an array or single object depending on Supabase version
+          const projectData = d.project;
+          const project = Array.isArray(projectData)
+            ? (projectData[0] as { id: string; name: string; priority: string } | undefined)
+            : (projectData as { id: string; name: string; priority: string } | null);
+
+          const dueDate = d.due_date ? new Date(d.due_date) : new Date();
+          const daysRemaining = Math.ceil((dueDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+
+          return {
+            id: d.id,
+            name: d.name,
+            projectId: project?.id || '',
+            projectName: project?.name || '',
+            dueDate: d.due_date,
+            daysRemaining: Number.isFinite(daysRemaining) ? daysRemaining : 0,
+            status: d.status,
+            priority: project?.priority || 'medium',
+          };
+        } catch (error) {
+          logger.error('Failed to map deadline item', { deliverableId: d.id, error });
+          return null;
+        }
+      })
+      .filter((item): item is DeadlineItem => item !== null);
 
     // Calculate completion rate
     const { count: totalDeliverables } = await supabase

@@ -1,0 +1,220 @@
+/* ProtectedRoute.module.css */
+/* Styles for auth guard screens */
+
+/* Shared container styles */
+.container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100%;
+  padding: 24px;
+  background: #fafafa;
+}
+
+.card {
+  max-width: 400px;
+  width: 100%;
+  background: white;
+  border-radius: 16px;
+  padding: 32px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.logoWrapper {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.title {
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  font-family: Inter, system-ui, sans-serif;
+}
+
+.titleBlue {
+  composes: title;
+  color: #2563eb;
+}
+
+.titleWarning {
+  composes: title;
+  color: #f59e0b;
+}
+
+.subtitle {
+  font-size: 14px;
+  color: #666666;
+  margin: 0;
+}
+
+/* Info box styles */
+.infoBox {
+  padding: 20px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.infoBoxBlue {
+  composes: infoBox;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+}
+
+.infoBoxWarning {
+  composes: infoBox;
+  background: #fef3c7;
+  border: 1px solid #fcd34d;
+}
+
+.iconCircle {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 12px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 24px;
+}
+
+.iconCircleBlue {
+  composes: iconCircle;
+  background: #2563eb;
+}
+
+.iconCircleWarning {
+  composes: iconCircle;
+  background: #f59e0b;
+}
+
+.infoTitle {
+  font-size: 14px;
+  margin: 0 0 8px 0;
+  font-weight: 500;
+}
+
+.infoTitleBlue {
+  composes: infoTitle;
+  color: #1e40af;
+}
+
+.infoTitleWarning {
+  composes: infoTitle;
+  color: #92400e;
+}
+
+.infoText {
+  font-size: 13px;
+  margin: 0;
+}
+
+.infoTextBlue {
+  composes: infoText;
+  color: #3b82f6;
+}
+
+/* Miro ID display */
+.miroIdBox {
+  background: #f5f5f5;
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.miroIdLabel {
+  font-size: 11px;
+  color: #888888;
+  margin: 0 0 4px 0;
+}
+
+.miroIdValue {
+  font-size: 12px;
+  font-family: monospace;
+  color: #050038;
+}
+
+/* Help text box */
+.helpBox {
+  padding: 16px;
+  background: #f9f9f9;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.helpText {
+  font-size: 12px;
+  color: #888888;
+  text-align: center;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Button styles */
+.button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.buttonPrimary {
+  composes: button;
+  background-color: #050038;
+  color: white;
+  margin-bottom: 12px;
+}
+
+.buttonPrimary:hover {
+  background-color: #0a0050;
+}
+
+.buttonSecondary {
+  composes: button;
+  background-color: transparent;
+  color: #666666;
+  border: 1px solid #e0e0e0;
+}
+
+.buttonSecondary:hover {
+  background-color: #f5f5f5;
+}
+
+.buttonWarning {
+  composes: button;
+  background-color: #f59e0b;
+  color: white;
+}
+
+.buttonWarning:hover {
+  background-color: #d97706;
+}
+
+/* Full route wrapper */
+.routeWrapper {
+  width: 100%;
+  height: 100%;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* Loading state */
+.loadingWrapper {
+  padding: var(--space-8);
+}
