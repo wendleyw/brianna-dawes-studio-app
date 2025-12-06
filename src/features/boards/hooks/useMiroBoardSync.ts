@@ -7,7 +7,7 @@ import { useCallback, useState } from 'react';
 import { useMiro } from '../context/MiroContext';
 import { miroTimelineService, miroProjectRowService } from '../services';
 import { createLogger } from '@shared/lib/logger';
-import { useAuth } from '@features/auth';
+import { useAuth } from '@features/auth/hooks/useAuth';
 import { hasPermission, canAccessProject } from '@shared/config/roles';
 import type { Project, ProjectBriefing } from '@features/projects/domain/project.types';
 

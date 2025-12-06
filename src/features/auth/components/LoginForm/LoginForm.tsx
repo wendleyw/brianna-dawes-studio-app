@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Logo } from '@shared/ui';
 import { useAuth } from '../../hooks/useAuth';
-import { useMiro } from '@features/boards';
+import { useMiro } from '@features/boards/context/MiroContext';
 import type { LoginFormProps } from './LoginForm.types';
 import styles from './LoginForm.module.css';
 

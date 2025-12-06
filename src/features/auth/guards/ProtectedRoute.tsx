@@ -1,6 +1,6 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { useMiro } from '@features/boards';
+import { useMiro } from '@features/boards/context/MiroContext';
 import { Skeleton, Logo } from '@shared/ui';
 import type { ProtectedRouteProps } from '../domain/auth.types';
 import { AccessDenied } from '../components/AccessDenied';
