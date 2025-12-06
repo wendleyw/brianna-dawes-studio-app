@@ -1330,9 +1330,13 @@ class MiroProjectRowService {
    * Searches for the badge on the board if not in memory
    */
   async updateBriefingStatus(projectId: string, status: ProjectStatus, projectName?: string): Promise<boolean> {
+    log('MiroProject', `[updateBriefingStatus] Starting update for project: ${projectName || projectId}, new status: ${status}`);
+
     const miro = getMiroSDK();
     const statusConfig = getStatusConfig(status);
     const row = this.rows.get(projectId);
+
+    log('MiroProject', `[updateBriefingStatus] Status config: ${JSON.stringify(statusConfig)}, has row in memory: ${!!row}`);
 
     // All possible status labels to search for
     const STATUS_LABELS = ['CRITICAL', 'OVERDUE', 'URGENT', 'ON TRACK', 'IN PROGRESS', 'REVIEW', 'DONE'];
@@ -1357,14 +1361,22 @@ class MiroProjectRowService {
 
     // Search for the badge on the board by finding briefing frame and status shape
     try {
-      log('MiroProject', `Searching for status badge on board for project: ${projectName || projectId}`);
+      log('MiroProject', `[updateBriefingStatus] Searching for status badge on board for project: ${projectName || projectId}`);
 
       // Get all frames and find the briefing frame for this project
       const allFrames = await miro.board.get({ type: 'frame' }) as MiroFrame[];
+      log('MiroProject', `[updateBriefingStatus] Found ${allFrames.length} frames on board`);
+
+      // Log all frame titles for debugging
+      allFrames.forEach((f, i) => {
+        log('MiroProject', `[updateBriefingStatus] Frame ${i}: "${f.title}"`);
+      });
+
       const briefingFrame = allFrames.find(f => {
         if (!f.title) return false;
-        const isBriefing = f.title.includes('BRIEFING');
-        const matchesProject = projectName ? f.title.includes(projectName) : true;
+        const isBriefing = f.title.toUpperCase().includes('BRIEFING');
+        const matchesProject = projectName ? f.title.toUpperCase().includes(projectName.toUpperCase()) : true;
+        log('MiroProject', `[updateBriefingStatus] Checking frame "${f.title}": isBriefing=${isBriefing}, matchesProject=${matchesProject}`);
         return isBriefing && matchesProject;
       });
 
@@ -1384,20 +1396,36 @@ class MiroProjectRowService {
         style?: { fillColor?: string };
       }>;
 
+      log('MiroProject', `[updateBriefingStatus] Found ${allShapes.length} shapes on board`);
+
       // Find shapes that are inside/near the briefing frame and have status content
       const frameLeft = briefingFrame.x - (briefingFrame.width || 800) / 2;
       const frameRight = briefingFrame.x + (briefingFrame.width || 800) / 2;
       const frameTop = briefingFrame.y - (briefingFrame.height || 600) / 2;
       const frameBottom = briefingFrame.y + (briefingFrame.height || 600) / 2;
 
-      const statusShape = allShapes.find(s => {
-        // Check if shape is inside the frame
-        const insideFrame = s.x >= frameLeft && s.x <= frameRight && s.y >= frameTop && s.y <= frameBottom;
-        if (!insideFrame) return false;
+      log('MiroProject', `[updateBriefingStatus] Frame bounds: left=${frameLeft}, right=${frameRight}, top=${frameTop}, bottom=${frameBottom}`);
 
+      // Find all shapes inside the frame first
+      const shapesInFrame = allShapes.filter(s => {
+        return s.x >= frameLeft && s.x <= frameRight && s.y >= frameTop && s.y <= frameBottom;
+      });
+
+      log('MiroProject', `[updateBriefingStatus] Found ${shapesInFrame.length} shapes inside frame`);
+
+      // Log shapes inside frame with their content
+      shapesInFrame.forEach((s, i) => {
+        log('MiroProject', `[updateBriefingStatus] Shape ${i} in frame: id=${s.id}, content="${s.content?.substring(0, 50)}..."`);
+      });
+
+      const statusShape = shapesInFrame.find(s => {
         // Check if content matches any status label
         const content = s.content || '';
-        return STATUS_LABELS.some(label => content.toUpperCase().includes(label));
+        const matches = STATUS_LABELS.some(label => content.toUpperCase().includes(label));
+        if (matches) {
+          log('MiroProject', `[updateBriefingStatus] Found status shape: "${content}"`);
+        }
+        return matches;
       });
 
       if (statusShape) {

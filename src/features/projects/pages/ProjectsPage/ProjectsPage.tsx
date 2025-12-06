@@ -134,14 +134,25 @@ export function ProjectsPage() {
           });
 
           // Update the status badge in the briefing frame
+          logger.info('Attempting to update briefing status badge', {
+            isInMiro,
+            projectId: updatedProject.id,
+            projectName: updatedProject.name,
+            status: updatedProject.status
+          });
+
           if (isInMiro) {
             miroProjectRowService.updateBriefingStatus(
               updatedProject.id,
               updatedProject.status,
               updatedProject.name
-            ).catch(err => {
+            ).then(result => {
+              logger.info('Briefing status badge update result', { success: result });
+            }).catch(err => {
               logger.error('Briefing status badge update failed', err);
             });
+          } else {
+            logger.warn('Not in Miro, skipping briefing status badge update');
           }
 
           // Broadcast to other contexts
