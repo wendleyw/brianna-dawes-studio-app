@@ -3,7 +3,7 @@
   flex-direction: column;
   background-color: var(--color-bg-primary);
   border-radius: var(--radius-lg);
-  border: 2px solid #D4A574;
+  border: 2px solid #050038;
   padding: var(--space-4);
   transition: box-shadow var(--transition-fast), border-color var(--transition-fast);
 }
