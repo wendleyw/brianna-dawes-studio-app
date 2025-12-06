@@ -1088,7 +1088,7 @@ class MiroProjectRowService {
       },
     });
 
-    // Author badge on the left
+    // Author badge on the left (white background, black text)
     const authorBadgeX = left + BRIEFING.PADDING + 50;
     await miro.board.createShape({
       shape: 'round_rectangle',
@@ -1098,17 +1098,17 @@ class MiroProjectRowService {
       width: 80,
       height: 22,
       style: {
-        fillColor: '#6366F1',
+        fillColor: '#FFFFFF',
         borderColor: 'transparent',
         borderWidth: 0,
-        color: '#FFFFFF',
+        color: '#1F2937',
         fontSize: 9,
         textAlign: 'center',
         textAlignVertical: 'middle',
       },
     });
 
-    // Due Date badge next to Author
+    // Due Date badge next to Author (green or red if overdue)
     const dueDateBadgeX = authorBadgeX + 50 + 55;
     await miro.board.createShape({
       shape: 'round_rectangle',
@@ -1118,7 +1118,7 @@ class MiroProjectRowService {
       width: 95,
       height: 22,
       style: {
-        fillColor: isOverdue ? '#EF4444' : '#3B82F6',
+        fillColor: isOverdue ? '#F59E0B' : '#10B981',
         borderColor: 'transparent',
         borderWidth: 0,
         color: '#FFFFFF',
