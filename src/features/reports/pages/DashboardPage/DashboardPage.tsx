@@ -165,7 +165,7 @@ export function DashboardPage() {
       {/* Header with Logo */}
       <header className={styles.header}>
         <div className={styles.logo}>
-          <Logo size="lg" />
+          <Logo size="lg" animated />
         </div>
         <p className={styles.brandName}>BRIANNA DAWES STUDIOS</p>
         <h1 className={styles.welcome}>

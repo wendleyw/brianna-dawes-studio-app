@@ -1,0 +1,1 @@
+export { LogoSplash } from './LogoSplash';
