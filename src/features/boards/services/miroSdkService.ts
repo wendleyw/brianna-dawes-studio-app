@@ -356,7 +356,7 @@ class MiroMasterTimelineService {
       log('MiroTimeline', `Card was previously reviewed by client`);
     }
 
-    // Format due date
+    // Format due date with days left
     const formatDueDate = (dateStr: string | null): string => {
       if (!dateStr) return '';
       const date = new Date(dateStr);
@@ -364,24 +364,29 @@ class MiroMasterTimelineService {
       const diffDays = Math.ceil((date.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
       const formatted = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
-      if (diffDays < 0) return `⚠️ ${formatted} (${Math.abs(diffDays)}d overdue)`;
-      if (diffDays === 0) return `📅 ${formatted} (Today)`;
-      if (diffDays <= 3) return `📅 ${formatted} (${diffDays}d left)`;
-      return `📅 ${formatted}`;
+      if (diffDays < 0) return `${formatted} • ${Math.abs(diffDays)}d overdue`;
+      if (diffDays === 0) return `${formatted} • Today`;
+      if (diffDays <= 7) return `${formatted} • ${diffDays}d left`;
+      return formatted;
     };
 
-    // Build priority indicator
-    const priorityIcon = project.priority === 'urgent' ? '🔴 ' :
-                         project.priority === 'high' ? '🟠 ' : '';
+    // Build priority indicator (subtle)
+    const priorityIndicator = project.priority === 'urgent' ? '● ' :
+                              project.priority === 'high' ? '◐ ' : '';
 
-    // Build title with rich information
-    // Line 1: [REVIEWED] Project Name (with priority icon)
-    // Line 2: 👤 Owner/Client
-    // Line 3: 📅 Due Date
-    const reviewedBadge = wasReviewed ? '[REVIEWED] ' : '';
+    // Build clean card title
+    // Line 1: Project Name (bold, with priority dot)
+    // Line 2: Separator line
+    // Line 3: Client name
+    // Line 4: Due date with days left
+    const reviewedBadge = wasReviewed ? '✓ REVIEWED\n' : '';
+    const separator = '─────────';
+
     const titleLines = [
-      `${priorityIcon}${reviewedBadge}${project.name}`,
-      project.client?.name ? `👤 ${project.client.name}` : '',
+      reviewedBadge,
+      `${priorityIndicator}${project.name}`,
+      separator,
+      project.client?.name || '',
       formatDueDate(project.dueDate),
     ].filter(Boolean);
 
