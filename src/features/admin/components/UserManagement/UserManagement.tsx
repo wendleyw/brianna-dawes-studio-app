@@ -154,8 +154,9 @@ export function UserManagement() {
                 placeholder="john@example.com"
               />
               <div className={styles.field}>
-                <label className={styles.label}>Role</label>
+                <label htmlFor="user-role" className={styles.label}>Role</label>
                 <select
+                  id="user-role"
                   className={styles.select}
                   value={formData.role}
                   onChange={(e) => setFormData({ ...formData, role: e.target.value as UserRole })}
@@ -229,6 +230,7 @@ export function UserManagement() {
                   />
                   <span className={styles.email}>{user.email}</span>
                   <select
+                    aria-label="User role"
                     className={styles.select}
                     value={formData.role}
                     onChange={(e) => setFormData({ ...formData, role: e.target.value as UserRole })}

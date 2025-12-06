@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, DragEvent, ChangeEvent } from 'react';
+import { useState, useRef, useCallback, DragEvent, ChangeEvent, KeyboardEvent } from 'react';
 import { Button } from '@shared/ui';
 import { useUploadVersion } from '../../hooks/useDeliverableMutations';
 import type { DeliverableUploadProps } from './DeliverableUpload.types';
@@ -116,6 +116,13 @@ export function DeliverableUpload({
     }
   }, []);
 
+  const handleKeyDown = useCallback((e: KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      fileInputRef.current?.click();
+    }
+  }, []);
+
   const handleUpload = async () => {
     if (!selectedFile) return;
 
@@ -140,6 +147,9 @@ export function DeliverableUpload({
 
       {!selectedFile ? (
         <div
+          role="button"
+          tabIndex={0}
+          aria-label="Upload file. Drag and drop or click to select"
           className={`${styles.dropzone} ${isDragging ? styles.dropzoneDragging : ''} ${
             uploadVersion.isPending ? styles.dropzoneDisabled : ''
           }`}
@@ -147,6 +157,7 @@ export function DeliverableUpload({
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
+          onKeyDown={handleKeyDown}
         >
           <svg
             className={`${styles.icon} ${isDragging ? styles.iconDragging : ''}`}
@@ -207,8 +218,9 @@ export function DeliverableUpload({
           </div>
 
           <div className={styles.commentField}>
-            <label className={styles.commentLabel}>Comment (optional)</label>
+            <label htmlFor="upload-comment" className={styles.commentLabel}>Comment (optional)</label>
             <textarea
+              id="upload-comment"
               className={styles.commentInput}
               placeholder="Describe the changes in this version..."
               value={comment}

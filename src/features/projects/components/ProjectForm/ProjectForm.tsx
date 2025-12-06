@@ -102,21 +102,24 @@ export function ProjectForm({
         </div>
 
         <div className={styles.field}>
-          <label className={styles.label}>Description</label>
+          <label htmlFor="project-description" className={styles.label}>Description</label>
           <textarea
+            id="project-description"
             className={styles.textarea}
             placeholder="Describe the project goals and scope..."
             value={formData.description}
             onChange={handleChange('description')}
             disabled={isLoading}
+            aria-describedby={errors.description ? 'description-error' : undefined}
           />
-          {errors.description && <span className={styles.error}>{errors.description}</span>}
+          {errors.description && <span id="description-error" className={styles.error}>{errors.description}</span>}
         </div>
 
         <div className={styles.row}>
           <div className={styles.field}>
-            <label className={styles.label}>Status</label>
+            <label htmlFor="project-status" className={styles.label}>Status</label>
             <select
+              id="project-status"
               className={styles.select}
               value={formData.status}
               onChange={handleChange('status')}
@@ -131,8 +134,9 @@ export function ProjectForm({
           </div>
 
           <div className={styles.field}>
-            <label className={styles.label}>Priority</label>
+            <label htmlFor="project-priority" className={styles.label}>Priority</label>
             <select
+              id="project-priority"
               className={styles.select}
               value={formData.priority}
               onChange={handleChange('priority')}
@@ -153,8 +157,9 @@ export function ProjectForm({
 
         <div className={styles.row}>
           <div className={styles.field}>
-            <label className={styles.label}>Start Date</label>
+            <label htmlFor="project-start-date" className={styles.label}>Start Date</label>
             <input
+              id="project-start-date"
               type="date"
               className={styles.dateInput}
               value={formData.startDate}
@@ -164,8 +169,9 @@ export function ProjectForm({
           </div>
 
           <div className={styles.field}>
-            <label className={styles.label}>Due Date</label>
+            <label htmlFor="project-due-date" className={styles.label}>Due Date</label>
             <input
+              id="project-due-date"
               type="date"
               className={styles.dateInput}
               value={formData.dueDate}
