@@ -29,3 +29,33 @@ export type { ToastType, ToastProps, ToastVariant, ToastContextValue } from './T
 // Logo
 export { Logo } from './Logo';
 export type { LogoProps, LogoSize } from './Logo';
+
+// Icons
+export {
+  UserIcon,
+  UsersIcon,
+  CalendarIcon,
+  PackageIcon,
+  EyeIcon,
+  GridIcon,
+  CheckIcon,
+  EditIcon,
+  FileIcon,
+  TagIcon,
+  ArchiveIcon,
+  StarIcon,
+  PlusIcon,
+  ExternalLinkIcon,
+  TrashIcon,
+  ChevronDownIcon,
+  CloseIcon,
+  SettingsIcon,
+  BellIcon,
+  UploadIcon,
+  DownloadIcon,
+  MessageIcon,
+  ClockIcon,
+  RefreshIcon,
+  DriveIcon,
+} from './Icons';
+export type { IconProps, IconComponent } from './Icons';
