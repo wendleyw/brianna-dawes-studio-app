@@ -7,9 +7,9 @@ export const env = {
     clientId: import.meta.env.VITE_MIRO_CLIENT_ID as string,
   },
   // Main Admin (Super Admin from environment - cannot be modified via UI)
+  // Note: Auth is handled via Miro OAuth, no password needed in client
   mainAdmin: {
     email: import.meta.env.VITE_ADMIN_EMAIL as string,
-    password: import.meta.env.VITE_ADMIN_PASSWORD as string,
   },
   app: {
     env: (import.meta.env.VITE_APP_ENV as string) || 'development',

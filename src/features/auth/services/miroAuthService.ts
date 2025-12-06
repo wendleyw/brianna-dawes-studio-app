@@ -302,12 +302,14 @@ export const miroAuthService = {
   },
 
   /**
-   * Sign out
+   * Sign out - clears any cached auth data
+   * Note: Main auth storage (bd_auth_user) is cleared by AuthProvider
    */
   async signOut(): Promise<void> {
-    // Clear local storage
+    // Clear legacy localStorage keys (for backwards compatibility cleanup)
     localStorage.removeItem('auth_user');
     localStorage.removeItem('auth_token');
+    logger.debug('Miro auth signed out');
   },
 };
 
