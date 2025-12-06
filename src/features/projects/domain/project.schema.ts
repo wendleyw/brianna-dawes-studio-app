@@ -14,18 +14,18 @@ export const projectPrioritySchema = z.enum(['low', 'medium', 'high', 'urgent'])
 export const createProjectSchema = z.object({
   name: z
     .string()
-    .min(3, 'Nome deve ter pelo menos 3 caracteres')
-    .max(100, 'Nome deve ter no máximo 100 caracteres'),
+    .min(3, 'Name must be at least 3 characters')
+    .max(100, 'Name must be at most 100 characters'),
   description: z
     .string()
-    .max(10000, 'Descrição deve ter no máximo 10000 caracteres')
+    .max(10000, 'Description must be at most 10000 characters')
     .nullable()
     .optional(),
   status: projectStatusSchema.default('on_track'),
   priority: projectPrioritySchema.default('medium'),
   startDate: z.string().datetime().nullable().optional(),
   dueDate: z.string().datetime().nullable().optional(),
-  clientId: z.string().uuid('ID de cliente inválido'),
+  clientId: z.string().uuid('Invalid client ID'),
   designerIds: z.array(z.string().uuid()).default([]),
 });
 
