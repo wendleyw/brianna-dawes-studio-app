@@ -21,3 +21,34 @@ export interface SelectOption {
 
 // Re-export role types from config
 export type { UserRole } from '@config/roles';
+
+// Re-export database types
+export type {
+  Database,
+  Tables,
+  TablesInsert,
+  TablesUpdate,
+  Enums,
+  // Individual table types
+  UserRow,
+  UserInsert,
+  UserUpdate,
+  ProjectRow,
+  ProjectInsert,
+  ProjectUpdate,
+  ProjectDesignerRow,
+  DeliverableRow,
+  DeliverableInsert,
+  DeliverableUpdate,
+  DeliverableVersionRow,
+  DeliverableFeedbackRow,
+  NotificationRow,
+  UserBoardRow,
+  AppSettingRow,
+  // Enum types
+  ProjectStatus,
+  ProjectPriority,
+  DeliverableStatus,
+  DeliverableType,
+  FeedbackStatus,
+} from './database.types';
