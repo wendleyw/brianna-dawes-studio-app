@@ -671,6 +671,7 @@ interface ExtendedProjectRow extends Omit<ProjectRowState, 'y' | 'processFrameId
   clientName: string;
   processFrameId: string;
   y: number;
+  statusBadgeId?: string; // ID of the status badge shape for updates
 }
 
 class MiroProjectRowService {
@@ -839,7 +840,7 @@ class MiroProjectRowService {
     });
 
     // Create briefing content
-    const briefingItems = await this.createBriefingContent(project, briefing, briefingX, briefingY);
+    const { items: briefingItems, statusBadgeId } = await this.createBriefingContent(project, briefing, briefingX, briefingY);
 
     // Create Stage 1
     const stage1X = briefingX + FRAME.WIDTH + FRAME.GAP;
@@ -876,6 +877,7 @@ class MiroProjectRowService {
       processStages: [{ id: crypto.randomUUID(), miroItemId: stage1Frame.id, stageName: 'STAGE 1' }],
       stages: [{ stageNumber: 1, frameId: stage1Frame.id, centerX: stage1X, centerY: stage1Y }],
       rowY,
+      ...(statusBadgeId ? { statusBadgeId } : {}),
     };
 
     this.rows.set(project.id, row);
@@ -1040,9 +1042,10 @@ class MiroProjectRowService {
     briefing: ProjectBriefing,
     frameX: number,
     frameY: number
-  ): Promise<Array<{ id: string; miroItemId: string | null; fieldKey: string }>> {
+  ): Promise<{ items: Array<{ id: string; miroItemId: string | null; fieldKey: string }>; statusBadgeId: string | null }> {
     const miro = getMiroSDK();
     const items: Array<{ id: string; miroItemId: string | null; fieldKey: string }> = [];
+    let statusBadgeId: string | null = null;
 
     const left = frameX - FRAME.WIDTH / 2;
     const top = frameY - FRAME.HEIGHT / 2;
@@ -1125,7 +1128,7 @@ class MiroProjectRowService {
 
     // 3. Status badge (synced with project status from DB/timeline)
     const statusConfig = getStatusConfig(project.status);
-    await miro.board.createShape({
+    const statusBadge = await miro.board.createShape({
       shape: 'round_rectangle',
       content: `<p><b>${statusConfig.label}</b></p>`,
       x: badgeX,
@@ -1142,6 +1145,7 @@ class MiroProjectRowService {
         textAlignVertical: 'middle',
       },
     });
+    statusBadgeId = statusBadge.id;
 
     // Move to next badge position
     badgeX += BADGE_WIDTHS.status / 2 + BADGE_GAP + BADGE_WIDTHS.author / 2;
@@ -1279,7 +1283,7 @@ class MiroProjectRowService {
       },
     });
 
-    return items;
+    return { items, statusBadgeId };
   }
 
   private async createStageContent(x: number, y: number, num: number): Promise<void> {
@@ -1318,6 +1322,40 @@ class MiroProjectRowService {
         borderWidth: 1,
       },
     });
+  }
+
+  /**
+   * Update the status badge in the briefing frame
+   * Called when project status changes in the panel
+   */
+  async updateBriefingStatus(projectId: string, status: ProjectStatus): Promise<boolean> {
+    const row = this.rows.get(projectId);
+
+    if (!row?.statusBadgeId) {
+      log('MiroProject', `No status badge ID found for project ${projectId}, cannot update`);
+      return false;
+    }
+
+    try {
+      const miro = getMiroSDK();
+      const statusConfig = getStatusConfig(status);
+
+      // Get the existing shape and update it
+      const shape = await miro.board.getById(row.statusBadgeId);
+      if (shape && 'content' in shape) {
+        (shape as { content: string }).content = `<p><b>${statusConfig.label}</b></p>`;
+        if ('style' in shape && shape.style) {
+          (shape.style as { fillColor: string }).fillColor = statusConfig.color;
+        }
+        await miro.board.sync(shape);
+        log('MiroProject', `Updated status badge for project ${projectId} to ${status}`);
+        return true;
+      }
+    } catch (error) {
+      log('MiroProject', `Failed to update status badge for project ${projectId}`, error);
+    }
+
+    return false;
   }
 
   getProjectRow(projectId: string): ExtendedProjectRow | undefined {

@@ -95,12 +95,18 @@ export function useUpdateProjectWithMiro() {
       // 1. Update project in database
       const project = await projectService.updateProject(id, input);
 
-      // 2. If running in Miro, sync to timeline
+      // 2. If running in Miro, sync to timeline and update briefing status badge
       if (isInMiro && miro) {
         try {
           // Sync project to timeline (updates position based on status/priority)
           await miroTimelineService.syncProject(project);
-          logger.debug('Project synced to Miro', { name: project.name });
+
+          // Update the status badge in the briefing frame if status changed
+          if (input.status) {
+            await miroProjectRowService.updateBriefingStatus(project.id, project.status);
+          }
+
+          logger.debug('Project synced to Miro', { name: project.name, status: project.status });
         } catch (error) {
           logger.error('Miro sync failed', error);
         }
