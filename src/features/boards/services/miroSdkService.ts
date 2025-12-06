@@ -96,6 +96,16 @@ function getTimelineStatus(project: { status: ProjectStatus }): ProjectStatus {
   return project.status;
 }
 
+// Get status color from timeline columns configuration
+function getStatusConfig(status: ProjectStatus): { label: string; color: string } {
+  const column = TIMELINE_COLUMNS.find(c => c.id === status);
+  if (column) {
+    return { label: column.label, color: column.color };
+  }
+  // Default fallback
+  return { label: status.toUpperCase().replace('_', ' '), color: '#6B7280' };
+}
+
 // Extract project type from briefing timeline
 function getProjectTypeFromBriefing(briefing: ProjectBriefing): { label: string; color: string; icon: string } | null {
   const timeline = briefing.timeline || '';
@@ -1057,17 +1067,18 @@ class MiroProjectRowService {
     });
 
     // Project info row (badges style)
+    // Sequence: Priority, Project Type, Status, Author, Due Date
     const infoY = headerY + 32;
 
-    // Badge dimensions and spacing
+    // Badge dimensions and spacing (5 badges)
     const BADGE_HEIGHT = 26;
-    const BADGE_GAP = 10;
-    const BADGE_WIDTHS = { priority: 80, client: 80, date: 115, type: 95 };
+    const BADGE_GAP = 8;
+    const BADGE_WIDTHS = { priority: 70, type: 85, status: 90, author: 80, date: 105 };
 
     // Calculate positions with equal gaps
     let badgeX = left + BRIEFING.PADDING + BADGE_WIDTHS.priority / 2;
 
-    // Priority badge (no border)
+    // 1. Priority badge
     await miro.board.createShape({
       shape: 'round_rectangle',
       content: `<p><b>${project.priority.toUpperCase()}</b></p>`,
@@ -1087,15 +1098,61 @@ class MiroProjectRowService {
     });
 
     // Move to next badge position
-    badgeX += BADGE_WIDTHS.priority / 2 + BADGE_GAP + BADGE_WIDTHS.client / 2;
+    badgeX += BADGE_WIDTHS.priority / 2 + BADGE_GAP + BADGE_WIDTHS.type / 2;
 
-    // Client badge (no border)
+    // 2. Project Type badge
+    const projectType = getProjectTypeFromBriefing(briefing);
+    await miro.board.createShape({
+      shape: 'round_rectangle',
+      content: `<p><b>${projectType?.label || 'Project'}</b></p>`,
+      x: badgeX,
+      y: infoY,
+      width: BADGE_WIDTHS.type,
+      height: BADGE_HEIGHT,
+      style: {
+        fillColor: projectType?.color || '#6B7280',
+        borderColor: 'transparent',
+        borderWidth: 0,
+        color: '#FFFFFF',
+        fontSize: 10,
+        textAlign: 'center',
+        textAlignVertical: 'middle',
+      },
+    });
+
+    // Move to next badge position
+    badgeX += BADGE_WIDTHS.type / 2 + BADGE_GAP + BADGE_WIDTHS.status / 2;
+
+    // 3. Status badge (synced with project status from DB/timeline)
+    const statusConfig = getStatusConfig(project.status);
+    await miro.board.createShape({
+      shape: 'round_rectangle',
+      content: `<p><b>${statusConfig.label}</b></p>`,
+      x: badgeX,
+      y: infoY,
+      width: BADGE_WIDTHS.status,
+      height: BADGE_HEIGHT,
+      style: {
+        fillColor: statusConfig.color,
+        borderColor: 'transparent',
+        borderWidth: 0,
+        color: '#FFFFFF',
+        fontSize: 10,
+        textAlign: 'center',
+        textAlignVertical: 'middle',
+      },
+    });
+
+    // Move to next badge position
+    badgeX += BADGE_WIDTHS.status / 2 + BADGE_GAP + BADGE_WIDTHS.author / 2;
+
+    // 4. Author/Client badge
     await miro.board.createShape({
       shape: 'round_rectangle',
       content: `<p><b>${project.client?.name || 'Client'}</b></p>`,
       x: badgeX,
       y: infoY,
-      width: BADGE_WIDTHS.client,
+      width: BADGE_WIDTHS.author,
       height: BADGE_HEIGHT,
       style: {
         fillColor: '#6366F1',
@@ -1109,9 +1166,9 @@ class MiroProjectRowService {
     });
 
     // Move to next badge position
-    badgeX += BADGE_WIDTHS.client / 2 + BADGE_GAP + BADGE_WIDTHS.date / 2;
+    badgeX += BADGE_WIDTHS.author / 2 + BADGE_GAP + BADGE_WIDTHS.date / 2;
 
-    // Due date badge (no border)
+    // 5. Due Date badge
     const dueDateText = project.dueDate
       ? new Date(project.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
       : 'No deadline';
@@ -1134,31 +1191,6 @@ class MiroProjectRowService {
         textAlignVertical: 'middle',
       },
     });
-
-    // Move to next badge position
-    badgeX += BADGE_WIDTHS.date / 2 + BADGE_GAP + BADGE_WIDTHS.type / 2;
-
-    // Project type badge (no border, no icon)
-    const projectType = getProjectTypeFromBriefing(briefing);
-    if (projectType) {
-      await miro.board.createShape({
-        shape: 'round_rectangle',
-        content: `<p><b>${projectType.label}</b></p>`,
-        x: badgeX,
-        y: infoY,
-        width: BADGE_WIDTHS.type,
-        height: BADGE_HEIGHT,
-        style: {
-          fillColor: projectType.color,
-          borderColor: 'transparent',
-          borderWidth: 0,
-          color: '#FFFFFF',
-          fontSize: 10,
-          textAlign: 'center',
-          textAlignVertical: 'middle',
-        },
-      });
-    }
 
     // === FORM GRID (top ~40%) ===
     const formStartY = infoY + 25;
