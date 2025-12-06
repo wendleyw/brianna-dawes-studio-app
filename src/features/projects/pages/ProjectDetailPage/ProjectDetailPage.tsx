@@ -1,24 +1,12 @@
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Button, Badge, Skeleton } from '@shared/ui';
 import { useProject } from '../../hooks/useProject';
+import { getStatusColumn, getStatusVariant } from '@shared/lib/timelineStatus';
+import { PRIORITY_CONFIG } from '@shared/lib/priorityConfig';
 import styles from './ProjectDetailPage.module.css';
 
-const STATUS_MAP = {
-  critical: { label: 'Critical', variant: 'error' as const },
-  overdue: { label: 'Overdue', variant: 'warning' as const },
-  urgent: { label: 'Urgent', variant: 'warning' as const },
-  on_track: { label: 'On Track', variant: 'info' as const },
-  in_progress: { label: 'In Progress', variant: 'info' as const },
-  review: { label: 'Review', variant: 'warning' as const },
-  done: { label: 'Done', variant: 'success' as const },
-};
-
-const PRIORITY_MAP = {
-  low: { label: 'STANDARD', color: '#10B981' },      // Green
-  medium: { label: 'MEDIUM', color: '#F59E0B' },     // Yellow/Amber
-  high: { label: 'HIGH', color: '#F97316' },         // Orange
-  urgent: { label: 'URGENT', color: '#EF4444' },     // Red
-};
+// STATUS_MAP replaced by getStatusColumn and getStatusVariant from timelineStatus
+// PRIORITY_MAP replaced by PRIORITY_CONFIG from priorityConfig
 
 export function ProjectDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -64,8 +52,9 @@ export function ProjectDetailPage() {
     );
   }
 
-  const status = STATUS_MAP[project.status];
-  const priority = PRIORITY_MAP[project.priority];
+  const statusColumn = getStatusColumn(project.status);
+  const statusVariant = getStatusVariant(project.status);
+  const priority = PRIORITY_CONFIG[project.priority];
 
   return (
     <div className={styles.container}>
@@ -79,7 +68,7 @@ export function ProjectDetailPage() {
       <header className={styles.header}>
         <div className={styles.titleSection}>
           <div className={styles.badges}>
-            <Badge variant={status.variant}>{status.label}</Badge>
+            <Badge variant={statusVariant}>{statusColumn.label}</Badge>
             <Badge
               variant="neutral"
               style={{ backgroundColor: priority.color, color: '#fff', border: 'none' }}

@@ -6,6 +6,7 @@ import { useUsers } from '@features/admin/hooks';
 import { useMiro } from '@features/boards';
 import { useCreateProjectWithMiro } from '../../hooks';
 import { createLogger } from '@shared/lib/logger';
+import { PRIORITY_OPTIONS } from '@shared/lib/priorityConfig';
 import styles from './NewProjectPage.module.css';
 
 const logger = createLogger('NewProjectPage');
@@ -45,12 +46,7 @@ const PROJECT_TYPES = [
   { value: 'social-post-carousel', label: 'Social Post Design', days: 5 },
 ] as const;
 
-const PRIORITY_OPTIONS = [
-  { value: 'urgent', label: 'Urgent', color: '#EF4444' },
-  { value: 'high', label: 'High', color: '#F97316' },
-  { value: 'medium', label: 'Medium', color: '#F59E0B' },
-  { value: 'low', label: 'Standard', color: '#10B981' },
-] as const;
+// PRIORITY_OPTIONS imported from @shared/lib/priorityConfig
 
 // Calculate due date adding business days (skip weekends)
 function addBusinessDays(startDate: Date, days: number): Date {

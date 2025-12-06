@@ -24,3 +24,12 @@ export {
   mapDeliverableStatusArrayToDb,
   mapDeliverableTypeArrayToDb,
 } from './statusMapping';
+export {
+  type PriorityColumn,
+  PRIORITY_COLUMNS,
+  PRIORITY_CONFIG,
+  PRIORITY_COLORS,
+  PRIORITY_OPTIONS,
+  getPriorityColumn,
+  getPriorityVariant,
+} from './priorityConfig';

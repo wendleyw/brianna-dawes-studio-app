@@ -5,26 +5,12 @@
  * visual consistency across all board elements.
  */
 
-import type { ProjectPriority } from '@features/projects/domain/project.types';
 import type { TimelineStatus } from '../../domain/board.types';
 
 // ==================== PRIORITY COLORS ====================
 
-/** Colors for project priority badges */
-export const PRIORITY_COLORS: Record<ProjectPriority, string> = {
-  urgent: '#EF4444',   // Red
-  high: '#F97316',     // Orange
-  medium: '#F59E0B',   // Yellow/Amber (matches form)
-  low: '#10B981',      // Green (matches form)
-} as const;
-
-/** Priority configuration with labels and colors */
-export const PRIORITY_CONFIG: Record<ProjectPriority, { label: string; color: string }> = {
-  low: { label: 'STANDARD', color: '#10B981' },
-  medium: { label: 'MEDIUM', color: '#F59E0B' },
-  high: { label: 'HIGH', color: '#F97316' },
-  urgent: { label: 'URGENT', color: '#EF4444' },
-} as const;
+// Re-export from centralized priorityConfig for consistency
+export { PRIORITY_COLORS, PRIORITY_CONFIG } from '@shared/lib/priorityConfig';
 
 // ==================== TIMELINE STATUS COLORS ====================
 
