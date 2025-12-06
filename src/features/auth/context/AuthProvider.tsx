@@ -12,14 +12,21 @@ const logger = createLogger('AuthProvider');
 const AUTH_STORAGE_KEY = 'bd_auth_user';
 
 /**
- * Verify if a user still exists in the database
+ * Verify if a user still exists in the database and get latest data
  * Returns the user data if exists, null otherwise
  */
-async function verifyUserExists(userId: string): Promise<{ exists: boolean; role?: string; primaryBoardId?: string | null }> {
+async function verifyUserExists(userId: string): Promise<{
+  exists: boolean;
+  role?: string;
+  primaryBoardId?: string | null;
+  name?: string;
+  email?: string;
+  isSuperAdmin?: boolean;
+}> {
   try {
     const { data, error } = await supabase
       .from('users')
-      .select('id, role, primary_board_id')
+      .select('id, role, primary_board_id, name, email, is_super_admin')
       .eq('id', userId)
       .maybeSingle();
 
@@ -35,7 +42,10 @@ async function verifyUserExists(userId: string): Promise<{ exists: boolean; role
     return {
       exists: true,
       role: data.role as string,
-      primaryBoardId: data.primary_board_id as string | null
+      primaryBoardId: data.primary_board_id as string | null,
+      name: data.name as string,
+      email: data.email as string,
+      isSuperAdmin: data.is_super_admin as boolean,
     };
   } catch (err) {
     logger.error('Failed to verify user existence', err);
@@ -122,17 +132,52 @@ export function AuthProvider({ children }: AuthProviderProps) {
               logger.info('Stored user no longer exists in database, clearing cache', { id: user.id });
               localStorage.removeItem(AUTH_STORAGE_KEY);
               // Fall through to trigger re-auth
-            } else if (userCheck.role === 'client') {
-              // For clients, also verify they have a board assignment
-              const hasBoardAssignment = await verifyClientHasBoardAssignment(user.id, userCheck.primaryBoardId ?? null);
-              if (!hasBoardAssignment) {
-                logger.info('Client has no board assignment, clearing cache to trigger re-auth', { id: user.id });
-                localStorage.removeItem(AUTH_STORAGE_KEY);
-                // Fall through to trigger re-auth (will show "Pending Board Assignment" screen)
+            } else {
+              // IMPORTANT: Sync user data from database (role may have changed)
+              const updatedUser: AuthUser = {
+                ...user,
+                role: userCheck.role as AuthUser['role'],
+                name: userCheck.name || user.name,
+                email: userCheck.email || user.email,
+                primaryBoardId: userCheck.primaryBoardId ?? null,
+                isSuperAdmin: userCheck.isSuperAdmin ?? false,
+              };
+
+              // Check if user data changed and update localStorage
+              if (user.role !== updatedUser.role ||
+                  user.primaryBoardId !== updatedUser.primaryBoardId ||
+                  user.isSuperAdmin !== updatedUser.isSuperAdmin) {
+                logger.info('User data changed in database, updating cache', {
+                  oldRole: user.role,
+                  newRole: updatedUser.role,
+                  isSuperAdmin: updatedUser.isSuperAdmin,
+                });
+                localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(updatedUser));
+              }
+
+              // For clients, verify they have a board assignment
+              if (updatedUser.role === 'client') {
+                const hasBoardAssignment = await verifyClientHasBoardAssignment(user.id, userCheck.primaryBoardId ?? null);
+                if (!hasBoardAssignment) {
+                  logger.info('Client has no board assignment, clearing cache to trigger re-auth', { id: user.id });
+                  localStorage.removeItem(AUTH_STORAGE_KEY);
+                  // Fall through to trigger re-auth (will show "Pending Board Assignment" screen)
+                } else {
+                  logger.debug('Using updated client user with board assignment', { name: updatedUser.name, role: updatedUser.role });
+                  setState({
+                    user: updatedUser,
+                    session: null,
+                    isLoading: false,
+                    isAuthenticated: true,
+                    error: null,
+                  });
+                  return;
+                }
               } else {
-                logger.debug('Using stored client user with board assignment', { name: user.name, role: user.role });
+                // Non-client users (admin, designer) don't need board assignment
+                logger.debug('Using updated user', { name: updatedUser.name, role: updatedUser.role });
                 setState({
-                  user,
+                  user: updatedUser,
                   session: null,
                   isLoading: false,
                   isAuthenticated: true,
@@ -140,17 +185,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
                 });
                 return;
               }
-            } else {
-              // Non-client users (admin, designer) don't need board assignment
-              logger.debug('Using stored user', { name: user.name, role: user.role });
-              setState({
-                user,
-                session: null,
-                isLoading: false,
-                isAuthenticated: true,
-                error: null,
-              });
-              return;
             }
           }
         }
