@@ -2,17 +2,17 @@ import { useState } from 'react';
 import { Button, Input, Skeleton } from '@shared/ui';
 import { useUsers, useUserMutations } from '../../hooks';
 import { isMainAdmin } from '@shared/config/env';
+import { ROLE_LABELS, type UserRole } from '@shared/config/roles';
 import { createLogger } from '@shared/lib/logger';
-import type { User, CreateUserInput, UserRole } from '../../domain';
+import type { User, CreateUserInput } from '../../domain';
 import styles from './UserManagement.module.css';
 
 const logger = createLogger('UserManagement');
 
-const ROLES: { value: UserRole; label: string }[] = [
-  { value: 'admin', label: 'Admin' },
-  { value: 'designer', label: 'Designer' },
-  { value: 'client', label: 'Client' },
-];
+// Generate ROLES array from centralized ROLE_LABELS
+const ROLES: { value: UserRole; label: string }[] = (
+  Object.entries(ROLE_LABELS) as [UserRole, string][]
+).map(([value, label]) => ({ value, label }));
 
 // User icon for avatar placeholder
 const UserIcon = () => (
