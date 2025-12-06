@@ -1,12 +1,12 @@
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Button, Badge, Skeleton } from '@shared/ui';
 import { useProject } from '../../hooks/useProject';
-import { getStatusColumn, getStatusVariant } from '@shared/lib/timelineStatus';
+import { getStatusColumn } from '@shared/lib/timelineStatus';
 import { PRIORITY_CONFIG } from '@shared/lib/priorityConfig';
 import { formatDateFull } from '@shared/lib/dateFormat';
 import styles from './ProjectDetailPage.module.css';
 
-// STATUS_MAP replaced by getStatusColumn and getStatusVariant from timelineStatus
+// STATUS_MAP replaced by getStatusColumn from timelineStatus (uses color directly)
 // PRIORITY_MAP replaced by PRIORITY_CONFIG from priorityConfig
 // formatDate replaced by formatDateFull from @shared/lib/dateFormat
 
@@ -46,7 +46,6 @@ export function ProjectDetailPage() {
   }
 
   const statusColumn = getStatusColumn(project.status);
-  const statusVariant = getStatusVariant(project.status);
   const priority = PRIORITY_CONFIG[project.priority];
 
   return (
@@ -61,7 +60,11 @@ export function ProjectDetailPage() {
       <header className={styles.header}>
         <div className={styles.titleSection}>
           <div className={styles.badges}>
-            <Badge variant={statusVariant}>{statusColumn.label}</Badge>
+            <Badge
+              style={{ backgroundColor: statusColumn.color, color: '#fff', border: 'none' }}
+            >
+              {statusColumn.label}
+            </Badge>
             <Badge
               variant="neutral"
               style={{ backgroundColor: priority.color, color: '#fff', border: 'none' }}

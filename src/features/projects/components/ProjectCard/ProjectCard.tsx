@@ -7,10 +7,7 @@ import type { DeliverableType, DeliverableStatus } from '@features/deliverables/
 import { useUsers } from '@features/admin/hooks/useUsers';
 import { useProjects } from '../../hooks/useProjects';
 import { createLogger } from '@shared/lib/logger';
-import {
-  getStatusColumn,
-  getStatusVariant,
-} from '@shared/lib/timelineStatus';
+import { getStatusColumn } from '@shared/lib/timelineStatus';
 import { PRIORITY_CONFIG, PROJECT_TYPE_CONFIG } from '@features/boards/services/constants/colors.constants';
 import type { ProjectCardProps } from './ProjectCard.types';
 import styles from './ProjectCard.module.css';
@@ -322,9 +319,8 @@ export const ProjectCard = memo(function ProjectCard({
   // Check if current user is the assigned client for this project
   const isAssignedClient = isClient && project.clientId === user?.id;
 
-  // Get status column info (status is now direct from DB)
+  // Get status column info (status is now direct from DB, uses color directly)
   const statusColumn = getStatusColumn(project.status);
-  const statusVariant = getStatusVariant(project.status);
 
   // Debug: log status
   logger.debug('Status mapping', { name: project.name, dbStatus: project.status, badge: statusColumn.label });
@@ -739,8 +735,13 @@ export const ProjectCard = memo(function ProjectCard({
               </Badge>
             ) : null;
           })()}
-          {/* 3. Status badge */}
-          <Badge variant={statusVariant} size="sm">{statusColumn.label}</Badge>
+          {/* 3. Status badge - uses exact color from timeline config */}
+          <Badge
+            size="sm"
+            style={{ backgroundColor: statusColumn.color, color: '#fff', border: 'none' }}
+          >
+            {statusColumn.label}
+          </Badge>
         </div>
       </div>
 
