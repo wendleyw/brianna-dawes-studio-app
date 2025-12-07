@@ -1074,7 +1074,6 @@ class MiroProjectRowService {
     const dueDateText = project.dueDate
       ? new Date(project.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
       : 'No deadline';
-    const isOverdue = project.dueDate && new Date(project.dueDate) < new Date();
 
     // Header background
     await miro.board.createShape({
@@ -1171,7 +1170,7 @@ class MiroProjectRowService {
     });
     statusBadgeId = statusBadge.id;
 
-    // 4. Due Date badge (right side, green or orange if overdue)
+    // 4. Due Date badge (right side, gray background)
     const right = frameX + FRAME.WIDTH / 2;
     const dueDateBadgeX = right - BRIEFING.PADDING - BADGE_WIDTHS.date / 2;
     await miro.board.createShape({
@@ -1182,7 +1181,7 @@ class MiroProjectRowService {
       width: BADGE_WIDTHS.date,
       height: BADGE_HEIGHT,
       style: {
-        fillColor: isOverdue ? '#F59E0B' : '#10B981',
+        fillColor: '#6B7280',
         borderColor: 'transparent',
         borderWidth: 0,
         color: '#FFFFFF',
