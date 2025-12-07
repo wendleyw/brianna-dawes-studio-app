@@ -119,10 +119,14 @@ const BoardIcon = () => (
   </svg>
 );
 
-const DriveIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-    <path d="M7.71 3.5L1.15 15l3.43 6 6.56-11.5L7.71 3.5zm1.44 0l6.56 11.5h6.56l-6.56-11.5H9.15zm7.41 12.5H3.44l3.43 6h13.12l-3.43-6z"/>
-  </svg>
+const DriveIcon = ({ hasLink }: { hasLink?: boolean }) => (
+  <img
+    src="/googledrive-icon.png"
+    alt="Google Drive"
+    width="18"
+    height="18"
+    style={{ opacity: hasLink ? 1 : 0.4 }}
+  />
 );
 
 const CheckIcon = () => (
@@ -891,7 +895,7 @@ export const ProjectCard = memo(function ProjectCard({
             onClick={handleGoogleDrive}
             title={project.googleDriveUrl ? 'Open Google Drive' : 'Add Google Drive link'}
           >
-            <DriveIcon />
+            <DriveIcon hasLink={!!project.googleDriveUrl} />
           </button>
         )}
       </div>
