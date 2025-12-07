@@ -27,17 +27,6 @@ const CloseIcon = () => (
   </svg>
 );
 
-const DragIcon = () => (
-  <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
-    <circle cx="9" cy="6" r="2"/>
-    <circle cx="15" cy="6" r="2"/>
-    <circle cx="9" cy="12" r="2"/>
-    <circle cx="15" cy="12" r="2"/>
-    <circle cx="9" cy="18" r="2"/>
-    <circle cx="15" cy="18" r="2"/>
-  </svg>
-);
-
 export function BoardModalApp() {
   const { miro, isInMiro } = useMiro();
   const queryClient = useQueryClient();
@@ -257,32 +246,18 @@ export function BoardModalApp() {
                   onDragStart={(e) => handleDragStart(e, project)}
                   onDragEnd={handleDragEnd}
                 >
-                  <div className={styles.cardDragHandle}>
-                    <DragIcon />
-                  </div>
-                  <div className={styles.cardContent}>
-                    <h4 className={styles.cardTitle}>{project.name}</h4>
-                    <div className={styles.cardMeta}>
-                      {project.client?.name && (
-                        <span className={styles.cardClient}>{project.client.name}</span>
-                      )}
-                      {project.dueDate && (
-                        <span className={styles.cardDue}>
-                          {formatDateShort(project.dueDate)}
-                        </span>
-                      )}
-                    </div>
-                    {project.priority === 'urgent' && (
-                      <span className={styles.cardUrgent}>URGENT</span>
-                    )}
-                  </div>
-                  <div className={styles.cardAvatar}>
-                    {project.client?.avatarUrl ? (
-                      <img src={project.client.avatarUrl} alt={project.client.name} />
-                    ) : (
-                      <span>{project.client?.name?.charAt(0).toUpperCase() || 'C'}</span>
-                    )}
-                  </div>
+                  <h4 className={styles.cardTitle}>{project.name}</h4>
+                  {project.dueDate && (
+                    <span className={styles.cardDue}>{formatDateShort(project.dueDate)}</span>
+                  )}
+                  {project.client?.name && (
+                    <span className={styles.cardClient}>{project.client.name}</span>
+                  )}
+                  {project.priority && (
+                    <span className={`${styles.cardPriority} ${styles[`priority${project.priority.charAt(0).toUpperCase() + project.priority.slice(1)}`]}`}>
+                      {project.priority.toUpperCase()}
+                    </span>
+                  )}
                 </div>
               ))}
 
