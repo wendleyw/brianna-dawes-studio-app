@@ -80,6 +80,9 @@
   color: var(--color-text-primary);
   margin: 0 0 var(--space-2) 0;
   line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Client Row */
