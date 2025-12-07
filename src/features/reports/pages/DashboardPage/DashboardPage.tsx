@@ -1,12 +1,15 @@
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useCallback } from 'react';
 import { Skeleton, Logo } from '@shared/ui';
 import { useAuth } from '@features/auth';
 import { useProjects } from '@features/projects';
+import { projectKeys } from '@features/projects/services/projectKeys';
 import { zoomToProject } from '@features/boards';
 import { supabase } from '@shared/lib/supabase';
 import { STATUS_COLUMNS, getStatusColumn } from '@shared/lib/timelineStatus';
 import { formatDateShort, formatDateMonth } from '@shared/lib/dateFormat';
+import { useRealtimeSubscription } from '@shared/hooks/useRealtimeSubscription';
 import styles from './DashboardPage.module.css';
 import type { ProjectStatus } from '@features/projects/domain/project.types';
 
@@ -92,8 +95,21 @@ function groupProjectsByMonth<T extends { dueDate: string | null }>(projects: T[
 
 export function DashboardPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { user } = useAuth();
-  const { data: projectsData, isLoading: projectsLoading } = useProjects();
+  const { data: projectsData, isLoading: projectsLoading, refetch } = useProjects();
+
+  // Realtime subscription for project updates
+  useRealtimeSubscription<{ id: string; status: string }>({
+    table: 'projects',
+    event: 'UPDATE',
+    onUpdate: useCallback(() => {
+      // Refetch projects when any project is updated
+      refetch();
+      queryClient.invalidateQueries({ queryKey: projectKeys.lists() });
+    }, [refetch, queryClient]),
+    enabled: true,
+  });
 
   // Query deliverables directly to avoid RPC issues
   const { data: deliverablesData, isLoading: deliverablesLoading } = useQuery({
