@@ -115,8 +115,8 @@ export interface SyncConfig {
   conflictResolution: 'miro_wins' | 'supabase_wins' | 'manual';
 }
 
-// Master Timeline Types - unified 7-status system
-export type TimelineStatus = 'critical' | 'overdue' | 'urgent' | 'on_track' | 'in_progress' | 'review' | 'done';
+// Master Timeline Types - unified 5-status system
+export type TimelineStatus = 'overdue' | 'urgent' | 'in_progress' | 'review' | 'done';
 
 export interface TimelineColumn {
   id: TimelineStatus;

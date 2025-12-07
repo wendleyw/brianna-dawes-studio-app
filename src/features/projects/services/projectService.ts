@@ -218,7 +218,7 @@ class ProjectService {
       .insert({
         name: projectData.name,
         description: projectData.description,
-        status: projectData.status || 'on_track',
+        status: projectData.status || 'in_progress',
         priority: projectData.priority || 'medium',
         start_date: projectData.startDate,
         due_date: projectData.dueDate,

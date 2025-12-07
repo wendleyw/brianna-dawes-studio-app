@@ -300,9 +300,9 @@ export const ProjectCard = memo(function ProjectCard({
       );
       // Active projects = not done
       const activeProjects = designerProjects.filter(p => p.status !== 'done').length;
-      // In progress = critical, urgent, in_progress, or overdue
+      // In progress = urgent, in_progress, or overdue
       const inProgressProjects = designerProjects.filter(p =>
-        ['critical', 'urgent', 'in_progress', 'overdue'].includes(p.status)
+        ['urgent', 'in_progress', 'overdue'].includes(p.status)
       ).length;
 
       return {
@@ -632,7 +632,7 @@ export const ProjectCard = memo(function ProjectCard({
   };
 
   const handleConfirmClientCritical = () => {
-    onUpdateStatus?.(project.id, 'critical');
+    onUpdateStatus?.(project.id, 'urgent');
     setShowClientCriticalModal(false);
   };
 

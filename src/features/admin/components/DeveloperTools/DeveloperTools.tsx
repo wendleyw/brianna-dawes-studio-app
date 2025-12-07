@@ -52,7 +52,7 @@ const TEST_PROJECTS: Array<{
   {
     name: 'Artisan Coffee Packaging',
     description: 'Package design for specialty coffee brand',
-    status: 'on_track',
+    status: 'in_progress',
     priority: 'medium',
     daysUntilDue: 21,
     briefing: {
@@ -112,7 +112,7 @@ const TEST_PROJECTS: Array<{
   {
     name: 'Summit Conference Branding',
     description: 'Event branding for tech conference',
-    status: 'critical',
+    status: 'urgent',
     priority: 'urgent',
     daysUntilDue: 5,
     briefing: {
@@ -127,7 +127,7 @@ const TEST_PROJECTS: Array<{
   {
     name: 'Harmony Music App Icons',
     description: 'Icon set for music streaming application',
-    status: 'on_track',
+    status: 'in_progress',
     priority: 'medium',
     daysUntilDue: 18,
     briefing: {
@@ -142,7 +142,7 @@ const TEST_PROJECTS: Array<{
   {
     name: 'Eco Home Product Catalog',
     description: 'Product catalog for sustainable home goods',
-    status: 'on_track',
+    status: 'in_progress',
     priority: 'low',
     daysUntilDue: 30,
     briefing: {

@@ -25,7 +25,7 @@ export function ProjectForm({
   const [formData, setFormData] = useState<ProjectFormData>({
     name: project?.name || '',
     description: project?.description || '',
-    status: project?.status || 'on_track',
+    status: project?.status || 'in_progress',
     priority: project?.priority || 'medium',
     startDate: project?.startDate?.split('T')[0] || '',
     dueDate: project?.dueDate?.split('T')[0] || '',
@@ -51,7 +51,7 @@ export function ProjectForm({
     const submitData = {
       name: formData.name,
       description: formData.description || null,
-      status: formData.status as 'critical' | 'overdue' | 'urgent' | 'on_track' | 'in_progress' | 'review' | 'done',
+      status: formData.status as 'overdue' | 'urgent' | 'in_progress' | 'review' | 'done',
       priority: formData.priority as 'low' | 'medium' | 'high' | 'urgent',
       startDate: formData.startDate ? new Date(formData.startDate).toISOString() : null,
       dueDate: formData.dueDate ? new Date(formData.dueDate).toISOString() : null,

@@ -234,7 +234,7 @@ ${formData.additionalNotes || 'Not specified'}
         description: briefingDescription,
         priority: formData.priority,
         dueDate: formattedDueDate,
-        status: 'on_track',
+        status: 'in_progress',
         clientId: formData.clientId,
         // Pass briefing data for Miro board creation
         briefing: {

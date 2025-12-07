@@ -16,15 +16,8 @@
 export type UserRole = 'admin' | 'designer' | 'client';
 
 export type ProjectStatus =
-  | 'active'
-  | 'on_hold'
-  | 'completed'
-  | 'archived'
-  // Added in migration 013
-  | 'on_track'
   | 'overdue'
   | 'urgent'
-  | 'critical'
   | 'in_progress'
   | 'review'
   | 'done';

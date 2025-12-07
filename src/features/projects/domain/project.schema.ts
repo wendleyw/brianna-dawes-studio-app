@@ -1,10 +1,8 @@
 import { z } from 'zod';
 
 export const projectStatusSchema = z.enum([
-  'critical',
   'overdue',
   'urgent',
-  'on_track',
   'in_progress',
   'review',
   'done',
@@ -21,7 +19,7 @@ export const createProjectSchema = z.object({
     .max(10000, 'Description must be at most 10000 characters')
     .nullable()
     .optional(),
-  status: projectStatusSchema.default('on_track'),
+  status: projectStatusSchema.default('in_progress'),
   priority: projectPrioritySchema.default('medium'),
   startDate: z.string().datetime().nullable().optional(),
   dueDate: z.string().datetime().nullable().optional(),

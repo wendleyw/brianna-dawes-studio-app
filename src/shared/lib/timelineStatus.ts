@@ -1,7 +1,7 @@
 /**
  * Timeline Status - Unified status system for the entire application
  *
- * These 7 statuses are stored directly in the database and used everywhere:
+ * These 5 statuses are stored directly in the database and used everywhere:
  * - ProjectCard panel
  * - BoardModalApp (Trello-style board)
  * - Miro Master Timeline
@@ -22,13 +22,11 @@ export interface StatusColumn {
   description: string;
 }
 
-// The 7 status columns - single source of truth
+// The 5 status columns - single source of truth
 export const STATUS_COLUMNS: StatusColumn[] = [
-  { id: 'critical', label: 'CRITICAL', color: '#EF4444', description: 'Urgent & overdue - needs immediate attention' },
   { id: 'overdue', label: 'OVERDUE', color: '#F97316', description: 'Past due date' },
   { id: 'urgent', label: 'URGENT', color: '#EAB308', description: 'High priority, deadline approaching' },
-  { id: 'on_track', label: 'ON TRACK', color: '#3B82F6', description: 'Normal priority, on schedule' },
-  { id: 'in_progress', label: 'IN PROGRESS', color: '#8B5CF6', description: 'Actively being worked on' },
+  { id: 'in_progress', label: 'IN PROGRESS', color: '#3B82F6', description: 'Actively being worked on' },
   { id: 'review', label: 'REVIEW', color: '#6366F1', description: 'Awaiting client review/approval' },
   { id: 'done', label: 'DONE', color: '#22C55E', description: 'Completed' },
 ];
@@ -37,8 +35,8 @@ export const STATUS_COLUMNS: StatusColumn[] = [
 export const TIMELINE_COLUMNS = STATUS_COLUMNS;
 export type TimelineColumn = StatusColumn;
 
-// Default column (on_track)
-const DEFAULT_COLUMN: StatusColumn = STATUS_COLUMNS[3]!;
+// Default column (in_progress)
+const DEFAULT_COLUMN: StatusColumn = STATUS_COLUMNS[2]!;
 
 // Get status column by ID
 export function getStatusColumn(status: ProjectStatus): StatusColumn {
@@ -58,12 +56,9 @@ export function getTimelineStatus(project: { status: ProjectStatus }): ProjectSt
 // Get badge variant for status
 export function getStatusVariant(status: ProjectStatus): 'error' | 'warning' | 'info' | 'success' | 'neutral' {
   switch (status) {
-    case 'critical':
-      return 'error';
     case 'overdue':
     case 'urgent':
       return 'warning';
-    case 'on_track':
     case 'in_progress':
       return 'info';
     case 'review':

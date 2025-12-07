@@ -141,13 +141,11 @@ export function mapMimeTypeToDeliverableType(mimeType: string): DBDeliverableTyp
 // ============ PROJECT STATUS (for reference) ============
 
 /**
- * Project status values in DB (7 statuses after migration 013)
+ * Project status values in DB (5 statuses)
  */
 export type ProjectStatus =
-  | 'on_track'
   | 'overdue'
   | 'urgent'
-  | 'critical'
   | 'in_progress'
   | 'review'
   | 'done';

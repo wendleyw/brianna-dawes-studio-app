@@ -7,10 +7,8 @@ import { useState, useEffect, useRef } from 'react';
 
 const STATUS_OPTIONS: { value: ProjectStatus | ''; label: string }[] = [
   { value: '', label: 'All Status' },
-  { value: 'critical', label: 'Critical' },
   { value: 'overdue', label: 'Overdue' },
   { value: 'urgent', label: 'Urgent' },
-  { value: 'on_track', label: 'On Track' },
   { value: 'in_progress', label: 'In Progress' },
   { value: 'review', label: 'Review' },
   { value: 'done', label: 'Done' },
