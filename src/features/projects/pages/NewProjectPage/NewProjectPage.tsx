@@ -229,12 +229,15 @@ ${formData.additionalNotes || 'Not specified'}
         miroBoardId: boardId,
       });
 
+      // Set initial status based on priority - urgent priority goes to urgent column
+      const initialStatus = formData.priority === 'urgent' ? 'urgent' : 'in_progress';
+
       const projectData: Parameters<typeof createProject.mutateAsync>[0] = {
         name: formData.name,
         description: briefingDescription,
         priority: formData.priority,
         dueDate: formattedDueDate,
-        status: 'in_progress',
+        status: initialStatus,
         clientId: formData.clientId,
         // Pass briefing data for Miro board creation
         briefing: {
