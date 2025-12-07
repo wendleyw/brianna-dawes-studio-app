@@ -1075,7 +1075,7 @@ class MiroProjectRowService {
       ? new Date(project.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
       : 'No deadline';
 
-    // Header background
+    // Header background (dark, no border)
     await miro.board.createShape({
       shape: 'rectangle',
       content: `<p><b>${project.name.toUpperCase()} - BRIEFING</b></p>`,
@@ -1085,6 +1085,8 @@ class MiroProjectRowService {
       height: 36,
       style: {
         fillColor: '#1F2937',
+        borderColor: 'transparent',
+        borderWidth: 0,
         color: '#FFFFFF',
         fontSize: 13,
         textAlign: 'center',
@@ -1170,7 +1172,7 @@ class MiroProjectRowService {
     });
     statusBadgeId = statusBadge.id;
 
-    // 4. Due Date badge (right side, gray background)
+    // 4. Due Date badge (right side, light gray background)
     const right = frameX + FRAME.WIDTH / 2;
     const dueDateBadgeX = right - BRIEFING.PADDING - BADGE_WIDTHS.date / 2;
     await miro.board.createShape({
@@ -1181,10 +1183,10 @@ class MiroProjectRowService {
       width: BADGE_WIDTHS.date,
       height: BADGE_HEIGHT,
       style: {
-        fillColor: '#6B7280',
+        fillColor: '#E5E7EB',
         borderColor: 'transparent',
         borderWidth: 0,
-        color: '#FFFFFF',
+        color: '#374151',
         fontSize: 10,
         textAlign: 'center',
         textAlignVertical: 'middle',
