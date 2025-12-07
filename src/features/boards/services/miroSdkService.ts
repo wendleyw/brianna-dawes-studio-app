@@ -392,13 +392,18 @@ class MiroMasterTimelineService {
       return formatted;
     };
 
+    // Build priority indicator with colored circles
+    const priorityIcon = project.priority === 'urgent' ? '🔴 ' :
+                         project.priority === 'high' ? '🟠 ' :
+                         project.priority === 'medium' ? '🟡 ' :
+                         '🟢 '; // low/standard
+
     // Build clean card title - simple 3-line layout
-    // Line 1: Project Name (bold via uppercase)
+    // Line 1: Priority icon + Project Name
     // Line 2: Client/Author name
     // Line 3: Due date with countdown
-    // Priority indicator will be a separate circle shape
     const reviewedPrefix = wasReviewed ? '✓ ' : '';
-    const projectTitle = `${reviewedPrefix}${project.name}`;
+    const projectTitle = `${priorityIcon}${reviewedPrefix}${project.name}`;
     const authorLine = project.client?.name || '';
     const dateLine = formatDueDate(project.dueDate);
 
@@ -570,21 +575,6 @@ class MiroMasterTimelineService {
       y: cardY,
       width: TIMELINE.CARD_WIDTH,
       style: { cardTheme: column.color },
-    });
-
-    // Create priority indicator circle next to the card
-    const priorityColor = PRIORITY_COLORS[project.priority] || '#6B7280';
-    await miro.board.createShape({
-      shape: 'circle',
-      x: cardX - TIMELINE.CARD_WIDTH / 2 - 12,
-      y: cardY,
-      width: 16,
-      height: 16,
-      style: {
-        fillColor: priorityColor,
-        borderColor: 'transparent',
-        borderWidth: 0,
-      },
     });
 
     const newCard: TimelineCard = {
