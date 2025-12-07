@@ -839,13 +839,15 @@ class MiroProjectRowService {
     // Create project number based on existing projects count
     const allFrames = await miro.board.get({ type: 'frame' }) as MiroFrame[];
     const existingProjects = allFrames.filter(f => f.title?.includes('- BRIEFING')).length;
-    const projectNum = String(existingProjects + 1).padStart(2, '0');
-    // Include short projectId (first 8 chars) for unique identification
-    const shortId = project.id.substring(0, 8);
-    const projectTag = `[PROJ-${projectNum}:${shortId}]`;
+    const projectNum = String(existingProjects + 1).padStart(3, '0');
+    // Generate project tag with year-month-sequence format: PROJ-YYYY-MM-XXX
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const projectTag = `[PROJ-${year}-${month}-${projectNum}]`;
 
     const briefingFrame = await miro.board.createFrame({
-      title: `📋 ${project.name} - BRIEFING ${projectTag}`,
+      title: `${project.name} - BRIEFING ${projectTag}`,
       x: briefingX,
       y: briefingY,
       width: FRAME.WIDTH,
@@ -863,7 +865,7 @@ class MiroProjectRowService {
     const stage1Y = rowY;
 
     const stage1Frame = await miro.board.createFrame({
-      title: `🎯 ${project.name} - STAGE 1 ${projectTag}`,
+      title: `${project.name} - STAGE 1 ${projectTag}`,
       x: stage1X,
       y: stage1Y,
       width: FRAME.WIDTH,
@@ -928,12 +930,12 @@ class MiroProjectRowService {
         const allFrames = await miro.board.get({ type: 'frame' }) as Array<{ id: string; title: string; x: number; y: number; width: number; height: number }>;
 
         // Find frames belonging to this project by matching project name in the title
-        // Titles are like "📋 Project Name - BRIEFING [PROJ-01]"
+        // Titles are like "Project Name - BRIEFING [PROJ-2025-12-001]"
         const searchName = projectName || '';
         const projectFrames = allFrames.filter(f => {
           if (!f.title) return false;
-          // Extract project name from title (between emoji and " - ")
-          const titleMatch = f.title.match(/^[📋🎯]\s*(.+?)\s*-\s*(BRIEFING|STAGE)/);
+          // Extract project name from title (before " - ")
+          const titleMatch = f.title.match(/^(.+?)\s*-\s*(BRIEFING|STAGE)/);
           const frameProjName = titleMatch?.[1]?.trim();
           return frameProjName === searchName;
         });
@@ -947,9 +949,9 @@ class MiroProjectRowService {
             .sort((a, b) => a.x - b.x); // Sort by X position (left to right)
 
           if (stageFrames.length > 0) {
-            // Extract project name from frame title: "🎯 Project Name - STAGE 1 [id]" -> "Project Name"
+            // Extract project name from frame title: "Project Name - STAGE 1 [PROJ-2025-12-001]" -> "Project Name"
             const firstStageTitle = stageFrames[0]?.title || '';
-            const extractedName = firstStageTitle.replace(/^[📋🎯]\s*/, '').split(' - ')[0]?.trim() || projectName || 'Unknown';
+            const extractedName = firstStageTitle.split(' - ')[0]?.trim() || projectName || 'Unknown';
             const firstStageFrame = stageFrames[0];
 
             // Reconstruct the row state
@@ -1017,12 +1019,12 @@ class MiroProjectRowService {
 
     log('MiroProject', `Creating STAGE ${num} at X=${x} (right edge of prev: ${rightEdgeOfLastFrame})`);
 
-    // Extract project tag from existing briefing frame title
+    // Extract project tag from existing briefing frame title (format: [PROJ-YYYY-MM-XXX])
     let projectTag = '';
     if (row.briefingFrameId) {
       try {
         const briefingFrame = await miro.board.getById(row.briefingFrameId) as MiroFrame | null;
-        const tagMatch = briefingFrame?.title?.match(/\[PROJ-\d+\]/);
+        const tagMatch = briefingFrame?.title?.match(/\[PROJ-\d{4}-\d{2}-\d{3}\]/);
         projectTag = tagMatch ? tagMatch[0] : '';
       } catch {
         projectTag = '';
@@ -1030,7 +1032,7 @@ class MiroProjectRowService {
     }
 
     const frame = await miro.board.createFrame({
-      title: `🎯 ${row.projectName} - STAGE ${num} ${projectTag}`.trim(),
+      title: `${row.projectName} - STAGE ${num} ${projectTag}`.trim(),
       x, y,
       width: FRAME.WIDTH,
       height: FRAME.HEIGHT,
@@ -1378,31 +1380,21 @@ class MiroProjectRowService {
         const allFrames = await miro.board.get({ type: 'frame' }) as MiroFrame[];
         console.log('[MiroProject] [updateBriefingStatus] Found', allFrames.length, 'frames on board');
 
-        // First, try to find by projectId in the tag (new format: [PROJ-XX:shortId])
-        const shortId = projectId.substring(0, 8);
-        briefingFrame = allFrames.find(f => {
-          if (!f.title) return false;
-          const isBriefing = f.title.toUpperCase().includes('BRIEFING');
-          const hasProjectId = f.title.includes(`:${shortId}]`);
-          return isBriefing && hasProjectId;
-        });
-
-        if (briefingFrame) {
-          console.log('[MiroProject] [updateBriefingStatus] Found by projectId:', briefingFrame.title);
-        }
-
-        // If not found by ID, try exact match by project name
-        if (!briefingFrame && projectName) {
+        // Try exact match by project name (format: "Project Name - BRIEFING [PROJ-YYYY-MM-XXX]")
+        if (projectName) {
           briefingFrame = allFrames.find(f => {
             if (!f.title) return false;
             const isBriefing = f.title.toUpperCase().includes('BRIEFING');
             if (!isBriefing) return false;
-            const titleWithoutEmoji = f.title.replace(/^[^\w\s]+\s*/, '');
-            return titleWithoutEmoji.toUpperCase().startsWith(projectName.toUpperCase() + ' -');
+            return f.title.toUpperCase().startsWith(projectName.toUpperCase() + ' -');
           });
         }
 
-        // Last resort: contains (fallback for old frames without ID)
+        if (briefingFrame) {
+          console.log('[MiroProject] [updateBriefingStatus] Found by project name:', briefingFrame.title);
+        }
+
+        // Fallback: contains (for partial matches)
         if (!briefingFrame && projectName) {
           briefingFrame = allFrames.find(f => {
             if (!f.title) return false;
