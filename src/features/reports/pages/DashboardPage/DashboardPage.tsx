@@ -242,20 +242,10 @@ export function DashboardPage() {
       <section className={styles.section}>
         <h2 className={styles.sectionTitle}>Project Timeline</h2>
         <div className={styles.timelineCard}>
-          {/* Legend */}
+          {/* Legend - all 5 status in one row */}
           <div className={styles.legend}>
-            {/* First row: CRITICAL, OVERDUE, URGENT, ON TRACK */}
             <div className={styles.legendRow}>
-              {STATUS_COLUMNS.slice(0, 4).map((col) => (
-                <span key={col.id} className={styles.legendItem}>
-                  <span className={styles.legendDot} style={{ backgroundColor: col.color }}/>
-                  {col.label}
-                </span>
-              ))}
-            </div>
-            {/* Second row: IN PROGRESS, REVIEW, DONE */}
-            <div className={styles.legendRow}>
-              {STATUS_COLUMNS.slice(4).map((col) => (
+              {STATUS_COLUMNS.map((col) => (
                 <span key={col.id} className={styles.legendItem}>
                   <span className={styles.legendDot} style={{ backgroundColor: col.color }}/>
                   {col.label}
