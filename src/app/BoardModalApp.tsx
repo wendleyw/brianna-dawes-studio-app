@@ -5,7 +5,7 @@
  * Syncs with Miro Master Timeline when projects are moved
  */
 import { useProjects, useProjectMutations } from '@features/projects';
-import { useMiro, useMiroBoardSync, miroProjectRowService } from '@features/boards';
+import { useMiro, useMiroBoardSync, miroProjectRowService, zoomToProject } from '@features/boards';
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { STATUS_COLUMNS } from '@shared/lib/timelineStatus';
@@ -245,6 +245,13 @@ export function BoardModalApp() {
                   draggable
                   onDragStart={(e) => handleDragStart(e, project)}
                   onDragEnd={handleDragEnd}
+                  onClick={async () => {
+                    // Close modal and zoom to project in Miro board
+                    if (miro) {
+                      await miro.board.ui.closeModal();
+                    }
+                    await zoomToProject(project.id);
+                  }}
                 >
                   <h4 className={styles.cardTitle}>{project.name}</h4>
                   {project.dueDate && (
