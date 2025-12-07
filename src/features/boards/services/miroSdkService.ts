@@ -1127,7 +1127,7 @@ class MiroProjectRowService {
     // Move to next badge position
     badgeX += BADGE_WIDTHS.priority / 2 + BADGE_GAP + BADGE_WIDTHS.type / 2;
 
-    // 2. Project Type badge
+    // 2. Project Type badge (dark background, white text)
     const projectType = getProjectTypeFromBriefing(briefing);
     await miro.board.createShape({
       shape: 'round_rectangle',
@@ -1137,7 +1137,7 @@ class MiroProjectRowService {
       width: BADGE_WIDTHS.type,
       height: BADGE_HEIGHT,
       style: {
-        fillColor: projectType?.color || '#6B7280',
+        fillColor: '#1F2937',
         borderColor: 'transparent',
         borderWidth: 0,
         color: '#FFFFFF',
