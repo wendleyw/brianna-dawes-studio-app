@@ -378,18 +378,11 @@ class MiroMasterTimelineService {
     const existingCard = allBoardCards.find(c => c.description?.includes(`projectId:${project.id}`));
     log('MiroTimeline', `Review status: wasReviewed=${wasReviewed} (from DB/options)`)
 
-    // Format due date with days left
+    // Format due date (simple date only)
     const formatDueDate = (dateStr: string | null): string => {
       if (!dateStr) return '';
       const date = new Date(dateStr);
-      const now = new Date();
-      const diffDays = Math.ceil((date.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-      const formatted = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-
-      if (diffDays < 0) return `${formatted} · ${Math.abs(diffDays)}d late`;
-      if (diffDays === 0) return `${formatted} · Today`;
-      if (diffDays <= 7) return `${formatted} · ${diffDays}d`;
-      return formatted;
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     };
 
     // Build priority indicator with colored circles
