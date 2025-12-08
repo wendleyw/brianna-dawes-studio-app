@@ -116,16 +116,59 @@ export function ProjectsPage() {
             return;
           }
 
-          // Strategy 2: Find client via user_boards table
+          // Strategy 2: Find client via user_boards table (prioritize is_primary)
           console.log('[ProjectsPage] Strategy 2: Looking by user_boards...');
           const { data: userBoards, error: error2 } = await supabase
             .from('user_boards')
-            .select('user_id')
-            .eq('board_id', boardId);
+            .select('user_id, is_primary')
+            .eq('board_id', boardId)
+            .order('is_primary', { ascending: false }); // Primary boards first
 
           console.log('[ProjectsPage] Strategy 2 user_boards:', { userBoards, error: error2 });
 
           if (userBoards && userBoards.length > 0) {
+            // First pass: find primary client with logo
+            for (const ub of userBoards) {
+              if (!ub.is_primary) continue;
+              const { data: clientByUserBoard } = await supabase
+                .from('users')
+                .select('name, company_name, company_logo_url')
+                .eq('id', ub.user_id)
+                .eq('role', 'client')
+                .maybeSingle();
+
+              if (clientByUserBoard && clientByUserBoard.company_logo_url) {
+                setBoardClient({
+                  name: clientByUserBoard.name,
+                  companyName: clientByUserBoard.company_name,
+                  companyLogoUrl: clientByUserBoard.company_logo_url,
+                });
+                console.log('[ProjectsPage] Found primary client with logo:', clientByUserBoard.name);
+                return;
+              }
+            }
+
+            // Second pass: find any client with logo
+            for (const ub of userBoards) {
+              const { data: clientByUserBoard } = await supabase
+                .from('users')
+                .select('name, company_name, company_logo_url')
+                .eq('id', ub.user_id)
+                .eq('role', 'client')
+                .maybeSingle();
+
+              if (clientByUserBoard && clientByUserBoard.company_logo_url) {
+                setBoardClient({
+                  name: clientByUserBoard.name,
+                  companyName: clientByUserBoard.company_name,
+                  companyLogoUrl: clientByUserBoard.company_logo_url,
+                });
+                console.log('[ProjectsPage] Found client with logo:', clientByUserBoard.name);
+                return;
+              }
+            }
+
+            // Third pass: find any client (fallback without logo)
             for (const ub of userBoards) {
               const { data: clientByUserBoard } = await supabase
                 .from('users')
