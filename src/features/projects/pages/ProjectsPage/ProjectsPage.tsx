@@ -12,9 +12,17 @@ import { TIMELINE_COLUMNS, getTimelineStatus, type TimelineStatus } from '@share
 import { onProjectChange, broadcastProjectChange } from '@shared/lib/projectBroadcast';
 import { useRealtimeSubscription } from '@shared/hooks/useRealtimeSubscription';
 import { projectService } from '../../services/projectService';
+import { supabase } from '@shared/lib/supabase';
 import { env } from '@shared/config/env';
 import type { ProjectFilters as ProjectFiltersType, Project, ProjectStatus } from '../../domain/project.types';
 import styles from './ProjectsPage.module.css';
+
+// Type for board client info
+interface BoardClientInfo {
+  companyName: string | null;
+  companyLogoUrl: string | null;
+  name: string;
+}
 
 const logger = createLogger('ProjectsPage');
 
@@ -42,6 +50,44 @@ export function ProjectsPage() {
   const { syncProject } = useMiroBoardSync();
   const [searchQuery, setSearchQuery] = useState('');
   const [timelineFilter, setTimelineFilter] = useState<TimelineStatus | ''>('');
+  const [boardClient, setBoardClient] = useState<BoardClientInfo | null>(null);
+
+  // Fetch client associated with current board
+  useEffect(() => {
+    async function fetchBoardClient() {
+      if (!isInMiro || !miro) return;
+
+      try {
+        // Get current board ID
+        const boardInfo = await miro.board.getInfo();
+        const boardId = boardInfo.id;
+
+        // Find client whose primaryBoardId matches this board
+        const { data: client } = await supabase
+          .from('users')
+          .select('name, company_name, company_logo_url')
+          .eq('role', 'client')
+          .eq('primary_board_id', boardId)
+          .maybeSingle();
+
+        if (client) {
+          setBoardClient({
+            name: client.name,
+            companyName: client.company_name,
+            companyLogoUrl: client.company_logo_url,
+          });
+          logger.debug('Found board client', { boardId, client: client.name });
+        } else {
+          setBoardClient(null);
+          logger.debug('No client found for board', { boardId });
+        }
+      } catch (err) {
+        logger.error('Error fetching board client', err);
+      }
+    }
+
+    fetchBoardClient();
+  }, [isInMiro, miro]);
 
   // Get selected project from URL
   const selectedProjectId = searchParams.get('selected');
@@ -298,16 +344,16 @@ export function ProjectsPage() {
     enabled: true,
   });
 
-  // Check if user is a client with company info
-  const isClient = user?.role === 'client';
-  const hasCompanyInfo = isClient && (user?.companyName || user?.companyLogoUrl);
+  // Check if there's a client associated with this board (for personalized header)
+  // This works for ANY user viewing the board (admin, designer, client)
+  const hasClientBranding = boardClient && (boardClient.companyName || boardClient.companyLogoUrl);
 
   return (
     <div className={styles.container}>
       {/* Header */}
       <header className={styles.header}>
-        {hasCompanyInfo ? (
-          // Personalized client header: [Client Logo] [Client Name] | [Brianna Logo]
+        {hasClientBranding ? (
+          // Personalized client header: [Client Logo] [Client Name] | [Brianna Video Logo]
           <>
             <div className={styles.headerLeft}>
               <button
@@ -317,19 +363,19 @@ export function ProjectsPage() {
               >
                 <BackIcon />
               </button>
-              {user?.companyLogoUrl ? (
+              {boardClient.companyLogoUrl ? (
                 <img
-                  src={user.companyLogoUrl}
-                  alt={user.companyName || 'Company'}
+                  src={boardClient.companyLogoUrl}
+                  alt={boardClient.companyName || 'Company'}
                   className={styles.clientLogo}
                 />
               ) : (
                 <div className={styles.clientLogoPlaceholder}>
-                  {(user?.companyName || user?.name || 'C').charAt(0).toUpperCase()}
+                  {(boardClient.companyName || boardClient.name || 'C').charAt(0).toUpperCase()}
                 </div>
               )}
               <div className={styles.headerInfo}>
-                <h1 className={styles.brandName}>{user?.companyName?.toUpperCase() || user?.name?.toUpperCase()}</h1>
+                <h1 className={styles.brandName}>{boardClient.companyName?.toUpperCase() || boardClient.name?.toUpperCase()}</h1>
                 <span className={styles.projectCount}>{totalProjects} projects</span>
               </div>
             </div>
