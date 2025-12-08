@@ -670,19 +670,25 @@ class MiroMasterTimelineService {
         // Update internal state
         this.frameCenterY = newCenterY;
 
-        // Also resize the column drop zones
+        // Also resize the column drop zones (rectangles with white/light fill)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const shapes = await miro.board.get({ type: 'shape' }) as any[];
-        const columnDropZones = shapes.filter((s: { shape?: string; x: number; height: number }) =>
-          s.shape === 'rectangle' &&
-          s.x >= frameLeft && s.x <= frameRight &&
-          s.height > 100 // Drop zones are tall
-        );
 
-        // Calculate new column height
-        const headerY = frameTop + TIMELINE.PADDING + TIMELINE.HEADER_HEIGHT;
-        const newColumnHeight = newHeight - TIMELINE.PADDING * 2 - TIMELINE.HEADER_HEIGHT - 10;
-        const newColumnCenterY = headerY + newColumnHeight / 2 + 5;
+        // Find drop zones: rectangles within frame X bounds, with significant height
+        const columnDropZones = shapes.filter((s: { shape?: string; x: number; y: number; height: number; width: number; style?: { fillColor?: string } }) => {
+          const isRectangle = s.shape === 'rectangle';
+          const inFrameX = s.x >= frameLeft - 10 && s.x <= frameRight + 10;
+          const isTall = s.height > 50;
+          const isColumnWidth = s.width > 80 && s.width < 120; // Column width ~95
+          return isRectangle && inFrameX && isTall && isColumnWidth;
+        });
+
+        log('MiroTimeline', `Found ${columnDropZones.length} column drop zones to resize`);
+
+        // Calculate new column dimensions
+        const newColumnHeight = newHeight - TIMELINE.PADDING * 2 - TIMELINE.HEADER_HEIGHT - 15;
+        const newColumnTopY = frameTop + TIMELINE.PADDING + TIMELINE.HEADER_HEIGHT + 10;
+        const newColumnCenterY = newColumnTopY + newColumnHeight / 2;
 
         for (const zone of columnDropZones) {
           zone.height = newColumnHeight;
@@ -690,7 +696,7 @@ class MiroMasterTimelineService {
           await miro.board.sync(zone);
         }
 
-        log('MiroTimeline', `Resized ${columnDropZones.length} column drop zones`);
+        log('MiroTimeline', `Resized ${columnDropZones.length} column drop zones to height ${newColumnHeight}`);
       }
     } catch (e) {
       log('MiroTimeline', 'Failed to resize timeline', e);
