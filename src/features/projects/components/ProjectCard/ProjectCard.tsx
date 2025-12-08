@@ -793,89 +793,87 @@ export const ProjectCard = memo(function ProjectCard({
         </div>
       </div>
 
-      {/* Asset Totals with expandable deliverables */}
+      {/* Asset Totals with expandable deliverables - inside stats section */}
       {(assetTotals.totalAssets > 0 || deliverables.length > 0) && (
-        <div className={styles.assetsSection}>
-          <button
-            className={styles.assetsToggle}
-            onClick={(e) => { e.stopPropagation(); setShowDeliverables(!showDeliverables); }}
-          >
-            <span className={styles.assetsInfo}>
-              <span className={styles.assetsCount}>{assetTotals.totalAssets} assets</span>
-              {assetTotals.totalBonus > 0 && (
-                <span className={styles.bonusCount}>+{assetTotals.totalBonus} bonus</span>
-              )}
-            </span>
-            <ChevronIcon isOpen={showDeliverables} />
-          </button>
+        <button
+          className={styles.assetsToggle}
+          onClick={(e) => { e.stopPropagation(); setShowDeliverables(!showDeliverables); }}
+        >
+          <span className={styles.assetsInfo}>
+            <span className={styles.assetsCount}>{assetTotals.totalAssets} assets</span>
+            {assetTotals.totalBonus > 0 && (
+              <span className={styles.bonusCount}>+{assetTotals.totalBonus} bonus</span>
+            )}
+          </span>
+          <ChevronIcon isOpen={showDeliverables} />
+        </button>
+      )}
 
-          {/* Expandable deliverables list */}
-          {showDeliverables && deliverables.length > 0 && (
-            <div className={styles.deliverablesExpanded}>
-              {deliverables.map((d) => (
-                <div key={d.id} className={styles.deliverableItem}>
-                  <div className={styles.deliverableHeader}>
-                    <span className={styles.deliverableName}>{d.name}</span>
-                    {d.type && d.type !== 'other' && (
-                      <span className={styles.deliverableType}>{d.type}</span>
-                    )}
-                  </div>
-                  <div className={styles.deliverableDetails}>
-                    <span className={styles.deliverableDetail}>
-                      {d.count}x{d.bonusCount > 0 && <span className={styles.bonusSmall}> +{d.bonusCount}</span>}
-                    </span>
-                    <span className={`${styles.deliverableStatus} ${styles[`status_${d.status}`]}`}>
-                      {d.status?.replace('_', ' ')}
-                    </span>
-                  </div>
-                  <div className={styles.deliverableActions}>
-                    {d.externalUrl && (
-                      <button
-                        className={styles.deliverableLink}
-                        onClick={(e) => { e.stopPropagation(); window.open(d.externalUrl!, '_blank'); }}
-                        title="Link"
-                      >
-                        <ExternalLinkIcon />
-                      </button>
-                    )}
-                    {d.miroUrl && (
-                      <button
-                        className={styles.deliverableLink}
-                        onClick={async (e) => {
-                          e.stopPropagation();
-                          const zoomed = await zoomToMiroItem(d.miroUrl!);
-                          if (!zoomed) {
-                            window.open(d.miroUrl!, '_blank');
-                          }
-                        }}
-                        title="View on Board"
-                      >
-                        <BoardIcon />
-                      </button>
-                    )}
-                    {isAdmin && (
-                      <>
-                        <button
-                          className={styles.deliverableEdit}
-                          onClick={(e) => { e.stopPropagation(); handleEditDeliverable(d); }}
-                          title="Edit"
-                        >
-                          <PencilIcon />
-                        </button>
-                        <button
-                          className={styles.deliverableDelete}
-                          onClick={(e) => { e.stopPropagation(); setDeletingDeliverable(d); }}
-                          title="Delete"
-                        >
-                          <TrashIcon />
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </div>
-              ))}
+      {/* Expandable deliverables list */}
+      {showDeliverables && deliverables.length > 0 && (
+        <div className={styles.deliverablesExpanded}>
+          {deliverables.map((d) => (
+            <div key={d.id} className={styles.deliverableItem}>
+              <div className={styles.deliverableHeader}>
+                <span className={styles.deliverableName}>{d.name}</span>
+                {d.type && d.type !== 'other' && (
+                  <span className={styles.deliverableType}>{d.type}</span>
+                )}
+              </div>
+              <div className={styles.deliverableDetails}>
+                <span className={styles.deliverableDetail}>
+                  {d.count}x{d.bonusCount > 0 && <span className={styles.bonusSmall}> +{d.bonusCount}</span>}
+                </span>
+                <span className={`${styles.deliverableStatus} ${styles[`status_${d.status}`]}`}>
+                  {d.status?.replace('_', ' ')}
+                </span>
+              </div>
+              <div className={styles.deliverableActions}>
+                {d.externalUrl && (
+                  <button
+                    className={styles.deliverableLink}
+                    onClick={(e) => { e.stopPropagation(); window.open(d.externalUrl!, '_blank'); }}
+                    title="Link"
+                  >
+                    <ExternalLinkIcon />
+                  </button>
+                )}
+                {d.miroUrl && (
+                  <button
+                    className={styles.deliverableLink}
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      const zoomed = await zoomToMiroItem(d.miroUrl!);
+                      if (!zoomed) {
+                        window.open(d.miroUrl!, '_blank');
+                      }
+                    }}
+                    title="View on Board"
+                  >
+                    <BoardIcon />
+                  </button>
+                )}
+                {isAdmin && (
+                  <>
+                    <button
+                      className={styles.deliverableEdit}
+                      onClick={(e) => { e.stopPropagation(); handleEditDeliverable(d); }}
+                      title="Edit"
+                    >
+                      <PencilIcon />
+                    </button>
+                    <button
+                      className={styles.deliverableDelete}
+                      onClick={(e) => { e.stopPropagation(); setDeletingDeliverable(d); }}
+                      title="Delete"
+                    >
+                      <TrashIcon />
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
-          )}
+          ))}
         </div>
       )}
 

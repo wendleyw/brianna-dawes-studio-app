@@ -354,22 +354,19 @@
   text-decoration: underline;
 }
 
-/* Assets Section with Expandable Toggle */
-.assetsSection {
-  margin-bottom: var(--space-2);
-}
-
+/* Assets Toggle - above the divider */
 .assetsToggle {
   display: flex;
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  padding: 6px 10px;
-  background: transparent;
+  padding: 8px 12px;
+  background: var(--color-bg-secondary);
   border: none;
-  border-bottom: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
   cursor: pointer;
   transition: all var(--transition-fast);
+  margin-bottom: var(--space-2);
 }
 
 .assetsToggle:hover {
