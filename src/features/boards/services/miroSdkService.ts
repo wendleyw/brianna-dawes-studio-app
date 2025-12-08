@@ -552,19 +552,28 @@ class MiroMasterTimelineService {
 
     console.log('[MiroTimeline] Found timeline frame:', timelineFrame?.id, 'at', timelineFrame?.x, timelineFrame?.y, 'size:', timelineFrame?.width, 'x', timelineFrame?.height);
 
-    // Calculate frame bounds - use frame's actual position, not stored center
-    const actualFrameY = timelineFrame?.y ?? this.frameCenterY;
+    // Calculate frame bounds
+    // IMPORTANT: The frameTop should ALWAYS be at a FIXED position relative to origin
+    // The timeline is created at Y=0 with height 500, so frameTop = 0 - 500/2 = -250
+    // When the frame expands, it grows DOWNWARD, keeping the top fixed
+    // So we calculate frameTop from the ORIGINAL center position (0) and ORIGINAL height
     const currentFrameHeight = timelineFrame?.height || TIMELINE.FRAME_HEIGHT;
-    const frameTop = actualFrameY - currentFrameHeight / 2;
-    const frameBottom = actualFrameY + currentFrameHeight / 2;
+
+    // The ORIGINAL frame was centered at Y=0 with height TIMELINE.FRAME_HEIGHT
+    // So the original top was at: 0 - TIMELINE.FRAME_HEIGHT / 2
+    const ORIGINAL_FRAME_TOP = 0 - TIMELINE.FRAME_HEIGHT / 2; // = -250
+    const frameTop = ORIGINAL_FRAME_TOP; // ALWAYS use the original top position
+    const frameBottom = frameTop + currentFrameHeight; // Bottom changes as frame grows
 
     // Calculate first card Y position (inside the column, below header)
-    // FIXED: Use frameTop calculated from actual frame position
+    // FIXED: Use the CONSTANT frameTop (original position)
     const cardX = columnX;
     // Header is at: frameTop + PADDING + HEADER_HEIGHT/2
     // Drop zone starts at: frameTop + PADDING + HEADER_HEIGHT + small gap
     const dropZoneTop = frameTop + TIMELINE.PADDING + TIMELINE.HEADER_HEIGHT + 10;
     const firstCardY = dropZoneTop + TIMELINE.CARD_HEIGHT / 2 + 10; // Start cards 10px inside drop zone
+
+    console.log('[MiroTimeline] Frame calculations:', { ORIGINAL_FRAME_TOP, frameTop, frameBottom, currentFrameHeight });
 
     // Find all cards that have projectId in description (our cards) in this column
     // Use description matching instead of position matching for reliability
@@ -609,29 +618,33 @@ class MiroMasterTimelineService {
     if (cardBottom + bottomPadding > currentFrameBottom) {
       // Calculate new frame height needed - add extra buffer for future cards
       const extraBuffer = 100; // Extra space for additional cards
-      const newHeight = (cardBottom + bottomPadding + extraBuffer) - frameTop;
-      const newCenterY = frameTop + newHeight / 2;
+      const newHeight = (cardBottom + bottomPadding + extraBuffer) - ORIGINAL_FRAME_TOP;
+      // IMPORTANT: When frame grows, its center Y moves down to keep TOP fixed
+      // newCenterY = frameTop + newHeight / 2 = ORIGINAL_FRAME_TOP + newHeight / 2
+      const newCenterY = ORIGINAL_FRAME_TOP + newHeight / 2;
 
       console.log('[MiroTimeline] Expanding frame:', {
         oldHeight: currentFrameHeight,
         newHeight,
+        newCenterY,
         cardBottom,
         frameBottom: currentFrameBottom,
-        needed: cardBottom + bottomPadding - currentFrameBottom
+        needed: cardBottom + bottomPadding - currentFrameBottom,
+        ORIGINAL_FRAME_TOP
       });
 
       if (timelineFrame) {
         timelineFrame.height = newHeight;
         timelineFrame.y = newCenterY;
         await miro.board.sync(timelineFrame);
-        console.log('[MiroTimeline] Frame expanded successfully to height', newHeight);
+        console.log('[MiroTimeline] Frame expanded successfully to height', newHeight, 'center Y:', newCenterY);
 
-        // Update the frame bottom for this sync
-        currentFrameBottom = frameTop + newHeight;
+        // Update the frame bottom for this sync (top stays fixed)
+        currentFrameBottom = ORIGINAL_FRAME_TOP + newHeight;
       }
 
       // Also expand the column drop zones to match
-      await this.expandColumnDropZones(frameTop, newHeight);
+      await this.expandColumnDropZones(ORIGINAL_FRAME_TOP, newHeight);
     }
 
     console.log('[MiroTimeline] Card position:', {
