@@ -576,13 +576,24 @@ class MiroMasterTimelineService {
 
     log('MiroTimeline', `Creating NEW sticky note for "${project.name}" at position (${cardX}, ${cardY})`);
 
+    // Map status to Miro sticky note colors
+    // Valid colors: 'gray' | 'light_yellow' | 'yellow' | 'orange' | 'light_green' | 'green' | 'dark_green' | 'cyan' | 'light_pink' | 'pink' | 'violet' | 'red' | 'light_blue' | 'blue' | 'dark_blue' | 'black'
+    const stickyColorMap: Record<string, string> = {
+      'overdue': 'orange',
+      'urgent': 'red',
+      'in_progress': 'blue',
+      'review': 'violet',
+      'done': 'green',
+    };
+    const stickyColor = stickyColorMap[status] || 'light_yellow';
+
     // Use sticky note for better multi-line support
     const newMiroCard = await miro.board.createStickyNote({
-      content: `<p><strong>${priorityIcon} ${reviewedPrefix}${project.name}</strong></p><p>📅 ${datePart}</p><p>👤 ${authorPart}</p><p style="font-size:8px;color:#666">${description}</p>`,
+      content: `<p><strong>${priorityIcon} ${reviewedPrefix}${project.name}</strong></p><p>📅 ${datePart}</p><p>👤 ${authorPart}</p>`,
       x: cardX,
       y: cardY,
       width: TIMELINE.CARD_WIDTH,
-      style: { fillColor: column.color },
+      style: { fillColor: stickyColor as 'gray' | 'light_yellow' | 'yellow' | 'orange' | 'light_green' | 'green' | 'dark_green' | 'cyan' | 'light_pink' | 'pink' | 'violet' | 'red' | 'light_blue' | 'blue' | 'dark_blue' | 'black' },
     });
 
     const newCard: TimelineCard = {
