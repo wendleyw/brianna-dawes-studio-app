@@ -883,57 +883,27 @@ class MiroMasterTimelineService {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const shapes = await miro.board.get({ type: 'shape' }) as any[];
 
-      // Track unique columns by X position to avoid duplicates
-      const seenColumnX = new Set<number>();
-
-      // Find drop zones: rectangles within frame X bounds with column-like width
+      // Find ALL drop zones: rectangles within frame X bounds with column-like width
       // Column width is TIMELINE.COLUMN_WIDTH (95), so allow 80-120 range
+      // IMPORTANT: Expand ALL shapes that look like columns (don't deduplicate)
+      // because there may be multiple overlapping shapes at the same X position
       const columnDropZones = shapes.filter((s: { id: string; shape?: string; x: number; y: number; height: number; width: number; style?: { fillColor?: string; borderColor?: string } }) => {
         const isRectangle = s.shape === 'rectangle';
         const inFrameX = s.x >= frameLeft - 10 && s.x <= frameRight + 10;
         const isColumnWidth = s.width >= 80 && s.width <= 120;
         // Check it's a tall shape (column drop zones are tall - at least 200px)
         const isTall = s.height >= 200;
-        // Also check the CENTER Y is in the column area (below the header)
-        // The header is at frameTop + PADDING, so columns start below that
+        // Also check the shape is in the column area (below the header)
         const shapeTop = s.y - s.height / 2;
         const isDropZone = shapeTop > frameTop + TIMELINE.PADDING + TIMELINE.HEADER_HEIGHT - 20;
 
-        // Log all rectangles for debugging
-        if (isRectangle && inFrameX && s.height > 100) {
-          console.log('[MiroTimeline] Checking shape:', {
-            id: s.id,
-            x: Math.round(s.x),
-            y: Math.round(s.y),
-            width: s.width,
-            height: s.height,
-            shapeTop: Math.round(shapeTop),
-            isColumnWidth,
-            isTall,
-            isDropZone,
-            fill: s.style?.fillColor,
-            border: s.style?.borderColor
-          });
-        }
-
         // Check if valid column drop zone - just need to be correct position and size
-        // Don't filter by style as colors may vary
         const isValid = isRectangle && inFrameX && isColumnWidth && isTall && isDropZone;
-
-        // Deduplicate by X position (round to nearest 10)
-        if (isValid) {
-          const roundedX = Math.round(s.x / 10) * 10;
-          if (seenColumnX.has(roundedX)) {
-            return false; // Skip duplicate
-          }
-          seenColumnX.add(roundedX);
-          console.log('[MiroTimeline] ✓ Found column drop zone:', { id: s.id, x: s.x, height: s.height });
-        }
 
         return isValid;
       });
 
-      console.log('[MiroTimeline] Found', columnDropZones.length, 'unique column drop zones to expand');
+      console.log('[MiroTimeline] Found', columnDropZones.length, 'column drop zones to expand (including duplicates)');
 
       // Calculate new column dimensions
       // Columns should fill from below header to near bottom of frame
@@ -949,13 +919,18 @@ class MiroMasterTimelineService {
         newFrameHeight
       });
 
+      // Expand ALL column shapes (not just unique ones)
+      let expandedCount = 0;
       for (const zone of columnDropZones) {
         const oldHeight = zone.height;
+        const oldY = zone.y;
         zone.height = newColumnHeight;
         zone.y = newColumnCenterY;
         await miro.board.sync(zone);
-        console.log('[MiroTimeline] Expanded column at X=', zone.x, 'from height', oldHeight, 'to', newColumnHeight);
+        expandedCount++;
+        console.log('[MiroTimeline] Expanded column', zone.id, 'at X=', Math.round(zone.x), 'Y:', Math.round(oldY), '->', Math.round(newColumnCenterY), 'height:', oldHeight, '->', newColumnHeight);
       }
+      console.log('[MiroTimeline] Total columns expanded:', expandedCount);
 
       // Also find and move any horizontal separator lines or borders
       // These can be:
