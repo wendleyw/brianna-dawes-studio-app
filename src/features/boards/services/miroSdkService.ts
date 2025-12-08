@@ -2018,7 +2018,7 @@ class MiroProjectRowService {
         height: frameHeight - 20,
         style: {
           fillColor: '#22C55E', // Green color
-          fillOpacity: 0.15, // 15% opacity - very transparent so content is visible
+          fillOpacity: 0.25, // 25% opacity - visible but content still readable
           borderWidth: 0,
         } as { fillColor: string; fillOpacity: number; borderWidth: number },
       });
