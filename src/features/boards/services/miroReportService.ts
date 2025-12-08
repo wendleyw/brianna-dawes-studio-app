@@ -12,6 +12,7 @@ import { STATUS_COLUMNS } from '@shared/lib/timelineStatus';
 import { PRIORITY_CONFIG } from '@shared/lib/priorityConfig';
 import { formatDateFull, formatDateShort } from '@shared/lib/dateFormat';
 import { createLogger } from '@shared/lib/logger';
+import { miroAdapter } from '@shared/lib/miroAdapter';
 
 const logger = createLogger('MiroReport');
 
@@ -53,11 +54,12 @@ interface DeliverableMetrics {
   completionRate: number;
 }
 
+/**
+ * Get Miro SDK instance
+ * Uses the unified miroAdapter for consistent access
+ */
 function getMiroSDK() {
-  if (typeof window === 'undefined' || !window.miro) {
-    throw new Error('Miro SDK not available. Make sure you are running inside Miro.');
-  }
-  return window.miro;
+  return miroAdapter.getSDK();
 }
 
 /**

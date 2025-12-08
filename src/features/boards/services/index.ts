@@ -17,5 +17,8 @@ export { miroReportService } from './miroReportService';
 // Enhanced client report service with charts
 export { miroClientReportService } from './miroClientReportService';
 
+// Project Sync Orchestrator - manages Miro ↔ Supabase synchronization
+export { projectSyncOrchestrator } from './projectSyncOrchestrator';
+
 // Centralized constants
 export * from './constants';

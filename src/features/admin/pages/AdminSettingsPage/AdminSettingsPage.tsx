@@ -3,6 +3,7 @@ import { Button } from '@shared/ui';
 import { UserManagement } from '../../components/UserManagement';
 import { BoardManagement } from '../../components/BoardManagement';
 import { DeveloperTools } from '../../components/DeveloperTools';
+import { SyncHealthDashboard } from '../../components/SyncHealthDashboard';
 import { ReportModal } from '../../components/ReportModal';
 import type { AdminTab } from '../../domain';
 import styles from './AdminSettingsPage.module.css';
@@ -32,9 +33,19 @@ const DeveloperIcon = () => (
   </svg>
 );
 
+const SyncIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+    <path d="M3 3v5h5"/>
+    <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
+    <path d="M16 16h5v5"/>
+  </svg>
+);
+
 const TABS: { id: AdminTab; label: string; icon: React.ReactNode }[] = [
   { id: 'users', label: 'Clients', icon: <UsersIcon /> },
   { id: 'boards', label: 'Boards', icon: <BoardsIcon /> },
+  { id: 'sync', label: 'Sync Health', icon: <SyncIcon /> },
   { id: 'developer', label: 'Developer', icon: <DeveloperIcon /> },
 ];
 
@@ -78,6 +89,7 @@ export function AdminSettingsPage() {
       <div className={styles.content}>
         {activeTab === 'users' && <UserManagement />}
         {activeTab === 'boards' && <BoardManagement />}
+        {activeTab === 'sync' && <SyncHealthDashboard />}
         {activeTab === 'developer' && <DeveloperTools />}
       </div>
 

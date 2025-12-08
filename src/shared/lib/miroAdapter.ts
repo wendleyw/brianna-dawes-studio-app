@@ -236,38 +236,6 @@ class MiroAdapter {
   }
 
   /**
-   * Create a shape on the board
-   */
-  async createShape(options: {
-    shape: string;
-    content?: string;
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-    style?: { fillColor?: string; textAlign?: string; textAlignVertical?: string };
-  }): Promise<unknown> {
-    return this.withSDK(async (miro) => {
-      return await miro.board.createShape(options);
-    });
-  }
-
-  /**
-   * Create a text element on the board
-   */
-  async createText(options: {
-    content: string;
-    x: number;
-    y: number;
-    width?: number;
-    style?: { fontSize?: number; textAlign?: string };
-  }): Promise<unknown> {
-    return this.withSDK(async (miro) => {
-      return await miro.board.createText(options);
-    });
-  }
-
-  /**
    * Remove an item from the board
    */
   async removeItem(id: string): Promise<boolean> {
@@ -283,46 +251,41 @@ class MiroAdapter {
   }
 
   /**
-   * Zoom to specific viewport coordinates
+   * Zoom to specific items
+   * Note: Requires passing full MiroItem objects with type, x, y properties
    */
-  async zoomTo(x: number, y: number, zoom: number = 1): Promise<void> {
+  async zoomToItems(items: unknown[]): Promise<void> {
     await this.withSDK(async (miro) => {
-      await miro.board.viewport.set({
-        viewport: { x, y, width: 1920 / zoom, height: 1080 / zoom },
-        padding: { top: 50, bottom: 50, left: 50, right: 50 },
-        animationDurationInMs: 500,
-      });
+      // Cast to any to bypass strict typing - Miro SDK accepts partial items
+      await miro.board.viewport.zoomTo(items as Parameters<typeof miro.board.viewport.zoomTo>[0]);
     });
   }
 
   /**
-   * Zoom to a specific item
+   * Show info notification in Miro
    */
-  async zoomToItem(itemId: string): Promise<void> {
+  async showInfo(message: string): Promise<void> {
     await this.withSDK(async (miro) => {
-      await miro.board.viewport.zoomTo({ id: itemId } as { id: string });
+      await miro.board.notifications.showInfo(message);
     });
   }
 
   /**
-   * Show a notification in Miro
+   * Show error notification in Miro
    */
-  async showNotification(message: string, type: 'info' | 'success' | 'warning' | 'error' = 'info'): Promise<void> {
+  async showError(message: string): Promise<void> {
     await this.withSDK(async (miro) => {
-      await miro.board.notifications.showNotification({
-        message,
-        type,
-      });
+      await miro.board.notifications.showError(message);
     });
   }
 
   /**
    * Get current board info
    */
-  async getBoardInfo(): Promise<{ id: string; name?: string } | null> {
+  async getBoardInfo(): Promise<{ id: string } | null> {
     return this.withSDKOrNull(async (miro) => {
       const info = await miro.board.getInfo();
-      return { id: info.id, name: (info as { name?: string }).name };
+      return { id: info.id };
     });
   }
 

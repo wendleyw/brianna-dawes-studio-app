@@ -8,6 +8,7 @@ import type { ProjectBriefing } from '../domain/board.types';
 import type { ProjectStatus } from '@features/projects/domain/project.types';
 import { TIMELINE, PROJECT_TYPE_CONFIG } from './constants';
 import { createLogger } from '@shared/lib/logger';
+import { miroAdapter, getMiroSDK as getSDK } from '@shared/lib/miroAdapter';
 
 // Create namespaced loggers for different services
 export const timelineLogger = createLogger('MiroTimeline');
@@ -23,12 +24,17 @@ export function log(prefix: string, message: string, data?: unknown): void {
 
 /**
  * Get Miro SDK instance with safety check
+ * @deprecated Use miroAdapter.getSDK() from '@shared/lib/miroAdapter' instead
  */
 export function getMiroSDK() {
-  if (typeof window === 'undefined' || !window.miro) {
-    throw new Error('Miro SDK not available. Make sure you are running inside Miro.');
-  }
-  return window.miro;
+  return getSDK();
+}
+
+/**
+ * Check if Miro SDK is available
+ */
+export function isMiroAvailable(): boolean {
+  return miroAdapter.isAvailable();
 }
 
 /**
@@ -55,13 +61,7 @@ export async function findTimelineFrame(): Promise<MiroFrame | null> {
  * Safely remove a Miro board item by ID (with error handling)
  */
 export async function safeRemove(id: string): Promise<boolean> {
-  try {
-    await getMiroSDK().board.remove({ id });
-    return true;
-  } catch (error) {
-    log('MiroService', `Failed to remove item ${id}`, error);
-    return false;
-  }
+  return miroAdapter.removeItem(id);
 }
 
 /**

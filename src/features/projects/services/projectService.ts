@@ -357,8 +357,131 @@ class ProjectService {
       deliverablesCount: (data.deliverables_count as number) || 0,
       briefing: data.briefing as Project['briefing'] || null,
       wasReviewed: (data.was_reviewed as boolean) || false,
+      // Miro sync tracking fields
+      syncStatus: (data.sync_status as Project['syncStatus']) || 'pending',
+      syncErrorMessage: data.sync_error_message as string | null,
+      syncRetryCount: (data.sync_retry_count as number) || 0,
+      lastSyncAttempt: data.last_sync_attempt as string | null,
+      lastSyncedAt: data.last_synced_at as string | null,
+      miroCardId: data.miro_card_id as string | null,
+      miroFrameId: data.miro_frame_id as string | null,
       createdAt: data.created_at as string,
       updatedAt: data.updated_at as string,
+    };
+  }
+
+  /**
+   * Update sync status for a project
+   * Used by the ProjectSyncOrchestrator
+   */
+  async updateSyncStatus(
+    projectId: string,
+    status: Project['syncStatus'],
+    options?: {
+      errorMessage?: string | null | undefined;
+      miroCardId?: string | null | undefined;
+      miroFrameId?: string | null | undefined;
+      incrementRetry?: boolean;
+    }
+  ): Promise<void> {
+    const updateData: Record<string, unknown> = {
+      sync_status: status,
+      last_sync_attempt: new Date().toISOString(),
+    };
+
+    if (status === 'synced') {
+      updateData.last_synced_at = new Date().toISOString();
+      updateData.sync_error_message = null;
+      updateData.sync_retry_count = 0;
+    }
+
+    if (status === 'sync_error' && options?.errorMessage) {
+      updateData.sync_error_message = options.errorMessage;
+    }
+
+    if (options?.incrementRetry) {
+      // Use raw SQL to increment the retry count
+      const { error } = await supabase.rpc('increment_sync_retry', {
+        project_id: projectId,
+      });
+      if (error) {
+        // Fallback: just set the status without incrementing
+        console.warn('Failed to increment retry count:', error);
+      }
+    }
+
+    if (options?.miroCardId !== undefined) {
+      updateData.miro_card_id = options.miroCardId;
+    }
+
+    if (options?.miroFrameId !== undefined) {
+      updateData.miro_frame_id = options.miroFrameId;
+    }
+
+    const { error } = await supabase
+      .from('projects')
+      .update(updateData)
+      .eq('id', projectId);
+
+    if (error) throw error;
+  }
+
+  /**
+   * Get projects that need sync retry
+   */
+  async getProjectsNeedingSync(maxRetries: number = 3): Promise<Project[]> {
+    const { data, error } = await supabase.rpc('get_projects_needing_sync', {
+      max_retries: maxRetries,
+    });
+
+    if (error) throw error;
+
+    // The RPC returns partial data, fetch full projects
+    const projectIds = (data || []).map((p: { id: string }) => p.id);
+    if (projectIds.length === 0) return [];
+
+    const { data: projects, error: fetchError } = await supabase
+      .from('projects')
+      .select(`
+        *,
+        client:users!projects_client_id_fkey(id, name, email, avatar_url),
+        designers:project_designers(user:users(id, name, email, avatar_url))
+      `)
+      .in('id', projectIds);
+
+    if (fetchError) throw fetchError;
+    return (projects || []).map(this.mapProjectFromDB);
+  }
+
+  /**
+   * Get sync health metrics
+   */
+  async getSyncHealthMetrics(): Promise<{
+    totalProjects: number;
+    syncedCount: number;
+    pendingCount: number;
+    errorCount: number;
+    syncingCount: number;
+    syncSuccessRate: number;
+    avgRetryCount: number;
+    lastSyncError: string | null;
+    lastErrorProjectName: string | null;
+  }> {
+    const { data, error } = await supabase.rpc('get_sync_health_metrics');
+
+    if (error) throw error;
+
+    const metrics = data?.[0] || data;
+    return {
+      totalProjects: Number(metrics?.total_projects || 0),
+      syncedCount: Number(metrics?.synced_count || 0),
+      pendingCount: Number(metrics?.pending_count || 0),
+      errorCount: Number(metrics?.error_count || 0),
+      syncingCount: Number(metrics?.syncing_count || 0),
+      syncSuccessRate: Number(metrics?.sync_success_rate || 100),
+      avgRetryCount: Number(metrics?.avg_retry_count || 0),
+      lastSyncError: metrics?.last_sync_error || null,
+      lastErrorProjectName: metrics?.last_error_project_name || null,
     };
   }
 }

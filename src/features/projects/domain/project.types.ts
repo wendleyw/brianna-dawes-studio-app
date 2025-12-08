@@ -5,7 +5,16 @@ export type ProjectStatus =
   | 'in_progress'   // Actively being worked on (default)
   | 'review'        // Awaiting client review/approval
   | 'done';         // Completed
+
 export type ProjectPriority = 'low' | 'medium' | 'high' | 'urgent';
+
+// Miro Sync Status - tracks synchronization state with Miro boards
+export type MiroSyncStatus =
+  | 'pending'       // Project created, waiting for Miro sync
+  | 'syncing'       // Currently syncing to Miro
+  | 'synced'        // Successfully synced with Miro
+  | 'sync_error'    // Sync failed, needs retry
+  | 'not_required'; // Project doesn't need Miro sync
 
 export interface ProjectClient {
   id: string;
@@ -63,6 +72,14 @@ export interface Project {
   deliverablesCount: number;
   briefing: ProjectBriefing | null;
   wasReviewed: boolean;
+  // Miro sync tracking fields
+  syncStatus: MiroSyncStatus;
+  syncErrorMessage: string | null;
+  syncRetryCount: number;
+  lastSyncAttempt: string | null;
+  lastSyncedAt: string | null;
+  miroCardId: string | null;
+  miroFrameId: string | null;
   createdAt: string;
   updatedAt: string;
 }

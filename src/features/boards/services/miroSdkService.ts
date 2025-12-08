@@ -42,6 +42,7 @@ import {
   PROJECT_TYPE_CONFIG,
 } from './constants';
 import { createLogger } from '@shared/lib/logger';
+import { miroAdapter } from '@shared/lib/miroAdapter';
 
 // Create namespaced loggers for different services
 const timelineLogger = createLogger('MiroTimeline');
@@ -55,11 +56,12 @@ function log(prefix: string, message: string, data?: unknown): void {
   logger.debug(message, data);
 }
 
+/**
+ * Get Miro SDK instance
+ * Uses the unified miroAdapter for consistent access
+ */
 function getMiroSDK() {
-  if (typeof window === 'undefined' || !window.miro) {
-    throw new Error('Miro SDK not available. Make sure you are running inside Miro.');
-  }
-  return window.miro;
+  return miroAdapter.getSDK();
 }
 
 /**
@@ -141,15 +143,10 @@ async function findTimelineFrame(): Promise<MiroFrame | null> {
 
 /**
  * Safely remove a Miro board item by ID (with error handling)
+ * Uses the unified miroAdapter for consistent error handling
  */
 async function safeRemove(id: string): Promise<boolean> {
-  try {
-    await getMiroSDK().board.remove({ id });
-    return true;
-  } catch (error) {
-    log('MiroService', `Failed to remove item ${id}`, error);
-    return false;
-  }
+  return miroAdapter.removeItem(id);
 }
 
 // Map project status to timeline status - direct since DB now has 7 statuses

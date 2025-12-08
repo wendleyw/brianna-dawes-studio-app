@@ -67,4 +67,4 @@ export interface UpdateAppSettingInput {
   value: unknown;
 }
 
-export type AdminTab = 'users' | 'boards' | 'developer';
+export type AdminTab = 'users' | 'boards' | 'sync' | 'developer';

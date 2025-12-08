@@ -1,0 +1,198 @@
+.container {
+  background: var(--surface-color, #FFFFFF);
+  border: 1px solid var(--border-color, #E5E7EB);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary, #111827);
+  margin: 0;
+}
+
+.statusBadge {
+  padding: 4px 12px;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 500;
+  color: white;
+}
+
+.connectionStatus {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  color: var(--text-secondary, #6B7280);
+}
+
+.connectionLabel {
+  font-weight: 500;
+}
+
+.connectionIndicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.successRate {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.rateValue {
+  font-size: 36px;
+  font-weight: 700;
+  color: var(--text-primary, #111827);
+  line-height: 1;
+}
+
+.rateLabel {
+  font-size: 12px;
+  color: var(--text-secondary, #6B7280);
+  margin-top: 4px;
+  margin-bottom: 8px;
+}
+
+.progressBar {
+  height: 6px;
+  background: var(--surface-hover, #F3F4F6);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease, background-color 0.3s ease;
+}
+
+.statusBreakdown {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.statusItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--surface-hover, #F9FAFB);
+  border-radius: 6px;
+}
+
+.statusDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.statusLabel {
+  font-size: 13px;
+  color: var(--text-secondary, #6B7280);
+  flex: 1;
+}
+
+.statusCount {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary, #111827);
+}
+
+.errorSection {
+  background: #FEF2F2;
+  border: 1px solid #FECACA;
+  border-radius: 6px;
+  padding: 12px;
+  margin-bottom: 16px;
+}
+
+.errorTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: #991B1B;
+  margin-bottom: 8px;
+}
+
+.errorProject {
+  font-size: 12px;
+  color: #B91C1C;
+  margin-bottom: 4px;
+}
+
+.errorMessage {
+  font-size: 12px;
+  color: #DC2626;
+  font-family: monospace;
+  background: #FEE2E2;
+  padding: 8px;
+  border-radius: 4px;
+  word-break: break-word;
+}
+
+.retryInfo {
+  font-size: 11px;
+  color: #9CA3AF;
+  margin-top: 8px;
+}
+
+.retryResults {
+  background: #F0FDF4;
+  border: 1px solid #BBF7D0;
+  border-radius: 6px;
+  padding: 12px;
+  margin-bottom: 16px;
+}
+
+.retryTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: #166534;
+  margin-bottom: 8px;
+}
+
+.retryStats {
+  display: flex;
+  gap: 16px;
+  font-size: 12px;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.totalProjects {
+  font-size: 11px;
+  color: var(--text-tertiary, #9CA3AF);
+  text-align: right;
+}
+
+.loading {
+  text-align: center;
+  padding: 24px;
+  color: var(--text-secondary, #6B7280);
+}
+
+.error {
+  text-align: center;
+  padding: 16px;
+  color: #DC2626;
+  margin-bottom: 8px;
+}
