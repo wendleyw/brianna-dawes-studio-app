@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Logo, Dialog } from '@shared/ui';
+import { Button, Logo } from '@shared/ui';
 import { useAuth } from '@features/auth';
 import { useUsers } from '@features/admin/hooks';
 import { useMiro } from '@features/boards';
@@ -8,14 +8,6 @@ import { useCreateProjectWithMiro } from '../../hooks';
 import { createLogger } from '@shared/lib/logger';
 import { PRIORITY_OPTIONS } from '@shared/lib/priorityConfig';
 import styles from './NewProjectPage.module.css';
-
-// Success checkmark icon
-const SuccessIcon = () => (
-  <svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="40" cy="40" r="38" stroke="#22C55E" strokeWidth="4" fill="#DCFCE7"/>
-    <path d="M24 40L35 51L56 30" stroke="#22C55E" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round"/>
-  </svg>
-);
 
 const logger = createLogger('NewProjectPage');
 
@@ -85,8 +77,6 @@ export function NewProjectPage() {
   const createProject = useCreateProjectWithMiro();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [createdProjectName, setCreatedProjectName] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
 
   const isAdmin = user?.role === 'admin';
@@ -273,24 +263,19 @@ ${formData.additionalNotes || 'Not specified'}
       await createProject.mutateAsync(projectData);
       logger.info('Project created successfully', { name: formData.name });
 
-      // Show Miro native notification if in Miro
+      // Show Miro native notification on the board
       if (isInMiro && window.miro) {
         try {
-          // Use type assertion for Miro SDK notifications API
-          const miroBoard = window.miro.board as unknown as {
-            notifications?: { showInfo: (msg: string) => Promise<void> }
-          };
-          if (miroBoard.notifications?.showInfo) {
-            await miroBoard.notifications.showInfo(`Project "${formData.name}" created successfully!`);
-          }
+          logger.info('Attempting to show Miro notification...');
+          await window.miro.board.notifications.showInfo(`Project "${formData.name}" created successfully!`);
+          logger.info('Miro notification shown successfully');
         } catch (notifErr) {
           logger.warn('Failed to show Miro notification', notifErr);
         }
       }
 
-      // Show success modal
-      setCreatedProjectName(formData.name);
-      setShowSuccessModal(true);
+      // Navigate to projects list
+      navigate('/projects');
     } catch (err) {
       logger.error('Failed to create project', err);
       setError(err instanceof Error ? err.message : 'Failed to create project');
@@ -603,43 +588,6 @@ ${formData.additionalNotes || 'Not specified'}
           </div>
         </div>
       </div>
-
-      {/* Success Modal */}
-      <Dialog
-        open={showSuccessModal}
-        onClose={() => {
-          setShowSuccessModal(false);
-          navigate('/projects');
-        }}
-        title=""
-        size="sm"
-      >
-        <div className={styles.successModal}>
-          <div className={styles.successIcon}>
-            <SuccessIcon />
-          </div>
-          <h2 className={styles.successTitle}>Project Created!</h2>
-          <p className={styles.successMessage}>
-            <strong>{createdProjectName}</strong> has been created successfully.
-          </p>
-          {isInMiro && (
-            <p className={styles.successSubtext}>
-              The project briefing frame has been added to your Miro board.
-            </p>
-          )}
-          <div className={styles.successActions}>
-            <Button
-              variant="primary"
-              onClick={() => {
-                setShowSuccessModal(false);
-                navigate('/projects');
-              }}
-            >
-              View Projects
-            </Button>
-          </div>
-        </div>
-      </Dialog>
     </div>
   );
 }

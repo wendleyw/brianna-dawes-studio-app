@@ -111,6 +111,10 @@ declare global {
       remove: (item: { id: string }) => Promise<void>;
       sync: (item: MiroItem) => Promise<void>;
       getById: (id: string) => Promise<MiroItem | null>;
+      notifications: {
+        showInfo: (message: string) => Promise<void>;
+        showError: (message: string) => Promise<void>;
+      };
     };
     __getRuntimeState: () => { appId?: string };
   };
