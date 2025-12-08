@@ -228,6 +228,7 @@
   padding: 0;
   cursor: pointer;
   transition: opacity var(--transition-fast);
+  font-family: var(--font-ui);
 }
 
 .statClickable:hover {
@@ -247,6 +248,7 @@
 
 .assetsCount {
   font-size: 11px;
+  font-family: var(--font-ui);
   color: var(--color-text-muted);
 }
 
