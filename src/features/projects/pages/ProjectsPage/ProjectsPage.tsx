@@ -63,7 +63,7 @@ export function ProjectsPage() {
         const boardId = boardInfo.id;
         logger.info('Looking for client on board', { boardId });
 
-        // First, try to find client whose primaryBoardId matches this board
+        // Strategy 1: Find client whose primaryBoardId matches this board
         const { data: clientByPrimary } = await supabase
           .from('users')
           .select('name, company_name, company_logo_url')
@@ -81,7 +81,7 @@ export function ProjectsPage() {
           return;
         }
 
-        // Second, try to find client via user_boards table
+        // Strategy 2: Find client via user_boards table
         const { data: userBoard } = await supabase
           .from('user_boards')
           .select('user_id')
@@ -103,6 +103,34 @@ export function ProjectsPage() {
               companyLogoUrl: clientByUserBoard.company_logo_url,
             });
             logger.info('Found board client by user_boards', { boardId, client: clientByUserBoard.name });
+            return;
+          }
+        }
+
+        // Strategy 3: Find client who has projects on this board (via miro_board_id)
+        const { data: projectOnBoard } = await supabase
+          .from('projects')
+          .select('client_id')
+          .eq('miro_board_id', boardId)
+          .not('client_id', 'is', null)
+          .limit(1)
+          .maybeSingle();
+
+        if (projectOnBoard?.client_id) {
+          const { data: clientByProject } = await supabase
+            .from('users')
+            .select('name, company_name, company_logo_url')
+            .eq('id', projectOnBoard.client_id)
+            .eq('role', 'client')
+            .maybeSingle();
+
+          if (clientByProject) {
+            setBoardClient({
+              name: clientByProject.name,
+              companyName: clientByProject.company_name,
+              companyLogoUrl: clientByProject.company_logo_url,
+            });
+            logger.info('Found board client by project.miro_board_id', { boardId, client: clientByProject.name });
             return;
           }
         }
