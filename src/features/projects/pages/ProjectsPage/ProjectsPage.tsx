@@ -61,26 +61,55 @@ export function ProjectsPage() {
         // Get current board ID
         const boardInfo = await miro.board.getInfo();
         const boardId = boardInfo.id;
+        logger.info('Looking for client on board', { boardId });
 
-        // Find client whose primaryBoardId matches this board
-        const { data: client } = await supabase
+        // First, try to find client whose primaryBoardId matches this board
+        const { data: clientByPrimary } = await supabase
           .from('users')
           .select('name, company_name, company_logo_url')
           .eq('role', 'client')
           .eq('primary_board_id', boardId)
           .maybeSingle();
 
-        if (client) {
+        if (clientByPrimary) {
           setBoardClient({
-            name: client.name,
-            companyName: client.company_name,
-            companyLogoUrl: client.company_logo_url,
+            name: clientByPrimary.name,
+            companyName: clientByPrimary.company_name,
+            companyLogoUrl: clientByPrimary.company_logo_url,
           });
-          logger.debug('Found board client', { boardId, client: client.name });
-        } else {
-          setBoardClient(null);
-          logger.debug('No client found for board', { boardId });
+          logger.info('Found board client by primary_board_id', { boardId, client: clientByPrimary.name });
+          return;
         }
+
+        // Second, try to find client via user_boards table
+        const { data: userBoard } = await supabase
+          .from('user_boards')
+          .select('user_id')
+          .eq('board_id', boardId)
+          .maybeSingle();
+
+        if (userBoard) {
+          const { data: clientByUserBoard } = await supabase
+            .from('users')
+            .select('name, company_name, company_logo_url')
+            .eq('id', userBoard.user_id)
+            .eq('role', 'client')
+            .maybeSingle();
+
+          if (clientByUserBoard) {
+            setBoardClient({
+              name: clientByUserBoard.name,
+              companyName: clientByUserBoard.company_name,
+              companyLogoUrl: clientByUserBoard.company_logo_url,
+            });
+            logger.info('Found board client by user_boards', { boardId, client: clientByUserBoard.name });
+            return;
+          }
+        }
+
+        // No client found for this board
+        setBoardClient(null);
+        logger.info('No client found for board', { boardId });
       } catch (err) {
         logger.error('Error fetching board client', err);
       }
