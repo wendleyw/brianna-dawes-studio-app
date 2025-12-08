@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Button } from '@shared/ui';
-import { UserManagement } from '../../components/UserManagement';
+import { TeamManagement } from '../../components/TeamManagement';
 import { BoardManagement } from '../../components/BoardManagement';
 import { DeveloperTools } from '../../components/DeveloperTools';
 import { SyncHealthDashboard } from '../../components/SyncHealthDashboard';
@@ -9,7 +9,7 @@ import type { AdminTab } from '../../domain';
 import styles from './AdminSettingsPage.module.css';
 
 // Icons for tabs
-const UsersIcon = () => (
+const TeamIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
     <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
     <circle cx="9" cy="7" r="4"/>
@@ -43,14 +43,14 @@ const SyncIcon = () => (
 );
 
 const TABS: { id: AdminTab; label: string; icon: React.ReactNode }[] = [
-  { id: 'users', label: 'Clients', icon: <UsersIcon /> },
+  { id: 'team', label: 'Team', icon: <TeamIcon /> },
   { id: 'boards', label: 'Boards', icon: <BoardsIcon /> },
   { id: 'sync', label: 'Sync Health', icon: <SyncIcon /> },
   { id: 'developer', label: 'Developer', icon: <DeveloperIcon /> },
 ];
 
 export function AdminSettingsPage() {
-  const [activeTab, setActiveTab] = useState<AdminTab>('users');
+  const [activeTab, setActiveTab] = useState<AdminTab>('team');
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
 
   return (
@@ -87,7 +87,7 @@ export function AdminSettingsPage() {
       </nav>
 
       <div className={styles.content}>
-        {activeTab === 'users' && <UserManagement />}
+        {activeTab === 'team' && <TeamManagement />}
         {activeTab === 'boards' && <BoardManagement />}
         {activeTab === 'sync' && <SyncHealthDashboard />}
         {activeTab === 'developer' && <DeveloperTools />}

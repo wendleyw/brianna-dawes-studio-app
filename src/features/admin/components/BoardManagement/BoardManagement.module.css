@@ -8,8 +8,39 @@
 .header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   gap: var(--space-3);
+}
+
+.searchBox {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 1;
+  min-width: 200px;
+  max-width: 350px;
+  padding: var(--space-2) var(--space-3);
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-muted);
+}
+
+.searchBox:focus-within {
+  border-color: var(--color-accent);
+}
+
+.searchInput {
+  flex: 1;
+  border: none;
+  background: none;
+  font-size: var(--text-sm);
+  color: var(--color-text-primary);
+  outline: none;
+}
+
+.searchInput::placeholder {
+  color: var(--color-text-muted);
 }
 
 .title {
@@ -45,7 +76,13 @@
 .formTitle {
   font-size: var(--text-sm);
   font-weight: var(--font-semibold);
-  margin: 0 0 var(--space-2);
+  margin: 0 0 var(--space-1);
+}
+
+.formHint {
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+  margin: 0 0 var(--space-3);
 }
 
 .formFields {
@@ -210,6 +247,32 @@
   font-family: monospace;
 }
 
+.boardIdRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+}
+
+.openBoardButton {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border: none;
+  background: var(--color-bg-tertiary);
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.openBoardButton:hover {
+  background: var(--color-accent);
+  color: white;
+}
+
 .selectPrompt {
   display: flex;
   flex-direction: column;
@@ -232,12 +295,12 @@
   font-size: var(--text-sm);
 }
 
-/* Clients Section */
-.clientsSection {
+/* Members Section */
+.membersSection {
   flex: 1;
 }
 
-.clientsTitle {
+.membersTitle {
   font-size: var(--text-xs);
   font-weight: var(--font-semibold);
   color: var(--color-text-secondary);
@@ -246,20 +309,20 @@
   margin: 0 0 var(--space-2);
 }
 
-.noClients {
+.noMembers {
   font-size: var(--text-sm);
   color: var(--color-text-tertiary);
   text-align: center;
   padding: var(--space-4);
 }
 
-.clientsList {
+.membersList {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
 }
 
-.clientCard {
+.memberCard {
   display: flex;
   align-items: center;
   gap: var(--space-2);
@@ -270,16 +333,15 @@
   transition: all var(--transition-fast);
 }
 
-.clientCard.primary {
+.memberCard.primary {
   border-color: var(--color-warning);
   background: linear-gradient(135deg, var(--color-warning-bg) 0%, var(--color-bg) 100%);
 }
 
-.clientAvatar {
+.memberAvatar {
   width: 40px;
   height: 40px;
   border-radius: var(--radius-sm);
-  background: var(--color-bg-secondary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -287,19 +349,19 @@
   flex-shrink: 0;
 }
 
-.clientAvatar img {
+.memberAvatar img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
 }
 
-.clientAvatar span {
+.memberAvatar span {
   font-size: var(--text-md);
   font-weight: var(--font-bold);
-  color: var(--color-text-secondary);
+  color: white;
 }
 
-.clientInfo {
+.memberInfo {
   flex: 1;
   min-width: 0;
   display: flex;
@@ -307,13 +369,24 @@
   gap: 2px;
 }
 
-.clientName {
+.memberName {
   font-size: var(--text-sm);
   font-weight: var(--font-medium);
   color: var(--color-text-primary);
   display: flex;
   align-items: center;
   gap: var(--space-1);
+  flex-wrap: wrap;
+}
+
+.roleBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 6px;
+  font-size: 10px;
+  font-weight: var(--font-semibold);
+  border-radius: var(--radius-full);
+  text-transform: capitalize;
 }
 
 .primaryBadge {
@@ -329,15 +402,32 @@
   letter-spacing: 0.5px;
 }
 
-.clientEmail {
+.memberEmail {
   font-size: var(--text-xs);
   color: var(--color-text-tertiary);
 }
 
-.clientActions {
+.memberActions {
   display: flex;
   gap: var(--space-1);
 }
+
+/* Legacy client styles for compatibility */
+.clientsSection { flex: 1; }
+.clientsTitle { font-size: var(--text-xs); font-weight: var(--font-semibold); color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 var(--space-2); }
+.noClients { font-size: var(--text-sm); color: var(--color-text-tertiary); text-align: center; padding: var(--space-4); }
+.clientsList { display: flex; flex-direction: column; gap: var(--space-2); }
+.clientCard { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2); background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius-md); }
+.clientCard.primary { border-color: var(--color-warning); background: linear-gradient(135deg, var(--color-warning-bg) 0%, var(--color-bg) 100%); }
+.clientAvatar { width: 40px; height: 40px; border-radius: var(--radius-sm); background: var(--color-bg-secondary); display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; }
+.clientAvatar img { width: 100%; height: 100%; object-fit: cover; }
+.clientAvatar span { font-size: var(--text-md); font-weight: var(--font-bold); color: var(--color-text-secondary); }
+.clientInfo { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.clientName { font-size: var(--text-sm); font-weight: var(--font-medium); color: var(--color-text-primary); display: flex; align-items: center; gap: var(--space-1); }
+.clientEmail { font-size: var(--text-xs); color: var(--color-text-tertiary); }
+.clientActions { display: flex; gap: var(--space-1); }
+.clientSelect { display: flex; flex-direction: column; gap: var(--space-1); }
+.memberSelect { display: flex; flex-direction: column; gap: var(--space-1); }
 
 .actionButton {
   display: flex;

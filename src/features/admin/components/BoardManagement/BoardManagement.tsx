@@ -3,6 +3,7 @@ import { Button, Input, Skeleton } from '@shared/ui';
 import { useUsers } from '../../hooks/useUsers';
 import { useBoardAssignmentMutations, useAllBoards } from '../../hooks/useBoardAssignments';
 import type { User } from '../../domain';
+import type { UserRole } from '@shared/config/roles';
 import styles from './BoardManagement.module.css';
 
 // Icons
@@ -21,6 +22,13 @@ const PlusIcon = () => (
   </svg>
 );
 
+const SearchIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <circle cx="11" cy="11" r="8"/>
+    <path d="m21 21-4.35-4.35"/>
+  </svg>
+);
+
 const StarIcon = ({ filled }: { filled?: boolean }) => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
     <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
@@ -34,10 +42,24 @@ const TrashIcon = () => (
   </svg>
 );
 
-interface BoardWithClients {
+const ExternalLinkIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+    <polyline points="15 3 21 3 21 9"/>
+    <line x1="10" y1="14" x2="21" y2="3"/>
+  </svg>
+);
+
+const ROLE_COLORS: Record<UserRole, { color: string; bg: string }> = {
+  admin: { color: '#7C3AED', bg: '#EDE9FE' },
+  designer: { color: '#0891B2', bg: '#CFFAFE' },
+  client: { color: '#D97706', bg: '#FEF3C7' },
+};
+
+interface BoardWithMembers {
   boardId: string;
   boardName: string;
-  clients: Array<{
+  members: Array<{
     user: User;
     isPrimary: boolean;
   }>;
@@ -52,29 +74,24 @@ export function BoardManagement() {
   const [newBoardId, setNewBoardId] = useState('');
   const [newBoardName, setNewBoardName] = useState('');
   const [selectedBoard, setSelectedBoard] = useState<string | null>(null);
-  const [showAddClient, setShowAddClient] = useState(false);
-  const [selectedClientId, setSelectedClientId] = useState('');
+  const [showAddMember, setShowAddMember] = useState(false);
+  const [selectedMemberId, setSelectedMemberId] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [error, setError] = useState<string | null>(null);
 
-  // Get all client users
-  const clientUsers = useMemo(() =>
-    users?.filter((u) => u.role === 'client') || [],
-    [users]
-  );
-
-  // Group boards with their clients
-  const boardsWithClients = useMemo((): BoardWithClients[] => {
+  // Group boards with their members (all roles)
+  const boardsWithMembers = useMemo((): BoardWithMembers[] => {
     if (!allBoards || !users) return [];
 
-    const boardMap = new Map<string, BoardWithClients>();
+    const boardMap = new Map<string, BoardWithMembers>();
 
     allBoards.forEach((assignment) => {
       const user = users.find(u => u.id === assignment.userId);
-      if (!user || user.role !== 'client') return;
+      if (!user) return;
 
       const existing = boardMap.get(assignment.boardId);
       if (existing) {
-        existing.clients.push({
+        existing.members.push({
           user,
           isPrimary: assignment.isPrimary,
         });
@@ -82,7 +99,7 @@ export function BoardManagement() {
         boardMap.set(assignment.boardId, {
           boardId: assignment.boardId,
           boardName: assignment.boardName,
-          clients: [{
+          members: [{
             user,
             isPrimary: assignment.isPrimary,
           }],
@@ -93,14 +110,28 @@ export function BoardManagement() {
     return Array.from(boardMap.values());
   }, [allBoards, users]);
 
-  // Get clients not assigned to selected board
-  const availableClients = useMemo(() => {
-    if (!selectedBoard) return clientUsers;
-    const board = boardsWithClients.find(b => b.boardId === selectedBoard);
-    if (!board) return clientUsers;
-    const assignedIds = new Set(board.clients.map(c => c.user.id));
-    return clientUsers.filter(c => !assignedIds.has(c.id));
-  }, [clientUsers, selectedBoard, boardsWithClients]);
+  // Filter boards by search
+  const filteredBoards = useMemo(() => {
+    if (!searchQuery) return boardsWithMembers;
+    const query = searchQuery.toLowerCase();
+    return boardsWithMembers.filter(b =>
+      b.boardName.toLowerCase().includes(query) ||
+      b.boardId.toLowerCase().includes(query) ||
+      b.members.some(m =>
+        m.user.name.toLowerCase().includes(query) ||
+        m.user.companyName?.toLowerCase().includes(query)
+      )
+    );
+  }, [boardsWithMembers, searchQuery]);
+
+  // Get members not assigned to selected board
+  const availableMembers = useMemo(() => {
+    if (!selectedBoard || !users) return users || [];
+    const board = boardsWithMembers.find(b => b.boardId === selectedBoard);
+    if (!board) return users || [];
+    const assignedIds = new Set(board.members.map(m => m.user.id));
+    return users.filter(u => !assignedIds.has(u.id));
+  }, [users, selectedBoard, boardsWithMembers]);
 
   const handleAddBoard = async () => {
     if (!newBoardId || !newBoardName) {
@@ -109,40 +140,42 @@ export function BoardManagement() {
     }
     setError(null);
     setShowAddBoard(false);
-    setNewBoardId('');
-    setNewBoardName('');
-    // Board will appear when first client is assigned
+    // Board will appear when first member is assigned
     setSelectedBoard(newBoardId);
-    setShowAddClient(true);
+    setShowAddMember(true);
   };
 
-  const handleAddClientToBoard = async () => {
-    if (!selectedBoard || !selectedClientId) return;
+  const handleAddMemberToBoard = async () => {
+    if (!selectedBoard || !selectedMemberId) return;
     setError(null);
 
-    const board = boardsWithClients.find(b => b.boardId === selectedBoard);
+    const board = boardsWithMembers.find(b => b.boardId === selectedBoard);
     const boardName = board?.boardName || newBoardName || 'Board';
+    const member = users?.find(u => u.id === selectedMemberId);
 
     try {
       await assignBoard.mutateAsync({
-        userId: selectedClientId,
+        userId: selectedMemberId,
         boardId: selectedBoard,
         boardName,
-        isPrimary: !board || board.clients.length === 0, // First client is primary
+        // Only clients can be primary (for logo display)
+        isPrimary: member?.role === 'client' && (!board || !board.members.some(m => m.user.role === 'client')),
       });
-      setShowAddClient(false);
-      setSelectedClientId('');
+      setShowAddMember(false);
+      setSelectedMemberId('');
+      setNewBoardId('');
+      setNewBoardName('');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to add client');
+      setError(err instanceof Error ? err.message : 'Failed to add member');
     }
   };
 
-  const handleRemoveClient = async (boardId: string, userId: string) => {
-    if (!confirm('Remove this client from the board?')) return;
+  const handleRemoveMember = async (boardId: string, userId: string) => {
+    if (!confirm('Remove this member from the board?')) return;
     try {
       await removeBoard.mutateAsync({ userId, boardId });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to remove client');
+      setError(err instanceof Error ? err.message : 'Failed to remove member');
     }
   };
 
@@ -154,20 +187,29 @@ export function BoardManagement() {
     }
   };
 
+  const openBoardInMiro = (boardId: string) => {
+    window.open(`https://miro.com/app/board/${boardId}/`, '_blank');
+  };
+
   if (loadingUsers || loadingBoards) {
     return <Skeleton height={300} />;
   }
 
-  const currentBoard = selectedBoard ? boardsWithClients.find(b => b.boardId === selectedBoard) : null;
+  const currentBoard = selectedBoard ? boardsWithMembers.find(b => b.boardId === selectedBoard) : null;
 
   return (
     <div className={styles.container}>
+      {/* Header with search */}
       <div className={styles.header}>
-        <div>
-          <h2 className={styles.title}>Board Management</h2>
-          <p className={styles.subtitle}>
-            Manage Miro boards and assign multiple clients. The primary client's logo appears in the dashboard.
-          </p>
+        <div className={styles.searchBox}>
+          <SearchIcon />
+          <input
+            type="text"
+            placeholder="Search boards or members..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className={styles.searchInput}
+          />
         </div>
         <Button onClick={() => setShowAddBoard(true)} disabled={showAddBoard}>
           <PlusIcon /> Add Board
@@ -180,6 +222,9 @@ export function BoardManagement() {
       {showAddBoard && (
         <div className={styles.addBoardForm}>
           <h3 className={styles.formTitle}>Add New Board</h3>
+          <p className={styles.formHint}>
+            Find the Board ID in Miro: Menu &gt; Share &gt; Copy board link. The ID is the string after /board/
+          </p>
           <div className={styles.formFields}>
             <Input
               label="Board ID"
@@ -195,11 +240,11 @@ export function BoardManagement() {
             />
           </div>
           <div className={styles.formActions}>
-            <Button variant="ghost" onClick={() => setShowAddBoard(false)}>
+            <Button variant="ghost" onClick={() => { setShowAddBoard(false); setNewBoardId(''); setNewBoardName(''); }}>
               Cancel
             </Button>
             <Button onClick={handleAddBoard}>
-              Continue
+              Continue &amp; Add Members
             </Button>
           </div>
         </div>
@@ -208,15 +253,15 @@ export function BoardManagement() {
       <div className={styles.layout}>
         {/* Board List */}
         <div className={styles.boardList}>
-          <h3 className={styles.sectionTitle}>Boards ({boardsWithClients.length})</h3>
-          {boardsWithClients.length === 0 ? (
+          <h3 className={styles.sectionTitle}>Boards ({filteredBoards.length})</h3>
+          {filteredBoards.length === 0 ? (
             <div className={styles.emptyState}>
               <BoardIcon />
-              <p>No boards yet</p>
-              <span>Add your first board to get started</span>
+              <p>{searchQuery ? 'No boards match your search' : 'No boards yet'}</p>
+              <span>{searchQuery ? 'Try a different search' : 'Add your first board to get started'}</span>
             </div>
           ) : (
-            boardsWithClients.map((board) => (
+            filteredBoards.map((board) => (
               <button
                 key={board.boardId}
                 className={`${styles.boardItem} ${selectedBoard === board.boardId ? styles.selected : ''}`}
@@ -228,7 +273,7 @@ export function BoardManagement() {
                 <div className={styles.boardInfo}>
                   <span className={styles.boardName}>{board.boardName}</span>
                   <span className={styles.boardMeta}>
-                    {board.clients.length} client{board.clients.length !== 1 ? 's' : ''}
+                    {board.members.length} member{board.members.length !== 1 ? 's' : ''}
                   </span>
                 </div>
               </button>
@@ -243,22 +288,34 @@ export function BoardManagement() {
               <div className={styles.detailsHeader}>
                 <div>
                   <h3 className={styles.detailsTitle}>{currentBoard.boardName}</h3>
-                  <span className={styles.boardId}>{currentBoard.boardId}</span>
+                  <div className={styles.boardIdRow}>
+                    <span className={styles.boardId}>{currentBoard.boardId}</span>
+                    <button
+                      className={styles.openBoardButton}
+                      onClick={() => openBoardInMiro(currentBoard.boardId)}
+                      title="Open in Miro"
+                    >
+                      <ExternalLinkIcon /> Open in Miro
+                    </button>
+                  </div>
                 </div>
-                <Button size="sm" onClick={() => setShowAddClient(true)}>
-                  <PlusIcon /> Add Client
+                <Button size="sm" onClick={() => setShowAddMember(true)}>
+                  <PlusIcon /> Add Member
                 </Button>
               </div>
 
-              <div className={styles.clientsSection}>
-                <h4 className={styles.clientsTitle}>Assigned Clients</h4>
-                {currentBoard.clients.length === 0 ? (
-                  <p className={styles.noClients}>No clients assigned yet</p>
+              <div className={styles.membersSection}>
+                <h4 className={styles.membersTitle}>Assigned Members</h4>
+                {currentBoard.members.length === 0 ? (
+                  <p className={styles.noMembers}>No members assigned yet</p>
                 ) : (
-                  <div className={styles.clientsList}>
-                    {currentBoard.clients.map(({ user, isPrimary }) => (
-                      <div key={user.id} className={`${styles.clientCard} ${isPrimary ? styles.primary : ''}`}>
-                        <div className={styles.clientAvatar}>
+                  <div className={styles.membersList}>
+                    {currentBoard.members.map(({ user, isPrimary }) => (
+                      <div key={user.id} className={`${styles.memberCard} ${isPrimary ? styles.primary : ''}`}>
+                        <div
+                          className={styles.memberAvatar}
+                          style={{ backgroundColor: user.companyLogoUrl || user.avatarUrl ? 'white' : ROLE_COLORS[user.role].color }}
+                        >
                           {user.companyLogoUrl ? (
                             <img src={user.companyLogoUrl} alt={user.companyName || user.name} />
                           ) : user.avatarUrl ? (
@@ -267,19 +324,28 @@ export function BoardManagement() {
                             <span>{(user.companyName || user.name)?.charAt(0).toUpperCase()}</span>
                           )}
                         </div>
-                        <div className={styles.clientInfo}>
-                          <span className={styles.clientName}>
-                            {user.companyName || user.name}
+                        <div className={styles.memberInfo}>
+                          <span className={styles.memberName}>
+                            {user.role === 'client' && user.companyName ? user.companyName : user.name}
+                            <span
+                              className={styles.roleBadge}
+                              style={{
+                                backgroundColor: ROLE_COLORS[user.role].bg,
+                                color: ROLE_COLORS[user.role].color,
+                              }}
+                            >
+                              {user.role}
+                            </span>
                             {isPrimary && <span className={styles.primaryBadge}>Primary</span>}
                           </span>
-                          <span className={styles.clientEmail}>{user.email}</span>
+                          <span className={styles.memberEmail}>{user.email}</span>
                         </div>
-                        <div className={styles.clientActions}>
-                          {!isPrimary && (
+                        <div className={styles.memberActions}>
+                          {user.role === 'client' && !isPrimary && (
                             <button
                               className={styles.actionButton}
                               onClick={() => handleSetPrimary(currentBoard.boardId, user.id)}
-                              title="Set as primary (shows logo)"
+                              title="Set as primary (shows logo in dashboard)"
                             >
                               <StarIcon />
                             </button>
@@ -295,7 +361,7 @@ export function BoardManagement() {
                           )}
                           <button
                             className={`${styles.actionButton} ${styles.danger}`}
-                            onClick={() => handleRemoveClient(currentBoard.boardId, user.id)}
+                            onClick={() => handleRemoveMember(currentBoard.boardId, user.id)}
                             title="Remove from board"
                           >
                             <TrashIcon />
@@ -314,53 +380,53 @@ export function BoardManagement() {
                 <h3 className={styles.detailsTitle}>{newBoardName || 'New Board'}</h3>
                 <span className={styles.boardId}>{selectedBoard}</span>
               </div>
-              <Button size="sm" onClick={() => setShowAddClient(true)}>
-                <PlusIcon /> Add Client
+              <Button size="sm" onClick={() => setShowAddMember(true)}>
+                <PlusIcon /> Add Member
               </Button>
             </div>
           ) : (
             <div className={styles.selectPrompt}>
               <BoardIcon />
-              <p>Select a board to manage its clients</p>
+              <p>Select a board to manage its members</p>
             </div>
           )}
         </div>
       </div>
 
-      {/* Add Client Modal */}
-      {showAddClient && selectedBoard && (
+      {/* Add Member Modal */}
+      {showAddMember && selectedBoard && (
         <div className={styles.modal}>
           <div className={styles.modalContent}>
-            <h3 className={styles.modalTitle}>Add Client to Board</h3>
-            {availableClients.length === 0 ? (
-              <p className={styles.noAvailable}>All clients are already assigned to this board</p>
+            <h3 className={styles.modalTitle}>Add Member to Board</h3>
+            {availableMembers.length === 0 ? (
+              <p className={styles.noAvailable}>All members are already assigned to this board</p>
             ) : (
-              <div className={styles.clientSelect}>
-                <label className={styles.selectLabel}>Select Client</label>
+              <div className={styles.memberSelect}>
+                <label className={styles.selectLabel}>Select Member</label>
                 <select
                   className={styles.select}
-                  value={selectedClientId}
-                  onChange={(e) => setSelectedClientId(e.target.value)}
+                  value={selectedMemberId}
+                  onChange={(e) => setSelectedMemberId(e.target.value)}
                 >
-                  <option value="">Choose a client...</option>
-                  {availableClients.map((client) => (
-                    <option key={client.id} value={client.id}>
-                      {client.companyName || client.name} ({client.email})
+                  <option value="">Choose a member...</option>
+                  {availableMembers.map((member) => (
+                    <option key={member.id} value={member.id}>
+                      [{member.role}] {member.companyName || member.name} ({member.email})
                     </option>
                   ))}
                 </select>
               </div>
             )}
             <div className={styles.modalActions}>
-              <Button variant="ghost" onClick={() => { setShowAddClient(false); setSelectedClientId(''); }}>
+              <Button variant="ghost" onClick={() => { setShowAddMember(false); setSelectedMemberId(''); }}>
                 Cancel
               </Button>
               <Button
-                onClick={handleAddClientToBoard}
+                onClick={handleAddMemberToBoard}
                 isLoading={isAssigning}
-                disabled={!selectedClientId}
+                disabled={!selectedMemberId}
               >
-                Add Client
+                Add Member
               </Button>
             </div>
           </div>
