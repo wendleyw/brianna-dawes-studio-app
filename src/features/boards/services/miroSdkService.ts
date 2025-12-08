@@ -875,6 +875,7 @@ class MiroMasterTimelineService {
 
       const frameLeft = currentFrameX - TIMELINE.FRAME_WIDTH / 2;
       const frameRight = currentFrameX + TIMELINE.FRAME_WIDTH / 2;
+      const newFrameBottom = frameTop + newFrameHeight;
 
       console.log('[MiroTimeline] expandColumnDropZones: Looking for columns in X range', frameLeft, 'to', frameRight);
 
@@ -882,9 +883,12 @@ class MiroMasterTimelineService {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const shapes = await miro.board.get({ type: 'shape' }) as any[];
 
+      // Track unique columns by X position to avoid duplicates
+      const seenColumnX = new Set<number>();
+
       // Find drop zones: rectangles within frame X bounds with column-like width
       // Column width is TIMELINE.COLUMN_WIDTH (95), so allow 80-110 range
-      const columnDropZones = shapes.filter((s: { shape?: string; x: number; y: number; height: number; width: number; style?: { fillColor?: string; borderColor?: string } }) => {
+      const columnDropZones = shapes.filter((s: { id: string; shape?: string; x: number; y: number; height: number; width: number; style?: { fillColor?: string; borderColor?: string } }) => {
         const isRectangle = s.shape === 'rectangle';
         const inFrameX = s.x >= frameLeft - 10 && s.x <= frameRight + 10;
         const isColumnWidth = s.width >= 80 && s.width <= 110;
@@ -893,23 +897,23 @@ class MiroMasterTimelineService {
         // Drop zones have white fill and gray border
         const hasCorrectStyle = s.style?.fillColor === '#FFFFFF' && s.style?.borderColor === '#E5E7EB';
 
-        if (isRectangle && inFrameX && isColumnWidth) {
-          console.log('[MiroTimeline] Potential column:', {
-            x: s.x,
-            y: s.y,
-            width: s.width,
-            height: s.height,
-            isDropZone,
-            hasCorrectStyle,
-            fillColor: s.style?.fillColor,
-            borderColor: s.style?.borderColor
-          });
+        // Check if valid column drop zone
+        const isValid = isRectangle && inFrameX && isColumnWidth && isDropZone && hasCorrectStyle;
+
+        // Deduplicate by X position (round to nearest 10)
+        if (isValid) {
+          const roundedX = Math.round(s.x / 10) * 10;
+          if (seenColumnX.has(roundedX)) {
+            return false; // Skip duplicate
+          }
+          seenColumnX.add(roundedX);
+          console.log('[MiroTimeline] Found column drop zone:', { id: s.id, x: s.x, height: s.height });
         }
 
-        return isRectangle && inFrameX && isColumnWidth && isDropZone;
+        return isValid;
       });
 
-      console.log('[MiroTimeline] Found', columnDropZones.length, 'column drop zones to expand');
+      console.log('[MiroTimeline] Found', columnDropZones.length, 'unique column drop zones to expand');
 
       // Calculate new column dimensions
       // Columns should fill from below header to near bottom of frame
@@ -931,6 +935,24 @@ class MiroMasterTimelineService {
         zone.y = newColumnCenterY;
         await miro.board.sync(zone);
         console.log('[MiroTimeline] Expanded column at X=', zone.x, 'from height', oldHeight, 'to', newColumnHeight);
+      }
+
+      // Also find and move any horizontal separator lines at the bottom
+      // These are wide rectangles (spanning multiple columns) that are thin (height < 10)
+      const separatorLines = shapes.filter((s: { shape?: string; x: number; y: number; height: number; width: number }) => {
+        const isRectangle = s.shape === 'rectangle';
+        const isWide = s.width > 200; // Spans multiple columns
+        const isThin = s.height <= 5; // Thin line
+        const isNearFrameCenter = Math.abs(s.x - currentFrameX) < 50; // Centered in frame
+        return isRectangle && isWide && isThin && isNearFrameCenter;
+      });
+
+      // Move separator lines to new frame bottom
+      for (const line of separatorLines) {
+        const newLineY = newFrameBottom - TIMELINE.PADDING;
+        console.log('[MiroTimeline] Moving separator line from Y=', line.y, 'to Y=', newLineY);
+        line.y = newLineY;
+        await miro.board.sync(line);
       }
 
       if (columnDropZones.length === 0) {
