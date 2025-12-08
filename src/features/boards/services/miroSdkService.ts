@@ -1098,7 +1098,7 @@ class MiroProjectRowService {
 
     // Project info row (badges style)
     // Sequence: Priority, Project Type, Status (left) + Due Date (right)
-    const infoY = headerY + 32;
+    const infoY = headerY + 42;
 
     // Badge dimensions and spacing
     const BADGE_HEIGHT = 26;
