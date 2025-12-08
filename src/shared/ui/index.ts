@@ -30,6 +30,9 @@ export type { ToastType, ToastProps, ToastVariant, ToastContextValue } from './T
 export { Logo } from './Logo';
 export type { LogoProps, LogoSize } from './Logo';
 
+// SplashScreen
+export { SplashScreen } from './SplashScreen';
+
 // Icons
 export {
   UserIcon,

@@ -638,15 +638,39 @@ class MiroMasterTimelineService {
       console.log('[MiroTimeline] First card in column, using Y:', cardY);
     }
 
-    // Check if card would exceed frame bottom and expand BEFORE positioning
-    let cardBottom = cardY + TIMELINE.CARD_HEIGHT / 2;
-    const bottomPadding = 50; // Increased padding for better spacing
+    // Check if ANY card in the timeline would exceed frame bottom and expand if needed
+    // This includes the current card AND all other cards in ALL columns
+    const bottomPadding = 50; // Padding at the bottom
     let currentFrameBottom = frameBottom;
 
-    if (cardBottom + bottomPadding > currentFrameBottom) {
+    // Find the lowest card across ALL columns in the timeline
+    const allProjectCardsInTimeline = allBoardCards.filter(c => {
+      if (!c.description?.includes('projectId:')) return false;
+      // Check if card is within the timeline frame X bounds
+      const frameLeft = (timelineFrame?.x || this.frameCenterX) - TIMELINE.FRAME_WIDTH / 2;
+      const frameRight = (timelineFrame?.x || this.frameCenterX) + TIMELINE.FRAME_WIDTH / 2;
+      return c.x >= frameLeft && c.x <= frameRight;
+    });
+
+    // Include the current card's planned position
+    const allCardBottoms = [
+      ...allProjectCardsInTimeline.map(c => c.y + (c.height || TIMELINE.CARD_HEIGHT) / 2),
+      cardY + TIMELINE.CARD_HEIGHT / 2 // The card we're syncing
+    ];
+
+    const lowestCardBottom = Math.max(...allCardBottoms);
+
+    console.log('[MiroTimeline] Checking frame expansion:', {
+      cardsInTimeline: allProjectCardsInTimeline.length,
+      lowestCardBottom,
+      currentFrameBottom,
+      needsExpansion: lowestCardBottom + bottomPadding > currentFrameBottom
+    });
+
+    if (lowestCardBottom + bottomPadding > currentFrameBottom) {
       // Calculate new frame height needed - add extra buffer for future cards
       const extraBuffer = 100; // Extra space for additional cards
-      const newHeight = (cardBottom + bottomPadding + extraBuffer) - ORIGINAL_FRAME_TOP;
+      const newHeight = (lowestCardBottom + bottomPadding + extraBuffer) - ORIGINAL_FRAME_TOP;
       // IMPORTANT: When frame grows, its center Y moves down to keep TOP fixed
       // newCenterY = frameTop + newHeight / 2 = ORIGINAL_FRAME_TOP + newHeight / 2
       const newCenterY = ORIGINAL_FRAME_TOP + newHeight / 2;
@@ -655,9 +679,9 @@ class MiroMasterTimelineService {
         oldHeight: currentFrameHeight,
         newHeight,
         newCenterY,
-        cardBottom,
+        lowestCardBottom,
         frameBottom: currentFrameBottom,
-        needed: cardBottom + bottomPadding - currentFrameBottom,
+        needed: lowestCardBottom + bottomPadding - currentFrameBottom,
         ORIGINAL_FRAME_TOP
       });
 
@@ -1011,6 +1035,7 @@ interface ExtendedProjectRow extends Omit<ProjectRowState, 'y' | 'processFrameId
   processFrameId: string;
   y: number;
   statusBadgeId?: string; // ID of the status badge shape for updates
+  doneOverlayId?: string; // ID of the green overlay shape when project is done
 }
 
 class MiroProjectRowService {
@@ -1879,16 +1904,125 @@ class MiroProjectRowService {
           }
 
           console.log('[MiroProject] [updateBriefingStatus] SUCCESS - Updated status badge to:', statusConfig.label);
+
+          // Handle done overlay
+          await this.handleDoneOverlay(projectId, status, briefingFrame);
+
           return true;
         }
       } else {
         console.log('[MiroProject] [updateBriefingStatus] No status shape found in briefing frame');
+      }
+
+      // Even if we didn't find status shape, handle the done overlay if we found the frame
+      if (briefingFrame) {
+        await this.handleDoneOverlay(projectId, status, briefingFrame);
       }
     } catch (error) {
       console.error('[MiroProject] [updateBriefingStatus] ERROR:', error);
     }
 
     return false;
+  }
+
+  /**
+   * Handle the green "done" overlay on the briefing frame
+   * Creates overlay when status is "done", removes it otherwise
+   */
+  private async handleDoneOverlay(
+    projectId: string,
+    status: ProjectStatus,
+    briefingFrame: MiroFrame
+  ): Promise<void> {
+    const miro = getMiroSDK();
+    const row = this.rows.get(projectId);
+    const isDone = status === 'done';
+
+    console.log('[MiroProject] [handleDoneOverlay] Status:', status, 'isDone:', isDone, 'has overlay ID:', !!row?.doneOverlayId);
+
+    // If status is done, create or keep the overlay
+    if (isDone) {
+      // Check if overlay already exists
+      if (row?.doneOverlayId) {
+        try {
+          const existing = await miro.board.getById(row.doneOverlayId);
+          if (existing) {
+            console.log('[MiroProject] [handleDoneOverlay] Overlay already exists');
+            return;
+          }
+        } catch {
+          // Overlay doesn't exist anymore, will create new one
+        }
+      }
+
+      // Create the green overlay
+      const frameWidth = briefingFrame.width || FRAME.WIDTH;
+      const frameHeight = briefingFrame.height || FRAME.HEIGHT;
+
+      console.log('[MiroProject] [handleDoneOverlay] Creating green overlay on frame:', briefingFrame.title);
+
+      // Using a semi-transparent green color (opacity built into the color)
+      const overlay = await miro.board.createShape({
+        shape: 'rectangle',
+        x: briefingFrame.x,
+        y: briefingFrame.y,
+        width: frameWidth - 20, // Slightly smaller than frame
+        height: frameHeight - 20,
+        style: {
+          fillColor: '#BBF7D0', // Light green (Tailwind green-200) - visible but light
+          borderWidth: 0,
+        },
+      });
+
+      console.log('[MiroProject] [handleDoneOverlay] Created overlay with ID:', overlay.id);
+
+      // Store the overlay ID in the row if it exists
+      if (row) {
+        row.doneOverlayId = overlay.id;
+      }
+    } else {
+      // Status is not done, remove overlay if it exists
+      if (row?.doneOverlayId) {
+        try {
+          console.log('[MiroProject] [handleDoneOverlay] Removing overlay:', row.doneOverlayId);
+          await safeRemove(row.doneOverlayId);
+          delete row.doneOverlayId;
+          console.log('[MiroProject] [handleDoneOverlay] Overlay removed');
+        } catch (error) {
+          console.error('[MiroProject] [handleDoneOverlay] Failed to remove overlay:', error);
+        }
+      } else {
+        // Try to find and remove overlay by searching shapes in the frame area
+        try {
+          const allShapes = await miro.board.get({ type: 'shape' }) as Array<{
+            id: string;
+            x: number;
+            y: number;
+            width?: number;
+            height?: number;
+            style?: { fillColor?: string; fillOpacity?: number };
+          }>;
+
+          const frameWidth = briefingFrame.width || FRAME.WIDTH;
+          const frameHeight = briefingFrame.height || FRAME.HEIGHT;
+
+          // Find large green rectangles at the frame position
+          const overlayShape = allShapes.find(s => {
+            const isAtFrameCenter = Math.abs(s.x - briefingFrame.x) < 50 && Math.abs(s.y - briefingFrame.y) < 50;
+            const isLarge = (s.width || 0) > frameWidth * 0.8 && (s.height || 0) > frameHeight * 0.8;
+            const isGreen = s.style?.fillColor?.toUpperCase() === '#DCFCE7';
+            return isAtFrameCenter && isLarge && isGreen;
+          });
+
+          if (overlayShape) {
+            console.log('[MiroProject] [handleDoneOverlay] Found orphan overlay, removing:', overlayShape.id);
+            await safeRemove(overlayShape.id);
+          }
+        } catch {
+          // Ignore errors when searching for orphan overlays
+        }
+      }
+    }
   }
 
   getProjectRow(projectId: string): ExtendedProjectRow | undefined {

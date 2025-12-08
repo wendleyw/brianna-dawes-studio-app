@@ -1,0 +1,171 @@
+/* Splash Screen Container */
+.container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: all;
+}
+
+/* White overlay background */
+.overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ffffff;
+  transition: opacity var(--animation-duration, 600ms) ease-out;
+}
+
+/* Content wrapper */
+.content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  z-index: 1;
+  transition: all var(--animation-duration, 600ms) cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Logo wrapper */
+.logoWrapper {
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Video logo */
+.video {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+  background: transparent;
+}
+
+/* Static logo fallback */
+.staticLogo {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+}
+
+/* Brand text */
+.brandText {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  color: #050038;
+  margin: 0;
+  text-align: center;
+  transition: opacity var(--animation-duration, 600ms) ease-out;
+}
+
+/* ========== SLIDING PHASE ========== */
+.sliding .overlay {
+  opacity: 0;
+}
+
+.sliding .content {
+  /*
+   * Animate to top-left corner
+   * Position calculation:
+   * - Move up: from center to ~60px from top
+   * - Move left: from center to ~100px from left
+   */
+  transform: translate(
+    calc(-50vw + 100px),
+    calc(-50vh + 70px)
+  );
+  transform-origin: center center;
+}
+
+.sliding .logoWrapper {
+  animation: shrinkLogo var(--animation-duration, 600ms) cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.sliding .brandText {
+  opacity: 0;
+  transform: scale(0.8);
+}
+
+/* ========== COMPLETE PHASE ========== */
+.complete {
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+/* ========== ANIMATIONS ========== */
+@keyframes shrinkLogo {
+  from {
+    width: 80px;
+    height: 80px;
+  }
+  to {
+    width: 40px;
+    height: 40px;
+  }
+}
+
+/* Fade in animation for initial appearance */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Initial fade in */
+.container:not(.sliding):not(.complete) .content {
+  animation: fadeIn 0.4s ease-out;
+}
+
+/* ========== RESPONSIVE ========== */
+@media (max-width: 480px) {
+  .logoWrapper {
+    width: 60px;
+    height: 60px;
+  }
+
+  .video,
+  .staticLogo {
+    width: 60px;
+    height: 60px;
+  }
+
+  .brandText {
+    font-size: 12px;
+    letter-spacing: 0.1em;
+  }
+
+  .sliding .content {
+    transform: translate(
+      calc(-50vw + 60px),
+      calc(-50vh + 50px)
+    );
+  }
+
+  @keyframes shrinkLogo {
+    from {
+      width: 60px;
+      height: 60px;
+    }
+    to {
+      width: 32px;
+      height: 32px;
+    }
+  }
+}

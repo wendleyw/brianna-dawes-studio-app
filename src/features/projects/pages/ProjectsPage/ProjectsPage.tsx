@@ -1,7 +1,8 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Logo } from '@shared/ui';
+import { Logo, SplashScreen } from '@shared/ui';
 import { useAuth } from '@features/auth';
+import logoImage from '../../../../assets/brand/logo-brianna.png';
 import { useMiro, zoomToProject, addStageToProject } from '@features/boards';
 import { useMiroBoardSync } from '@features/boards/hooks';
 import { miroProjectRowService } from '@features/boards/services/miroSdkService';
@@ -49,6 +50,9 @@ const SettingsIcon = () => (
   </svg>
 );
 
+// Session storage key to track if splash was shown this session
+const SPLASH_SHOWN_KEY = 'brianna_splash_shown';
+
 export function ProjectsPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -58,6 +62,17 @@ export function ProjectsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [timelineFilter, setTimelineFilter] = useState<TimelineStatus | ''>('');
   const [boardClient, setBoardClient] = useState<BoardClientInfo | null>(null);
+
+  // Splash screen state - only show once per session
+  const [showSplash, setShowSplash] = useState(() => {
+    const wasShown = sessionStorage.getItem(SPLASH_SHOWN_KEY);
+    return !wasShown;
+  });
+
+  const handleSplashComplete = useCallback(() => {
+    setShowSplash(false);
+    sessionStorage.setItem(SPLASH_SHOWN_KEY, 'true');
+  }, []);
 
   // Fetch client associated with current board
   useEffect(() => {
@@ -463,6 +478,16 @@ export function ProjectsPage() {
 
   return (
     <div className={styles.container}>
+      {/* Splash Screen Animation */}
+      {showSplash && (
+        <SplashScreen
+          staticLogoSrc={logoImage}
+          displayDuration={1500}
+          animationDuration={600}
+          onComplete={handleSplashComplete}
+        />
+      )}
+
       {/* Admin Quick Actions Bar - Only for admin users */}
       {user?.role === 'admin' && (
         <div className={styles.adminBar}>

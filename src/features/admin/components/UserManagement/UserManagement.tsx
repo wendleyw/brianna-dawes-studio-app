@@ -2,72 +2,93 @@ import { useState } from 'react';
 import { Button, Input, Skeleton } from '@shared/ui';
 import { useUsers, useUserMutations } from '../../hooks';
 import { isMainAdmin } from '@shared/config/env';
-import { ROLE_LABELS, type UserRole } from '@shared/config/roles';
+import type { UserRole } from '@shared/config/roles';
 import { createLogger } from '@shared/lib/logger';
 import type { User, CreateUserInput } from '../../domain';
 import styles from './UserManagement.module.css';
 
-const logger = createLogger('UserManagement');
+const logger = createLogger('ClientManagement');
 
-// Generate ROLES array from centralized ROLE_LABELS
-const ROLES: { value: UserRole; label: string }[] = (
-  Object.entries(ROLE_LABELS) as [UserRole, string][]
-).map(([value, label]) => ({ value, label }));
-
-// User icon for avatar placeholder
-const UserIcon = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-    <circle cx="12" cy="7" r="4"/>
+// Building icon for company
+const BuildingIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <rect x="4" y="2" width="16" height="20" rx="2"/>
+    <path d="M9 22v-4h6v4"/>
+    <path d="M8 6h.01M16 6h.01M12 6h.01M8 10h.01M16 10h.01M12 10h.01M8 14h.01M16 14h.01M12 14h.01"/>
   </svg>
 );
 
+interface ClientFormData {
+  email: string;
+  name: string;
+  companyName: string;
+  companyLogoUrl: string;
+  miroUserId: string;
+}
+
+const emptyFormData: ClientFormData = {
+  email: '',
+  name: '',
+  companyName: '',
+  companyLogoUrl: '',
+  miroUserId: '',
+};
+
 export function UserManagement() {
-  const { data: users, isLoading } = useUsers();
+  // Filter to only show clients
+  const { data: allUsers, isLoading } = useUsers();
+  const clients = allUsers?.filter(u => u.role === 'client') || [];
+
   const { createUser, updateUser, deleteUser, isCreating, isDeleting } = useUserMutations();
 
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [formData, setFormData] = useState<CreateUserInput>({
-    email: '',
-    name: '',
-    role: 'client',
-    avatarUrl: '',
-    miroUserId: '',
-    companyName: '',
-    companyLogoUrl: '',
-  });
+  const [formData, setFormData] = useState<ClientFormData>(emptyFormData);
   const [error, setError] = useState<string | null>(null);
 
   const handleCreate = async () => {
     setError(null);
+
+    if (!formData.email || !formData.name) {
+      setError('Email and Name are required');
+      return;
+    }
+
     try {
-      await createUser.mutateAsync(formData);
+      const input: CreateUserInput = {
+        email: formData.email,
+        name: formData.name,
+        role: 'client' as UserRole,
+        companyName: formData.companyName || null,
+        companyLogoUrl: formData.companyLogoUrl || null,
+        miroUserId: formData.miroUserId || null,
+      };
+      await createUser.mutateAsync(input);
       setShowCreateForm(false);
-      setFormData({ email: '', name: '', role: 'client', avatarUrl: '', miroUserId: '', companyName: '', companyLogoUrl: '' });
+      setFormData(emptyFormData);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create user');
+      setError(err instanceof Error ? err.message : 'Failed to create client');
     }
   };
 
   const handleUpdate = async () => {
     if (!editingUser) return;
     setError(null);
+
     try {
       await updateUser.mutateAsync({
         id: editingUser.id,
         input: {
           name: formData.name,
-          role: formData.role as UserRole,
-          avatarUrl: formData.avatarUrl || null,
-          miroUserId: formData.miroUserId || null,
           companyName: formData.companyName || null,
           companyLogoUrl: formData.companyLogoUrl || null,
+          miroUserId: formData.miroUserId || null,
         },
       });
       setEditingUser(null);
+      setFormData(emptyFormData);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update user');
+      setError(err instanceof Error ? err.message : 'Failed to update client');
     }
   };
 
@@ -75,24 +96,19 @@ export function UserManagement() {
     logger.debug('handleDelete called', { name: user.name, id: user.id });
 
     if (isMainAdmin(user.email)) {
-      logger.warn('Attempted to delete main admin');
-      setError('Cannot delete the main admin');
+      setError('Cannot delete this user');
       return;
     }
 
     const confirmed = confirm(`Are you sure you want to delete ${user.name}?`);
-    if (!confirmed) {
-      logger.debug('Delete cancelled by user');
-      return;
-    }
+    if (!confirmed) return;
 
     try {
-      logger.debug('Deleting user...', { id: user.id });
       await deleteUser.mutateAsync(user.id);
-      logger.info('User deleted successfully', { id: user.id, name: user.name });
+      logger.info('Client deleted', { id: user.id, name: user.name });
     } catch (err) {
       logger.error('Delete failed', err);
-      setError(err instanceof Error ? err.message : 'Failed to delete user');
+      setError(err instanceof Error ? err.message : 'Failed to delete client');
     }
   };
 
@@ -101,12 +117,21 @@ export function UserManagement() {
     setFormData({
       email: user.email,
       name: user.name,
-      role: user.role,
-      avatarUrl: user.avatarUrl || '',
-      miroUserId: user.miroUserId || '',
       companyName: user.companyName || '',
       companyLogoUrl: user.companyLogoUrl || '',
+      miroUserId: user.miroUserId || '',
     });
+  };
+
+  const cancelEditing = () => {
+    setEditingUser(null);
+    setFormData(emptyFormData);
+  };
+
+  const cancelCreate = () => {
+    setShowCreateForm(false);
+    setFormData(emptyFormData);
+    setError(null);
   };
 
   if (isLoading) {
@@ -120,226 +145,169 @@ export function UserManagement() {
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <h2 className={styles.title}>User Management</h2>
+        <div className={styles.headerInfo}>
+          <h2 className={styles.title}>Clients</h2>
+          <span className={styles.count}>{clients.length} client{clients.length !== 1 ? 's' : ''}</span>
+        </div>
         <Button onClick={() => setShowCreateForm(true)} disabled={showCreateForm}>
-          Add User
+          Add Client
         </Button>
       </div>
 
       {error && <div className={styles.error}>{error}</div>}
 
+      {/* Create Form */}
       {showCreateForm && (
         <div className={styles.form}>
-          <h3 className={styles.formTitle}>Create New User</h3>
+          <h3 className={styles.formTitle}>New Client</h3>
           <div className={styles.formContent}>
-            {/* Avatar Preview */}
-            <div className={styles.avatarUpload}>
-              <div className={styles.avatarButton}>
-                {formData.avatarUrl ? (
-                  <img src={formData.avatarUrl} alt="Avatar preview" className={styles.avatarImage} />
-                ) : (
-                  <div className={styles.avatarPlaceholder}>
-                    <UserIcon />
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className={styles.formGrid}>
-              <Input
-                label="Name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="John Doe"
-              />
-              <Input
-                label="Email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                placeholder="john@example.com"
-              />
-              <div className={styles.field}>
-                <label htmlFor="user-role" className={styles.label}>Role</label>
-                <select
-                  id="user-role"
-                  className={styles.select}
-                  value={formData.role}
-                  onChange={(e) => setFormData({ ...formData, role: e.target.value as UserRole })}
-                >
-                  {ROLES.map((role) => (
-                    <option key={role.value} value={role.value}>
-                      {role.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <Input
-                label="Avatar URL (optional)"
-                value={formData.avatarUrl || ''}
-                onChange={(e) => setFormData({ ...formData, avatarUrl: e.target.value })}
-                placeholder="https://example.com/avatar.jpg"
-              />
-              <Input
-                label="Miro User ID (optional)"
-                value={formData.miroUserId || ''}
-                onChange={(e) => setFormData({ ...formData, miroUserId: e.target.value })}
-                placeholder="e.g., 3458764647297922215"
-              />
-              {formData.role === 'client' && (
-                <>
-                  <Input
-                    label="Company Name (optional)"
-                    value={formData.companyName || ''}
-                    onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
-                    placeholder="e.g., Acme Corp"
-                  />
-                  <Input
-                    label="Company Logo URL (optional)"
-                    value={formData.companyLogoUrl || ''}
-                    onChange={(e) => setFormData({ ...formData, companyLogoUrl: e.target.value })}
-                    placeholder="https://example.com/logo.png"
-                  />
-                </>
+            {/* Logo Preview */}
+            <div className={styles.logoPreview}>
+              {formData.companyLogoUrl ? (
+                <img src={formData.companyLogoUrl} alt="Company logo" className={styles.logoImage} />
+              ) : (
+                <div className={styles.logoPlaceholder}>
+                  <BuildingIcon />
+                </div>
               )}
             </div>
-            <p className={styles.hint}>
-              The Miro User ID will be shown when a user tries to access the app. Ask them to share this ID with you.
-              {formData.role === 'client' && ' Company info personalizes the client dashboard.'}
-            </p>
+
+            <div className={styles.formFields}>
+              <div className={styles.fieldRow}>
+                <Input
+                  label="Contact Name *"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="John Smith"
+                />
+                <Input
+                  label="Email *"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  placeholder="john@company.com"
+                />
+              </div>
+
+              <div className={styles.fieldRow}>
+                <Input
+                  label="Company Name"
+                  value={formData.companyName}
+                  onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
+                  placeholder="Acme Corporation"
+                />
+                <Input
+                  label="Company Logo URL"
+                  value={formData.companyLogoUrl}
+                  onChange={(e) => setFormData({ ...formData, companyLogoUrl: e.target.value })}
+                  placeholder="https://..."
+                />
+              </div>
+
+              <Input
+                label="Miro User ID"
+                value={formData.miroUserId}
+                onChange={(e) => setFormData({ ...formData, miroUserId: e.target.value })}
+                placeholder="Shown when client tries to access the app"
+              />
+            </div>
           </div>
           <div className={styles.formActions}>
-            <Button variant="ghost" onClick={() => setShowCreateForm(false)}>
+            <Button variant="ghost" onClick={cancelCreate}>
               Cancel
             </Button>
             <Button onClick={handleCreate} isLoading={isCreating}>
-              Create User
+              Create Client
             </Button>
           </div>
         </div>
       )}
 
-      <div className={styles.table}>
-        <div className={styles.tableHeader}>
-          <span>Name</span>
-          <span>Email</span>
-          <span>Role</span>
-          <span>Actions</span>
-        </div>
-        {(!users || users.length === 0) && (
-          <div className={styles.empty}>No users found. Add your first user above.</div>
+      {/* Client List */}
+      <div className={styles.clientList}>
+        {clients.length === 0 && !showCreateForm && (
+          <div className={styles.empty}>
+            <BuildingIcon />
+            <p>No clients yet</p>
+            <span>Add your first client to get started</span>
+          </div>
         )}
-        {users?.map((user) => (
-          <div key={user.id} className={styles.tableRow}>
-            {editingUser?.id === user.id ? (
-              <div className={styles.editingRow}>
-                {/* Avatar Preview */}
-                <div className={styles.avatarUploadSmall}>
-                  <div className={styles.avatarButtonSmall}>
-                    {formData.avatarUrl ? (
-                      <img src={formData.avatarUrl} alt="Avatar preview" className={styles.avatarImageSmall} />
-                    ) : (
-                      <div className={styles.avatarPlaceholderSmall}>
-                        <UserIcon />
-                      </div>
-                    )}
-                  </div>
+
+        {clients.map((client) => (
+          <div key={client.id} className={styles.clientCard}>
+            {editingUser?.id === client.id ? (
+              // Editing Mode
+              <div className={styles.editForm}>
+                <div className={styles.editLogoPreview}>
+                  {formData.companyLogoUrl ? (
+                    <img src={formData.companyLogoUrl} alt="Logo" className={styles.editLogoImage} />
+                  ) : (
+                    <div className={styles.editLogoPlaceholder}>
+                      {formData.companyName?.charAt(0) || formData.name?.charAt(0) || 'C'}
+                    </div>
+                  )}
                 </div>
                 <div className={styles.editFields}>
                   <Input
+                    label="Contact Name"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder="Name"
-                  />
-                  <span className={styles.email}>{user.email}</span>
-                  <select
-                    aria-label="User role"
-                    className={styles.select}
-                    value={formData.role}
-                    onChange={(e) => setFormData({ ...formData, role: e.target.value as UserRole })}
-                    disabled={isMainAdmin(user.email)}
-                  >
-                    {ROLES.map((role) => (
-                      <option key={role.value} value={role.value}>
-                        {role.label}
-                      </option>
-                    ))}
-                  </select>
-                  <Input
-                    value={formData.avatarUrl || ''}
-                    onChange={(e) => setFormData({ ...formData, avatarUrl: e.target.value })}
-                    placeholder="Avatar URL"
                   />
                   <Input
-                    value={formData.miroUserId || ''}
+                    label="Company Name"
+                    value={formData.companyName}
+                    onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
+                  />
+                  <Input
+                    label="Company Logo URL"
+                    value={formData.companyLogoUrl}
+                    onChange={(e) => setFormData({ ...formData, companyLogoUrl: e.target.value })}
+                  />
+                  <Input
+                    label="Miro User ID"
+                    value={formData.miroUserId}
                     onChange={(e) => setFormData({ ...formData, miroUserId: e.target.value })}
-                    placeholder="Miro User ID"
                   />
-                  {(formData.role === 'client' || editingUser?.role === 'client') && (
-                    <>
-                      <Input
-                        label="Company Name"
-                        value={formData.companyName || ''}
-                        onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
-                        placeholder="e.g., Acme Corp"
-                      />
-                      <Input
-                        label="Company Logo URL"
-                        value={formData.companyLogoUrl || ''}
-                        onChange={(e) => setFormData({ ...formData, companyLogoUrl: e.target.value })}
-                        placeholder="https://example.com/logo.png"
-                      />
-                    </>
-                  )}
                 </div>
-                <div className={styles.actions}>
+                <div className={styles.editActions}>
                   <Button size="sm" onClick={handleUpdate}>Save</Button>
-                  <Button size="sm" variant="ghost" onClick={() => setEditingUser(null)}>
-                    Cancel
-                  </Button>
+                  <Button size="sm" variant="ghost" onClick={cancelEditing}>Cancel</Button>
                 </div>
               </div>
             ) : (
-              <div className={styles.userRow}>
-                {/* User Avatar */}
-                <div className={styles.userAvatar}>
-                  {user.avatarUrl ? (
-                    <img src={user.avatarUrl} alt={user.name} />
+              // Display Mode
+              <div className={styles.clientDisplay}>
+                <div className={styles.clientLogo}>
+                  {client.companyLogoUrl ? (
+                    <img src={client.companyLogoUrl} alt={client.companyName || client.name} />
                   ) : (
-                    <span>{user.name?.charAt(0).toUpperCase() || 'U'}</span>
+                    <span>{(client.companyName || client.name)?.charAt(0).toUpperCase() || 'C'}</span>
                   )}
                 </div>
-                <div className={styles.userInfo}>
-                  <span className={styles.name}>
-                    {user.name}
-                    {isMainAdmin(user.email) && (
-                      <span className={styles.badge}>Super Admin</span>
-                    )}
-                  </span>
-                  <span className={styles.email}>{user.email}</span>
-                  <span className={`${styles.role} ${user.role ? styles[user.role] : ''}`}>
-                    {user.role || 'No role'}
-                  </span>
-                  {user.miroUserId && (
-                    <span className={styles.miroId}>
-                      Miro: {user.miroUserId.slice(0, 10)}...
+                <div className={styles.clientInfo}>
+                  <h4 className={styles.clientCompany}>
+                    {client.companyName || client.name}
+                  </h4>
+                  <span className={styles.clientContact}>{client.name}</span>
+                  <span className={styles.clientEmail}>{client.email}</span>
+                  {client.miroUserId && (
+                    <span className={styles.clientMiro}>
+                      Miro: {client.miroUserId.slice(0, 12)}...
                     </span>
                   )}
                 </div>
-                <div className={styles.actions}>
-                  <Button size="sm" variant="ghost" onClick={() => startEditing(user)}>
+                <div className={styles.clientActions}>
+                  <Button size="sm" variant="ghost" onClick={() => startEditing(client)}>
                     Edit
                   </Button>
-                  {!isMainAdmin(user.email) && (
-                    <Button
-                      size="sm"
-                      variant="danger"
-                      onClick={() => handleDelete(user)}
-                      isLoading={isDeleting}
-                    >
-                      Delete
-                    </Button>
-                  )}
+                  <Button
+                    size="sm"
+                    variant="danger"
+                    onClick={() => handleDelete(client)}
+                    isLoading={isDeleting}
+                  >
+                    Delete
+                  </Button>
                 </div>
               </div>
             )}
