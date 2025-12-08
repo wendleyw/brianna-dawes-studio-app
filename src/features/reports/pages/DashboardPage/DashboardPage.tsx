@@ -293,12 +293,6 @@ export function DashboardPage() {
                           <span className={styles.timelineName}>{project.name}</span>
                           <span className={styles.timelineSeparator}>|</span>
                           <span className={styles.timelineDate}>{formatDateShort(project.dueDate!)}</span>
-                          {project.client?.name && (
-                            <>
-                              <span className={styles.timelineSeparator}>|</span>
-                              <span className={styles.timelineAuthor}>{project.client.name}</span>
-                            </>
-                          )}
                         </button>
                       ))}
                     </div>
