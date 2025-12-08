@@ -51,7 +51,7 @@ export function ProjectForm({
     const submitData = {
       name: formData.name,
       description: formData.description || null,
-      status: formData.status as 'critical' | 'overdue' | 'urgent' | 'in_progress' | 'on_track' | 'review' | 'done',
+      status: formData.status as 'overdue' | 'urgent' | 'in_progress' | 'review' | 'done',
       priority: formData.priority as 'low' | 'medium' | 'high' | 'urgent',
       startDate: formData.startDate ? new Date(formData.startDate).toISOString() : null,
       dueDate: formData.dueDate ? new Date(formData.dueDate).toISOString() : null,

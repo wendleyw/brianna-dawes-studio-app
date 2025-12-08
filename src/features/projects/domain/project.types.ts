@@ -1,10 +1,8 @@
-// 7 Timeline Statuses - matches database enum from migration 013
+// 5 Timeline Statuses - simplified workflow
 export type ProjectStatus =
-  | 'critical'      // Urgent & overdue - needs immediate attention
-  | 'overdue'       // Past due date
+  | 'overdue'       // Past due date (includes critical)
   | 'urgent'        // High priority, deadline approaching
-  | 'on_track'      // Normal priority, on schedule
-  | 'in_progress'   // Actively being worked on (default)
+  | 'in_progress'   // Actively being worked on (default, includes on_track)
   | 'review'        // Awaiting client review/approval
   | 'done';         // Completed or archived
 

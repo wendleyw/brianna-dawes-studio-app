@@ -8,11 +8,9 @@ import { useState, useEffect, useRef } from 'react';
 // Status options ordered by urgency, with Done always at the end
 const STATUS_OPTIONS: { value: ProjectStatus | ''; label: string }[] = [
   { value: '', label: 'All Status' },
-  { value: 'critical', label: '🔴 Critical' },
   { value: 'overdue', label: '🟠 Overdue' },
   { value: 'urgent', label: '🔺 Urgent' },
   { value: 'in_progress', label: '🔵 In Progress' },
-  { value: 'on_track', label: '✅ On Track' },
   { value: 'review', label: '🟣 In Review' },
   { value: 'done', label: '✔️ Completed' },
 ];
