@@ -9,7 +9,71 @@
   -webkit-overflow-scrolling: touch;
   background-color: var(--color-bg-primary);
   padding: var(--space-4);
-  gap: var(--space-4);
+  gap: var(--space-3);
+}
+
+/* Admin Quick Actions Bar */
+.adminBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: var(--space-1);
+}
+
+.adminBarLeft {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.adminLabel {
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.adminBarRight {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.adminButton {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.adminButton:hover {
+  background-color: #050038;
+  border-color: #050038;
+  color: white;
+}
+
+.adminButton svg {
+  width: 14px;
+  height: 14px;
+}
+
+.adminAvatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-left: var(--space-1);
 }
 
 /* Header */
