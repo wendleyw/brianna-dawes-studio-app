@@ -210,6 +210,45 @@
   color: #22C55E;
 }
 
+/* Clickable stat button (deliverables) */
+.statClickable {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 1;
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+}
+
+.statClickable:hover {
+  opacity: 0.8;
+}
+
+.statClickable svg {
+  color: var(--color-text-muted);
+}
+
+/* Inline assets display */
+.assetsInline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 4px;
+}
+
+.assetsDivider {
+  color: var(--color-text-muted);
+  font-size: 10px;
+}
+
+.assetsCount {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
 .statLabel {
   font-size: 9px;
   font-weight: var(--font-semibold);

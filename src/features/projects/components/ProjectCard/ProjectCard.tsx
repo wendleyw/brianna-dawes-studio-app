@@ -772,11 +772,21 @@ export const ProjectCard = memo(function ProjectCard({
 
       {/* Stats */}
       <div className={styles.stats}>
-        <div className={styles.stat}>
+        <button
+          className={styles.statClickable}
+          onClick={(e) => { e.stopPropagation(); setShowDeliverables(!showDeliverables); }}
+        >
           <PackageIcon />
           <span className={styles.statValue}>{deliverables.length || project.deliverablesCount}</span>
           <span className={styles.statLabel}>DELIVERABLES</span>
-        </div>
+          {assetTotals.totalAssets > 0 && (
+            <span className={styles.assetsInline}>
+              <span className={styles.assetsDivider}>•</span>
+              <span className={styles.assetsCount}>{assetTotals.totalAssets} assets</span>
+            </span>
+          )}
+          <ChevronIcon isOpen={showDeliverables} />
+        </button>
         <div className={`${styles.stat} ${daysInfo?.isOverdue && project.status !== 'done' ? styles.overdue : ''} ${project.status === 'done' ? styles.completed : ''}`}>
           {project.status === 'done' ? (
             <>
@@ -792,22 +802,6 @@ export const ProjectCard = memo(function ProjectCard({
           )}
         </div>
       </div>
-
-      {/* Asset Totals with expandable deliverables - inside stats section */}
-      {(assetTotals.totalAssets > 0 || deliverables.length > 0) && (
-        <button
-          className={styles.assetsToggle}
-          onClick={(e) => { e.stopPropagation(); setShowDeliverables(!showDeliverables); }}
-        >
-          <span className={styles.assetsInfo}>
-            <span className={styles.assetsCount}>{assetTotals.totalAssets} assets</span>
-            {assetTotals.totalBonus > 0 && (
-              <span className={styles.bonusCount}>+{assetTotals.totalBonus} bonus</span>
-            )}
-          </span>
-          <ChevronIcon isOpen={showDeliverables} />
-        </button>
-      )}
 
       {/* Expandable deliverables list */}
       {showDeliverables && deliverables.length > 0 && (
