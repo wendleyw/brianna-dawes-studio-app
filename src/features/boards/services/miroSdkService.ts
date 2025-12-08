@@ -445,11 +445,26 @@ class MiroMasterTimelineService {
       log('MiroTimeline', 'Failed to get board cards', e);
     }
 
-    // STEP 1.5: Check if card was reviewed - DB is source of truth
+    // STEP 1.5: Check if card already exists on board for THIS project
+    const existingCard = allBoardCards.find(c => c.description?.includes(`projectId:${project.id}`));
+
+    // Check if card is ALREADY in the correct column (by X position)
+    const columnX = column.x;
+    const columnWidth = column.width ?? TIMELINE.COLUMN_WIDTH;
+    const isCardInCorrectColumn = existingCard && Math.abs(existingCard.x - columnX) < columnWidth / 2;
+
+    console.log('[MiroTimeline] Card status:', {
+      exists: !!existingCard,
+      currentX: existingCard?.x,
+      currentY: existingCard?.y,
+      targetColumnX: columnX,
+      isInCorrectColumn: isCardInCorrectColumn
+    });
+
+    // STEP 1.6: Check if card was reviewed - DB is source of truth
     // markAsReviewed option is used when client explicitly marks as reviewed
     // project.wasReviewed comes from DB and is reset when status changes back to 'review'
     const wasReviewed = options?.markAsReviewed || project.wasReviewed || false;
-    const existingCard = allBoardCards.find(c => c.description?.includes(`projectId:${project.id}`));
     log('MiroTimeline', `Review status: wasReviewed=${wasReviewed} (from DB/options)`)
 
     // Format due date (simple date only)
@@ -523,8 +538,9 @@ class MiroMasterTimelineService {
     }
 
     // STEP 4: Calculate new position in target column
-    const columnX = column.x;
-    const columnWidth = column.width ?? TIMELINE.COLUMN_WIDTH;
+    // IMPORTANT: If card already exists in the CORRECT column, keep its Y position!
+    // This prevents cards from drifting down on each sync
+    const cardX = columnX; // Always use column X
 
     // Get current frame bounds from the actual frame on board FIRST
     // The timeline frame has no title (empty string) or could match by position
@@ -566,8 +582,6 @@ class MiroMasterTimelineService {
     const frameBottom = frameTop + currentFrameHeight; // Bottom changes as frame grows
 
     // Calculate first card Y position (inside the column, below header)
-    // FIXED: Use the CONSTANT frameTop (original position)
-    const cardX = columnX;
     // Header is at: frameTop + PADDING + HEADER_HEIGHT/2
     // Drop zone starts at: frameTop + PADDING + HEADER_HEIGHT + small gap
     const dropZoneTop = frameTop + TIMELINE.PADDING + TIMELINE.HEADER_HEIGHT + 10;
@@ -598,16 +612,30 @@ class MiroMasterTimelineService {
     // Sort cards by Y position (top to bottom)
     cardsInColumnOnBoard.sort((a, b) => a.y - b.y);
 
-    // Calculate Y position: place after existing cards in order
-    let cardY = firstCardY;
-    if (cardsInColumnOnBoard.length > 0) {
+    // Calculate Y position based on whether card exists in correct column
+    let cardY: number;
+
+    if (isCardInCorrectColumn && existingCard) {
+      // IMPORTANT: Card already exists in the correct column - KEEP ITS POSITION
+      // This prevents cards from drifting down on each sync
+      cardY = existingCard.y;
+      console.log('[MiroTimeline] Card already in correct column, keeping Y position:', cardY);
+    } else if (cardsInColumnOnBoard.length > 0) {
+      // Card is NEW to this column (either new card or moved from another column)
       // Find the lowest card (highest Y value) and position below it
       const lowestCard = cardsInColumnOnBoard[cardsInColumnOnBoard.length - 1];
       if (lowestCard) {
         // Position new card below the lowest card with gap
         const lowestCardBottom = lowestCard.y + (lowestCard.height || TIMELINE.CARD_HEIGHT) / 2;
         cardY = lowestCardBottom + TIMELINE.CARD_GAP + TIMELINE.CARD_HEIGHT / 2;
+        console.log('[MiroTimeline] Positioning below lowest card at Y:', cardY);
+      } else {
+        cardY = firstCardY;
       }
+    } else {
+      // First card in column
+      cardY = firstCardY;
+      console.log('[MiroTimeline] First card in column, using Y:', cardY);
     }
 
     // Check if card would exceed frame bottom and expand BEFORE positioning
@@ -664,21 +692,35 @@ class MiroMasterTimelineService {
       try {
         const item = await miro.board.getById(existingMiroCardId) as MiroCard;
         if (item) {
-          // Move the card to new position and update style
+          // CRITICAL: If card is already in the correct column, ONLY update title/style
+          // Do NOT change the position - this prevents drift on re-syncs
+          const itemInCorrectColumn = Math.abs(item.x - cardX) < columnWidth / 2;
+
           item.title = title;
           item.description = description; // Ensure projectId is stored
-          item.x = cardX;
-          item.y = cardY;
           item.style = { cardTheme: column.color };
+
+          if (itemInCorrectColumn) {
+            // Card is already in correct column - keep its current position
+            console.log('[MiroTimeline] Card already in correct column, keeping position:', { x: item.x, y: item.y });
+          } else {
+            // Card is moving to a different column - update position
+            item.x = cardX;
+            item.y = cardY;
+            console.log('[MiroTimeline] Moving card to new column:', { x: cardX, y: cardY });
+          }
+
           await miro.board.sync(item);
 
-          log('MiroTimeline', `MOVED card ${existingMiroCardId} to ${status} at Y=${cardY}`);
+          log('MiroTimeline', `UPDATED card ${existingMiroCardId} in ${status}`);
 
-          // Update memory state
+          // Update memory state - use ACTUAL item position (not calculated)
+          const finalX = item.x;
+          const finalY = item.y;
           if (existingInMemory) {
             existingInMemory.status = status;
-            existingInMemory.x = cardX;
-            existingInMemory.y = cardY;
+            existingInMemory.x = finalX;
+            existingInMemory.y = finalY;
             existingInMemory.projectName = project.name;
             existingInMemory.clientName = project.client?.name || null;
             existingInMemory.miroCardId = existingMiroCardId;
@@ -692,8 +734,8 @@ class MiroMasterTimelineService {
             dueDate: project.dueDate,
             status,
             miroCardId: existingMiroCardId,
-            x: cardX,
-            y: cardY,
+            x: finalX,
+            y: finalY,
           };
         }
       } catch (e) {
@@ -712,14 +754,26 @@ class MiroMasterTimelineService {
 
       if (existingCardFinalCheck) {
         log('MiroTimeline', `Found existing card in final check: ${existingCardFinalCheck.id}, updating instead of creating`);
-        // Update the existing card instead of creating a new one
+        // CRITICAL: Check if card is already in correct column before moving
+        const finalCheckInCorrectColumn = Math.abs(existingCardFinalCheck.x - cardX) < columnWidth / 2;
+
+        // Update the existing card - only move if in different column
         existingCardFinalCheck.title = title;
         existingCardFinalCheck.description = description;
-        existingCardFinalCheck.x = cardX;
-        existingCardFinalCheck.y = cardY;
         existingCardFinalCheck.style = { cardTheme: column.color };
+
+        if (!finalCheckInCorrectColumn) {
+          // Only update position if card is in a different column
+          existingCardFinalCheck.x = cardX;
+          existingCardFinalCheck.y = cardY;
+          console.log('[MiroTimeline] Final check: Moving card to new column');
+        } else {
+          console.log('[MiroTimeline] Final check: Card already in correct column, keeping position');
+        }
+
         await miro.board.sync(existingCardFinalCheck);
 
+        // Use ACTUAL position from card (not calculated) to preserve existing position
         const updatedCard: TimelineCard = {
           id: crypto.randomUUID(),
           projectId: project.id,
@@ -728,8 +782,8 @@ class MiroMasterTimelineService {
           dueDate: project.dueDate,
           status,
           miroCardId: existingCardFinalCheck.id,
-          x: cardX,
-          y: cardY,
+          x: existingCardFinalCheck.x,
+          y: existingCardFinalCheck.y,
         };
 
         // Update memory state
