@@ -773,15 +773,23 @@ export const ProjectCard = memo(function ProjectCard({
       {/* Stats */}
       <div className={styles.stats}>
         <div className={styles.statDeliverables}>
-          <button
-            className={styles.statClickable}
-            onClick={(e) => { e.stopPropagation(); setShowDeliverables(!showDeliverables); }}
-          >
-            <PackageIcon />
-            <span className={styles.statValue}>{deliverables.length || project.deliverablesCount}</span>
-            <span className={styles.statLabel}>DELIVERABLES</span>
-            <ChevronIcon isOpen={showDeliverables} />
-          </button>
+          {deliverables.length > 0 ? (
+            <button
+              className={styles.statClickable}
+              onClick={(e) => { e.stopPropagation(); setShowDeliverables(!showDeliverables); }}
+            >
+              <PackageIcon />
+              <span className={styles.statValue}>{deliverables.length}</span>
+              <span className={styles.statLabel}>DELIVERABLES</span>
+              <ChevronIcon isOpen={showDeliverables} />
+            </button>
+          ) : (
+            <div className={styles.stat}>
+              <PackageIcon />
+              <span className={styles.statValue}>{project.deliverablesCount || 0}</span>
+              <span className={styles.statLabel}>DELIVERABLES</span>
+            </div>
+          )}
           {assetTotals.totalAssets > 0 && (
             <div className={styles.assetsRow}>
               <span className={styles.assetsCount}>{assetTotals.totalAssets} assets</span>
