@@ -57,6 +57,31 @@ export function useAllBoards() {
   });
 }
 
+/**
+ * Hook to fetch all unique boards from the boards table
+ */
+export function useBoards() {
+  const queryClient = useQueryClient();
+
+  const handleChange = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: adminKeys.boards() });
+  }, [queryClient]);
+
+  // Subscribe to boards table changes
+  useRealtimeSubscription<{ id: string; name: string }>({
+    table: 'boards',
+    event: '*',
+    onInsert: handleChange,
+    onUpdate: handleChange,
+    onDelete: handleChange,
+  });
+
+  return useQuery({
+    queryKey: adminKeys.boards(),
+    queryFn: () => adminService.getBoards(),
+  });
+}
+
 export function useBoardAssignmentMutations() {
   const queryClient = useQueryClient();
 

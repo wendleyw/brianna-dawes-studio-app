@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Button, Input, Skeleton } from '@shared/ui';
 import { useUsers, useUserMutations } from '../../hooks';
-import { useAllBoards, useBoardAssignmentMutations } from '../../hooks/useBoardAssignments';
+import { useAllBoards, useBoards, useBoardAssignmentMutations } from '../../hooks/useBoardAssignments';
 import { isMainAdmin } from '@shared/config/env';
 import type { UserRole } from '@shared/config/roles';
 import { createLogger } from '@shared/lib/logger';
@@ -58,6 +58,19 @@ const BoardIcon = () => (
   </svg>
 );
 
+const TrashIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <polyline points="3 6 5 6 21 6"/>
+    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+  </svg>
+);
+
+const StarIcon = ({ filled }: { filled?: boolean }) => (
+  <svg width="12" height="12" viewBox="0 0 24 24" fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
+    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+  </svg>
+);
+
 type RoleFilter = 'all' | UserRole;
 
 interface MemberFormData {
@@ -86,9 +99,10 @@ const ROLE_CONFIG: Record<UserRole, { label: string; color: string; bgColor: str
 
 export function TeamManagement() {
   const { data: allUsers, isLoading } = useUsers();
-  const { data: allBoards } = useAllBoards();
+  const { data: allBoardAssignments } = useAllBoards();
+  const { data: masterBoards } = useBoards();
   const { createUser, updateUser, deleteUser, isCreating, isDeleting } = useUserMutations();
-  const { assignBoard } = useBoardAssignmentMutations();
+  const { assignBoard, removeBoard, setPrimaryBoard, isAssigning } = useBoardAssignmentMutations();
 
   const [roleFilter, setRoleFilter] = useState<RoleFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -96,9 +110,13 @@ export function TeamManagement() {
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [formData, setFormData] = useState<MemberFormData>(emptyFormData);
   const [error, setError] = useState<string | null>(null);
+
+  // Board assignment state
   const [assignBoardUserId, setAssignBoardUserId] = useState<string | null>(null);
+  const [selectedExistingBoardId, setSelectedExistingBoardId] = useState<string>('');
   const [newBoardId, setNewBoardId] = useState('');
   const [newBoardName, setNewBoardName] = useState('');
+  const [boardAssignMode, setBoardAssignMode] = useState<'select' | 'new'>('select');
 
   // Filter users by role and search
   const filteredUsers = useMemo(() => {
@@ -123,8 +141,15 @@ export function TeamManagement() {
 
   // Get boards for a specific user
   const getUserBoards = (userId: string) => {
-    if (!allBoards) return [];
-    return allBoards.filter(b => b.userId === userId);
+    if (!allBoardAssignments) return [];
+    return allBoardAssignments.filter(b => b.userId === userId);
+  };
+
+  // Get boards the user is NOT assigned to
+  const getAvailableBoards = (userId: string) => {
+    if (!masterBoards) return [];
+    const userBoardIds = new Set(getUserBoards(userId).map(b => b.boardId));
+    return masterBoards.filter(b => !userBoardIds.has(b.id));
   };
 
   // Count users by role
@@ -211,24 +236,77 @@ export function TeamManagement() {
   };
 
   const handleAssignBoard = async () => {
-    if (!assignBoardUserId || !newBoardId || !newBoardName) {
-      setError('Board ID and Name are required');
-      return;
+    if (!assignBoardUserId) return;
+    setError(null);
+
+    let boardId: string;
+    let boardName: string;
+
+    if (boardAssignMode === 'select') {
+      if (!selectedExistingBoardId) {
+        setError('Please select a board');
+        return;
+      }
+      const board = masterBoards?.find(b => b.id === selectedExistingBoardId);
+      if (!board) {
+        setError('Board not found');
+        return;
+      }
+      boardId = board.id;
+      boardName = board.name;
+    } else {
+      if (!newBoardId || !newBoardName) {
+        setError('Board ID and Name are required');
+        return;
+      }
+      boardId = newBoardId;
+      boardName = newBoardName;
     }
 
     try {
       await assignBoard.mutateAsync({
         userId: assignBoardUserId,
-        boardId: newBoardId,
-        boardName: newBoardName,
+        boardId,
+        boardName,
         isPrimary: getUserBoards(assignBoardUserId).length === 0,
       });
-      setAssignBoardUserId(null);
-      setNewBoardId('');
-      setNewBoardName('');
+      closeAssignBoard();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to assign board');
     }
+  };
+
+  const handleRemoveBoard = async (userId: string, boardId: string) => {
+    if (!confirm('Remove this board assignment?')) return;
+    try {
+      await removeBoard.mutateAsync({ userId, boardId });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to remove board');
+    }
+  };
+
+  const handleSetPrimary = async (userId: string, boardId: string) => {
+    try {
+      await setPrimaryBoard.mutateAsync({ userId, boardId });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to set primary board');
+    }
+  };
+
+  const openAssignBoard = (userId: string) => {
+    setAssignBoardUserId(userId);
+    setSelectedExistingBoardId('');
+    setNewBoardId('');
+    setNewBoardName('');
+    setBoardAssignMode('select');
+    setError(null);
+  };
+
+  const closeAssignBoard = () => {
+    setAssignBoardUserId(null);
+    setSelectedExistingBoardId('');
+    setNewBoardId('');
+    setNewBoardName('');
   };
 
   const startEditing = (user: User) => {
@@ -266,6 +344,9 @@ export function TeamManagement() {
       </div>
     );
   }
+
+  const assigningUser = assignBoardUserId ? allUsers?.find(u => u.id === assignBoardUserId) : null;
+  const availableBoards = assignBoardUserId ? getAvailableBoards(assignBoardUserId) : [];
 
   return (
     <div className={styles.container}>
@@ -490,29 +571,6 @@ export function TeamManagement() {
                   <Button size="sm" variant="ghost" onClick={cancelEditing}>Cancel</Button>
                 </div>
               </div>
-            ) : assignBoardUserId === member.id ? (
-              // Assign Board Mode
-              <div className={styles.assignBoardForm}>
-                <h4 className={styles.assignTitle}>Assign Board to {member.name}</h4>
-                <div className={styles.assignFields}>
-                  <Input
-                    label="Board ID"
-                    value={newBoardId}
-                    onChange={(e) => setNewBoardId(e.target.value)}
-                    placeholder="uXjVK123abc..."
-                  />
-                  <Input
-                    label="Board Name"
-                    value={newBoardName}
-                    onChange={(e) => setNewBoardName(e.target.value)}
-                    placeholder="Client Workspace"
-                  />
-                </div>
-                <div className={styles.assignActions}>
-                  <Button size="sm" onClick={handleAssignBoard}>Assign</Button>
-                  <Button size="sm" variant="ghost" onClick={() => setAssignBoardUserId(null)}>Cancel</Button>
-                </div>
-              </div>
             ) : (
               // Display Mode
               <div className={styles.memberDisplay}>
@@ -553,27 +611,53 @@ export function TeamManagement() {
                   <span className={styles.memberEmail}>{member.email}</span>
 
                   {/* Boards assigned */}
-                  {getUserBoards(member.id).length > 0 && (
-                    <div className={styles.boardsList}>
-                      {getUserBoards(member.id).map(board => (
-                        <span key={board.id} className={styles.boardChip}>
-                          <BoardIcon />
-                          {board.boardName}
-                          {board.isPrimary && <span className={styles.primaryDot} />}
-                        </span>
-                      ))}
+                  <div className={styles.boardsSection}>
+                    <div className={styles.boardsHeader}>
+                      <span className={styles.boardsLabel}>Boards:</span>
+                      <button
+                        className={styles.addBoardBtn}
+                        onClick={() => openAssignBoard(member.id)}
+                        title="Assign to board"
+                      >
+                        <PlusIcon /> Add
+                      </button>
                     </div>
-                  )}
+                    {getUserBoards(member.id).length > 0 ? (
+                      <div className={styles.boardsList}>
+                        {getUserBoards(member.id).map(board => (
+                          <div key={board.id} className={`${styles.boardChip} ${board.isPrimary ? styles.primaryBoard : ''}`}>
+                            <BoardIcon />
+                            <span className={styles.boardChipName}>{board.boardName}</span>
+                            {board.isPrimary && (
+                              <span className={styles.primaryLabel}>
+                                <StarIcon filled /> Primary
+                              </span>
+                            )}
+                            {!board.isPrimary && member.role === 'client' && (
+                              <button
+                                className={styles.chipAction}
+                                onClick={() => handleSetPrimary(member.id, board.boardId)}
+                                title="Set as primary"
+                              >
+                                <StarIcon />
+                              </button>
+                            )}
+                            <button
+                              className={styles.chipAction}
+                              onClick={() => handleRemoveBoard(member.id, board.boardId)}
+                              title="Remove from board"
+                            >
+                              <TrashIcon />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className={styles.noBoards}>No boards assigned</span>
+                    )}
+                  </div>
                 </div>
                 <div className={styles.memberActions}>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => setAssignBoardUserId(member.id)}
-                    title="Assign to board"
-                  >
-                    <BoardIcon />
-                  </Button>
                   <Button size="sm" variant="ghost" onClick={() => startEditing(member)}>
                     Edit
                   </Button>
@@ -593,6 +677,111 @@ export function TeamManagement() {
           </div>
         ))}
       </div>
+
+      {/* Assign Board Modal */}
+      {assignBoardUserId && assigningUser && (
+        <div className={styles.modal}>
+          <div className={styles.modalContent}>
+            <h3 className={styles.modalTitle}>
+              Assign Board to {assigningUser.companyName || assigningUser.name}
+            </h3>
+
+            {/* Current boards */}
+            {getUserBoards(assignBoardUserId).length > 0 && (
+              <div className={styles.currentBoards}>
+                <span className={styles.currentBoardsLabel}>Currently assigned:</span>
+                <div className={styles.currentBoardsList}>
+                  {getUserBoards(assignBoardUserId).map(b => (
+                    <span key={b.id} className={styles.currentBoardChip}>
+                      {b.boardName}
+                      {b.isPrimary && <StarIcon filled />}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Mode tabs */}
+            <div className={styles.modeTabs}>
+              <button
+                className={`${styles.modeTab} ${boardAssignMode === 'select' ? styles.modeTabActive : ''}`}
+                onClick={() => setBoardAssignMode('select')}
+              >
+                Select Existing Board
+              </button>
+              <button
+                className={`${styles.modeTab} ${boardAssignMode === 'new' ? styles.modeTabActive : ''}`}
+                onClick={() => setBoardAssignMode('new')}
+              >
+                Add New Board
+              </button>
+            </div>
+
+            {boardAssignMode === 'select' ? (
+              <div className={styles.assignFields}>
+                {availableBoards.length > 0 ? (
+                  <div className={styles.selectField}>
+                    <label className={styles.selectLabel}>Select Board</label>
+                    <select
+                      className={styles.select}
+                      value={selectedExistingBoardId}
+                      onChange={(e) => setSelectedExistingBoardId(e.target.value)}
+                    >
+                      <option value="">Choose a board...</option>
+                      {availableBoards.map(board => (
+                        <option key={board.id} value={board.id}>
+                          {board.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ) : (
+                  <p className={styles.noAvailableBoards}>
+                    {masterBoards && masterBoards.length > 0
+                      ? 'User is already assigned to all available boards'
+                      : 'No boards available. Add a new board first.'}
+                  </p>
+                )}
+              </div>
+            ) : (
+              <div className={styles.assignFields}>
+                <Input
+                  label="Board ID"
+                  value={newBoardId}
+                  onChange={(e) => setNewBoardId(e.target.value)}
+                  placeholder="uXjVK123abc..."
+                />
+                <p className={styles.hint}>
+                  Find in Miro: Menu → Share → Copy board link. The ID is after /board/
+                </p>
+                <Input
+                  label="Board Name"
+                  value={newBoardName}
+                  onChange={(e) => setNewBoardName(e.target.value)}
+                  placeholder="Client Workspace"
+                />
+              </div>
+            )}
+
+            <div className={styles.modalActions}>
+              <Button variant="ghost" onClick={closeAssignBoard}>
+                Cancel
+              </Button>
+              <Button
+                onClick={handleAssignBoard}
+                isLoading={isAssigning}
+                disabled={
+                  boardAssignMode === 'select'
+                    ? !selectedExistingBoardId
+                    : !newBoardId || !newBoardName
+                }
+              >
+                Assign Board
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

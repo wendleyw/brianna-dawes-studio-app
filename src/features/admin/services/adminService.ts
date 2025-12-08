@@ -181,6 +181,35 @@ export const adminService = {
   },
 
   /**
+   * Get all boards (master list)
+   */
+  async getBoards(): Promise<{ id: string; name: string }[]> {
+    const { data, error } = await supabase
+      .from('boards')
+      .select('id, name')
+      .order('name');
+
+    if (error) throw error;
+
+    return data || [];
+  },
+
+  /**
+   * Create or update a board
+   */
+  async upsertBoard(id: string, name: string): Promise<{ id: string; name: string }> {
+    const { data, error } = await supabase
+      .from('boards')
+      .upsert({ id, name, updated_at: new Date().toISOString() })
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return { id: data.id, name: data.name };
+  },
+
+  /**
    * Assign board to user
    */
   async assignBoard(input: AssignBoardInput): Promise<UserBoard> {
@@ -332,7 +361,8 @@ export const adminKeys = {
   users: () => [...adminKeys.all, 'users'] as const,
   user: (id: string) => [...adminKeys.users(), id] as const,
   userBoards: (userId: string) => [...adminKeys.all, 'userBoards', userId] as const,
-  allBoards: () => [...adminKeys.all, 'boards'] as const,
+  allBoards: () => [...adminKeys.all, 'allBoards'] as const,
+  boards: () => [...adminKeys.all, 'boards'] as const,
   settings: () => [...adminKeys.all, 'settings'] as const,
   setting: (key: string) => [...adminKeys.settings(), key] as const,
 };
