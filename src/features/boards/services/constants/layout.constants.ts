@@ -28,7 +28,7 @@ export const TIMELINE = {
   TITLE_HEIGHT: 35,
   CARD_WIDTH: 88,        // Wider cards
   CARD_HEIGHT: 32,
-  CARD_GAP: 4,
+  CARD_GAP: 12,          // Increased gap between cards for better spacing
   PADDING: 15,
   GAP_TO_PROJECTS: 50,  // Gap between timeline and projects
 } as const;

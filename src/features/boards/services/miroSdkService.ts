@@ -393,27 +393,25 @@ class MiroMasterTimelineService {
     };
 
     // Build priority indicator with colored circles
-    const priorityIcon = project.priority === 'urgent' ? '🔴 ' :
-                         project.priority === 'high' ? '🟠 ' :
-                         project.priority === 'medium' ? '🟡 ' :
-                         '🟢 '; // low/standard
+    const priorityIcon = project.priority === 'urgent' ? '🔴' :
+                         project.priority === 'high' ? '🟠' :
+                         project.priority === 'medium' ? '🟡' :
+                         '🟢'; // low/standard
 
-    // Build clean card title - simple 3-line layout
-    // Line 1: Priority icon + Project Name
-    // Line 2: Client/Author name
-    // Line 3: Due date with countdown
+    // Build clean card title - single line format
+    // Format: [icon] Project Title | Due Date | Author
     const reviewedPrefix = wasReviewed ? '✓ ' : '';
-    const projectTitle = `${priorityIcon}${reviewedPrefix}${project.name}`;
-    const authorLine = project.client?.name || '';
-    const dateLine = formatDueDate(project.dueDate);
+    const datePart = formatDueDate(project.dueDate);
+    const authorPart = project.client?.name || '';
 
-    const titleLines = [
-      projectTitle,
-      authorLine,
-      dateLine,
+    // Build title parts with separators
+    const titleParts = [
+      `${priorityIcon} ${reviewedPrefix}${project.name}`,
+      datePart,
+      authorPart,
     ].filter(Boolean);
 
-    const title = titleLines.join('\n');
+    const title = titleParts.join(' | ');
 
     // Build description with reviewed flag
     const description = `projectId:${project.id}${wasReviewed ? '|reviewed:true' : ''}`;
