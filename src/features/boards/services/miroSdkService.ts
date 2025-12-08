@@ -468,7 +468,21 @@ class MiroMasterTimelineService {
 
     const cardX = columnX;
     const firstCardY = columnY + 10 + TIMELINE.CARD_HEIGHT / 2;
-    const cardY = firstCardY + cardsInColumnOnBoard.length * (TIMELINE.CARD_HEIGHT + TIMELINE.CARD_GAP);
+
+    // Calculate Y position based on actual card positions and heights (not fixed height)
+    // This prevents cards from overlapping when titles wrap to multiple lines
+    let cardY = firstCardY;
+    if (cardsInColumnOnBoard.length > 0) {
+      // Find the lowest card (highest Y value) and position below it
+      const lowestCard = cardsInColumnOnBoard.reduce((lowest, card) => {
+        const cardBottom = card.y + (card.height || TIMELINE.CARD_HEIGHT) / 2;
+        const lowestBottom = lowest.y + (lowest.height || TIMELINE.CARD_HEIGHT) / 2;
+        return cardBottom > lowestBottom ? card : lowest;
+      });
+      // Position new card below the lowest card with gap
+      const lowestCardBottom = lowestCard.y + (lowestCard.height || TIMELINE.CARD_HEIGHT) / 2;
+      cardY = lowestCardBottom + TIMELINE.CARD_GAP + TIMELINE.CARD_HEIGHT / 2;
+    }
 
     console.log('[MiroTimeline] Card position:', { cardX, cardY, firstCardY, columnY });
 
