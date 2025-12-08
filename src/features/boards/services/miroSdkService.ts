@@ -574,26 +574,19 @@ class MiroMasterTimelineService {
       log('MiroTimeline', 'Final check for existing card failed, proceeding with create', e);
     }
 
-    log('MiroTimeline', `Creating NEW sticky note for "${project.name}" at position (${cardX}, ${cardY})`);
+    log('MiroTimeline', `Creating NEW card for "${project.name}" at position (${cardX}, ${cardY})`);
 
-    // Map status to Miro sticky note colors
-    // Valid colors: 'gray' | 'light_yellow' | 'yellow' | 'orange' | 'light_green' | 'green' | 'dark_green' | 'cyan' | 'light_pink' | 'pink' | 'violet' | 'red' | 'light_blue' | 'blue' | 'dark_blue' | 'black'
-    const stickyColorMap: Record<string, string> = {
-      'overdue': 'orange',
-      'urgent': 'red',
-      'in_progress': 'blue',
-      'review': 'violet',
-      'done': 'green',
-    };
-    const stickyColor = stickyColorMap[status] || 'light_yellow';
+    // Build multi-line title using HTML (cards support basic HTML)
+    const cardTitle = `<p><strong>${priorityIcon} ${reviewedPrefix}${project.name}</strong></p><p>📅 ${datePart}</p><p>👤 ${authorPart}</p>`;
 
-    // Use sticky note for better multi-line support
-    const newMiroCard = await miro.board.createStickyNote({
-      content: `<p><strong>${priorityIcon} ${reviewedPrefix}${project.name}</strong></p><p>📅 ${datePart}</p><p>👤 ${authorPart}</p>`,
+    // Use card with HTML title for multi-line support
+    const newMiroCard = await miro.board.createCard({
+      title: cardTitle,
+      description, // Store projectId in description for cross-context discovery
       x: cardX,
       y: cardY,
       width: TIMELINE.CARD_WIDTH,
-      style: { fillColor: stickyColor as 'gray' | 'light_yellow' | 'yellow' | 'orange' | 'light_green' | 'green' | 'dark_green' | 'cyan' | 'light_pink' | 'pink' | 'violet' | 'red' | 'light_blue' | 'blue' | 'dark_blue' | 'black' },
+      style: { cardTheme: column.color },
     });
 
     const newCard: TimelineCard = {
