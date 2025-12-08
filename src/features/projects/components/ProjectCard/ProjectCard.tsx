@@ -320,6 +320,7 @@ export const ProjectCard = memo(function ProjectCard({
   const isAdmin = user?.role === 'admin';
   const isClient = user?.role === 'client';
   const isInReview = project.status === 'review';
+  const isDone = project.status === 'done';
   // Check if current user is the assigned client for this project
   const isAssignedClient = isClient && project.clientId === user?.id;
 
@@ -1083,17 +1084,21 @@ export const ProjectCard = memo(function ProjectCard({
             <div className={styles.adminActions}>
               <h4 className={styles.actionsTitle}>YOUR ACTIONS</h4>
               <div className={styles.actionsGrid}>
-                {/* Stage - always available for assigned client */}
-                <button className={styles.adminBtn} onClick={handleStageClick}>
-                  <div className={styles.adminBtnIcon}><PlusIcon /></div>
-                  <span>Stage</span>
-                </button>
+                {/* Stage - available for assigned client, hidden when Done */}
+                {!isDone && (
+                  <button className={styles.adminBtn} onClick={handleStageClick}>
+                    <div className={styles.adminBtnIcon}><PlusIcon /></div>
+                    <span>Stage</span>
+                  </button>
+                )}
 
-                {/* Critical - always available for assigned client */}
-                <button className={`${styles.adminBtn} ${styles.danger}`} onClick={handleClientCriticalClick}>
-                  <div className={styles.adminBtnIcon}><StarIcon /></div>
-                  <span>Critical</span>
-                </button>
+                {/* Urgent - available for assigned client, hidden when Done */}
+                {!isDone && (
+                  <button className={`${styles.adminBtn} ${styles.danger}`} onClick={handleClientCriticalClick}>
+                    <div className={styles.adminBtnIcon}><StarIcon /></div>
+                    <span>Urgent</span>
+                  </button>
+                )}
 
                 {/* Reviewed - ONLY when in REVIEW status */}
                 {isInReview && (
@@ -1493,21 +1498,21 @@ export const ProjectCard = memo(function ProjectCard({
         </div>
       </Dialog>
 
-      {/* Client Move to Critical Modal */}
+      {/* Client Move to Urgent Modal */}
       <Dialog
         open={showClientCriticalModal}
         onClose={() => setShowClientCriticalModal(false)}
-        title="Move to Critical"
-        description={`Mark "${project.name}" as critical priority?`}
+        title="Move to Urgent"
+        description={`Mark "${project.name}" as urgent priority?`}
         size="sm"
       >
         <div className={styles.modalContent}>
           <div className={styles.modalWarning}>
             <p>This will:</p>
             <ul>
-              <li>Mark this project as <strong>CRITICAL</strong></li>
+              <li>Mark this project as <strong>URGENT</strong></li>
               <li>Alert the design team immediately</li>
-              <li>Move the card to the Critical column</li>
+              <li>Move the card to the Urgent column</li>
             </ul>
             <p style={{ marginTop: '12px', fontWeight: 500 }}>Use this only for urgent issues that need immediate attention.</p>
           </div>
@@ -1516,7 +1521,7 @@ export const ProjectCard = memo(function ProjectCard({
               Cancel
             </Button>
             <Button variant="danger" onClick={handleConfirmClientCritical}>
-              Move to Critical
+              Move to Urgent
             </Button>
           </div>
         </div>
