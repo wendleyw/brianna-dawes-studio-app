@@ -55,96 +55,144 @@ export function ProjectsPage() {
   // Fetch client associated with current board
   useEffect(() => {
     async function fetchBoardClient() {
-      if (!isInMiro || !miro) return;
+      console.log('[ProjectsPage] fetchBoardClient starting...', { isInMiro, hasMiro: !!miro });
+
+      let boardId: string | null = null;
+
+      // Try to get board ID from Miro SDK
+      if (miro) {
+        try {
+          const boardInfo = await miro.board.getInfo();
+          boardId = boardInfo.id;
+          console.log('[ProjectsPage] Current board ID from Miro SDK:', boardId);
+        } catch (err) {
+          console.log('[ProjectsPage] Could not get board ID from Miro SDK:', err);
+        }
+      }
 
       try {
-        // Get current board ID
-        const boardInfo = await miro.board.getInfo();
-        const boardId = boardInfo.id;
-        logger.info('Looking for client on board', { boardId });
-
-        // Strategy 1: Find client whose primaryBoardId matches this board
-        const { data: clientByPrimary } = await supabase
-          .from('users')
-          .select('name, company_name, company_logo_url')
-          .eq('role', 'client')
-          .eq('primary_board_id', boardId)
-          .maybeSingle();
-
-        if (clientByPrimary) {
-          setBoardClient({
-            name: clientByPrimary.name,
-            companyName: clientByPrimary.company_name,
-            companyLogoUrl: clientByPrimary.company_logo_url,
-          });
-          logger.info('Found board client by primary_board_id', { boardId, client: clientByPrimary.name });
-          return;
-        }
-
-        // Strategy 2: Find client via user_boards table
-        const { data: userBoard } = await supabase
-          .from('user_boards')
-          .select('user_id')
-          .eq('board_id', boardId)
-          .maybeSingle();
-
-        if (userBoard) {
-          const { data: clientByUserBoard } = await supabase
+        // Board-based strategies (only if we have a board ID)
+        if (boardId) {
+          // Strategy 1: Find client whose primaryBoardId matches this board
+          console.log('[ProjectsPage] Strategy 1: Looking by primary_board_id...');
+          const { data: clientByPrimary, error: error1 } = await supabase
             .from('users')
             .select('name, company_name, company_logo_url')
-            .eq('id', userBoard.user_id)
             .eq('role', 'client')
+            .eq('primary_board_id', boardId)
             .maybeSingle();
 
-          if (clientByUserBoard) {
+          console.log('[ProjectsPage] Strategy 1 result:', { clientByPrimary, error: error1 });
+
+          if (clientByPrimary) {
             setBoardClient({
-              name: clientByUserBoard.name,
-              companyName: clientByUserBoard.company_name,
-              companyLogoUrl: clientByUserBoard.company_logo_url,
+              name: clientByPrimary.name,
+              companyName: clientByPrimary.company_name,
+              companyLogoUrl: clientByPrimary.company_logo_url,
             });
-            logger.info('Found board client by user_boards', { boardId, client: clientByUserBoard.name });
+            console.log('[ProjectsPage] Found client by primary_board_id:', clientByPrimary.name);
             return;
           }
+
+          // Strategy 2: Find client via user_boards table
+          console.log('[ProjectsPage] Strategy 2: Looking by user_boards...');
+          const { data: userBoards, error: error2 } = await supabase
+            .from('user_boards')
+            .select('user_id')
+            .eq('board_id', boardId);
+
+          console.log('[ProjectsPage] Strategy 2 user_boards:', { userBoards, error: error2 });
+
+          if (userBoards && userBoards.length > 0) {
+            for (const ub of userBoards) {
+              const { data: clientByUserBoard } = await supabase
+                .from('users')
+                .select('name, company_name, company_logo_url')
+                .eq('id', ub.user_id)
+                .eq('role', 'client')
+                .maybeSingle();
+
+              if (clientByUserBoard) {
+                setBoardClient({
+                  name: clientByUserBoard.name,
+                  companyName: clientByUserBoard.company_name,
+                  companyLogoUrl: clientByUserBoard.company_logo_url,
+                });
+                console.log('[ProjectsPage] Found client by user_boards:', clientByUserBoard.name);
+                return;
+              }
+            }
+          }
+
+          // Strategy 3: Find client who has projects on this board (via miro_board_id)
+          console.log('[ProjectsPage] Strategy 3: Looking by projects.miro_board_id...');
+          const { data: projectsOnBoard, error: error3 } = await supabase
+            .from('projects')
+            .select('client_id')
+            .eq('miro_board_id', boardId)
+            .not('client_id', 'is', null);
+
+          console.log('[ProjectsPage] Strategy 3 projects:', { projectsOnBoard, error: error3 });
+
+          if (projectsOnBoard && projectsOnBoard.length > 0) {
+            // Get unique client IDs
+            const clientIds = [...new Set(projectsOnBoard.map(p => p.client_id).filter(Boolean))];
+
+            for (const clientId of clientIds) {
+              const { data: clientByProject } = await supabase
+                .from('users')
+                .select('name, company_name, company_logo_url')
+                .eq('id', clientId as string)
+                .eq('role', 'client')
+                .maybeSingle();
+
+              if (clientByProject) {
+                setBoardClient({
+                  name: clientByProject.name,
+                  companyName: clientByProject.company_name,
+                  companyLogoUrl: clientByProject.company_logo_url,
+                });
+                console.log('[ProjectsPage] Found client by project:', clientByProject.name);
+                return;
+              }
+            }
+          }
+        } else {
+          console.log('[ProjectsPage] No board ID available, skipping board-based strategies');
         }
 
-        // Strategy 3: Find client who has projects on this board (via miro_board_id)
-        const { data: projectOnBoard } = await supabase
-          .from('projects')
-          .select('client_id')
-          .eq('miro_board_id', boardId)
-          .not('client_id', 'is', null)
-          .limit(1)
-          .maybeSingle();
-
-        if (projectOnBoard?.client_id) {
-          const { data: clientByProject } = await supabase
+        // Strategy 4: If current user is a client, use their own data
+        if (user?.role === 'client') {
+          console.log('[ProjectsPage] Strategy 4: Current user is client, checking for company info...');
+          const { data: currentClient } = await supabase
             .from('users')
             .select('name, company_name, company_logo_url')
-            .eq('id', projectOnBoard.client_id)
-            .eq('role', 'client')
+            .eq('id', user.id)
             .maybeSingle();
 
-          if (clientByProject) {
+          console.log('[ProjectsPage] Current client data:', currentClient);
+
+          if (currentClient && (currentClient.company_name || currentClient.company_logo_url)) {
             setBoardClient({
-              name: clientByProject.name,
-              companyName: clientByProject.company_name,
-              companyLogoUrl: clientByProject.company_logo_url,
+              name: currentClient.name,
+              companyName: currentClient.company_name,
+              companyLogoUrl: currentClient.company_logo_url,
             });
-            logger.info('Found board client by project.miro_board_id', { boardId, client: clientByProject.name });
+            console.log('[ProjectsPage] Using current client data:', currentClient.name);
             return;
           }
         }
 
         // No client found for this board
         setBoardClient(null);
-        logger.info('No client found for board', { boardId });
+        console.log('[ProjectsPage] No client found for board', boardId);
       } catch (err) {
-        logger.error('Error fetching board client', err);
+        console.error('[ProjectsPage] Error fetching board client:', err);
       }
     }
 
     fetchBoardClient();
-  }, [isInMiro, miro]);
+  }, [miro, user?.id, user?.role]);
 
   // Get selected project from URL
   const selectedProjectId = searchParams.get('selected');
@@ -403,7 +451,8 @@ export function ProjectsPage() {
 
   // Check if there's a client associated with this board (for personalized header)
   // This works for ANY user viewing the board (admin, designer, client)
-  const hasClientBranding = boardClient && (boardClient.companyName || boardClient.companyLogoUrl);
+  // Show personalized header if we found a client (name is always required)
+  const hasClientBranding = boardClient !== null;
 
   return (
     <div className={styles.container}>
