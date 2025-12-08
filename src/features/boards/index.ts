@@ -43,6 +43,7 @@ export {
   getProjectStageCount,
   zoomToProject,
   miroReportService,
+  miroClientReportService,
 } from './services';
 
 // Hooks

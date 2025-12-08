@@ -9,6 +9,8 @@ export interface AuthUser {
   miroUserId: string | null;
   primaryBoardId: string | null;
   isSuperAdmin: boolean;
+  companyName: string | null;
+  companyLogoUrl: string | null;
   createdAt?: string;
   updatedAt?: string;
 }

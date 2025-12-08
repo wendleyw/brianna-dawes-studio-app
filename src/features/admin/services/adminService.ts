@@ -90,6 +90,8 @@ export const adminService = {
         role: input.role,
         avatar_url: input.avatarUrl || null,
         miro_user_id: input.miroUserId || null,
+        company_name: input.companyName || null,
+        company_logo_url: input.companyLogoUrl || null,
       })
       .select()
       .single();
@@ -110,6 +112,8 @@ export const adminService = {
     if (input.primaryBoardId !== undefined) updates.primary_board_id = input.primaryBoardId;
     if (input.avatarUrl !== undefined) updates.avatar_url = input.avatarUrl;
     if (input.miroUserId !== undefined) updates.miro_user_id = input.miroUserId;
+    if (input.companyName !== undefined) updates.company_name = input.companyName;
+    if (input.companyLogoUrl !== undefined) updates.company_logo_url = input.companyLogoUrl;
 
     const { data, error } = await supabase
       .from('users')
@@ -292,6 +296,8 @@ function mapUserFromDb(data: Record<string, unknown>): User {
     miroUserId: data.miro_user_id as string | null,
     primaryBoardId: data.primary_board_id as string | null,
     isSuperAdmin: data.is_super_admin as boolean,
+    companyName: (data.company_name as string | null) ?? null,
+    companyLogoUrl: (data.company_logo_url as string | null) ?? null,
     createdAt: data.created_at as string,
     updatedAt: data.updated_at as string,
   };

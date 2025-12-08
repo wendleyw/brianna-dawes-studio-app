@@ -14,5 +14,8 @@ export {
 // Report generation service
 export { miroReportService } from './miroReportService';
 
+// Enhanced client report service with charts
+export { miroClientReportService } from './miroClientReportService';
+
 // Centralized constants
 export * from './constants';

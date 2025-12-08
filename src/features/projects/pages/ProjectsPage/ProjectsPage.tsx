@@ -12,6 +12,7 @@ import { TIMELINE_COLUMNS, getTimelineStatus, type TimelineStatus } from '@share
 import { onProjectChange, broadcastProjectChange } from '@shared/lib/projectBroadcast';
 import { useRealtimeSubscription } from '@shared/hooks/useRealtimeSubscription';
 import { projectService } from '../../services/projectService';
+import { env } from '@shared/config/env';
 import type { ProjectFilters as ProjectFiltersType, Project, ProjectStatus } from '../../domain/project.types';
 import styles from './ProjectsPage.module.css';
 
@@ -297,44 +298,89 @@ export function ProjectsPage() {
     enabled: true,
   });
 
+  // Check if user is a client with company info
+  const isClient = user?.role === 'client';
+  const hasCompanyInfo = isClient && (user?.companyName || user?.companyLogoUrl);
+
   return (
     <div className={styles.container}>
       {/* Header */}
       <header className={styles.header}>
-        <div className={styles.headerLeft}>
-          <button
-            className={styles.backButton}
-            onClick={() => navigate('/')}
-            title="Back to Dashboard"
-          >
-            <BackIcon />
-          </button>
-          <div className={styles.logo}>
-            <Logo size="md" />
-          </div>
-          <div className={styles.headerInfo}>
-            <h1 className={styles.brandName}>BRIANNA DAWES STUDIOS</h1>
-            <span className={styles.projectCount}>{totalProjects} projects</span>
-          </div>
-        </div>
-        <div className={styles.headerRight}>
-          {user?.role === 'admin' && (
-            <button
-              className={styles.gridButton}
-              onClick={handleOpenBoardModal}
-              title="Open Project Board"
-            >
-              <GridIcon />
-            </button>
-          )}
-          {user?.avatarUrl && (
-            <img
-              src={user.avatarUrl}
-              alt={user.name || 'User'}
-              className={styles.avatar}
-            />
-          )}
-        </div>
+        {hasCompanyInfo ? (
+          // Personalized client header: [Client Logo] [Client Name] | [Brianna Logo]
+          <>
+            <div className={styles.headerLeft}>
+              <button
+                className={styles.backButton}
+                onClick={() => navigate('/')}
+                title="Back to Dashboard"
+              >
+                <BackIcon />
+              </button>
+              {user?.companyLogoUrl ? (
+                <img
+                  src={user.companyLogoUrl}
+                  alt={user.companyName || 'Company'}
+                  className={styles.clientLogo}
+                />
+              ) : (
+                <div className={styles.clientLogoPlaceholder}>
+                  {(user?.companyName || user?.name || 'C').charAt(0).toUpperCase()}
+                </div>
+              )}
+              <div className={styles.headerInfo}>
+                <h1 className={styles.brandName}>{user?.companyName?.toUpperCase() || user?.name?.toUpperCase()}</h1>
+                <span className={styles.projectCount}>{totalProjects} projects</span>
+              </div>
+            </div>
+            <div className={styles.headerDivider} />
+            <div className={styles.headerRight}>
+              <img
+                src={env.brand.logoUrl}
+                alt="Brianna Dawes Studios"
+                className={styles.partnerLogo}
+              />
+            </div>
+          </>
+        ) : (
+          // Default header for admins/designers or clients without company info
+          <>
+            <div className={styles.headerLeft}>
+              <button
+                className={styles.backButton}
+                onClick={() => navigate('/')}
+                title="Back to Dashboard"
+              >
+                <BackIcon />
+              </button>
+              <div className={styles.logo}>
+                <Logo size="md" />
+              </div>
+              <div className={styles.headerInfo}>
+                <h1 className={styles.brandName}>BRIANNA DAWES STUDIOS</h1>
+                <span className={styles.projectCount}>{totalProjects} projects</span>
+              </div>
+            </div>
+            <div className={styles.headerRight}>
+              {user?.role === 'admin' && (
+                <button
+                  className={styles.gridButton}
+                  onClick={handleOpenBoardModal}
+                  title="Open Project Board"
+                >
+                  <GridIcon />
+                </button>
+              )}
+              {user?.avatarUrl && (
+                <img
+                  src={user.avatarUrl}
+                  alt={user.name || 'User'}
+                  className={styles.avatar}
+                />
+              )}
+            </div>
+          </>
+        )}
       </header>
 
       {/* Search and Filter */}

@@ -304,6 +304,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         miroUserId: miroUser.id,
         primaryBoardId: result.user.primaryBoardId,
         isSuperAdmin: result.user.isSuperAdmin,
+        companyName: result.user.companyName ?? null,
+        companyLogoUrl: result.user.companyLogoUrl ?? null,
       };
 
       // Store in localStorage

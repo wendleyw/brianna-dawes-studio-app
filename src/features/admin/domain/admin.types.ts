@@ -9,6 +9,8 @@ export interface User {
   miroUserId: string | null;
   primaryBoardId: string | null;
   isSuperAdmin: boolean;
+  companyName: string | null;
+  companyLogoUrl: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -39,6 +41,8 @@ export interface CreateUserInput {
   role: UserRole;
   avatarUrl?: string | null;
   miroUserId?: string | null;
+  companyName?: string | null;
+  companyLogoUrl?: string | null;
 }
 
 export interface UpdateUserInput {
@@ -47,6 +51,8 @@ export interface UpdateUserInput {
   primaryBoardId?: string | null;
   avatarUrl?: string | null;
   miroUserId?: string | null;
+  companyName?: string | null;
+  companyLogoUrl?: string | null;
 }
 
 export interface AssignBoardInput {

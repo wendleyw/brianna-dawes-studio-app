@@ -21,6 +21,8 @@ export interface AuthResult {
     primaryBoardId: string | null;
     isSuperAdmin: boolean;
     miroUserId?: string;
+    companyName?: string | null;
+    companyLogoUrl?: string | null;
   };
   error?: string;
   redirectTo?: string;
@@ -144,7 +146,7 @@ export const miroAuthService = {
       // Fetch the actual admin user from database to get the real UUID
       const { data: adminUser } = await supabase
         .from('users')
-        .select('id, name, email, role, primary_board_id, is_super_admin, miro_user_id')
+        .select('id, name, email, role, primary_board_id, is_super_admin, miro_user_id, company_name, company_logo_url')
         .eq('email', email.toLowerCase())
         .single();
 
@@ -159,6 +161,8 @@ export const miroAuthService = {
             primaryBoardId: adminUser.primary_board_id,
             isSuperAdmin: true,
             miroUserId: adminUser.miro_user_id || miroUserId,
+            companyName: adminUser.company_name,
+            companyLogoUrl: adminUser.company_logo_url,
           },
           redirectTo: '/admin',
         };
@@ -255,6 +259,8 @@ export const miroAuthService = {
         primaryBoardId: user.primary_board_id,
         isSuperAdmin: user.is_super_admin || false,
         miroUserId: user.miro_user_id || miroUserId,
+        companyName: user.company_name || null,
+        companyLogoUrl: user.company_logo_url || null,
       },
       redirectTo,
     };

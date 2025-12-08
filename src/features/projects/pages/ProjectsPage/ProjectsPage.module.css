@@ -105,6 +105,41 @@
   object-fit: cover;
 }
 
+/* Client personalized header */
+.clientLogo {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  object-fit: contain;
+  background-color: var(--color-bg-secondary);
+}
+
+.clientLogoPlaceholder {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  background-color: #D4A574;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: var(--font-bold);
+  font-size: var(--text-lg);
+}
+
+.headerDivider {
+  width: 1px;
+  height: 32px;
+  background-color: var(--color-border);
+  margin: 0 var(--space-4);
+}
+
+.partnerLogo {
+  height: 36px;
+  width: auto;
+  object-fit: contain;
+}
+
 /* Search Bar */
 .searchBar {
   display: flex;

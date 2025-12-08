@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Dialog, Button } from '@shared/ui';
 import { useMiro } from '@features/boards';
-import { miroReportService } from '@features/boards/services/miroReportService';
+import { miroClientReportService } from '@features/boards/services/miroClientReportService';
 import { supabase } from '@shared/lib/supabase';
 import { useAuth } from '@features/auth';
 import { createLogger } from '@shared/lib/logger';
@@ -29,6 +29,14 @@ const MONTHS = [
   { value: 12, label: 'December' },
 ];
 
+const SATISFACTION_LABELS: Record<number, { label: string; className: string }> = {
+  1: { label: 'Poor', className: styles.ratingPoor || '' },
+  2: { label: 'Needs Improvement', className: styles.ratingNeedsImprovement || '' },
+  3: { label: 'Satisfactory', className: styles.ratingSatisfactory || '' },
+  4: { label: 'Good', className: styles.ratingGood || '' },
+  5: { label: 'Excellent', className: styles.ratingExcellent || '' },
+};
+
 // Generate year options (current year - 2 to current year + 1)
 function getYearOptions(): number[] {
   const currentYear = new Date().getFullYear();
@@ -45,6 +53,8 @@ export function ReportModal({ open, onClose }: ReportModalProps) {
     year: new Date().getFullYear(),
     month: null,
     statusFilter: [],
+    satisfactionRating: null,
+    satisfactionNotes: '',
   });
 
   // UI state
@@ -106,6 +116,13 @@ export function ReportModal({ open, onClose }: ReportModalProps) {
     }));
   };
 
+  const handleSatisfactionClick = (rating: number) => {
+    setFilters((prev) => ({
+      ...prev,
+      satisfactionRating: prev.satisfactionRating === rating ? null : rating,
+    }));
+  };
+
   const handleGenerateReport = async () => {
     if (!isInMiro) {
       setError('You must be running inside Miro to generate reports');
@@ -120,11 +137,11 @@ export function ReportModal({ open, onClose }: ReportModalProps) {
     try {
       const selectedClient = clients.find((c) => c.id === filters.clientId);
 
-      addProgress('Starting report generation...');
+      addProgress('Starting enhanced client report generation...');
 
       // Build date range filter
-      let startDate: string | null = null;
-      let endDate: string | null = null;
+      let startDate: string;
+      let endDate: string;
 
       if (filters.month !== null && filters.month > 0) {
         // Specific month
@@ -172,7 +189,7 @@ export function ReportModal({ open, onClose }: ReportModalProps) {
       }
 
       // Fetch deliverables
-      addProgress('Fetching deliverables...');
+      addProgress('Fetching deliverables with assets and bonus counts...');
       const projectIds = projects.map((p) => p.id);
 
       let deliverables: Deliverable[] = [];
@@ -188,7 +205,11 @@ export function ReportModal({ open, onClose }: ReportModalProps) {
           deliverables = (deliverablesData || []) as Deliverable[];
         }
       }
-      addProgress(`Found ${deliverables.length} deliverables`);
+
+      // Calculate totals
+      const totalAssets = deliverables.reduce((sum, d) => sum + (d.count || 0), 0);
+      const totalBonus = deliverables.reduce((sum, d) => sum + (d.bonusCount || 0), 0);
+      addProgress(`Found ${deliverables.length} deliverables (${totalAssets} assets, ${totalBonus} bonus)`);
 
       // Build report title
       const periodLabel = filters.month !== null && filters.month > 0
@@ -199,23 +220,43 @@ export function ReportModal({ open, onClose }: ReportModalProps) {
         ? 'All Clients'
         : (selectedClient?.name || 'Unknown');
 
-      // Generate report on Miro
-      addProgress('Creating report on Miro board...');
+      // Generate enhanced report on Miro
+      addProgress('Creating visual report with charts on Miro board...');
+      addProgress('  - Building weekly breakdown...');
+      addProgress('  - Creating bar charts...');
+      addProgress('  - Creating deliverables funnel...');
+      if (filters.satisfactionRating) {
+        addProgress('  - Adding satisfaction rating...');
+      }
 
       const reportData = {
         clientName: `${clientLabel} - ${periodLabel}`,
         ...(selectedClient?.email ? { clientEmail: selectedClient.email } : {}),
         projects,
         deliverables,
+        startDate,
+        endDate,
         generatedAt: new Date().toISOString(),
         generatedBy: user?.name || user?.email || 'Admin',
+        ...(filters.satisfactionRating ? { satisfactionRating: filters.satisfactionRating } : {}),
+        ...(filters.satisfactionNotes ? { satisfactionNotes: filters.satisfactionNotes } : {}),
       };
 
-      const frameId = await miroReportService.generateClientReport(reportData);
+      const frameId = await miroClientReportService.generateClientReport(reportData);
 
       addProgress('');
-      addProgress('Report generated successfully!');
+      addProgress('Enhanced report generated successfully!');
       addProgress(`Frame ID: ${frameId}`);
+      addProgress('');
+      addProgress('Report includes:');
+      addProgress(`  - ${totalAssets} total assets across ${deliverables.length} deliverables`);
+      addProgress(`  - ${totalBonus} bonus items`);
+      addProgress('  - Weekly performance bar chart');
+      addProgress('  - Deliverables funnel visualization');
+      if (filters.satisfactionRating) {
+        const ratingInfo = SATISFACTION_LABELS[filters.satisfactionRating];
+        addProgress(`  - Client satisfaction: ${filters.satisfactionRating}/5 (${ratingInfo?.label})`);
+      }
       setSuccess(true);
 
     } catch (err) {
@@ -227,12 +268,14 @@ export function ReportModal({ open, onClose }: ReportModalProps) {
     }
   };
 
+  const currentRatingInfo = filters.satisfactionRating ? SATISFACTION_LABELS[filters.satisfactionRating] : null;
+
   return (
     <Dialog
       open={open}
       onClose={onClose}
       title="Generate Client Report"
-      description="Create a visual report on the Miro board with project metrics and analytics"
+      description="Create an enhanced visual report with charts, weekly breakdown, and satisfaction tracking"
       size="lg"
     >
       <div className={styles.container}>
@@ -340,6 +383,46 @@ export function ReportModal({ open, onClose }: ReportModalProps) {
           </div>
         </div>
 
+        {/* Client Satisfaction Section */}
+        <div className={styles.satisfactionSection}>
+          <label className={styles.satisfactionLabel}>
+            Client Satisfaction Rating (optional)
+          </label>
+          <div className={styles.starRating}>
+            {[1, 2, 3, 4, 5].map((rating) => (
+              <button
+                key={rating}
+                type="button"
+                className={`${styles.star} ${
+                  filters.satisfactionRating && rating <= filters.satisfactionRating
+                    ? styles.starActive
+                    : ''
+                }`}
+                onClick={() => handleSatisfactionClick(rating)}
+                disabled={isGenerating}
+                aria-label={`Rate ${rating} stars`}
+              >
+                ⭐
+              </button>
+            ))}
+            {currentRatingInfo && (
+              <span className={`${styles.ratingLabel} ${currentRatingInfo.className}`}>
+                {currentRatingInfo.label}
+              </span>
+            )}
+          </div>
+          <textarea
+            className={styles.notesInput}
+            placeholder="Add notes about client satisfaction (optional)..."
+            value={filters.satisfactionNotes}
+            onChange={(e) => setFilters((prev) => ({ ...prev, satisfactionNotes: e.target.value }))}
+            disabled={isGenerating}
+          />
+          {!filters.satisfactionRating && (
+            <span className={styles.hint}>Click stars to add satisfaction rating to the report</span>
+          )}
+        </div>
+
         {/* Progress Log */}
         {progress.length > 0 && (
           <div className={styles.progressLog}>
@@ -357,7 +440,8 @@ export function ReportModal({ open, onClose }: ReportModalProps) {
         {/* Success Message */}
         {success && (
           <div className={styles.success}>
-            Report created successfully! The board has been zoomed to show the report.
+            Enhanced report created successfully! The board has been zoomed to show the report with
+            weekly charts and visualizations.
           </div>
         )}
 

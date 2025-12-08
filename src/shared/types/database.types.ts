@@ -44,6 +44,8 @@ export interface UserRow {
   miro_token_expires_at: string | null;
   primary_board_id: string | null;
   is_super_admin: boolean;
+  company_name: string | null;
+  company_logo_url: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -60,6 +62,8 @@ export interface UserInsert {
   miro_token_expires_at?: string | null;
   primary_board_id?: string | null;
   is_super_admin?: boolean;
+  company_name?: string | null;
+  company_logo_url?: string | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -76,6 +80,8 @@ export interface UserUpdate {
   miro_token_expires_at?: string | null;
   primary_board_id?: string | null;
   is_super_admin?: boolean;
+  company_name?: string | null;
+  company_logo_url?: string | null;
   updated_at?: string;
 }
 

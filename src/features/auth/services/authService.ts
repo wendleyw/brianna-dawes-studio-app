@@ -113,6 +113,8 @@ class AuthService {
       miroUserId: profile.miro_user_id,
       primaryBoardId: profile.primary_board_id ?? null,
       isSuperAdmin: profile.is_super_admin ?? false,
+      companyName: profile.company_name ?? null,
+      companyLogoUrl: profile.company_logo_url ?? null,
       createdAt: profile.created_at,
       updatedAt: profile.updated_at,
     };

@@ -34,6 +34,8 @@ export function UserManagement() {
     role: 'client',
     avatarUrl: '',
     miroUserId: '',
+    companyName: '',
+    companyLogoUrl: '',
   });
   const [error, setError] = useState<string | null>(null);
 
@@ -42,7 +44,7 @@ export function UserManagement() {
     try {
       await createUser.mutateAsync(formData);
       setShowCreateForm(false);
-      setFormData({ email: '', name: '', role: 'client', avatarUrl: '', miroUserId: '' });
+      setFormData({ email: '', name: '', role: 'client', avatarUrl: '', miroUserId: '', companyName: '', companyLogoUrl: '' });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create user');
     }
@@ -59,6 +61,8 @@ export function UserManagement() {
           role: formData.role as UserRole,
           avatarUrl: formData.avatarUrl || null,
           miroUserId: formData.miroUserId || null,
+          companyName: formData.companyName || null,
+          companyLogoUrl: formData.companyLogoUrl || null,
         },
       });
       setEditingUser(null);
@@ -100,6 +104,8 @@ export function UserManagement() {
       role: user.role,
       avatarUrl: user.avatarUrl || '',
       miroUserId: user.miroUserId || '',
+      companyName: user.companyName || '',
+      companyLogoUrl: user.companyLogoUrl || '',
     });
   };
 
@@ -180,9 +186,26 @@ export function UserManagement() {
                 onChange={(e) => setFormData({ ...formData, miroUserId: e.target.value })}
                 placeholder="e.g., 3458764647297922215"
               />
+              {formData.role === 'client' && (
+                <>
+                  <Input
+                    label="Company Name (optional)"
+                    value={formData.companyName || ''}
+                    onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
+                    placeholder="e.g., Acme Corp"
+                  />
+                  <Input
+                    label="Company Logo URL (optional)"
+                    value={formData.companyLogoUrl || ''}
+                    onChange={(e) => setFormData({ ...formData, companyLogoUrl: e.target.value })}
+                    placeholder="https://example.com/logo.png"
+                  />
+                </>
+              )}
             </div>
             <p className={styles.hint}>
               The Miro User ID will be shown when a user tries to access the app. Ask them to share this ID with you.
+              {formData.role === 'client' && ' Company info personalizes the client dashboard.'}
             </p>
           </div>
           <div className={styles.formActions}>
@@ -252,6 +275,22 @@ export function UserManagement() {
                     onChange={(e) => setFormData({ ...formData, miroUserId: e.target.value })}
                     placeholder="Miro User ID"
                   />
+                  {(formData.role === 'client' || editingUser?.role === 'client') && (
+                    <>
+                      <Input
+                        label="Company Name"
+                        value={formData.companyName || ''}
+                        onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
+                        placeholder="e.g., Acme Corp"
+                      />
+                      <Input
+                        label="Company Logo URL"
+                        value={formData.companyLogoUrl || ''}
+                        onChange={(e) => setFormData({ ...formData, companyLogoUrl: e.target.value })}
+                        placeholder="https://example.com/logo.png"
+                      />
+                    </>
+                  )}
                 </div>
                 <div className={styles.actions}>
                   <Button size="sm" onClick={handleUpdate}>Save</Button>

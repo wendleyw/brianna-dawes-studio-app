@@ -468,11 +468,19 @@ class MiroMasterTimelineService {
     console.log('[MiroTimeline] Found', cardsInColumnOnBoard.length, 'other cards in column', status);
 
     // Get current frame bounds from the actual frame on board
+    // The timeline frame has no title (empty string) or could match by position
     const frames = await miro.board.get({ type: 'frame' }) as MiroFrame[];
-    const timelineFrame = frames.find(f =>
+    let timelineFrame = frames.find(f =>
       f.title === '' &&
       Math.abs(f.x - this.frameCenterX) < 100
     );
+
+    // Fallback: Find by state frameId
+    if (!timelineFrame && this.state?.frameId) {
+      timelineFrame = frames.find(f => f.id === this.state!.frameId);
+    }
+
+    console.log('[MiroTimeline] Found timeline frame:', timelineFrame?.id, 'at', timelineFrame?.x, timelineFrame?.y, 'size:', timelineFrame?.width, 'x', timelineFrame?.height);
 
     // Calculate frame bounds
     const currentFrameHeight = timelineFrame?.height || TIMELINE.FRAME_HEIGHT;
@@ -481,8 +489,10 @@ class MiroMasterTimelineService {
 
     // Calculate first card Y position (inside the column, below header)
     const cardX = columnX;
-    const headerBottom = frameTop + TIMELINE.PADDING + TIMELINE.HEADER_HEIGHT + 10;
-    const firstCardY = headerBottom + TIMELINE.CARD_HEIGHT / 2 + 5;
+    // Header is at: frameTop + PADDING + HEADER_HEIGHT/2
+    // Drop zone starts at: frameTop + PADDING + HEADER_HEIGHT + small gap
+    const dropZoneTop = frameTop + TIMELINE.PADDING + TIMELINE.HEADER_HEIGHT + 10;
+    const firstCardY = dropZoneTop + TIMELINE.CARD_HEIGHT / 2 + 10; // Start cards 10px inside drop zone
 
     // Calculate Y position based on actual card positions and heights (not fixed height)
     // This prevents cards from overlapping when titles wrap to multiple lines
@@ -499,25 +509,47 @@ class MiroMasterTimelineService {
       cardY = lowestCardBottom + TIMELINE.CARD_GAP + TIMELINE.CARD_HEIGHT / 2;
     }
 
-    // Check if card would exceed frame bottom and expand if needed
-    const cardBottom = cardY + TIMELINE.CARD_HEIGHT / 2;
-    const padding = 30;
-    if (cardBottom + padding > frameBottom && timelineFrame) {
-      // Expand frame downward (keep top fixed, increase height)
-      const newHeight = (cardBottom + padding) - frameTop;
+    // Check if card would exceed frame bottom and expand BEFORE positioning
+    let cardBottom = cardY + TIMELINE.CARD_HEIGHT / 2;
+    const bottomPadding = 50; // Increased padding for better spacing
+    let currentFrameBottom = frameBottom;
+
+    if (cardBottom + bottomPadding > currentFrameBottom) {
+      // Calculate new frame height needed - add extra buffer for future cards
+      const extraBuffer = 100; // Extra space for additional cards
+      const newHeight = (cardBottom + bottomPadding + extraBuffer) - frameTop;
       const newCenterY = frameTop + newHeight / 2;
 
-      log('MiroTimeline', `Expanding frame from ${currentFrameHeight} to ${newHeight}`);
+      console.log('[MiroTimeline] Expanding frame:', {
+        oldHeight: currentFrameHeight,
+        newHeight,
+        cardBottom,
+        frameBottom: currentFrameBottom,
+        needed: cardBottom + bottomPadding - currentFrameBottom
+      });
 
-      timelineFrame.height = newHeight;
-      timelineFrame.y = newCenterY;
-      await miro.board.sync(timelineFrame);
+      if (timelineFrame) {
+        timelineFrame.height = newHeight;
+        timelineFrame.y = newCenterY;
+        await miro.board.sync(timelineFrame);
+        console.log('[MiroTimeline] Frame expanded successfully to height', newHeight);
 
-      // Also expand the column drop zones
+        // Update the frame bottom for this sync
+        currentFrameBottom = frameTop + newHeight;
+      }
+
+      // Also expand the column drop zones to match
       await this.expandColumnDropZones(frameTop, newHeight);
     }
 
-    console.log('[MiroTimeline] Card position:', { cardX, cardY, firstCardY, frameTop, frameBottom });
+    console.log('[MiroTimeline] Card position:', {
+      cardX,
+      cardY,
+      firstCardY,
+      frameTop,
+      frameBottom: currentFrameBottom,
+      cardsInColumn: cardsInColumnOnBoard.length
+    });
 
     // STEP 5: Update or create card
     // Use the card found on board (source of truth) or memory as fallback
@@ -645,37 +677,84 @@ class MiroMasterTimelineService {
     const miro = getMiroSDK();
 
     try {
-      const frameLeft = this.frameCenterX - TIMELINE.FRAME_WIDTH / 2;
-      const frameRight = this.frameCenterX + TIMELINE.FRAME_WIDTH / 2;
+      // Get current frame position (might have changed if frame expanded)
+      const frames = await miro.board.get({ type: 'frame' }) as MiroFrame[];
+      let currentFrameX = this.frameCenterX;
+
+      // Find the timeline frame to get accurate X position
+      const timelineFrame = frames.find(f =>
+        f.title === '' && Math.abs(f.x - this.frameCenterX) < 100
+      ) || (this.state?.frameId ? frames.find(f => f.id === this.state!.frameId) : null);
+
+      if (timelineFrame) {
+        currentFrameX = timelineFrame.x;
+      }
+
+      const frameLeft = currentFrameX - TIMELINE.FRAME_WIDTH / 2;
+      const frameRight = currentFrameX + TIMELINE.FRAME_WIDTH / 2;
+
+      console.log('[MiroTimeline] expandColumnDropZones: Looking for columns in X range', frameLeft, 'to', frameRight);
 
       // Find all rectangle shapes (column drop zones)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const shapes = await miro.board.get({ type: 'shape' }) as any[];
 
-      // Find drop zones: rectangles within frame X bounds
-      const columnDropZones = shapes.filter((s: { shape?: string; x: number; height: number; width: number }) => {
+      // Find drop zones: rectangles within frame X bounds with column-like width
+      // Column width is TIMELINE.COLUMN_WIDTH (95), so allow 80-110 range
+      const columnDropZones = shapes.filter((s: { shape?: string; x: number; y: number; height: number; width: number; style?: { fillColor?: string; borderColor?: string } }) => {
         const isRectangle = s.shape === 'rectangle';
         const inFrameX = s.x >= frameLeft - 10 && s.x <= frameRight + 10;
-        const isColumnWidth = s.width > 80 && s.width < 120; // Column width ~95
-        return isRectangle && inFrameX && isColumnWidth;
+        const isColumnWidth = s.width >= 80 && s.width <= 110;
+        // Also check it's below the header (not the header itself)
+        const isDropZone = s.y > frameTop + TIMELINE.PADDING + TIMELINE.HEADER_HEIGHT;
+        // Drop zones have white fill and gray border
+        const hasCorrectStyle = s.style?.fillColor === '#FFFFFF' && s.style?.borderColor === '#E5E7EB';
+
+        if (isRectangle && inFrameX && isColumnWidth) {
+          console.log('[MiroTimeline] Potential column:', {
+            x: s.x,
+            y: s.y,
+            width: s.width,
+            height: s.height,
+            isDropZone,
+            hasCorrectStyle,
+            fillColor: s.style?.fillColor,
+            borderColor: s.style?.borderColor
+          });
+        }
+
+        return isRectangle && inFrameX && isColumnWidth && isDropZone;
       });
 
-      log('MiroTimeline', `Found ${columnDropZones.length} column drop zones to expand`);
+      console.log('[MiroTimeline] Found', columnDropZones.length, 'column drop zones to expand');
 
       // Calculate new column dimensions
+      // Columns should fill from below header to near bottom of frame
       const newColumnHeight = newFrameHeight - TIMELINE.PADDING * 2 - TIMELINE.HEADER_HEIGHT - 15;
       const newColumnTopY = frameTop + TIMELINE.PADDING + TIMELINE.HEADER_HEIGHT + 10;
       const newColumnCenterY = newColumnTopY + newColumnHeight / 2;
 
+      console.log('[MiroTimeline] New column dimensions:', {
+        newColumnHeight,
+        newColumnTopY,
+        newColumnCenterY,
+        frameTop,
+        newFrameHeight
+      });
+
       for (const zone of columnDropZones) {
+        const oldHeight = zone.height;
         zone.height = newColumnHeight;
         zone.y = newColumnCenterY;
         await miro.board.sync(zone);
+        console.log('[MiroTimeline] Expanded column at X=', zone.x, 'from height', oldHeight, 'to', newColumnHeight);
       }
 
-      log('MiroTimeline', `Expanded ${columnDropZones.length} column drop zones to height ${newColumnHeight}`);
+      if (columnDropZones.length === 0) {
+        console.log('[MiroTimeline] WARNING: No column drop zones found to expand!');
+      }
     } catch (e) {
-      log('MiroTimeline', 'Failed to expand column drop zones', e);
+      console.error('[MiroTimeline] Failed to expand column drop zones', e);
     }
   }
 

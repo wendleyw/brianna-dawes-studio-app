@@ -201,3 +201,108 @@
   padding-top: 8px;
   border-top: 1px solid #e5e7eb;
 }
+
+/* Satisfaction Rating Section */
+.satisfactionSection {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  background: #fefce8;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+}
+
+.satisfactionLabel {
+  font-size: 14px;
+  font-weight: 600;
+  color: #854d0e;
+}
+
+.starRating {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.star {
+  font-size: 28px;
+  cursor: pointer;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+  opacity: 0.4;
+  filter: grayscale(100%);
+}
+
+.star:hover {
+  transform: scale(1.2);
+}
+
+.starActive {
+  opacity: 1;
+  filter: grayscale(0%);
+}
+
+.star:disabled {
+  cursor: not-allowed;
+}
+
+.ratingLabel {
+  margin-left: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 4px 12px;
+  border-radius: 12px;
+}
+
+.ratingExcellent {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.ratingGood {
+  background: #ecfccb;
+  color: #3f6212;
+}
+
+.ratingSatisfactory {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.ratingNeedsImprovement {
+  background: #ffedd5;
+  color: #9a3412;
+}
+
+.ratingPoor {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.notesInput {
+  padding: 10px 12px;
+  font-size: 14px;
+  border: 1px solid #fde68a;
+  border-radius: 6px;
+  background-color: #ffffff;
+  color: #1f2937;
+  resize: vertical;
+  min-height: 60px;
+  font-family: inherit;
+}
+
+.notesInput:focus {
+  outline: none;
+  border-color: #f59e0b;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+}
+
+.notesInput:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background-color: #fefce8;
+}
+
+.notesInput::placeholder {
+  color: #a1a1aa;
+}
