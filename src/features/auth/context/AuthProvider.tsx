@@ -22,11 +22,13 @@ async function verifyUserExists(userId: string): Promise<{
   name?: string;
   email?: string;
   isSuperAdmin?: boolean;
+  companyName?: string | null;
+  companyLogoUrl?: string | null;
 }> {
   try {
     const { data, error } = await supabase
       .from('users')
-      .select('id, role, primary_board_id, name, email, is_super_admin')
+      .select('id, role, primary_board_id, name, email, is_super_admin, company_name, company_logo_url')
       .eq('id', userId)
       .maybeSingle();
 
@@ -46,6 +48,8 @@ async function verifyUserExists(userId: string): Promise<{
       name: data.name as string,
       email: data.email as string,
       isSuperAdmin: data.is_super_admin as boolean,
+      companyName: data.company_name as string | null,
+      companyLogoUrl: data.company_logo_url as string | null,
     };
   } catch (err) {
     logger.error('Failed to verify user existence', err);
@@ -141,16 +145,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
                 email: userCheck.email || user.email,
                 primaryBoardId: userCheck.primaryBoardId ?? null,
                 isSuperAdmin: userCheck.isSuperAdmin ?? false,
+                companyName: userCheck.companyName ?? null,
+                companyLogoUrl: userCheck.companyLogoUrl ?? null,
               };
 
               // Check if user data changed and update localStorage
               if (user.role !== updatedUser.role ||
                   user.primaryBoardId !== updatedUser.primaryBoardId ||
-                  user.isSuperAdmin !== updatedUser.isSuperAdmin) {
+                  user.isSuperAdmin !== updatedUser.isSuperAdmin ||
+                  user.companyName !== updatedUser.companyName ||
+                  user.companyLogoUrl !== updatedUser.companyLogoUrl) {
                 logger.info('User data changed in database, updating cache', {
                   oldRole: user.role,
                   newRole: updatedUser.role,
                   isSuperAdmin: updatedUser.isSuperAdmin,
+                  companyName: updatedUser.companyName,
                 });
                 localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(updatedUser));
               }
