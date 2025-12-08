@@ -415,14 +415,14 @@ class MiroClientReportService {
         },
       });
 
-      // Grid line
+      // Grid line (Miro SDK requires minimum height of 8)
       await miro.board.createShape({
         shape: 'rectangle',
         content: '',
         x: startX + 60 + barAreaWidth / 2,
         y: yPos + 30,
         width: barAreaWidth,
-        height: 1,
+        height: 8,
         style: {
           fillColor: '#E5E7EB',
           borderWidth: 0,
@@ -444,7 +444,8 @@ class MiroClientReportService {
 
       // Assets bar
       const assetsHeight = maxValue > 0 ? (week.assets / maxValue) * chartHeight : 0;
-      if (assetsHeight > 0) {
+      // Miro SDK requires minimum height of 8 for shapes
+      if (assetsHeight >= 8) {
         await miro.board.createShape({
           shape: 'rectangle',
           content: '',
@@ -474,7 +475,8 @@ class MiroClientReportService {
 
       // Bonus bar
       const bonusHeight = maxValue > 0 ? (week.bonus / maxValue) * chartHeight : 0;
-      if (bonusHeight > 0) {
+      // Miro SDK requires minimum height of 8 for shapes
+      if (bonusHeight >= 8) {
         await miro.board.createShape({
           shape: 'rectangle',
           content: '',

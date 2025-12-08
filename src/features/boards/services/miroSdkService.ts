@@ -485,17 +485,17 @@ class MiroMasterTimelineService {
     const datePart = formatDueDate(project.dueDate);
     const authorPart = project.client?.name || '';
 
-    // Build title with line breaks (for fallback)
+    // Build title with line breaks - Miro cards support plain text with \n for multi-line
     const titleLines = [
       `${priorityIcon} ${reviewedPrefix}${project.name}`,
-      datePart ? `📅 ${datePart}` : '',
-      authorPart ? `👤 ${authorPart}` : '',
+      datePart ? `› ${datePart}` : '',
+      authorPart ? `› ${authorPart}` : '',
     ].filter(Boolean);
 
     const title = titleLines.join('\n');
 
-    // Build multi-line title using HTML (cards support basic HTML for proper line breaks)
-    const cardTitle = `<p><strong>${priorityIcon} ${reviewedPrefix}${project.name}</strong></p>${datePart ? `<p>📅 ${datePart}</p>` : ''}${authorPart ? `<p>👤 ${authorPart}</p>` : ''}`;
+    // Use plain text with newlines for card title (Miro SDK v2 supports \n in title)
+    const cardTitle = title;
 
     // Build description with reviewed flag
     const description = `projectId:${project.id}${wasReviewed ? '|reviewed:true' : ''}`;
@@ -827,7 +827,7 @@ class MiroMasterTimelineService {
 
     log('MiroTimeline', `Creating NEW card for "${project.name}" at position (${cardX}, ${cardY})`);
 
-    // Use card with HTML title for multi-line support
+    // Create card with multi-line title (using \n for line breaks)
     const newMiroCard = await miro.board.createCard({
       title: cardTitle,
       description, // Store projectId in description for cross-context discovery

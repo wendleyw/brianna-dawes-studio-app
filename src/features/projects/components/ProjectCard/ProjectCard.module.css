@@ -522,7 +522,7 @@
 .status_in_progress { background-color: rgba(139, 92, 246, 0.15); color: #8B5CF6; }
 .status_in_review { background-color: rgba(99, 102, 241, 0.15); color: #6366F1; }
 .status_approved { background-color: rgba(34, 197, 94, 0.15); color: #22C55E; }
-.status_delivered { background-color: rgba(34, 197, 94, 0.2); color: #16A34A; }
+.status_delivered { background-color: #050038; color: #FFFFFF; }
 
 .deliverableActions {
   display: flex;
