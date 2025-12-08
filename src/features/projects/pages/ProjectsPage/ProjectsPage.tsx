@@ -384,7 +384,6 @@ export function ProjectsPage() {
               <video
                 src={env.brand.logoVideoUrl}
                 autoPlay
-                loop
                 muted
                 playsInline
                 className={styles.partnerLogoVideo}
