@@ -25,7 +25,7 @@ export interface StatusColumn {
 // The 5 status columns - single source of truth
 export const STATUS_COLUMNS: StatusColumn[] = [
   { id: 'overdue', label: 'OVERDUE', color: '#F97316', description: 'Past due date' },
-  { id: 'urgent', label: 'URGENT', color: '#EAB308', description: 'High priority, deadline approaching' },
+  { id: 'urgent', label: 'URGENT', color: '#DC2626', description: 'High priority, deadline approaching' },
   { id: 'in_progress', label: 'IN PROGRESS', color: '#3B82F6', description: 'Actively being worked on' },
   { id: 'review', label: 'REVIEW', color: '#6366F1', description: 'Awaiting client review/approval' },
   { id: 'done', label: 'DONE', color: '#22C55E', description: 'Completed' },

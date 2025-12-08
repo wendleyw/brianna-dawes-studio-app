@@ -1521,7 +1521,7 @@ class MiroProjectRowService {
       // Strategy 3: Find by unique status color (colors not shared with priority)
       if (!statusShape && badgeRow.length > 0) {
         // These colors are ONLY used by status badges, not priority badges
-        const uniqueStatusColors = ['#3B82F6', '#8B5CF6', '#6366F1', '#22C55E', '#EAB308'];
+        const uniqueStatusColors = ['#3B82F6', '#8B5CF6', '#6366F1', '#22C55E', '#DC2626'];
         statusShape = badgeRow.find(s => {
           const fillColor = s.style?.fillColor?.toUpperCase();
           return fillColor && uniqueStatusColors.some(c => c.toUpperCase() === fillColor);

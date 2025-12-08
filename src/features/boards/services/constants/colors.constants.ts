@@ -24,7 +24,7 @@ export const TIMELINE_COLUMNS: Array<{
   color: string;
 }> = [
   { id: 'overdue', label: 'OVERDUE', color: '#F97316' },
-  { id: 'urgent', label: 'URGENT', color: '#EAB308' },
+  { id: 'urgent', label: 'URGENT', color: '#DC2626' },
   { id: 'in_progress', label: 'IN PROGRESS', color: '#3B82F6' },
   { id: 'review', label: 'REVIEW', color: '#6366F1' },
   { id: 'done', label: 'DONE', color: '#22C55E' },
