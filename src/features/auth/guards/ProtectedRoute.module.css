@@ -140,7 +140,7 @@
 .miroIdValue {
   font-size: 12px;
   font-family: monospace;
-  color: #050038;
+  color: #000000;
 }
 
 /* Help text box */
@@ -176,7 +176,7 @@
 
 .buttonPrimary {
   composes: button;
-  background-color: #050038;
+  background-color: #000000;
   color: white;
   margin-bottom: 12px;
 }

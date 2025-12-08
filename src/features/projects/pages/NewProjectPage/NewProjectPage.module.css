@@ -45,7 +45,7 @@
   font-size: var(--text-xs);
   font-weight: var(--font-bold);
   letter-spacing: var(--tracking-widest);
-  color: #050038;
+  color: #000000;
   margin: 0;
 }
 
@@ -309,8 +309,8 @@
 }
 
 .prioritySelected {
-  border-color: #050038;
-  background-color: #050038;
+  border-color: #000000;
+  background-color: #000000;
   color: white;
 }
 

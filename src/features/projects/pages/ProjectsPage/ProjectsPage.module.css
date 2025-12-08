@@ -47,8 +47,8 @@
   align-items: center;
   gap: var(--space-1);
   padding: var(--space-1) var(--space-2);
-  background-color: #050038;
-  border: 1px solid #050038;
+  background-color: #000000;
+  border: 1px solid #000000;
   border-radius: var(--radius-md);
   color: white;
   font-size: var(--text-xs);
@@ -58,8 +58,8 @@
 }
 
 .adminButton:hover {
-  background-color: #0a0050;
-  border-color: #0a0050;
+  background-color: #333333;
+  border-color: #333333;
   color: white;
 }
 
@@ -97,8 +97,8 @@
   width: 36px;
   height: 36px;
   border-radius: var(--radius-md);
-  background-color: #050038;
-  border: 1px solid #050038;
+  background-color: #000000;
+  border: 1px solid #000000;
   color: white;
   display: flex;
   align-items: center;
@@ -108,8 +108,8 @@
 }
 
 .backButton:hover {
-  background-color: #0a0050;
-  border-color: #0a0050;
+  background-color: #333333;
+  border-color: #333333;
   color: white;
 }
 
@@ -131,7 +131,7 @@
   font-size: var(--text-xs);
   font-weight: var(--font-bold);
   letter-spacing: var(--tracking-widest);
-  color: #050038;
+  color: #000000;
   margin: 0;
 }
 
@@ -150,8 +150,8 @@
   width: 36px;
   height: 36px;
   border-radius: var(--radius-md);
-  background-color: #050038;
-  border: 1px solid #050038;
+  background-color: #000000;
+  border: 1px solid #000000;
   color: white;
   display: flex;
   align-items: center;
@@ -161,8 +161,8 @@
 }
 
 .gridButton:hover {
-  background-color: #0a0050;
-  border-color: #0a0050;
+  background-color: #333333;
+  border-color: #333333;
   color: white;
 }
 
@@ -283,7 +283,7 @@
 .createButton {
   margin-top: var(--space-3);
   padding: var(--space-2) var(--space-4);
-  background-color: #050038;
+  background-color: #000000;
   color: white;
   border: none;
   border-radius: var(--radius-md);
@@ -293,7 +293,7 @@
 }
 
 .createButton:hover {
-  background-color: #0a0050;
+  background-color: #333333;
 }
 
 /* Project Card */

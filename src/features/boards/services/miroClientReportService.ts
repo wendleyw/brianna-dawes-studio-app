@@ -35,7 +35,7 @@ const CHART_COLORS = {
   inProgress: '#F59E0B',  // Yellow
   pending: '#6B7280',     // Gray
   rejected: '#EF4444',    // Red
-  primary: '#050038',     // Brand primary
+  primary: '#000000',     // Brand primary
   accent: '#2563EB',      // Brand accent
 };
 

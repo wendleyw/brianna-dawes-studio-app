@@ -3,7 +3,7 @@
   flex-direction: column;
   background-color: var(--color-bg-primary);
   border-radius: var(--radius-lg);
-  border: 2px solid #050038;
+  border: 2px solid #000000;
   padding: var(--space-4);
   transition: box-shadow var(--transition-fast), border-color var(--transition-fast);
 }
@@ -522,7 +522,7 @@
 .status_in_progress { background-color: rgba(139, 92, 246, 0.15); color: #8B5CF6; }
 .status_in_review { background-color: rgba(99, 102, 241, 0.15); color: #6366F1; }
 .status_approved { background-color: rgba(34, 197, 94, 0.15); color: #22C55E; }
-.status_delivered { background-color: #050038; color: #FFFFFF; }
+.status_delivered { background-color: #000000; color: #FFFFFF; }
 
 .deliverableActions {
   display: flex;
