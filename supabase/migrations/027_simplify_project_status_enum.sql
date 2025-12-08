@@ -1,10 +1,10 @@
 -- Migration: Simplify project_status enum from 7 to 5 statuses
 -- Remove 'critical' and 'on_track' statuses
--- Migrate: critical -> overdue, on_track -> in_progress
+-- Migrate: critical -> urgent, on_track -> in_progress
 
 -- Step 1: Update existing projects to new statuses before changing the enum
 UPDATE public.projects
-SET status = 'overdue'
+SET status = 'urgent'
 WHERE status = 'critical';
 
 UPDATE public.projects
@@ -20,8 +20,8 @@ DROP VIEW IF EXISTS public.activity_feed CASCADE;
 
 -- Step 4: Create new enum type with 5 statuses
 CREATE TYPE project_status_new AS ENUM (
-  'overdue',       -- Past due date (includes former 'critical')
-  'urgent',        -- High priority, deadline approaching
+  'overdue',       -- Past due date
+  'urgent',        -- High priority, deadline approaching (includes former 'critical')
   'in_progress',   -- Actively being worked on (includes former 'on_track')
   'review',        -- Awaiting client review/approval
   'done'           -- Completed or archived
