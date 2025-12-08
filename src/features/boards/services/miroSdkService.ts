@@ -887,18 +887,38 @@ class MiroMasterTimelineService {
       const seenColumnX = new Set<number>();
 
       // Find drop zones: rectangles within frame X bounds with column-like width
-      // Column width is TIMELINE.COLUMN_WIDTH (95), so allow 80-110 range
+      // Column width is TIMELINE.COLUMN_WIDTH (95), so allow 80-120 range
       const columnDropZones = shapes.filter((s: { id: string; shape?: string; x: number; y: number; height: number; width: number; style?: { fillColor?: string; borderColor?: string } }) => {
         const isRectangle = s.shape === 'rectangle';
         const inFrameX = s.x >= frameLeft - 10 && s.x <= frameRight + 10;
-        const isColumnWidth = s.width >= 80 && s.width <= 110;
-        // Also check it's below the header (not the header itself)
-        const isDropZone = s.y > frameTop + TIMELINE.PADDING + TIMELINE.HEADER_HEIGHT;
-        // Drop zones have white fill and gray border
-        const hasCorrectStyle = s.style?.fillColor === '#FFFFFF' && s.style?.borderColor === '#E5E7EB';
+        const isColumnWidth = s.width >= 80 && s.width <= 120;
+        // Check it's a tall shape (column drop zones are tall - at least 200px)
+        const isTall = s.height >= 200;
+        // Also check the CENTER Y is in the column area (below the header)
+        // The header is at frameTop + PADDING, so columns start below that
+        const shapeTop = s.y - s.height / 2;
+        const isDropZone = shapeTop > frameTop + TIMELINE.PADDING + TIMELINE.HEADER_HEIGHT - 20;
 
-        // Check if valid column drop zone
-        const isValid = isRectangle && inFrameX && isColumnWidth && isDropZone && hasCorrectStyle;
+        // Log all rectangles for debugging
+        if (isRectangle && inFrameX && s.height > 100) {
+          console.log('[MiroTimeline] Checking shape:', {
+            id: s.id,
+            x: Math.round(s.x),
+            y: Math.round(s.y),
+            width: s.width,
+            height: s.height,
+            shapeTop: Math.round(shapeTop),
+            isColumnWidth,
+            isTall,
+            isDropZone,
+            fill: s.style?.fillColor,
+            border: s.style?.borderColor
+          });
+        }
+
+        // Check if valid column drop zone - just need to be correct position and size
+        // Don't filter by style as colors may vary
+        const isValid = isRectangle && inFrameX && isColumnWidth && isTall && isDropZone;
 
         // Deduplicate by X position (round to nearest 10)
         if (isValid) {
@@ -907,7 +927,7 @@ class MiroMasterTimelineService {
             return false; // Skip duplicate
           }
           seenColumnX.add(roundedX);
-          console.log('[MiroTimeline] Found column drop zone:', { id: s.id, x: s.x, height: s.height });
+          console.log('[MiroTimeline] ✓ Found column drop zone:', { id: s.id, x: s.x, height: s.height });
         }
 
         return isValid;
@@ -937,15 +957,40 @@ class MiroMasterTimelineService {
         console.log('[MiroTimeline] Expanded column at X=', zone.x, 'from height', oldHeight, 'to', newColumnHeight);
       }
 
-      // Also find and move any horizontal separator lines at the bottom
-      // These are wide rectangles (spanning multiple columns) that are thin (height < 10)
-      const separatorLines = shapes.filter((s: { shape?: string; x: number; y: number; height: number; width: number }) => {
+      // Also find and move any horizontal separator lines or borders
+      // These can be:
+      // 1. Wide rectangles (spanning multiple columns) that are thin (height < 10)
+      // 2. Lines inside the frame area that aren't column drop zones
+      const separatorLines = shapes.filter((s: { id: string; shape?: string; x: number; y: number; height: number; width: number; style?: { fillColor?: string; borderColor?: string } }) => {
         const isRectangle = s.shape === 'rectangle';
-        const isWide = s.width > 200; // Spans multiple columns
-        const isThin = s.height <= 5; // Thin line
-        const isNearFrameCenter = Math.abs(s.x - currentFrameX) < 50; // Centered in frame
-        return isRectangle && isWide && isThin && isNearFrameCenter;
+        const inFrameX = s.x >= frameLeft - 10 && s.x <= frameRight + 10;
+
+        // Check for horizontal separator patterns:
+        // Pattern 1: Wide thin rectangle (traditional separator)
+        const isWideThinLine = s.width > 200 && s.height <= 10;
+
+        // Pattern 2: Full-width line spanning the frame
+        const isFullWidthLine = s.width > TIMELINE.FRAME_WIDTH * 0.8 && s.height <= 10;
+
+        // Pattern 3: Narrow tall shape that spans the full height (vertical divider)
+        // Skip these - we only want horizontal separators
+        const isVerticalDivider = s.width <= 10 && s.height > 50;
+        if (isVerticalDivider) return false;
+
+        // Must be a thin horizontal shape (separator) within the frame X bounds
+        const isSeparator = isRectangle && inFrameX && (isWideThinLine || isFullWidthLine);
+
+        // Skip if it's at the very top (header area)
+        const isInContentArea = s.y > frameTop + TIMELINE.PADDING + TIMELINE.HEADER_HEIGHT + 50;
+
+        if (isSeparator && isInContentArea) {
+          console.log('[MiroTimeline] Found separator line:', { id: s.id, x: s.x, y: s.y, width: s.width, height: s.height });
+        }
+
+        return isSeparator && isInContentArea;
       });
+
+      console.log('[MiroTimeline] Found', separatorLines.length, 'separator lines to move');
 
       // Move separator lines to new frame bottom
       for (const line of separatorLines) {
