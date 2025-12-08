@@ -1478,7 +1478,7 @@ class MiroProjectRowService {
       width: contentWidth,
       height: 36,
       style: {
-        fillColor: '#1F2937',
+        fillColor: '#000000',
         borderColor: 'transparent',
         borderWidth: 0,
         color: '#FFFFFF',
@@ -1532,7 +1532,7 @@ class MiroProjectRowService {
       width: BADGE_WIDTHS.type,
       height: BADGE_HEIGHT,
       style: {
-        fillColor: '#1F2937',
+        fillColor: '#000000',
         borderColor: 'transparent',
         borderWidth: 0,
         color: '#FFFFFF',
@@ -1628,7 +1628,7 @@ class MiroProjectRowService {
           fillColor: hasValue ? '#FFFFFF' : '#FEF2F2',
           borderColor: '#E5E7EB',
           borderWidth: 1,
-          color: hasValue ? '#1F2937' : '#EF4444',
+          color: hasValue ? '#000000' : '#EF4444',
           fontSize: 10,
           textAlign: hasValue ? 'left' : 'center',
           textAlignVertical: hasValue ? 'top' : 'middle',
@@ -1694,7 +1694,7 @@ class MiroProjectRowService {
       width: contentWidth,
       height: 36,
       style: {
-        fillColor: '#1F2937',
+        fillColor: '#000000',
         color: '#FFFFFF',
         fontSize: 13,
         textAlign: 'center',

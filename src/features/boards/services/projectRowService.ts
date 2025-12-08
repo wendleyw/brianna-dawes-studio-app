@@ -315,7 +315,7 @@ class ProjectRowService {
       height: 35,
       content: '📋 PROCESS STAGES - Click + to add more frames',
       style: {
-        fillColor: '#1F2937',
+        fillColor: '#000000',
         fontColor: '#FFFFFF',
         fontSize: '12',
       },

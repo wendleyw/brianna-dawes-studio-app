@@ -384,7 +384,7 @@ class MiroClientReportService {
       style: {
         fontSize: 16,
         textAlign: 'left',
-        color: '#1F2937',
+        color: '#000000',
       },
     });
 
@@ -577,7 +577,7 @@ class MiroClientReportService {
       style: {
         fontSize: 16,
         textAlign: 'left',
-        color: '#1F2937',
+        color: '#000000',
       },
     });
 
@@ -674,7 +674,7 @@ class MiroClientReportService {
       style: {
         fontSize: 16,
         textAlign: 'left',
-        color: '#1F2937',
+        color: '#000000',
       },
     });
 
@@ -757,7 +757,7 @@ class MiroClientReportService {
       style: {
         fontSize: 16,
         textAlign: 'left',
-        color: '#1F2937',
+        color: '#000000',
       },
     });
 

@@ -236,7 +236,7 @@ class MiroReportService {
       width: contentWidth,
       height: 50,
       style: {
-        fillColor: '#1F2937',
+        fillColor: '#000000',
         color: '#FFFFFF',
         fontSize: 18,
         textAlign: 'center',
@@ -321,7 +321,7 @@ class MiroReportService {
         style: {
           fontSize: 32,
           textAlign: 'center',
-          color: '#1F2937',
+          color: '#000000',
         },
       });
 
@@ -539,7 +539,7 @@ class MiroReportService {
         style: {
           fontSize: 11,
           textAlign: 'left',
-          color: '#1F2937',
+          color: '#000000',
         },
       });
 

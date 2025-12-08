@@ -117,7 +117,7 @@
 .actionIconSecondary {
   composes: actionIcon;
   background-color: #E5E7EB;
-  color: #1F2937;
+  color: #000000;
 }
 
 .actionIconDark {

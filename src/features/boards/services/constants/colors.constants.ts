@@ -34,11 +34,11 @@ export const TIMELINE_COLUMNS: Array<{
 
 /** Colors and config for project types */
 export const PROJECT_TYPE_CONFIG: Record<string, { label: string; color: string; icon: string }> = {
-  'website-ui-design': { label: 'Website UI', color: '#3B82F6', icon: '🌐' },
-  'marketing-campaign': { label: 'Marketing', color: '#8B5CF6', icon: '📣' },
-  'video-production': { label: 'Video', color: '#EF4444', icon: '🎬' },
-  'email-design': { label: 'Email', color: '#10B981', icon: '📧' },
-  'social-post-carousel': { label: 'Social Post', color: '#F59E0B', icon: '📱' },
+  'website-ui-design': { label: 'Website UI', color: '#000000', icon: '🌐' },
+  'marketing-campaign': { label: 'Marketing', color: '#000000', icon: '📣' },
+  'video-production': { label: 'Video', color: '#000000', icon: '🎬' },
+  'email-design': { label: 'Email', color: '#000000', icon: '📧' },
+  'social-post-carousel': { label: 'Social Post', color: '#000000', icon: '📱' },
 } as const;
 
 // ==================== UI COLORS ====================
@@ -47,7 +47,7 @@ export const PROJECT_TYPE_CONFIG: Record<string, { label: string; color: string;
 export const UI_COLORS = {
   // Backgrounds
   BG_WHITE: '#FFFFFF',
-  BG_DARK: '#1F2937',
+  BG_DARK: '#000000',
   BG_GRAY: '#F3F4F6',
 
   // Borders

@@ -94,9 +94,9 @@
 }
 
 .backButton {
-  width: 28px;
-  height: 28px;
-  border-radius: var(--radius-sm);
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
   background-color: #000000;
   border: 1px solid #000000;
   color: white;
@@ -105,6 +105,12 @@
   justify-content: center;
   cursor: pointer;
   transition: all var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.backButton svg {
+  width: 12px;
+  height: 12px;
 }
 
 .backButton:hover {
@@ -338,7 +344,7 @@
   font-size: 10px;
   font-weight: var(--font-semibold);
   letter-spacing: 0.03em;
-  background-color: #1F2937;
+  background-color: #000000;
   color: white;
 }
 
