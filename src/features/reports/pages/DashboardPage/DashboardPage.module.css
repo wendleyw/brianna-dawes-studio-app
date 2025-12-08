@@ -309,6 +309,22 @@
   opacity: 0.9;
 }
 
+.timelineSeparator {
+  font-size: var(--text-2xs);
+  opacity: 0.6;
+  flex-shrink: 0;
+}
+
+.timelineAuthor {
+  font-size: var(--text-2xs);
+  font-weight: var(--font-medium);
+  white-space: nowrap;
+  opacity: 0.85;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 80px;
+}
+
 .emptyTimeline {
   font-size: var(--text-sm);
   color: var(--color-text-muted);

@@ -291,7 +291,14 @@ export function DashboardPage() {
                           title="Click to zoom • Double-click to open"
                         >
                           <span className={styles.timelineName}>{project.name}</span>
+                          <span className={styles.timelineSeparator}>|</span>
                           <span className={styles.timelineDate}>{formatDateShort(project.dueDate!)}</span>
+                          {project.client?.name && (
+                            <>
+                              <span className={styles.timelineSeparator}>|</span>
+                              <span className={styles.timelineAuthor}>{project.client.name}</span>
+                            </>
+                          )}
                         </button>
                       ))}
                     </div>
