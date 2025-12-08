@@ -391,20 +391,22 @@ class MiroMasterTimelineService {
                          project.priority === 'medium' ? '🟡' :
                          '🟢'; // low/standard
 
-    // Build clean card title - single line format
-    // Format: [icon] Project Title | Due Date | Author
+    // Build clean card title - multi-line format
+    // Line 1: [icon] Project Title
+    // Line 2: Due Date
+    // Line 3: Author
     const reviewedPrefix = wasReviewed ? '✓ ' : '';
     const datePart = formatDueDate(project.dueDate);
     const authorPart = project.client?.name || '';
 
-    // Build title parts with separators
-    const titleParts = [
+    // Build title with line breaks
+    const titleLines = [
       `${priorityIcon} ${reviewedPrefix}${project.name}`,
-      datePart,
-      authorPart,
+      datePart ? `📅 ${datePart}` : '',
+      authorPart ? `👤 ${authorPart}` : '',
     ].filter(Boolean);
 
-    const title = titleParts.join(' | ');
+    const title = titleLines.join('\n');
 
     // Build description with reviewed flag
     const description = `projectId:${project.id}${wasReviewed ? '|reviewed:true' : ''}`;
