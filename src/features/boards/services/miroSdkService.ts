@@ -478,16 +478,16 @@ class MiroMasterTimelineService {
                          '🟢'; // low/standard
 
     // Build clean card title - multi-line format
-    // Line 1: [icon] Project Title
+    // Line 1: [REVIEWED] [icon] Project Title (if reviewed)
     // Line 2: Due Date
     // Line 3: Author
-    const reviewedPrefix = wasReviewed ? '✓ ' : '';
+    const reviewedTag = wasReviewed ? '[REVIEWED] ' : '';
     const datePart = formatDueDate(project.dueDate);
     const authorPart = project.client?.name || '';
 
     // Build title with line breaks - Miro cards support plain text with \n for multi-line
     const titleLines = [
-      `${priorityIcon} ${reviewedPrefix}${project.name}`,
+      `${reviewedTag}${priorityIcon} ${project.name}`,
       datePart ? `› ${datePart}` : '',
       authorPart ? `› ${authorPart}` : '',
     ].filter(Boolean);
