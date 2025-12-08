@@ -488,7 +488,7 @@ class MiroMasterTimelineService {
     const datePart = formatDueDate(project.dueDate);
     const authorPart = project.client?.name || '';
 
-    // Build title with line breaks
+    // Build title with line breaks (for fallback)
     const titleLines = [
       `${priorityIcon} ${reviewedPrefix}${project.name}`,
       datePart ? `📅 ${datePart}` : '',
@@ -496,6 +496,9 @@ class MiroMasterTimelineService {
     ].filter(Boolean);
 
     const title = titleLines.join('\n');
+
+    // Build multi-line title using HTML (cards support basic HTML for proper line breaks)
+    const cardTitle = `<p><strong>${priorityIcon} ${reviewedPrefix}${project.name}</strong></p>${datePart ? `<p>📅 ${datePart}</p>` : ''}${authorPart ? `<p>👤 ${authorPart}</p>` : ''}`;
 
     // Build description with reviewed flag
     const description = `projectId:${project.id}${wasReviewed ? '|reviewed:true' : ''}`;
@@ -725,7 +728,7 @@ class MiroMasterTimelineService {
           // Do NOT change the position - this prevents drift on re-syncs
           const itemInCorrectColumn = Math.abs(item.x - cardX) < columnWidth / 2;
 
-          item.title = title;
+          item.title = cardTitle; // Use HTML title for proper multi-line display
           item.description = description; // Ensure projectId is stored
           item.style = { cardTheme: column.color };
 
@@ -826,9 +829,6 @@ class MiroMasterTimelineService {
     }
 
     log('MiroTimeline', `Creating NEW card for "${project.name}" at position (${cardX}, ${cardY})`);
-
-    // Build multi-line title using HTML (cards support basic HTML)
-    const cardTitle = `<p><strong>${priorityIcon} ${reviewedPrefix}${project.name}</strong></p><p>📅 ${datePart}</p><p>👤 ${authorPart}</p>`;
 
     // Use card with HTML title for multi-line support
     const newMiroCard = await miro.board.createCard({
