@@ -220,12 +220,21 @@ class MiroMasterTimelineService {
     if (existingTimeline) {
       log('MiroTimeline', 'Found existing timeline on board', existingTimeline.id);
 
-      // Restore state from existing timeline
+      // Restore state from existing timeline - use CURRENT position from board
       this.frameCenterX = existingTimeline.x;
+      // IMPORTANT: frameCenterY should be the actual frame center, accounting for any expansion
+      // The frame height may have changed, but we store the CURRENT center
       this.frameCenterY = existingTimeline.y;
 
-      // Create column state
-      const columns: TimelineColumn[] = this.calculateColumnPositions();
+      log('MiroTimeline', 'Frame position restored', {
+        x: this.frameCenterX,
+        y: this.frameCenterY,
+        width: existingTimeline.width,
+        height: existingTimeline.height
+      });
+
+      // Create column state - recalculate based on current frame position and actual height
+      const columns: TimelineColumn[] = this.calculateColumnPositions(existingTimeline.height);
 
       this.state = {
         frameId: existingTimeline.id,
@@ -351,10 +360,14 @@ class MiroMasterTimelineService {
 
   /**
    * Calculate column positions for existing timeline (single row, no internal title)
+   * Uses stored frame height if available to calculate correct frameTop
    */
-  private calculateColumnPositions(): TimelineColumn[] {
+  private calculateColumnPositions(actualFrameHeight?: number): TimelineColumn[] {
     const frameLeft = this.frameCenterX - TIMELINE.FRAME_WIDTH / 2;
-    const frameTop = this.frameCenterY - TIMELINE.FRAME_HEIGHT / 2;
+    // IMPORTANT: Use actual frame height to calculate correct frameTop
+    // The frame expands downward, so the top stays at: centerY - height/2
+    const frameHeight = actualFrameHeight || TIMELINE.FRAME_HEIGHT;
+    const frameTop = this.frameCenterY - frameHeight / 2;
 
     const startX = frameLeft + TIMELINE.PADDING;
     const statusHeaderY = frameTop + TIMELINE.PADDING + TIMELINE.HEADER_HEIGHT / 2;
@@ -510,25 +523,10 @@ class MiroMasterTimelineService {
     }
 
     // STEP 4: Calculate new position in target column
-    // Count cards in the column, excluding the current project's card
     const columnX = column.x;
     const columnWidth = column.width ?? TIMELINE.COLUMN_WIDTH;
 
-    // Get this project's card ID (prefer board truth, then memory)
-    const thisProjectCardId = existingCardOnBoard?.id || existingInMemory?.miroCardId;
-
-    // Find all cards physically in this column's X range (excluding current project's card)
-    const cardsInColumnOnBoard = allBoardCards.filter(c => {
-      // Must be within column X range
-      const inColumnX = Math.abs(c.x - columnX) < columnWidth / 2;
-      // Must not be this project's card (by ID)
-      const notThisProjectCard = c.id !== thisProjectCardId;
-      return inColumnX && notThisProjectCard;
-    });
-
-    console.log('[MiroTimeline] Found', cardsInColumnOnBoard.length, 'other cards in column', status);
-
-    // Get current frame bounds from the actual frame on board
+    // Get current frame bounds from the actual frame on board FIRST
     // The timeline frame has no title (empty string) or could match by position
     const frames = await miro.board.get({ type: 'frame' }) as MiroFrame[];
     let timelineFrame = frames.find(f =>
@@ -541,33 +539,66 @@ class MiroMasterTimelineService {
       timelineFrame = frames.find(f => f.id === this.state!.frameId);
     }
 
+    // If no frame found at expected position, try finding by any empty title frame near origin
+    if (!timelineFrame) {
+      timelineFrame = await findTimelineFrame() as MiroFrame | null ?? undefined;
+      if (timelineFrame) {
+        // Update our center coordinates to match the actual frame
+        this.frameCenterX = timelineFrame.x;
+        this.frameCenterY = timelineFrame.y;
+        log('MiroTimeline', 'Updated frame center from found frame', { x: this.frameCenterX, y: this.frameCenterY });
+      }
+    }
+
     console.log('[MiroTimeline] Found timeline frame:', timelineFrame?.id, 'at', timelineFrame?.x, timelineFrame?.y, 'size:', timelineFrame?.width, 'x', timelineFrame?.height);
 
-    // Calculate frame bounds
+    // Calculate frame bounds - use frame's actual position, not stored center
+    const actualFrameY = timelineFrame?.y ?? this.frameCenterY;
     const currentFrameHeight = timelineFrame?.height || TIMELINE.FRAME_HEIGHT;
-    const frameTop = (timelineFrame?.y || this.frameCenterY) - currentFrameHeight / 2;
-    const frameBottom = (timelineFrame?.y || this.frameCenterY) + currentFrameHeight / 2;
+    const frameTop = actualFrameY - currentFrameHeight / 2;
+    const frameBottom = actualFrameY + currentFrameHeight / 2;
 
     // Calculate first card Y position (inside the column, below header)
+    // FIXED: Use frameTop calculated from actual frame position
     const cardX = columnX;
     // Header is at: frameTop + PADDING + HEADER_HEIGHT/2
     // Drop zone starts at: frameTop + PADDING + HEADER_HEIGHT + small gap
     const dropZoneTop = frameTop + TIMELINE.PADDING + TIMELINE.HEADER_HEIGHT + 10;
     const firstCardY = dropZoneTop + TIMELINE.CARD_HEIGHT / 2 + 10; // Start cards 10px inside drop zone
 
-    // Calculate Y position based on actual card positions and heights (not fixed height)
-    // This prevents cards from overlapping when titles wrap to multiple lines
+    // Find all cards that have projectId in description (our cards) in this column
+    // Use description matching instead of position matching for reliability
+    const allProjectCards = allBoardCards.filter(c => c.description?.includes('projectId:'));
+
+    // Find cards in THIS column by checking their target status
+    // A card is "in this column" if it belongs to a project with the same status
+    const cardsInColumnOnBoard = allProjectCards.filter(c => {
+      // Extract projectId from description
+      const match = c.description?.match(/projectId:([a-f0-9-]+)/);
+      if (!match) return false;
+      const cardProjectId = match[1];
+      // Exclude this project's card
+      if (cardProjectId === project.id) return false;
+      // Check if card is physically in this column's X range
+      const inColumnX = Math.abs(c.x - columnX) < columnWidth / 2;
+      return inColumnX;
+    });
+
+    console.log('[MiroTimeline] Found', cardsInColumnOnBoard.length, 'other cards in column', status);
+
+    // Sort cards by Y position (top to bottom)
+    cardsInColumnOnBoard.sort((a, b) => a.y - b.y);
+
+    // Calculate Y position: place after existing cards in order
     let cardY = firstCardY;
     if (cardsInColumnOnBoard.length > 0) {
       // Find the lowest card (highest Y value) and position below it
-      const lowestCard = cardsInColumnOnBoard.reduce((lowest, card) => {
-        const cardBottom = card.y + (card.height || TIMELINE.CARD_HEIGHT) / 2;
-        const lowestBottom = lowest.y + (lowest.height || TIMELINE.CARD_HEIGHT) / 2;
-        return cardBottom > lowestBottom ? card : lowest;
-      });
-      // Position new card below the lowest card with gap
-      const lowestCardBottom = lowestCard.y + (lowestCard.height || TIMELINE.CARD_HEIGHT) / 2;
-      cardY = lowestCardBottom + TIMELINE.CARD_GAP + TIMELINE.CARD_HEIGHT / 2;
+      const lowestCard = cardsInColumnOnBoard[cardsInColumnOnBoard.length - 1];
+      if (lowestCard) {
+        // Position new card below the lowest card with gap
+        const lowestCardBottom = lowestCard.y + (lowestCard.height || TIMELINE.CARD_HEIGHT) / 2;
+        cardY = lowestCardBottom + TIMELINE.CARD_GAP + TIMELINE.CARD_HEIGHT / 2;
+      }
     }
 
     // Check if card would exceed frame bottom and expand BEFORE positioning
