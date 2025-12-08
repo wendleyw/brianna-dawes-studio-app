@@ -64,11 +64,14 @@ function getMiroSDK() {
 
 /**
  * Calculate project metrics from a list of projects
+ * NOTE: Updated to include all 7 project statuses from migration 013
  */
 function calculateProjectMetrics(projects: Project[]): ProjectMetrics {
   const byStatus: Record<ProjectStatus, number> = {
+    critical: 0,
     overdue: 0,
     urgent: 0,
+    on_track: 0,
     in_progress: 0,
     review: 0,
     done: 0,
@@ -81,10 +84,12 @@ function calculateProjectMetrics(projects: Project[]): ProjectMetrics {
   for (const project of projects) {
     byStatus[project.status] = (byStatus[project.status] || 0) + 1;
 
-    if (project.status === 'overdue') {
+    // Count critical and overdue together for the "overdue" metric
+    if (project.status === 'overdue' || project.status === 'critical') {
       overdueCount++;
     }
-    if (project.priority === 'urgent') {
+    // Count urgent status for the "urgent" metric
+    if (project.status === 'urgent' || project.priority === 'urgent') {
       urgentCount++;
     }
     if (project.status === 'done') {

@@ -1,7 +1,7 @@
 /**
  * Timeline Status - Unified status system for the entire application
  *
- * These 5 statuses are stored directly in the database and used everywhere:
+ * These 7 statuses are stored directly in the database (migration 013) and used everywhere:
  * - ProjectCard panel
  * - BoardModalApp (Trello-style board)
  * - Miro Master Timeline
@@ -22,11 +22,14 @@ export interface StatusColumn {
   description: string;
 }
 
-// The 5 status columns - single source of truth
+// The 7 status columns - single source of truth (matches DB enum from migration 013)
+// Order: Most urgent first, Done always at the end for proper filtering/display
 export const STATUS_COLUMNS: StatusColumn[] = [
+  { id: 'critical', label: 'CRITICAL', color: '#B91C1C', description: 'Urgent & overdue - needs immediate attention' },
   { id: 'overdue', label: 'OVERDUE', color: '#F97316', description: 'Past due date' },
   { id: 'urgent', label: 'URGENT', color: '#DC2626', description: 'High priority, deadline approaching' },
   { id: 'in_progress', label: 'IN PROGRESS', color: '#3B82F6', description: 'Actively being worked on' },
+  { id: 'on_track', label: 'ON TRACK', color: '#0EA5E9', description: 'Normal priority, on schedule' },
   { id: 'review', label: 'REVIEW', color: '#6366F1', description: 'Awaiting client review/approval' },
   { id: 'done', label: 'DONE', color: '#22C55E', description: 'Completed' },
 ];
@@ -35,8 +38,8 @@ export const STATUS_COLUMNS: StatusColumn[] = [
 export const TIMELINE_COLUMNS = STATUS_COLUMNS;
 export type TimelineColumn = StatusColumn;
 
-// Default column (in_progress)
-const DEFAULT_COLUMN: StatusColumn = STATUS_COLUMNS[2]!;
+// Default column (in_progress) - index 3 in the reordered 7-status array
+const DEFAULT_COLUMN: StatusColumn = STATUS_COLUMNS[3]!;
 
 // Get status column by ID
 export function getStatusColumn(status: ProjectStatus): StatusColumn {
@@ -56,9 +59,12 @@ export function getTimelineStatus(project: { status: ProjectStatus }): ProjectSt
 // Get badge variant for status
 export function getStatusVariant(status: ProjectStatus): 'error' | 'warning' | 'info' | 'success' | 'neutral' {
   switch (status) {
+    case 'critical':
+      return 'error';
     case 'overdue':
     case 'urgent':
       return 'warning';
+    case 'on_track':
     case 'in_progress':
       return 'info';
     case 'review':

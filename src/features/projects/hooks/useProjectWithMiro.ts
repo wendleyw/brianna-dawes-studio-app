@@ -1,12 +1,15 @@
 /**
  * Hook that combines project mutations with Miro board sync
  * When a project is created/updated, it also syncs to Miro board
+ *
+ * UPDATED: Now uses projectSyncOrchestrator for proper sync status tracking
  */
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { projectService } from '../services/projectService';
 import { projectKeys } from '../services/projectKeys';
 import { useMiro } from '@features/boards';
 import { miroTimelineService, miroProjectRowService } from '@features/boards/services/miroSdkService';
+import { projectSyncOrchestrator } from '@features/boards/services/projectSyncOrchestrator';
 import { MiroNotifications } from '@shared/lib/miroNotifications';
 import { createLogger } from '@shared/lib/logger';
 import type { CreateProjectInput, UpdateProjectInput, Project, ProjectBriefing } from '../domain/project.types';
@@ -33,51 +36,58 @@ export function useCreateProjectWithMiro() {
 
   return useMutation({
     mutationFn: async (input: CreateProjectInput & { briefing?: Partial<ProjectBriefing> }) => {
-      logger.debug('Starting project creation', { isInMiro, hasMiro: !!miro });
+      logger.debug('Starting project creation with orchestrator', { isInMiro, hasMiro: !!miro });
 
-      // 1. Create project in database
-      const project = await projectService.createProject(input);
-      logger.info('Project created in DB', { id: project.id });
+      // Prepare briefing data
+      const briefing: ProjectBriefing = {
+        ...DEFAULT_BRIEFING,
+        projectOverview: input.briefing?.projectOverview || input.description || null,
+        finalMessaging: input.briefing?.finalMessaging || null,
+        inspirations: input.briefing?.inspirations || null,
+        targetAudience: input.briefing?.targetAudience || null,
+        deliverables: input.briefing?.deliverables || null,
+        styleNotes: input.briefing?.styleNotes || null,
+        goals: input.briefing?.goals || null,
+        timeline: input.briefing?.timeline || null,
+        resourceLinks: input.briefing?.resourceLinks || null,
+        additionalNotes: input.briefing?.additionalNotes || null,
+      };
 
-      // 2. If running in Miro, create board elements
+      // If in Miro, use orchestrator for proper sync status tracking
       if (isInMiro && miro) {
-        logger.debug('In Miro environment, creating board elements');
-        try {
-          // Initialize timeline if not already done
-          const timelineState = miroTimelineService.getState();
-          if (!timelineState) {
-            logger.debug('Initializing Master Timeline');
-            await miroTimelineService.initializeTimeline();
-          }
+        logger.debug('In Miro environment, using projectSyncOrchestrator');
 
-          // Add project to Master Timeline
-          logger.debug('Adding project to timeline', { name: project.name });
-          await miroTimelineService.syncProject(project);
-
-          // Create project row with briefing and process stages
-          const briefing: ProjectBriefing = {
-            ...DEFAULT_BRIEFING,
-            projectOverview: input.briefing?.projectOverview || input.description || null,
-            finalMessaging: input.briefing?.finalMessaging || null,
-            inspirations: input.briefing?.inspirations || null,
-            targetAudience: input.briefing?.targetAudience || null,
-            deliverables: input.briefing?.deliverables || null,
-            styleNotes: input.briefing?.styleNotes || null,
-            goals: input.briefing?.goals || null,
-            timeline: input.briefing?.timeline || null,
-            resourceLinks: input.briefing?.resourceLinks || null,
-            additionalNotes: input.briefing?.additionalNotes || null,
-          };
-
-          await miroProjectRowService.createProjectRow(project, briefing);
-          logger.info('Miro sync complete', { name: project.name });
-        } catch (error) {
-          logger.error('Miro sync failed', error);
-          // Don't throw - project was created successfully, just Miro sync failed
+        // Initialize timeline if not already done
+        const timelineState = miroTimelineService.getState();
+        if (!timelineState) {
+          logger.debug('Initializing Master Timeline');
+          await miroTimelineService.initializeTimeline();
         }
-      } else {
-        logger.debug('Not in Miro environment, skipping board sync');
+
+        const result = await projectSyncOrchestrator.createProjectWithSync({
+          ...input,
+          briefing,
+        });
+
+        if (!result.success) {
+          logger.warn('Miro sync failed but project created', {
+            projectId: result.project.id,
+            error: result.error?.message,
+            retryable: result.retryable,
+          });
+          // Notify user about sync failure
+          await MiroNotifications.syncError(`Project created but Miro sync failed. It will retry automatically.`);
+        } else {
+          logger.info('Project created and synced successfully', { name: result.project.name });
+        }
+
+        return result.project;
       }
+
+      // Not in Miro - just create in database
+      logger.debug('Not in Miro environment, creating project in DB only');
+      const project = await projectService.createProject(input);
+      logger.info('Project created in DB (no Miro sync)', { id: project.id });
 
       return project;
     },

@@ -5,21 +5,25 @@ import type { ProjectStatus, ProjectPriority, ProjectSort } from '../../domain/p
 import styles from './ProjectFilters.module.css';
 import { useState, useEffect, useRef } from 'react';
 
+// Status options ordered by urgency, with Done always at the end
 const STATUS_OPTIONS: { value: ProjectStatus | ''; label: string }[] = [
   { value: '', label: 'All Status' },
-  { value: 'overdue', label: 'Overdue' },
-  { value: 'urgent', label: 'Urgent' },
-  { value: 'in_progress', label: 'In Progress' },
-  { value: 'review', label: 'Review' },
-  { value: 'done', label: 'Done' },
+  { value: 'critical', label: '🔴 Critical' },
+  { value: 'overdue', label: '🟠 Overdue' },
+  { value: 'urgent', label: '🔺 Urgent' },
+  { value: 'in_progress', label: '🔵 In Progress' },
+  { value: 'on_track', label: '✅ On Track' },
+  { value: 'review', label: '🟣 In Review' },
+  { value: 'done', label: '✔️ Completed' },
 ];
 
+// Priority options ordered by importance
 const PRIORITY_OPTIONS: { value: ProjectPriority | ''; label: string }[] = [
   { value: '', label: 'All Priorities' },
-  { value: 'urgent', label: 'Urgent' },
-  { value: 'high', label: 'High' },
-  { value: 'medium', label: 'Medium' },
-  { value: 'low', label: 'Standard' },
+  { value: 'urgent', label: '🔴 Urgent' },
+  { value: 'high', label: '🟠 High' },
+  { value: 'medium', label: '🟡 Medium' },
+  { value: 'low', label: '⚪ Standard' },
 ];
 
 const SORT_OPTIONS: { value: string; label: string }[] = [
