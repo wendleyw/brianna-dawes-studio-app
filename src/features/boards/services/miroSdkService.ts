@@ -640,7 +640,9 @@ class MiroMasterTimelineService {
 
     // Check if ANY card in the timeline would exceed frame bottom and expand if needed
     // This includes the current card AND all other cards in ALL columns
-    const bottomPadding = 50; // Padding at the bottom
+    // IMPORTANT: Use a larger padding that accounts for at least one more card + gap
+    // This ensures we expand BEFORE a card would be placed outside the frame
+    const bottomPadding = 50 + TIMELINE.CARD_HEIGHT + TIMELINE.CARD_GAP; // ~94px to ensure next card will fit
     let currentFrameBottom = frameBottom;
 
     // Find the lowest card across ALL columns in the timeline
@@ -660,16 +662,19 @@ class MiroMasterTimelineService {
 
     const lowestCardBottom = Math.max(...allCardBottoms);
 
+    const needsExpansion = lowestCardBottom + bottomPadding > currentFrameBottom;
     console.log('[MiroTimeline] Checking frame expansion:', {
       cardsInTimeline: allProjectCardsInTimeline.length,
       lowestCardBottom,
+      bottomPadding,
       currentFrameBottom,
-      needsExpansion: lowestCardBottom + bottomPadding > currentFrameBottom
+      threshold: lowestCardBottom + bottomPadding,
+      needsExpansion
     });
 
-    if (lowestCardBottom + bottomPadding > currentFrameBottom) {
-      // Calculate new frame height needed - add extra buffer for future cards
-      const extraBuffer = 100; // Extra space for additional cards
+    if (needsExpansion) {
+      // Calculate new frame height needed - add smaller buffer since bottomPadding now accounts for next card
+      const extraBuffer = 50; // Extra space for additional cards (reduced since bottomPadding is larger)
       const newHeight = (lowestCardBottom + bottomPadding + extraBuffer) - ORIGINAL_FRAME_TOP;
       // IMPORTANT: When frame grows, its center Y moves down to keep TOP fixed
       // newCenterY = frameTop + newHeight / 2 = ORIGINAL_FRAME_TOP + newHeight / 2
@@ -1969,7 +1974,7 @@ class MiroProjectRowService {
 
   /**
    * Handle the green "done" overlay on the briefing frame
-   * Creates overlay when status is "done", removes it otherwise
+   * Creates a semi-transparent green overlay when status is "done", removes it otherwise
    */
   private async handleDoneOverlay(
     projectId: string,
@@ -1997,13 +2002,14 @@ class MiroProjectRowService {
         }
       }
 
-      // Create the green overlay
+      // Create the green overlay with transparency
       const frameWidth = briefingFrame.width || FRAME.WIDTH;
       const frameHeight = briefingFrame.height || FRAME.HEIGHT;
 
-      console.log('[MiroProject] [handleDoneOverlay] Creating green overlay on frame:', briefingFrame.title);
+      console.log('[MiroProject] [handleDoneOverlay] Creating semi-transparent green overlay on frame:', briefingFrame.title);
 
-      // Using a semi-transparent green color (opacity built into the color)
+      // Using fillOpacity for real transparency so content is still visible
+      // Note: fillOpacity is supported by Miro SDK but not in the TypeScript types
       const overlay = await miro.board.createShape({
         shape: 'rectangle',
         x: briefingFrame.x,
@@ -2011,9 +2017,10 @@ class MiroProjectRowService {
         width: frameWidth - 20, // Slightly smaller than frame
         height: frameHeight - 20,
         style: {
-          fillColor: '#BBF7D0', // Light green (Tailwind green-200) - visible but light
+          fillColor: '#22C55E', // Green color
+          fillOpacity: 0.15, // 15% opacity - very transparent so content is visible
           borderWidth: 0,
-        },
+        } as { fillColor: string; fillOpacity: number; borderWidth: number },
       });
 
       console.log('[MiroProject] [handleDoneOverlay] Created overlay with ID:', overlay.id);
@@ -2048,11 +2055,12 @@ class MiroProjectRowService {
           const frameWidth = briefingFrame.width || FRAME.WIDTH;
           const frameHeight = briefingFrame.height || FRAME.HEIGHT;
 
-          // Find large green rectangles at the frame position
+          // Find large green rectangles at the frame position (checking for both old solid and new transparent)
           const overlayShape = allShapes.find(s => {
             const isAtFrameCenter = Math.abs(s.x - briefingFrame.x) < 50 && Math.abs(s.y - briefingFrame.y) < 50;
             const isLarge = (s.width || 0) > frameWidth * 0.8 && (s.height || 0) > frameHeight * 0.8;
-            const isGreen = s.style?.fillColor?.toUpperCase() === '#DCFCE7';
+            const fillColor = s.style?.fillColor?.toUpperCase();
+            const isGreen = fillColor === '#22C55E' || fillColor === '#DCFCE7' || fillColor === '#BBF7D0';
             return isAtFrameCenter && isLarge && isGreen;
           });
 
