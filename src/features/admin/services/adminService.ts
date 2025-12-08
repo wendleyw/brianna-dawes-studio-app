@@ -455,6 +455,65 @@ export const adminService = {
       }
     }
   },
+
+  /**
+   * Get total assets count from all deliverables for a client
+   * This sums the 'count' field from all deliverables in the client's projects
+   */
+  async getClientTotalAssets(clientId: string): Promise<number> {
+    // Get all projects for this client
+    const { data: projects, error: projectsError } = await supabase
+      .from('projects')
+      .select('id')
+      .eq('client_id', clientId);
+
+    if (projectsError || !projects || projects.length === 0) {
+      return 0;
+    }
+
+    const projectIds = projects.map(p => p.id);
+
+    // Sum all deliverable counts for these projects
+    const { data: deliverables, error: deliverablesError } = await supabase
+      .from('deliverables')
+      .select('count')
+      .in('project_id', projectIds);
+
+    if (deliverablesError || !deliverables) {
+      return 0;
+    }
+
+    return deliverables.reduce((sum, d) => sum + (d.count || 0), 0);
+  },
+
+  /**
+   * Get total assets count for a client by board ID
+   */
+  async getClientTotalAssetsByBoard(boardId: string): Promise<number> {
+    // First find the primary client for this board
+    const { data: boardAssignment, error: boardError } = await supabase
+      .from('user_boards')
+      .select('user_id')
+      .eq('board_id', boardId)
+      .eq('is_primary', true)
+      .single();
+
+    if (boardError || !boardAssignment) {
+      // Try to find any client assigned to this board
+      const { data: anyAssignment, error: anyError } = await supabase
+        .from('user_boards')
+        .select('user_id, users!inner(role)')
+        .eq('board_id', boardId)
+        .eq('users.role', 'client')
+        .limit(1)
+        .single();
+
+      if (anyError || !anyAssignment) return 0;
+      return this.getClientTotalAssets(anyAssignment.user_id);
+    }
+
+    return this.getClientTotalAssets(boardAssignment.user_id);
+  },
 };
 
 // ============ MAPPERS ============

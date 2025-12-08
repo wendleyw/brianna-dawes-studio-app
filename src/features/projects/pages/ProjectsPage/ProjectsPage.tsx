@@ -15,7 +15,7 @@ import { useRealtimeSubscription } from '@shared/hooks/useRealtimeSubscription';
 import { projectService } from '../../services/projectService';
 import { supabase } from '@shared/lib/supabase';
 import { env } from '@shared/config/env';
-import { useClientPlanStatsByBoard } from '@features/admin/hooks/useSubscriptionPlans';
+import { useClientPlanStatsByBoard, useClientTotalAssetsByBoard } from '@features/admin/hooks/useSubscriptionPlans';
 import type { ProjectFilters as ProjectFiltersType, Project, ProjectStatus } from '../../domain/project.types';
 import styles from './ProjectsPage.module.css';
 
@@ -79,6 +79,9 @@ export function ProjectsPage() {
 
   // Fetch client plan stats for the current board
   const { data: clientPlanStats } = useClientPlanStatsByBoard(currentBoardId);
+
+  // Fetch total assets (sum of deliverable counts) for the client
+  const { data: totalAssets } = useClientTotalAssetsByBoard(currentBoardId);
 
   // Fetch client associated with current board
   useEffect(() => {
@@ -669,7 +672,7 @@ export function ProjectsPage() {
       {clientPlanStats && clientPlanStats.planId && (
         <div className={styles.creditBarContainer}>
           <CreditBar
-            used={clientPlanStats.deliverablesUsed}
+            used={totalAssets ?? 0}
             limit={clientPlanStats.deliverablesLimit}
             planName={clientPlanStats.planName ?? undefined}
             planColor={clientPlanStats.planColor ?? undefined}

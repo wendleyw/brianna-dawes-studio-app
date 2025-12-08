@@ -32,7 +32,6 @@ export function CreditBar({
 }: CreditBarProps) {
   const [animatedPercentage, setAnimatedPercentage] = useState(animate ? 0 : (used / limit) * 100);
   const percentage = limit > 0 ? Math.min((used / limit) * 100, 100) : 0;
-  const remaining = Math.max(limit - used, 0);
   const isOverLimit = used > limit;
   const isNearLimit = percentage >= 80;
 
@@ -62,16 +61,9 @@ export function CreditBar({
                 {planName}
               </span>
             )}
-            <span className={styles.usage}>
-              <strong>{used}</strong> / {limit} deliverables
-            </span>
           </div>
-          <span className={styles.remaining} style={{ color: isOverLimit ? '#EF4444' : '#6B7280' }}>
-            {isOverLimit ? (
-              <>Over limit by {used - limit}</>
-            ) : (
-              <>{remaining} remaining</>
-            )}
+          <span className={styles.usage} style={{ color: isOverLimit ? '#EF4444' : undefined }}>
+            <strong>{used}</strong> / {limit}
           </span>
         </div>
       )}
@@ -100,7 +92,7 @@ export function CreditBar({
       {!showLabels && (
         <div className={styles.miniStats}>
           <span>{Math.round(percentage)}%</span>
-          <span>{remaining} left</span>
+          <span>{used}/{limit}</span>
         </div>
       )}
     </div>

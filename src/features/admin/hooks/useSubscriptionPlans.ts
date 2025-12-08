@@ -36,6 +36,28 @@ export function useClientPlanStatsByBoard(boardId: string | null) {
 }
 
 /**
+ * Hook to fetch total assets count for a client
+ */
+export function useClientTotalAssets(clientId: string | null) {
+  return useQuery({
+    queryKey: [...adminKeys.clientPlanStats(clientId || ''), 'assets'],
+    queryFn: () => adminService.getClientTotalAssets(clientId!),
+    enabled: !!clientId,
+  });
+}
+
+/**
+ * Hook to fetch total assets count for a client by board ID
+ */
+export function useClientTotalAssetsByBoard(boardId: string | null) {
+  return useQuery({
+    queryKey: [...adminKeys.clientPlanStatsByBoard(boardId || ''), 'assets'],
+    queryFn: () => adminService.getClientTotalAssetsByBoard(boardId!),
+    enabled: !!boardId,
+  });
+}
+
+/**
  * Hook for subscription plan mutations
  */
 export function useSubscriptionPlanMutations() {
