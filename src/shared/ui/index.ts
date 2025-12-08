@@ -33,6 +33,10 @@ export type { LogoProps, LogoSize } from './Logo';
 // SplashScreen
 export { SplashScreen } from './SplashScreen';
 
+// CreditBar
+export { CreditBar } from './CreditBar';
+export type { CreditBarProps } from './CreditBar';
+
 // Icons
 export {
   UserIcon,

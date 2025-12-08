@@ -216,6 +216,14 @@
   flex-shrink: 0;
 }
 
+/* Credit Bar Container */
+.creditBarContainer {
+  padding: var(--space-2) var(--space-3);
+  background-color: var(--color-bg-secondary);
+  border-radius: var(--radius-md);
+  margin-top: calc(var(--space-2) * -1);
+}
+
 /* Search Bar */
 .searchBar {
   display: flex;

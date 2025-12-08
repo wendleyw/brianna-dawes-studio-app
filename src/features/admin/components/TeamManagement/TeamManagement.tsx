@@ -1,11 +1,12 @@
 import { useState, useMemo } from 'react';
-import { Button, Input, Skeleton } from '@shared/ui';
+import { Button, Input, Skeleton, CreditBar } from '@shared/ui';
 import { useUsers, useUserMutations } from '../../hooks';
 import { useAllBoards, useBoards, useBoardAssignmentMutations } from '../../hooks/useBoardAssignments';
+import { useSubscriptionPlans, useSubscriptionPlanMutations } from '../../hooks/useSubscriptionPlans';
 import { isMainAdmin } from '@shared/config/env';
 import type { UserRole } from '@shared/config/roles';
 import { createLogger } from '@shared/lib/logger';
-import type { User, CreateUserInput } from '../../domain';
+import type { User, CreateUserInput, SubscriptionPlanId } from '../../domain';
 import styles from './TeamManagement.module.css';
 
 const logger = createLogger('TeamManagement');
@@ -40,13 +41,6 @@ const PlusIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
     <line x1="12" y1="5" x2="12" y2="19"/>
     <line x1="5" y1="12" x2="19" y2="12"/>
-  </svg>
-);
-
-const SearchIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <circle cx="11" cy="11" r="8"/>
-    <path d="m21 21-4.35-4.35"/>
   </svg>
 );
 
@@ -101,11 +95,12 @@ export function TeamManagement() {
   const { data: allUsers, isLoading } = useUsers();
   const { data: allBoardAssignments } = useAllBoards();
   const { data: masterBoards } = useBoards();
+  const { data: subscriptionPlans } = useSubscriptionPlans();
   const { createUser, updateUser, deleteUser, isCreating, isDeleting } = useUserMutations();
   const { assignBoard, removeBoard, setPrimaryBoard, isAssigning } = useBoardAssignmentMutations();
+  const { assignPlan, isAssigning: isAssigningPlan } = useSubscriptionPlanMutations();
 
   const [roleFilter, setRoleFilter] = useState<RoleFilter>('all');
-  const [searchQuery, setSearchQuery] = useState('');
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [formData, setFormData] = useState<MemberFormData>(emptyFormData);
@@ -118,26 +113,19 @@ export function TeamManagement() {
   const [newBoardName, setNewBoardName] = useState('');
   const [boardAssignMode, setBoardAssignMode] = useState<'select' | 'new'>('select');
 
-  // Filter users by role and search
+  // Plan assignment state
+  const [assignPlanUserId, setAssignPlanUserId] = useState<string | null>(null);
+
+  // Filter users by role
   const filteredUsers = useMemo(() => {
     if (!allUsers) return [];
 
     return allUsers.filter(user => {
       // Role filter
       if (roleFilter !== 'all' && user.role !== roleFilter) return false;
-
-      // Search filter
-      if (searchQuery) {
-        const query = searchQuery.toLowerCase();
-        const matchesName = user.name.toLowerCase().includes(query);
-        const matchesEmail = user.email.toLowerCase().includes(query);
-        const matchesCompany = user.companyName?.toLowerCase().includes(query);
-        if (!matchesName && !matchesEmail && !matchesCompany) return false;
-      }
-
       return true;
     });
-  }, [allUsers, roleFilter, searchQuery]);
+  }, [allUsers, roleFilter]);
 
   // Get boards for a specific user
   const getUserBoards = (userId: string) => {
@@ -309,6 +297,20 @@ export function TeamManagement() {
     setNewBoardName('');
   };
 
+  const handleAssignPlan = async (userId: string, planId: SubscriptionPlanId | null) => {
+    try {
+      await assignPlan.mutateAsync({ userId, planId, resetUsage: true });
+      setAssignPlanUserId(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to assign plan');
+    }
+  };
+
+  const getUserPlan = (user: User) => {
+    if (!user.subscriptionPlanId || !subscriptionPlans) return null;
+    return subscriptionPlans.find(p => p.id === user.subscriptionPlanId);
+  };
+
   const startEditing = (user: User) => {
     setEditingUser(user);
     setFormData({
@@ -347,35 +349,11 @@ export function TeamManagement() {
 
   const assigningUser = assignBoardUserId ? allUsers?.find(u => u.id === assignBoardUserId) : null;
   const availableBoards = assignBoardUserId ? getAvailableBoards(assignBoardUserId) : [];
+  const assigningPlanUser = assignPlanUserId ? allUsers?.find(u => u.id === assignPlanUserId) : null;
 
   return (
     <div className={styles.container}>
-      {/* Header with search and add button */}
-      <div className={styles.header}>
-        <div className={styles.searchBox}>
-          <SearchIcon />
-          <input
-            type="text"
-            placeholder="Search by name, email, or company..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className={styles.searchInput}
-          />
-        </div>
-        <div className={styles.addButtonGroup}>
-          <Button onClick={() => openCreateWithRole('admin')} variant="ghost" size="sm">
-            <PlusIcon /> Admin
-          </Button>
-          <Button onClick={() => openCreateWithRole('designer')} variant="ghost" size="sm">
-            <PlusIcon /> Designer
-          </Button>
-          <Button onClick={() => openCreateWithRole('client')} size="sm">
-            <PlusIcon /> Client
-          </Button>
-        </div>
-      </div>
-
-      {/* Role filter tabs */}
+      {/* Role filter tabs with integrated add button */}
       <div className={styles.filterTabs}>
         <button
           className={`${styles.filterTab} ${roleFilter === 'all' ? styles.active : ''}`}
@@ -500,11 +478,22 @@ export function TeamManagement() {
 
       {/* Member List */}
       <div className={styles.memberList}>
+        {/* Add button - shows when a specific role is selected */}
+        {roleFilter !== 'all' && !showCreateForm && (
+          <button
+            className={styles.addMemberButton}
+            onClick={() => openCreateWithRole(roleFilter)}
+          >
+            <PlusIcon />
+            <span>Add {ROLE_CONFIG[roleFilter].label}</span>
+          </button>
+        )}
+
         {filteredUsers.length === 0 && !showCreateForm && (
           <div className={styles.empty}>
-            <ClientIcon />
-            <p>No members found</p>
-            <span>{searchQuery ? 'Try a different search' : 'Add your first team member to get started'}</span>
+            {roleFilter === 'all' ? <ClientIcon /> : ROLE_CONFIG[roleFilter].icon}
+            <p>No {roleFilter === 'all' ? 'members' : `${ROLE_CONFIG[roleFilter].label.toLowerCase()}s`} found</p>
+            <span>{roleFilter === 'all' ? 'Select a role tab and add your first team member' : `Click "Add ${ROLE_CONFIG[roleFilter].label}" above to get started`}</span>
           </div>
         )}
 
@@ -656,6 +645,34 @@ export function TeamManagement() {
                       <span className={styles.noBoards}>No boards assigned</span>
                     )}
                   </div>
+
+                  {/* Subscription Plan (clients only) */}
+                  {member.role === 'client' && (
+                    <div className={styles.planSection}>
+                      <div className={styles.planHeader}>
+                        <span className={styles.planLabel}>Plan:</span>
+                        <button
+                          className={styles.addBoardBtn}
+                          onClick={() => setAssignPlanUserId(member.id)}
+                          title="Change plan"
+                        >
+                          {member.subscriptionPlanId ? 'Change' : <><PlusIcon /> Assign</>}
+                        </button>
+                      </div>
+                      {getUserPlan(member) ? (
+                        <CreditBar
+                          used={member.deliverablesUsed}
+                          limit={getUserPlan(member)!.deliverablesLimit}
+                          planName={getUserPlan(member)!.displayName}
+                          planColor={getUserPlan(member)!.color}
+                          size="sm"
+                          showLabels={true}
+                        />
+                      ) : (
+                        <span className={styles.noPlan}>No plan assigned</span>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div className={styles.memberActions}>
                   <Button size="sm" variant="ghost" onClick={() => startEditing(member)}>
@@ -777,6 +794,81 @@ export function TeamManagement() {
                 }
               >
                 Assign Board
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Assign Plan Modal */}
+      {assignPlanUserId && assigningPlanUser && (
+        <div className={styles.modal}>
+          <div className={styles.modalContent}>
+            <h3 className={styles.modalTitle}>
+              Assign Plan to {assigningPlanUser.companyName || assigningPlanUser.name}
+            </h3>
+
+            {/* Current plan info */}
+            {assigningPlanUser.subscriptionPlanId && getUserPlan(assigningPlanUser) && (
+              <div className={styles.currentPlan}>
+                <span className={styles.currentPlanLabel}>Current plan:</span>
+                <span
+                  className={styles.planBadgeLarge}
+                  style={{ backgroundColor: getUserPlan(assigningPlanUser)!.color }}
+                >
+                  {getUserPlan(assigningPlanUser)!.displayName}
+                </span>
+                <span className={styles.planUsage}>
+                  {assigningPlanUser.deliverablesUsed} / {getUserPlan(assigningPlanUser)!.deliverablesLimit} used
+                </span>
+              </div>
+            )}
+
+            {/* Plan options */}
+            <div className={styles.planOptions}>
+              {subscriptionPlans?.map(plan => (
+                <button
+                  key={plan.id}
+                  className={`${styles.planOption} ${assigningPlanUser.subscriptionPlanId === plan.id ? styles.planOptionActive : ''}`}
+                  onClick={() => handleAssignPlan(assignPlanUserId, plan.id)}
+                  disabled={isAssigningPlan}
+                >
+                  <div
+                    className={styles.planOptionBadge}
+                    style={{ backgroundColor: plan.color }}
+                  >
+                    {plan.displayName}
+                  </div>
+                  <div className={styles.planOptionDetails}>
+                    <span className={styles.planOptionLimit}>{plan.deliverablesLimit} deliverables</span>
+                    <span className={styles.planOptionDesc}>
+                      {plan.id === 'bronze' && 'Starter package for small projects'}
+                      {plan.id === 'silver' && 'Standard package for medium projects'}
+                      {plan.id === 'gold' && 'Premium package for large projects'}
+                    </span>
+                  </div>
+                  {assigningPlanUser.subscriptionPlanId === plan.id && (
+                    <span className={styles.currentPlanCheck}>Current</span>
+                  )}
+                </button>
+              ))}
+
+              {/* Remove plan option */}
+              {assigningPlanUser.subscriptionPlanId && (
+                <button
+                  className={`${styles.planOption} ${styles.planOptionRemove}`}
+                  onClick={() => handleAssignPlan(assignPlanUserId, null)}
+                  disabled={isAssigningPlan}
+                >
+                  <TrashIcon />
+                  <span>Remove Plan</span>
+                </button>
+              )}
+            </div>
+
+            <div className={styles.modalActions}>
+              <Button variant="ghost" onClick={() => setAssignPlanUserId(null)}>
+                Close
               </Button>
             </div>
           </div>

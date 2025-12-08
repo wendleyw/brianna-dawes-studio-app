@@ -1,5 +1,17 @@
 import type { UserRole } from '@shared/config/roles';
 
+export type SubscriptionPlanId = 'bronze' | 'silver' | 'gold';
+
+export interface SubscriptionPlan {
+  id: SubscriptionPlanId;
+  name: string;
+  displayName: string;
+  deliverablesLimit: number;
+  color: string;
+  sortOrder: number;
+  isActive: boolean;
+}
+
 export interface User {
   id: string;
   email: string;
@@ -11,8 +23,28 @@ export interface User {
   isSuperAdmin: boolean;
   companyName: string | null;
   companyLogoUrl: string | null;
+  // Subscription plan fields
+  subscriptionPlanId: SubscriptionPlanId | null;
+  deliverablesUsed: number;
+  planStartDate: string | null;
+  planEndDate: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface ClientPlanStats {
+  userId: string;
+  userName: string;
+  companyName: string | null;
+  planId: SubscriptionPlanId | null;
+  planName: string | null;
+  deliverablesLimit: number;
+  planColor: string | null;
+  deliverablesUsed: number;
+  usagePercentage: number;
+  remainingCredits: number;
+  planStartDate: string | null;
+  planEndDate: string | null;
 }
 
 export interface UserBoard {
@@ -53,6 +85,10 @@ export interface UpdateUserInput {
   miroUserId?: string | null;
   companyName?: string | null;
   companyLogoUrl?: string | null;
+  subscriptionPlanId?: SubscriptionPlanId | null;
+  deliverablesUsed?: number;
+  planStartDate?: string | null;
+  planEndDate?: string | null;
 }
 
 export interface AssignBoardInput {

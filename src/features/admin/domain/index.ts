@@ -7,6 +7,9 @@ export type {
   AssignBoardInput,
   UpdateAppSettingInput,
   AdminTab,
+  SubscriptionPlanId,
+  SubscriptionPlan,
+  ClientPlanStats,
 } from './admin.types';
 
 // Re-export UserRole from config

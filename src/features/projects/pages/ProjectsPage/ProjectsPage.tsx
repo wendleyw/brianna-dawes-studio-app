@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Logo, SplashScreen } from '@shared/ui';
+import { Logo, SplashScreen, CreditBar } from '@shared/ui';
 import { useAuth } from '@features/auth';
 import logoImage from '../../../../assets/brand/logo-brianna.png';
 import { useMiro, zoomToProject, addStageToProject } from '@features/boards';
@@ -15,6 +15,7 @@ import { useRealtimeSubscription } from '@shared/hooks/useRealtimeSubscription';
 import { projectService } from '../../services/projectService';
 import { supabase } from '@shared/lib/supabase';
 import { env } from '@shared/config/env';
+import { useClientPlanStatsByBoard } from '@features/admin/hooks/useSubscriptionPlans';
 import type { ProjectFilters as ProjectFiltersType, Project, ProjectStatus } from '../../domain/project.types';
 import styles from './ProjectsPage.module.css';
 
@@ -23,6 +24,7 @@ interface BoardClientInfo {
   companyName: string | null;
   companyLogoUrl: string | null;
   name: string;
+  userId?: string;
 }
 
 const logger = createLogger('ProjectsPage');
@@ -62,6 +64,7 @@ export function ProjectsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [timelineFilter, setTimelineFilter] = useState<TimelineStatus | ''>('');
   const [boardClient, setBoardClient] = useState<BoardClientInfo | null>(null);
+  const [currentBoardId, setCurrentBoardId] = useState<string | null>(null);
 
   // Splash screen state - only show once per session
   const [showSplash, setShowSplash] = useState(() => {
@@ -73,6 +76,9 @@ export function ProjectsPage() {
     setShowSplash(false);
     sessionStorage.setItem(SPLASH_SHOWN_KEY, 'true');
   }, []);
+
+  // Fetch client plan stats for the current board
+  const { data: clientPlanStats } = useClientPlanStatsByBoard(currentBoardId);
 
   // Fetch client associated with current board
   useEffect(() => {
@@ -93,13 +99,18 @@ export function ProjectsPage() {
       }
 
       try {
+        // Save the current board ID for plan stats lookup
+        if (boardId) {
+          setCurrentBoardId(boardId);
+        }
+
         // Board-based strategies (only if we have a board ID)
         if (boardId) {
           // Strategy 1: Find client whose primaryBoardId matches this board
           console.log('[ProjectsPage] Strategy 1: Looking by primary_board_id...');
           const { data: clientByPrimary, error: error1 } = await supabase
             .from('users')
-            .select('name, company_name, company_logo_url')
+            .select('id, name, company_name, company_logo_url')
             .eq('role', 'client')
             .eq('primary_board_id', boardId)
             .maybeSingle();
@@ -108,6 +119,7 @@ export function ProjectsPage() {
 
           if (clientByPrimary) {
             setBoardClient({
+              userId: clientByPrimary.id,
               name: clientByPrimary.name,
               companyName: clientByPrimary.company_name,
               companyLogoUrl: clientByPrimary.company_logo_url,
@@ -132,13 +144,14 @@ export function ProjectsPage() {
               if (!ub.is_primary) continue;
               const { data: clientByUserBoard } = await supabase
                 .from('users')
-                .select('name, company_name, company_logo_url')
+                .select('id, name, company_name, company_logo_url')
                 .eq('id', ub.user_id)
                 .eq('role', 'client')
                 .maybeSingle();
 
               if (clientByUserBoard && clientByUserBoard.company_logo_url) {
                 setBoardClient({
+                  userId: clientByUserBoard.id,
                   name: clientByUserBoard.name,
                   companyName: clientByUserBoard.company_name,
                   companyLogoUrl: clientByUserBoard.company_logo_url,
@@ -152,13 +165,14 @@ export function ProjectsPage() {
             for (const ub of userBoards) {
               const { data: clientByUserBoard } = await supabase
                 .from('users')
-                .select('name, company_name, company_logo_url')
+                .select('id, name, company_name, company_logo_url')
                 .eq('id', ub.user_id)
                 .eq('role', 'client')
                 .maybeSingle();
 
               if (clientByUserBoard && clientByUserBoard.company_logo_url) {
                 setBoardClient({
+                  userId: clientByUserBoard.id,
                   name: clientByUserBoard.name,
                   companyName: clientByUserBoard.company_name,
                   companyLogoUrl: clientByUserBoard.company_logo_url,
@@ -172,13 +186,14 @@ export function ProjectsPage() {
             for (const ub of userBoards) {
               const { data: clientByUserBoard } = await supabase
                 .from('users')
-                .select('name, company_name, company_logo_url')
+                .select('id, name, company_name, company_logo_url')
                 .eq('id', ub.user_id)
                 .eq('role', 'client')
                 .maybeSingle();
 
               if (clientByUserBoard) {
                 setBoardClient({
+                  userId: clientByUserBoard.id,
                   name: clientByUserBoard.name,
                   companyName: clientByUserBoard.company_name,
                   companyLogoUrl: clientByUserBoard.company_logo_url,
@@ -206,13 +221,14 @@ export function ProjectsPage() {
             for (const clientId of clientIds) {
               const { data: clientByProject } = await supabase
                 .from('users')
-                .select('name, company_name, company_logo_url')
+                .select('id, name, company_name, company_logo_url')
                 .eq('id', clientId as string)
                 .eq('role', 'client')
                 .maybeSingle();
 
               if (clientByProject) {
                 setBoardClient({
+                  userId: clientByProject.id,
                   name: clientByProject.name,
                   companyName: clientByProject.company_name,
                   companyLogoUrl: clientByProject.company_logo_url,
@@ -231,7 +247,7 @@ export function ProjectsPage() {
           console.log('[ProjectsPage] Strategy 4: Current user is client, checking for company info...');
           const { data: currentClient } = await supabase
             .from('users')
-            .select('name, company_name, company_logo_url')
+            .select('id, name, company_name, company_logo_url')
             .eq('id', user.id)
             .maybeSingle();
 
@@ -239,6 +255,7 @@ export function ProjectsPage() {
 
           if (currentClient && (currentClient.company_name || currentClient.company_logo_url)) {
             setBoardClient({
+              userId: currentClient.id,
               name: currentClient.name,
               companyName: currentClient.company_name,
               companyLogoUrl: currentClient.company_logo_url,
@@ -647,6 +664,21 @@ export function ProjectsPage() {
           </>
         )}
       </header>
+
+      {/* Client Plan Credit Bar */}
+      {clientPlanStats && clientPlanStats.planId && (
+        <div className={styles.creditBarContainer}>
+          <CreditBar
+            used={clientPlanStats.deliverablesUsed}
+            limit={clientPlanStats.deliverablesLimit}
+            planName={clientPlanStats.planName ?? undefined}
+            planColor={clientPlanStats.planColor ?? undefined}
+            size="sm"
+            showLabels
+            animate
+          />
+        </div>
+      )}
 
       {/* Search and Filter */}
       <div className={styles.searchBar}>
