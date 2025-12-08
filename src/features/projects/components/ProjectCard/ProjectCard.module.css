@@ -183,7 +183,7 @@
 .stats {
   display: flex;
   gap: var(--space-4);
-  margin-bottom: var(--space-4);
+  margin-bottom: var(--space-5);
   padding: var(--space-3) 0;
   border-top: 1px solid var(--color-border);
   border-bottom: 1px solid var(--color-border);
@@ -210,12 +210,19 @@
   color: #22C55E;
 }
 
+/* Deliverables stat container */
+.statDeliverables {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
 /* Clickable stat button (deliverables) */
 .statClickable {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  flex: 1;
   background: transparent;
   border: none;
   padding: 0;
@@ -231,17 +238,11 @@
   color: var(--color-text-muted);
 }
 
-/* Inline assets display */
-.assetsInline {
+/* Assets row below deliverables */
+.assetsRow {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-left: 4px;
-}
-
-.assetsDivider {
-  color: var(--color-text-muted);
-  font-size: 10px;
+  padding-left: 24px;
 }
 
 .assetsCount {

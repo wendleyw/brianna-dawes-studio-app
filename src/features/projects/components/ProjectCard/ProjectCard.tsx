@@ -772,21 +772,22 @@ export const ProjectCard = memo(function ProjectCard({
 
       {/* Stats */}
       <div className={styles.stats}>
-        <button
-          className={styles.statClickable}
-          onClick={(e) => { e.stopPropagation(); setShowDeliverables(!showDeliverables); }}
-        >
-          <PackageIcon />
-          <span className={styles.statValue}>{deliverables.length || project.deliverablesCount}</span>
-          <span className={styles.statLabel}>DELIVERABLES</span>
+        <div className={styles.statDeliverables}>
+          <button
+            className={styles.statClickable}
+            onClick={(e) => { e.stopPropagation(); setShowDeliverables(!showDeliverables); }}
+          >
+            <PackageIcon />
+            <span className={styles.statValue}>{deliverables.length || project.deliverablesCount}</span>
+            <span className={styles.statLabel}>DELIVERABLES</span>
+            <ChevronIcon isOpen={showDeliverables} />
+          </button>
           {assetTotals.totalAssets > 0 && (
-            <span className={styles.assetsInline}>
-              <span className={styles.assetsDivider}>•</span>
+            <div className={styles.assetsRow}>
               <span className={styles.assetsCount}>{assetTotals.totalAssets} assets</span>
-            </span>
+            </div>
           )}
-          <ChevronIcon isOpen={showDeliverables} />
-        </button>
+        </div>
         <div className={`${styles.stat} ${daysInfo?.isOverdue && project.status !== 'done' ? styles.overdue : ''} ${project.status === 'done' ? styles.completed : ''}`}>
           {project.status === 'done' ? (
             <>
