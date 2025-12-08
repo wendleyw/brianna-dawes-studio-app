@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Button } from '@shared/ui';
 import { UserManagement } from '../../components/UserManagement';
 import { BoardManagement } from '../../components/BoardManagement';
+import { DeveloperTools } from '../../components/DeveloperTools';
 import { ReportModal } from '../../components/ReportModal';
 import type { AdminTab } from '../../domain';
 import styles from './AdminSettingsPage.module.css';
@@ -24,9 +25,17 @@ const BoardsIcon = () => (
   </svg>
 );
 
+const DeveloperIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <polyline points="16 18 22 12 16 6"/>
+    <polyline points="8 6 2 12 8 18"/>
+  </svg>
+);
+
 const TABS: { id: AdminTab; label: string; icon: React.ReactNode }[] = [
-  { id: 'users', label: 'Users', icon: <UsersIcon /> },
+  { id: 'users', label: 'Clients', icon: <UsersIcon /> },
   { id: 'boards', label: 'Boards', icon: <BoardsIcon /> },
+  { id: 'developer', label: 'Developer', icon: <DeveloperIcon /> },
 ];
 
 export function AdminSettingsPage() {
@@ -69,6 +78,7 @@ export function AdminSettingsPage() {
       <div className={styles.content}>
         {activeTab === 'users' && <UserManagement />}
         {activeTab === 'boards' && <BoardManagement />}
+        {activeTab === 'developer' && <DeveloperTools />}
       </div>
 
       <ReportModal
