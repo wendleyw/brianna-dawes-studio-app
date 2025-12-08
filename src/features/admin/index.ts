@@ -19,7 +19,7 @@ export {
   useUser,
   useUserMutations,
   useUserBoards,
-  useAllBoardAssignments,
+  useAllBoards,
   useBoardAssignmentMutations,
   useAppSettings,
   useSetting,
@@ -27,7 +27,7 @@ export {
 } from './hooks';
 
 // Components
-export { UserManagement, BoardAssignments, AppSettings, ReportModal } from './components';
+export { UserManagement, BoardManagement, ReportModal } from './components';
 export type { ReportModalProps } from './components';
 
 // Pages

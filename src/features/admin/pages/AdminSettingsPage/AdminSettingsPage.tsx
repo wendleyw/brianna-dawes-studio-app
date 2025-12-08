@@ -1,18 +1,32 @@
 import { useState } from 'react';
 import { Button } from '@shared/ui';
 import { UserManagement } from '../../components/UserManagement';
-import { BoardAssignments } from '../../components/BoardAssignments';
-import { AppSettings } from '../../components/AppSettings';
-import { DeveloperTools } from '../../components/DeveloperTools';
+import { BoardManagement } from '../../components/BoardManagement';
 import { ReportModal } from '../../components/ReportModal';
 import type { AdminTab } from '../../domain';
 import styles from './AdminSettingsPage.module.css';
 
-const TABS: { id: AdminTab; label: string }[] = [
-  { id: 'users', label: 'Users' },
-  { id: 'boards', label: 'Board Assignments' },
-  { id: 'settings', label: 'App Settings' },
-  { id: 'developer', label: 'Developer' },
+// Icons for tabs
+const UsersIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+    <circle cx="9" cy="7" r="4"/>
+    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+  </svg>
+);
+
+const BoardsIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+    <line x1="3" y1="9" x2="21" y2="9"/>
+    <line x1="9" y1="21" x2="9" y2="9"/>
+  </svg>
+);
+
+const TABS: { id: AdminTab; label: string; icon: React.ReactNode }[] = [
+  { id: 'users', label: 'Users', icon: <UsersIcon /> },
+  { id: 'boards', label: 'Boards', icon: <BoardsIcon /> },
 ];
 
 export function AdminSettingsPage() {
@@ -46,6 +60,7 @@ export function AdminSettingsPage() {
             className={`${styles.tab} ${activeTab === tab.id ? styles.tabActive : ''}`}
             onClick={() => setActiveTab(tab.id)}
           >
+            <span className={styles.tabIcon}>{tab.icon}</span>
             {tab.label}
           </button>
         ))}
@@ -53,9 +68,7 @@ export function AdminSettingsPage() {
 
       <div className={styles.content}>
         {activeTab === 'users' && <UserManagement />}
-        {activeTab === 'boards' && <BoardAssignments />}
-        {activeTab === 'settings' && <AppSettings />}
-        {activeTab === 'developer' && <DeveloperTools />}
+        {activeTab === 'boards' && <BoardManagement />}
       </div>
 
       <ReportModal

@@ -52,6 +52,9 @@
 }
 
 .tab {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
   padding: var(--space-2) var(--space-3);
   background: none;
   border: none;
@@ -73,6 +76,12 @@
 .tabActive {
   color: var(--color-accent);
   border-bottom-color: var(--color-accent);
+}
+
+.tabIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .content {

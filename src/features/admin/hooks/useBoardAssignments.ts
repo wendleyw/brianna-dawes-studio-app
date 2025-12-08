@@ -35,7 +35,7 @@ export function useUserBoards(userId: string) {
 /**
  * Hook to fetch all board assignments with realtime updates
  */
-export function useAllBoardAssignments() {
+export function useAllBoards() {
   const queryClient = useQueryClient();
 
   const handleChange = useCallback(() => {
