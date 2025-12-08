@@ -12,6 +12,7 @@ import { STATUS_COLUMNS } from '@shared/lib/timelineStatus';
 import { formatDateShort } from '@shared/lib/dateFormat';
 import { projectKeys } from '@features/projects/services/projectKeys';
 import { broadcastProjectChange } from '@shared/lib/projectBroadcast';
+import { MiroNotifications } from '@shared/lib/miroNotifications';
 import { useRealtimeSubscription } from '@shared/hooks/useRealtimeSubscription';
 import { projectService } from '@features/projects/services/projectService';
 import { createLogger } from '@shared/lib/logger';
@@ -188,9 +189,14 @@ export function BoardModalApp() {
         status: newStatus,
       });
 
+      // 5. Show Miro notification
+      const statusLabel = STATUS_COLUMNS.find(c => c.id === newStatus)?.label || newStatus;
+      await MiroNotifications.projectStatusChanged(projectName, statusLabel);
+
       logger.info('Project moved successfully', { name: projectName, status: newStatus });
     } catch (error) {
       logger.error('Failed to update project status', error);
+      await MiroNotifications.error('Failed to update project status');
       // Refetch to revert optimistic update
       await refetch();
     }

@@ -7,6 +7,7 @@ import { useMiro } from '@features/boards';
 import { useCreateProjectWithMiro } from '../../hooks';
 import { createLogger } from '@shared/lib/logger';
 import { PRIORITY_OPTIONS } from '@shared/lib/priorityConfig';
+import { MiroNotifications } from '@shared/lib/miroNotifications';
 import styles from './NewProjectPage.module.css';
 
 const logger = createLogger('NewProjectPage');
@@ -263,16 +264,8 @@ ${formData.additionalNotes || 'Not specified'}
       await createProject.mutateAsync(projectData);
       logger.info('Project created successfully', { name: formData.name });
 
-      // Show Miro native notification on the board
-      if (isInMiro && window.miro) {
-        try {
-          logger.info('Attempting to show Miro notification...');
-          await window.miro.board.notifications.showInfo(`Project "${formData.name}" created successfully!`);
-          logger.info('Miro notification shown successfully');
-        } catch (notifErr) {
-          logger.warn('Failed to show Miro notification', notifErr);
-        }
-      }
+      // Show Miro notification
+      await MiroNotifications.projectCreated(formData.name);
 
       // Navigate to projects list
       navigate('/projects');

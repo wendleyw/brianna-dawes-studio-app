@@ -7,6 +7,7 @@ import { projectService } from '../services/projectService';
 import { projectKeys } from '../services/projectKeys';
 import { useMiro } from '@features/boards';
 import { miroTimelineService, miroProjectRowService } from '@features/boards/services/miroSdkService';
+import { MiroNotifications } from '@shared/lib/miroNotifications';
 import { createLogger } from '@shared/lib/logger';
 import type { CreateProjectInput, UpdateProjectInput, Project, ProjectBriefing } from '../domain/project.types';
 
@@ -109,7 +110,13 @@ export function useUpdateProjectWithMiro() {
           logger.debug('Project synced to Miro', { name: project.name, status: project.status });
         } catch (error) {
           logger.error('Miro sync failed', error);
+          await MiroNotifications.syncError('Failed to sync project to Miro');
         }
+      }
+
+      // 3. Show Miro notification (only for non-status updates, status changes are handled by BoardModal)
+      if (!input.status) {
+        await MiroNotifications.projectUpdated(project.name);
       }
 
       return project;
@@ -117,6 +124,9 @@ export function useUpdateProjectWithMiro() {
     onSuccess: (project: Project) => {
       queryClient.invalidateQueries({ queryKey: projectKeys.lists() });
       queryClient.setQueryData(projectKeys.detail(project.id), project);
+    },
+    onError: async () => {
+      await MiroNotifications.error('Failed to update project');
     },
   });
 }
@@ -127,6 +137,15 @@ export function useDeleteProjectWithMiro() {
 
   return useMutation({
     mutationFn: async (id: string) => {
+      // Get project name for notification before deleting
+      let projectName = 'Project';
+      try {
+        const project = await projectService.getProject(id);
+        projectName = project.name;
+      } catch {
+        // Ignore if we can't get the name
+      }
+
       // 1. If running in Miro, remove from board first
       if (isInMiro && miro) {
         try {
@@ -140,10 +159,16 @@ export function useDeleteProjectWithMiro() {
 
       // 2. Delete from database
       await projectService.deleteProject(id);
+
+      // 3. Show Miro notification
+      await MiroNotifications.projectDeleted(projectName);
     },
     onSuccess: (_data, id) => {
       queryClient.invalidateQueries({ queryKey: projectKeys.lists() });
       queryClient.removeQueries({ queryKey: projectKeys.detail(id) });
+    },
+    onError: async () => {
+      await MiroNotifications.error('Failed to delete project');
     },
   });
 }
