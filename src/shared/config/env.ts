@@ -20,7 +20,8 @@ export const env = {
   },
   // Brand assets
   brand: {
-    logoUrl: `${(import.meta.env.VITE_APP_URL as string) || 'https://brianna-dawes-studio-app.vercel.app'}/logo-brianna.png`,
+    logoUrl: '/logo-brianna.png',
+    logoVideoUrl: '/logo-animation.webm',
   },
 } as const;
 

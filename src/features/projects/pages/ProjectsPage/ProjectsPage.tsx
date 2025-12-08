@@ -335,10 +335,13 @@ export function ProjectsPage() {
             </div>
             <div className={styles.headerDivider} />
             <div className={styles.headerRight}>
-              <img
-                src={env.brand.logoUrl}
-                alt="Brianna Dawes Studios"
-                className={styles.partnerLogo}
+              <video
+                src={env.brand.logoVideoUrl}
+                autoPlay
+                loop
+                muted
+                playsInline
+                className={styles.partnerLogoVideo}
               />
             </div>
           </>
