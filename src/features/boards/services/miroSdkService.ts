@@ -574,14 +574,15 @@ class MiroMasterTimelineService {
       log('MiroTimeline', 'Final check for existing card failed, proceeding with create', e);
     }
 
-    log('MiroTimeline', `Creating NEW card for "${project.name}" at position (${cardX}, ${cardY})`);
-    const newMiroCard = await miro.board.createCard({
-      title,
-      description, // Store projectId in description for cross-context discovery
+    log('MiroTimeline', `Creating NEW sticky note for "${project.name}" at position (${cardX}, ${cardY})`);
+
+    // Use sticky note for better multi-line support
+    const newMiroCard = await miro.board.createStickyNote({
+      content: `<p><strong>${priorityIcon} ${reviewedPrefix}${project.name}</strong></p><p>📅 ${datePart}</p><p>👤 ${authorPart}</p><p style="font-size:8px;color:#666">${description}</p>`,
       x: cardX,
       y: cardY,
       width: TIMELINE.CARD_WIDTH,
-      style: { cardTheme: column.color },
+      style: { fillColor: column.color },
     });
 
     const newCard: TimelineCard = {
