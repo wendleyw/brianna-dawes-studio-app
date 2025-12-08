@@ -451,7 +451,6 @@ class MiroMasterTimelineService {
     // STEP 4: Calculate new position in target column
     // Count cards in the column, excluding the current project's card
     const columnX = column.x;
-    const columnY = column.y ?? 0;
     const columnWidth = column.width ?? TIMELINE.COLUMN_WIDTH;
 
     // Get this project's card ID (prefer board truth, then memory)
@@ -468,8 +467,22 @@ class MiroMasterTimelineService {
 
     console.log('[MiroTimeline] Found', cardsInColumnOnBoard.length, 'other cards in column', status);
 
+    // Get current frame bounds from the actual frame on board
+    const frames = await miro.board.get({ type: 'frame' }) as MiroFrame[];
+    const timelineFrame = frames.find(f =>
+      f.title === '' &&
+      Math.abs(f.x - this.frameCenterX) < 100
+    );
+
+    // Calculate frame bounds
+    const currentFrameHeight = timelineFrame?.height || TIMELINE.FRAME_HEIGHT;
+    const frameTop = (timelineFrame?.y || this.frameCenterY) - currentFrameHeight / 2;
+    const frameBottom = (timelineFrame?.y || this.frameCenterY) + currentFrameHeight / 2;
+
+    // Calculate first card Y position (inside the column, below header)
     const cardX = columnX;
-    const firstCardY = columnY + 10 + TIMELINE.CARD_HEIGHT / 2;
+    const headerBottom = frameTop + TIMELINE.PADDING + TIMELINE.HEADER_HEIGHT + 10;
+    const firstCardY = headerBottom + TIMELINE.CARD_HEIGHT / 2 + 5;
 
     // Calculate Y position based on actual card positions and heights (not fixed height)
     // This prevents cards from overlapping when titles wrap to multiple lines
@@ -486,7 +499,25 @@ class MiroMasterTimelineService {
       cardY = lowestCardBottom + TIMELINE.CARD_GAP + TIMELINE.CARD_HEIGHT / 2;
     }
 
-    console.log('[MiroTimeline] Card position:', { cardX, cardY, firstCardY, columnY });
+    // Check if card would exceed frame bottom and expand if needed
+    const cardBottom = cardY + TIMELINE.CARD_HEIGHT / 2;
+    const padding = 30;
+    if (cardBottom + padding > frameBottom && timelineFrame) {
+      // Expand frame downward (keep top fixed, increase height)
+      const newHeight = (cardBottom + padding) - frameTop;
+      const newCenterY = frameTop + newHeight / 2;
+
+      log('MiroTimeline', `Expanding frame from ${currentFrameHeight} to ${newHeight}`);
+
+      timelineFrame.height = newHeight;
+      timelineFrame.y = newCenterY;
+      await miro.board.sync(timelineFrame);
+
+      // Also expand the column drop zones
+      await this.expandColumnDropZones(frameTop, newHeight);
+    }
+
+    console.log('[MiroTimeline] Card position:', { cardX, cardY, firstCardY, frameTop, frameBottom });
 
     // STEP 5: Update or create card
     // Use the card found on board (source of truth) or memory as fallback
@@ -604,102 +635,47 @@ class MiroMasterTimelineService {
     this.state.cards.push(newCard);
     log('MiroTimeline', `Created card ${newMiroCard.id} for project "${project.name}" at Y=${cardY}`);
 
-    // Auto-resize timeline frame if cards exceed bounds
-    await this.resizeTimelineIfNeeded();
-
     return newCard;
   }
 
   /**
-   * Auto-resize the timeline frame and columns if cards exceed current bounds
+   * Expand the column drop zones when frame is resized
    */
-  async resizeTimelineIfNeeded(): Promise<void> {
+  async expandColumnDropZones(frameTop: number, newFrameHeight: number): Promise<void> {
     const miro = getMiroSDK();
 
     try {
-      // Find the timeline frame
-      const frames = await miro.board.get({ type: 'frame' }) as MiroFrame[];
-      const timelineFrame = frames.find(f =>
-        f.title === '' &&
-        Math.abs(f.x - this.frameCenterX) < 50 &&
-        Math.abs(f.y - this.frameCenterY) < 50
-      );
+      const frameLeft = this.frameCenterX - TIMELINE.FRAME_WIDTH / 2;
+      const frameRight = this.frameCenterX + TIMELINE.FRAME_WIDTH / 2;
 
-      if (!timelineFrame) {
-        log('MiroTimeline', 'Timeline frame not found for resize');
-        return;
-      }
+      // Find all rectangle shapes (column drop zones)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const shapes = await miro.board.get({ type: 'shape' }) as any[];
 
-      // Get all cards on the board
-      const allCards = await miro.board.get({ type: 'card' }) as MiroCard[];
-      const frameLeft = timelineFrame.x - (timelineFrame.width || TIMELINE.FRAME_WIDTH) / 2;
-      const frameRight = timelineFrame.x + (timelineFrame.width || TIMELINE.FRAME_WIDTH) / 2;
-
-      // Find cards within the timeline frame X bounds
-      const timelineCards = allCards.filter(card => {
-        return card.x >= frameLeft && card.x <= frameRight;
+      // Find drop zones: rectangles within frame X bounds
+      const columnDropZones = shapes.filter((s: { shape?: string; x: number; height: number; width: number }) => {
+        const isRectangle = s.shape === 'rectangle';
+        const inFrameX = s.x >= frameLeft - 10 && s.x <= frameRight + 10;
+        const isColumnWidth = s.width > 80 && s.width < 120; // Column width ~95
+        return isRectangle && inFrameX && isColumnWidth;
       });
 
-      if (timelineCards.length === 0) return;
+      log('MiroTimeline', `Found ${columnDropZones.length} column drop zones to expand`);
 
-      // Find the lowest card (highest Y value)
-      const lowestCard = timelineCards.reduce((lowest, card) => {
-        const cardBottom = card.y + (card.height || TIMELINE.CARD_HEIGHT) / 2;
-        const lowestBottom = lowest.y + (lowest.height || TIMELINE.CARD_HEIGHT) / 2;
-        return cardBottom > lowestBottom ? card : lowest;
-      });
+      // Calculate new column dimensions
+      const newColumnHeight = newFrameHeight - TIMELINE.PADDING * 2 - TIMELINE.HEADER_HEIGHT - 15;
+      const newColumnTopY = frameTop + TIMELINE.PADDING + TIMELINE.HEADER_HEIGHT + 10;
+      const newColumnCenterY = newColumnTopY + newColumnHeight / 2;
 
-      const lowestCardBottom = lowestCard.y + (lowestCard.height || TIMELINE.CARD_HEIGHT) / 2;
-      const frameBottom = timelineFrame.y + (timelineFrame.height || TIMELINE.FRAME_HEIGHT) / 2;
-
-      // Check if we need to expand (cards exceed frame bottom with padding)
-      const padding = 30;
-      if (lowestCardBottom + padding > frameBottom) {
-        // Calculate new height
-        const frameTop = timelineFrame.y - (timelineFrame.height || TIMELINE.FRAME_HEIGHT) / 2;
-        const newHeight = (lowestCardBottom + padding) - frameTop;
-
-        log('MiroTimeline', `Resizing frame: ${timelineFrame.height} -> ${newHeight}`);
-
-        // Update frame height (keep center X, adjust center Y)
-        const newCenterY = frameTop + newHeight / 2;
-        timelineFrame.y = newCenterY;
-        timelineFrame.height = newHeight;
-        await miro.board.sync(timelineFrame);
-
-        // Update internal state
-        this.frameCenterY = newCenterY;
-
-        // Also resize the column drop zones (rectangles with white/light fill)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const shapes = await miro.board.get({ type: 'shape' }) as any[];
-
-        // Find drop zones: rectangles within frame X bounds, with significant height
-        const columnDropZones = shapes.filter((s: { shape?: string; x: number; y: number; height: number; width: number; style?: { fillColor?: string } }) => {
-          const isRectangle = s.shape === 'rectangle';
-          const inFrameX = s.x >= frameLeft - 10 && s.x <= frameRight + 10;
-          const isTall = s.height > 50;
-          const isColumnWidth = s.width > 80 && s.width < 120; // Column width ~95
-          return isRectangle && inFrameX && isTall && isColumnWidth;
-        });
-
-        log('MiroTimeline', `Found ${columnDropZones.length} column drop zones to resize`);
-
-        // Calculate new column dimensions
-        const newColumnHeight = newHeight - TIMELINE.PADDING * 2 - TIMELINE.HEADER_HEIGHT - 15;
-        const newColumnTopY = frameTop + TIMELINE.PADDING + TIMELINE.HEADER_HEIGHT + 10;
-        const newColumnCenterY = newColumnTopY + newColumnHeight / 2;
-
-        for (const zone of columnDropZones) {
-          zone.height = newColumnHeight;
-          zone.y = newColumnCenterY;
-          await miro.board.sync(zone);
-        }
-
-        log('MiroTimeline', `Resized ${columnDropZones.length} column drop zones to height ${newColumnHeight}`);
+      for (const zone of columnDropZones) {
+        zone.height = newColumnHeight;
+        zone.y = newColumnCenterY;
+        await miro.board.sync(zone);
       }
+
+      log('MiroTimeline', `Expanded ${columnDropZones.length} column drop zones to height ${newColumnHeight}`);
     } catch (e) {
-      log('MiroTimeline', 'Failed to resize timeline', e);
+      log('MiroTimeline', 'Failed to expand column drop zones', e);
     }
   }
 
