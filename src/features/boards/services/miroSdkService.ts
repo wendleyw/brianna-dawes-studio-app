@@ -63,19 +63,80 @@ function getMiroSDK() {
 }
 
 /**
- * Find timeline frame on the board by title or dimensions
+ * Find timeline frame on the board by:
+ * 1. Looking for "Timeline Master" text nearby (title is created as separate text)
+ * 2. Finding frame with empty title at fixed position (0, 0)
+ * 3. Finding frame by dimensions (as fallback)
  */
 async function findTimelineFrame(): Promise<MiroFrame | null> {
   const miro = getMiroSDK();
   const existingFrames = await miro.board.get({ type: 'frame' }) as MiroFrame[];
 
-  const timelineFrame = existingFrames.find(f =>
+  // Strategy 1: Find frame with title containing "MASTER TIMELINE" or "Timeline Master"
+  let timelineFrame = existingFrames.find(f =>
     f.title?.includes('MASTER TIMELINE') ||
-    f.title?.includes('Timeline Master') ||
-    (f.width && f.height && Math.abs(f.width - TIMELINE.FRAME_WIDTH) < 10 && Math.abs(f.height - TIMELINE.FRAME_HEIGHT) < 10)
+    f.title?.includes('Timeline Master')
   );
 
-  return timelineFrame || null;
+  if (timelineFrame) {
+    log('MiroTimeline', 'Found timeline frame by title', timelineFrame.id);
+    return timelineFrame;
+  }
+
+  // Strategy 2: Look for "Timeline Master" text and find the frame below it
+  try {
+    const allTexts = await miro.board.get({ type: 'text' }) as Array<{ content?: string; x: number; y: number }>;
+    const timelineTitleText = allTexts.find(t =>
+      t.content?.includes('Timeline Master') || t.content?.includes('MASTER TIMELINE')
+    );
+
+    if (timelineTitleText) {
+      // Find frame that is directly below the title text (within X tolerance)
+      // The frame should be centered around the same X position
+      timelineFrame = existingFrames.find(f => {
+        const xMatch = Math.abs(f.x - timelineTitleText.x) < 200; // Title is offset to the left
+        const belowTitle = f.y > timelineTitleText.y; // Frame is below title
+        const isEmptyTitle = !f.title || f.title === '';
+        return xMatch && belowTitle && isEmptyTitle;
+      });
+
+      if (timelineFrame) {
+        log('MiroTimeline', 'Found timeline frame by nearby title text', timelineFrame.id);
+        return timelineFrame;
+      }
+    }
+  } catch (e) {
+    log('MiroTimeline', 'Error searching for timeline title text', e);
+  }
+
+  // Strategy 3: Find frame at fixed position (0, 0) with empty title
+  // Timeline is always created at origin with empty title
+  timelineFrame = existingFrames.find(f => {
+    const isAtOrigin = Math.abs(f.x) < 100 && Math.abs(f.y) < 200;
+    const isEmptyTitle = !f.title || f.title === '';
+    // Check it's roughly timeline-sized (width should be close to TIMELINE.FRAME_WIDTH)
+    const isTimelineWidth = f.width && Math.abs(f.width - TIMELINE.FRAME_WIDTH) < 50;
+    return isAtOrigin && isEmptyTitle && isTimelineWidth;
+  });
+
+  if (timelineFrame) {
+    log('MiroTimeline', 'Found timeline frame at origin position', timelineFrame.id);
+    return timelineFrame;
+  }
+
+  // Strategy 4: Find by dimensions alone (less reliable, frame may have been resized)
+  timelineFrame = existingFrames.find(f =>
+    f.width && f.height &&
+    Math.abs(f.width - TIMELINE.FRAME_WIDTH) < 50 &&
+    !f.title // Must have no title (timeline frames have empty title)
+  );
+
+  if (timelineFrame) {
+    log('MiroTimeline', 'Found timeline frame by dimensions', timelineFrame.id);
+    return timelineFrame;
+  }
+
+  return null;
 }
 
 /**
