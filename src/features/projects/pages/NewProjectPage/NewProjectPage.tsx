@@ -175,6 +175,24 @@ export function NewProjectPage() {
       return;
     }
 
+    if (!formData.goalsObjectives.trim()) {
+      setError('Goals & Objectives is required');
+      scrollToTop();
+      return;
+    }
+
+    if (!formData.deliverables.trim()) {
+      setError('Deliverables is required');
+      scrollToTop();
+      return;
+    }
+
+    if (!formData.targetDate) {
+      setError('Target completion date is required');
+      scrollToTop();
+      return;
+    }
+
     setIsSubmitting(true);
     setError(null);
 

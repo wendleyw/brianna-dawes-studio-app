@@ -1651,3 +1651,55 @@
   font-weight: var(--font-semibold);
   color: var(--color-text-primary);
 }
+
+/* Due Date Pending Approval (Em análise) */
+.stat.isPending {
+  background-color: #FFF3CD;
+  border: 1px solid #FFC107;
+}
+
+.stat.isPending .statValue {
+  color: #856404;
+  font-weight: 600;
+}
+
+.dueDateApprovalButtons {
+  display: flex;
+  gap: 4px;
+  margin-left: 4px;
+}
+
+.approveSmall,
+.rejectSmall {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.approveSmall {
+  background-color: #10B981;
+  color: #fff;
+}
+
+.approveSmall:hover {
+  background-color: #059669;
+  transform: scale(1.1);
+}
+
+.rejectSmall {
+  background-color: #EF4444;
+  color: #fff;
+}
+
+.rejectSmall:hover {
+  background-color: #DC2626;
+  transform: scale(1.1);
+}

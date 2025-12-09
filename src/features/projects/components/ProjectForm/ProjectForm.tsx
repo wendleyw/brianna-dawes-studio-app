@@ -6,6 +6,14 @@ import { PRIORITY_OPTIONS } from '@shared/lib/priorityConfig';
 import type { ProjectFormProps, ProjectFormData } from './ProjectForm.types';
 import styles from './ProjectForm.module.css';
 
+// Edit icon for due date field
+const EditIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+  </svg>
+);
+
 // Generate STATUS_OPTIONS from centralized STATUS_COLUMNS
 const STATUS_OPTIONS = STATUS_COLUMNS.map(col => ({
   value: col.id,
@@ -35,6 +43,7 @@ export function ProjectForm({
 
   const [errors, setErrors] = useState<Partial<Record<keyof ProjectFormData, string>>>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [isEditingDueDate, setIsEditingDueDate] = useState(false);
 
   const handleChange = (field: keyof ProjectFormData) => (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
@@ -169,15 +178,45 @@ export function ProjectForm({
           </div>
 
           <div className={styles.field}>
-            <label htmlFor="project-due-date" className={styles.label}>Due Date</label>
-            <input
-              id="project-due-date"
-              type="date"
-              className={styles.dateInput}
-              value={formData.dueDate}
-              onChange={handleChange('dueDate')}
-              disabled={isLoading}
-            />
+            <label htmlFor="project-due-date" className={styles.label}>Specific due date</label>
+            <div className={styles.dueDateWrapper}>
+              {isEditingDueDate ? (
+                <input
+                  id="project-due-date"
+                  type="date"
+                  className={styles.dateInputEditing}
+                  value={formData.dueDate}
+                  onChange={handleChange('dueDate')}
+                  disabled={isLoading}
+                  autoFocus
+                  onBlur={() => setIsEditingDueDate(false)}
+                />
+              ) : (
+                <>
+                  <div className={`${styles.dueDateDisplay} ${formData.dueDate ? styles.hasValue : ''}`}>
+                    {formData.dueDate
+                      ? new Date(formData.dueDate + 'T00:00:00').toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric'
+                        })
+                      : 'Not set'}
+                  </div>
+                  <button
+                    type="button"
+                    className={styles.dueDateEditBtn}
+                    onClick={() => setIsEditingDueDate(true)}
+                    disabled={isLoading}
+                    title="Set due date"
+                  >
+                    <EditIcon />
+                  </button>
+                </>
+              )}
+            </div>
+            {!isEditing && formData.dueDate && (
+              <span className={styles.dueDateNote}>Due date will be pending approval</span>
+            )}
           </div>
         </div>
       </div>

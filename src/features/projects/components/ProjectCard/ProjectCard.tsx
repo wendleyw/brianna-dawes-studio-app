@@ -338,12 +338,16 @@ export const ProjectCard = memo(function ProjectCard({
   // Calculate days left/overdue
   const getDaysInfo = () => {
     if (!project.dueDate) return null;
+    // If due date is not approved, show "Em análise"
+    if (!project.dueDateApproved) {
+      return { text: 'Em análise', isOverdue: false, isPending: true };
+    }
     const due = new Date(project.dueDate);
     const now = new Date();
     const diff = Math.ceil((due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-    if (diff < 0) return { text: `${Math.abs(diff)} days overdue`, isOverdue: true };
-    if (diff === 0) return { text: 'Due today', isOverdue: false };
-    return { text: `${diff} days left`, isOverdue: false };
+    if (diff < 0) return { text: `${Math.abs(diff)} days overdue`, isOverdue: true, isPending: false };
+    if (diff === 0) return { text: 'Due today', isOverdue: false, isPending: false };
+    return { text: `${diff} days left`, isOverdue: false, isPending: false };
   };
 
   // Calculate progress based on deliverables or project status
@@ -685,6 +689,21 @@ export const ProjectCard = memo(function ProjectCard({
   // Check if there's a pending due date request
   const hasPendingDueDateRequest = !!project.requestedDueDate;
 
+  // Admin: Approve pending due date (when project is created with a due date)
+  const handleApproveDueDate = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onUpdate?.(project.id, { dueDateApproved: true });
+  };
+
+  // Admin: Reject pending due date (clears the due date)
+  const handleRejectDueDate = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onUpdate?.(project.id, {
+      dueDate: null,
+      dueDateApproved: true, // No longer pending since we cleared it
+    });
+  };
+
   // Deliverable CRUD handlers
   const handleEditDeliverable = (d: Deliverable) => {
     setDeliverableForm({
@@ -840,11 +859,34 @@ export const ProjectCard = memo(function ProjectCard({
             </div>
           )}
         </div>
-        <div className={`${styles.stat} ${daysInfo?.isOverdue && project.status !== 'done' ? styles.overdue : ''} ${project.status === 'done' ? styles.completed : ''} ${hasPendingDueDateRequest ? styles.hasPendingRequest : ''}`}>
+        <div className={`${styles.stat} ${daysInfo?.isOverdue && project.status !== 'done' ? styles.overdue : ''} ${project.status === 'done' ? styles.completed : ''} ${daysInfo?.isPending ? styles.isPending : ''}`}>
           {project.status === 'done' ? (
             <>
               <CheckIcon />
               <span className={styles.statLabel}>COMPLETED</span>
+            </>
+          ) : daysInfo?.isPending ? (
+            <>
+              <CalendarIcon />
+              <span className={styles.statValue} style={{ fontSize: '11px' }}>EM ANÁLISE</span>
+              {isAdmin && (
+                <div className={styles.dueDateApprovalButtons}>
+                  <button
+                    className={styles.approveSmall}
+                    onClick={handleApproveDueDate}
+                    title="Approve date"
+                  >
+                    ✓
+                  </button>
+                  <button
+                    className={styles.rejectSmall}
+                    onClick={handleRejectDueDate}
+                    title="Reject date"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
             </>
           ) : (
             <>

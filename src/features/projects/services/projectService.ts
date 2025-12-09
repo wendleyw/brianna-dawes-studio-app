@@ -271,6 +271,7 @@ class ProjectService {
     if (projectData.requestedDueDate !== undefined) updateData.requested_due_date = projectData.requestedDueDate;
     if (projectData.dueDateRequestedAt !== undefined) updateData.due_date_requested_at = projectData.dueDateRequestedAt;
     if (projectData.dueDateRequestedBy !== undefined) updateData.due_date_requested_by = projectData.dueDateRequestedBy;
+    if (projectData.dueDateApproved !== undefined) updateData.due_date_approved = projectData.dueDateApproved;
 
     if (Object.keys(updateData).length > 0) {
       updateData.updated_at = new Date().toISOString();
@@ -365,6 +366,7 @@ class ProjectService {
       requestedDueDate: data.requested_due_date as string | null,
       dueDateRequestedAt: data.due_date_requested_at as string | null,
       dueDateRequestedBy: data.due_date_requested_by as string | null,
+      dueDateApproved: (data.due_date_approved as boolean) ?? true,
       // Miro sync tracking fields
       syncStatus: (data.sync_status as Project['syncStatus']) || 'pending',
       syncErrorMessage: data.sync_error_message as string | null,

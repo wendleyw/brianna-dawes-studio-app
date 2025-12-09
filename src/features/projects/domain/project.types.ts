@@ -76,6 +76,8 @@ export interface Project {
   requestedDueDate: string | null;
   dueDateRequestedAt: string | null;
   dueDateRequestedBy: string | null;
+  // Due date approval status (false = "Em análise" until admin approves)
+  dueDateApproved: boolean;
   // Miro sync tracking fields
   syncStatus: MiroSyncStatus;
   syncErrorMessage: string | null;
@@ -122,6 +124,8 @@ export interface UpdateProjectInput {
   requestedDueDate?: string | null;
   dueDateRequestedAt?: string | null;
   dueDateRequestedBy?: string | null;
+  // Due date approval
+  dueDateApproved?: boolean;
 }
 
 export interface ProjectFilters {
