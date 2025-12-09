@@ -13,6 +13,7 @@ import type { Deliverable } from '@features/deliverables/domain/deliverable.type
 import { formatDateShort } from '@shared/lib/dateFormat';
 import { createLogger } from '@shared/lib/logger';
 import { miroAdapter } from '@shared/lib/miroAdapter';
+import { PROJECT_TYPE_CONFIG } from './constants/colors.constants';
 
 const logger = createLogger('MiroClientReport');
 
@@ -851,20 +852,6 @@ class MiroClientReportService {
 
     const chartTop = topY + 35;
 
-    // Project type labels for display (no emojis)
-    const PROJECT_TYPE_LABELS: Record<string, { label: string; color: string }> = {
-      'social-post-design': { label: 'Social Post Design', color: '#3B82F6' },
-      'email-design': { label: 'Email Design', color: '#8B5CF6' },
-      'hero-section': { label: 'Hero Section', color: '#EC4899' },
-      'ad-design': { label: 'Ad Design', color: '#F59E0B' },
-      'marketing-campaign': { label: 'Marketing Campaign', color: '#10B981' },
-      'video-production': { label: 'Video Production', color: '#EF4444' },
-      'gif-design': { label: 'GIF Design', color: '#6366F1' },
-      'website-assets': { label: 'Website Assets', color: '#14B8A6' },
-      'website-ui-design': { label: 'Website UI Design', color: '#F97316' },
-      'other': { label: 'Other', color: '#6B7280' },
-    };
-
     // Sort project types by count (descending)
     const sortedTypes = Object.entries(byProjectType)
       .sort((a, b) => b[1] - a[1])
@@ -881,9 +868,13 @@ class MiroClientReportService {
     // Find max value for scaling
     const maxCount = sortedTypes.length > 0 ? Math.max(...sortedTypes.map(([, count]) => count)) : 1;
 
+    // Default fallback for unknown types
+    const defaultTypeConfig = { label: 'Other', color: '#607D8B', icon: '📋' };
+
     for (let i = 0; i < sortedTypes.length; i++) {
       const [typeKey, count] = sortedTypes[i]!;
-      const typeInfo = PROJECT_TYPE_LABELS[typeKey] || PROJECT_TYPE_LABELS['other']!;
+      // Use centralized PROJECT_TYPE_CONFIG for consistent colors
+      const typeInfo = PROJECT_TYPE_CONFIG[typeKey] || defaultTypeConfig;
       const percentage = total > 0 ? Math.round((count / total) * 100) : 0;
 
       // Calculate bar width based on proportion to max value
