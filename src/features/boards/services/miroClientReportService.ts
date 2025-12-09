@@ -293,11 +293,38 @@ class MiroClientReportService {
   }
 
   /**
-   * Get month name from date string
+   * Get report period label based on date range
    */
-  private getMonthName(dateStr: string): string {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  private getReportPeriodLabel(startDate: string, endDate: string): string {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    const startMonth = start.getMonth();
+    const endMonth = end.getMonth();
+    const startYear = start.getFullYear();
+    const endYear = end.getFullYear();
+
+    // If same month, show "Month Year"
+    if (startMonth === endMonth && startYear === endYear) {
+      return start.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    }
+
+    // If full year (Jan 1 to Dec 31 of same year), show just "Year"
+    if (startMonth === 0 && endMonth === 11 && start.getDate() === 1 && end.getDate() === 31 && startYear === endYear) {
+      return startYear.toString();
+    }
+
+    // If same year but different months, show "Month - Month Year"
+    if (startYear === endYear) {
+      const startMonthName = start.toLocaleDateString('en-US', { month: 'short' });
+      const endMonthName = end.toLocaleDateString('en-US', { month: 'short' });
+      return `${startMonthName} - ${endMonthName} ${startYear}`;
+    }
+
+    // Different years, show "Month Year - Month Year"
+    const startLabel = start.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    const endLabel = end.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    return `${startLabel} - ${endLabel}`;
   }
 
   /**
@@ -354,9 +381,9 @@ class MiroClientReportService {
     // Frame Y is the CENTER, so adjust from top edge
     const frameY = frameTopY + dynamicHeight / 2;
 
-    // Create report title with month
-    const reportMonth = this.getMonthName(data.startDate);
-    const reportTitle = `Report - ${reportMonth}`;
+    // Create report title based on date range
+    const reportPeriod = this.getReportPeriodLabel(data.startDate, data.endDate);
+    const reportTitle = `Report - ${reportPeriod}`;
 
     // Create main report frame
     const reportFrame = await miro.board.createFrame({
@@ -767,9 +794,12 @@ class MiroClientReportService {
       .slice(0, 6); // Show top 6
 
     const total = Object.values(byProjectType).reduce((a, b) => a + b, 0);
-    const maxWidth = 450;
+    const maxWidth = contentWidth - 40; // Use most of available width
     const barHeight = 32;
     const barGap = 6;
+
+    // Left edge for bars (aligned to left)
+    const barLeftX = centerX - contentWidth / 2 + 20;
 
     // Find max value for scaling
     const maxCount = sortedTypes.length > 0 ? Math.max(...sortedTypes.map(([, count]) => count)) : 1;
@@ -780,15 +810,15 @@ class MiroClientReportService {
       const percentage = total > 0 ? Math.round((count / total) * 100) : 0;
 
       // Calculate bar width based on proportion to max value
-      const barWidth = Math.max((count / maxCount) * maxWidth, 120);
+      const barWidth = Math.max((count / maxCount) * maxWidth, 150);
 
       const barY = chartTop + i * (barHeight + barGap);
 
-      // Bar background
+      // Bar background - aligned to left
       await miro.board.createShape({
         shape: 'round_rectangle',
         content: '',
-        x: centerX - (maxWidth - barWidth) / 2,
+        x: barLeftX + barWidth / 2,
         y: barY + barHeight / 2,
         width: barWidth,
         height: barHeight,
@@ -798,15 +828,15 @@ class MiroClientReportService {
         },
       });
 
-      // Label with name, count and percentage
+      // Label with name, count and percentage - aligned to left inside bar
       await miro.board.createText({
         content: `<b>${typeInfo.label}</b>: ${count} assets (${percentage}%)`,
-        x: centerX - (maxWidth - barWidth) / 2,
+        x: barLeftX + barWidth / 2,
         y: barY + barHeight / 2,
-        width: barWidth - 16,
+        width: barWidth - 24,
         style: {
-          fontSize: 10,
-          textAlign: 'center',
+          fontSize: 11,
+          textAlign: 'left',
           color: '#FFFFFF',
         },
       });
@@ -818,10 +848,10 @@ class MiroClientReportService {
         content: 'No project type data available',
         x: centerX,
         y: chartTop + 60,
-        width: 300,
+        width: contentWidth,
         style: {
           fontSize: 12,
-          textAlign: 'center',
+          textAlign: 'left',
           color: '#9CA3AF',
         },
       });
