@@ -364,7 +364,8 @@ export const adminService = {
       .select('user_id')
       .eq('board_id', boardId)
       .eq('is_primary', true)
-      .single();
+      .limit(1)
+      .maybeSingle();
 
     if (boardError || !boardAssignment) {
       // Try to find any client assigned to this board
@@ -374,7 +375,7 @@ export const adminService = {
         .eq('board_id', boardId)
         .eq('users.role', 'client')
         .limit(1)
-        .single();
+        .maybeSingle();
 
       if (anyError || !anyAssignment) return null;
       return this.getClientPlanStats(anyAssignment.user_id);
@@ -496,7 +497,8 @@ export const adminService = {
       .select('user_id')
       .eq('board_id', boardId)
       .eq('is_primary', true)
-      .single();
+      .limit(1)
+      .maybeSingle();
 
     if (boardError || !boardAssignment) {
       // Try to find any client assigned to this board
@@ -506,7 +508,7 @@ export const adminService = {
         .eq('board_id', boardId)
         .eq('users.role', 'client')
         .limit(1)
-        .single();
+        .maybeSingle();
 
       if (anyError || !anyAssignment) return 0;
       return this.getClientTotalAssets(anyAssignment.user_id);
