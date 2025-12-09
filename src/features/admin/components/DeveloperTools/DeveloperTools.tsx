@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Button } from '@shared/ui';
 import { useMiro } from '@features/boards';
+import { useAuth } from '@features/auth';
 import { miroTimelineService, miroProjectRowService } from '@features/boards/services/miroSdkService';
 import { projectService } from '@features/projects/services/projectService';
 import { deliverableService } from '@features/deliverables/services/deliverableService';
@@ -331,6 +332,7 @@ const TEST_PROJECTS: TestProjectData[] = [
 
 export function DeveloperTools() {
   const { isInMiro, miro } = useMiro();
+  const { user: authUser } = useAuth();
   const [isCreating, setIsCreating] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
   const [isRenaming, setIsRenaming] = useState(false);
@@ -421,18 +423,11 @@ export function DeveloperTools() {
 
     try {
       addProgress('Checking authentication...');
-      const { data: { user: authUser } } = await supabase.auth.getUser();
 
       if (authUser) {
-        const { data: userData } = await supabase
-          .from('users')
-          .select('id, name, role')
-          .eq('id', authUser.id)
-          .single();
+        addProgress(`✓ Logged in as: ${authUser.name || authUser.email} (${authUser.role || 'unknown role'})`);
 
-        addProgress(`✓ Logged in as: ${userData?.name || authUser.email} (${userData?.role || 'unknown role'})`);
-
-        if (userData?.role !== 'admin') {
+        if (authUser.role !== 'admin') {
           addProgress('⚠ WARNING: You are not an admin! Delete may fail due to RLS policies.');
         }
       } else {
@@ -534,21 +529,14 @@ export function DeveloperTools() {
     setError(null);
 
     try {
-      // Step 1: Check authentication
+      // Step 1: Check authentication from context
       addProgress('Checking authentication...');
-      const { data: { user: authUser } } = await supabase.auth.getUser();
 
       if (!authUser) {
-        throw new Error('Not authenticated');
+        throw new Error('Not authenticated. Please log in first.');
       }
 
-      const { data: userData } = await supabase
-        .from('users')
-        .select('id, name, role')
-        .eq('id', authUser.id)
-        .single();
-
-      addProgress(`✓ Logged in as: ${userData?.name || authUser.email} (${userData?.role})`);
+      addProgress(`✓ Logged in as: ${authUser.name || authUser.email} (${authUser.role})`);
 
       // Step 2: Get or create a client
       addProgress('Finding or creating test client...');

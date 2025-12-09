@@ -1439,7 +1439,7 @@ export const ProjectCard = memo(function ProjectCard({
         open={showVersionModal}
         onClose={() => setShowVersionModal(false)}
         title="New Version"
-        description={`Create "${project.name} - VERSION ${(project.deliverablesCount || 0) + 1}" frame on the board?`}
+        description={`Create a new version frame for "${project.name}" on the board?`}
         size="sm"
       >
         <div className={styles.modalContent}>
