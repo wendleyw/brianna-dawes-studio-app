@@ -35,8 +35,8 @@ const CELL_HEIGHT = 150;
 const CELL_GAP = 15;
 const GRID_START_Y = 120;
 
-// Process stages
-const DEFAULT_STAGES = ['STAGE 1', 'STAGE 2', 'STAGE 3'];
+// Process versions
+const DEFAULT_VERSIONS = ['VERSION 1', 'VERSION 2', 'VERSION 3'];
 
 class ProjectRowService {
   private projectRows: Map<string, ProjectRowState> = new Map();
@@ -74,9 +74,9 @@ class ProjectRowService {
       fillColor: '#FFFFFF',
     });
 
-    // Create Process Stages Frame
+    // Create Process Versions Frame
     const processFrame = await miroClient.createFrame(this.boardId, {
-      title: `⭐ ${project.client?.name || 'Client'} - ${project.name} - PROCESS STAGES - BRIANNA DAWES STUDIOS [${projectCode}]`,
+      title: `⭐ ${project.client?.name || 'Client'} - ${project.name} - PROCESS VERSIONS - BRIANNA DAWES STUDIOS [${projectCode}]`,
       x: PROJECT_ROWS_START_X + BRIEFING_FRAME_WIDTH + FRAME_GAP,
       y: rowY,
       width: PROCESS_FRAME_WIDTH,
@@ -104,8 +104,8 @@ class ProjectRowService {
       rowY
     );
 
-    // Create process stages section
-    const processStages = await this.createProcessStages(
+    // Create process versions section
+    const processVersions = await this.createProcessVersions(
       processFrame.id,
       rowY
     );
@@ -118,7 +118,7 @@ class ProjectRowService {
       processFrameId: processFrame.id,
       y: rowY,
       briefingItems,
-      processStages,
+      processVersions,
     };
 
     this.projectRows.set(project.id, projectRow);
@@ -294,26 +294,26 @@ class ProjectRowService {
   }
 
   /**
-   * Create the Process Stages section
+   * Create the Process Versions section
    */
-  private async createProcessStages(
+  private async createProcessVersions(
     _frameId: string,
     rowY: number
-  ): Promise<Array<{ id: string; miroItemId: string | null; stageName: string }>> {
+  ): Promise<Array<{ id: string; miroItemId: string | null; versionName: string }>> {
     if (!this.boardId) return [];
 
-    const stages: Array<{ id: string; miroItemId: string | null; stageName: string }> = [];
-    const stageStartY = rowY + 60;
-    const stageX = PROJECT_ROWS_START_X + BRIEFING_FRAME_WIDTH + FRAME_GAP + PROCESS_FRAME_WIDTH / 2;
+    const versions: Array<{ id: string; miroItemId: string | null; versionName: string }> = [];
+    const versionStartY = rowY + 60;
+    const versionX = PROJECT_ROWS_START_X + BRIEFING_FRAME_WIDTH + FRAME_GAP + PROCESS_FRAME_WIDTH / 2;
 
-    // Process Stages header
+    // Process Versions header
     await miroClient.createShape(this.boardId, {
       shape: 'rectangle',
-      x: stageX,
-      y: stageStartY,
+      x: versionX,
+      y: versionStartY,
       width: PROCESS_FRAME_WIDTH - 40,
       height: 35,
-      content: '📋 PROCESS STAGES - Click + to add more frames',
+      content: '📋 PROCESS VERSIONS - Click + to add more frames',
       style: {
         fillColor: '#000000',
         fontColor: '#FFFFFF',
@@ -321,17 +321,17 @@ class ProjectRowService {
       },
     });
 
-    // Create stage sections
-    let currentY = stageStartY + 60;
-    for (const stageName of DEFAULT_STAGES) {
-      // Stage header
-      const stageHeader = await miroClient.createShape(this.boardId, {
+    // Create version sections
+    let currentY = versionStartY + 60;
+    for (const versionName of DEFAULT_VERSIONS) {
+      // Version header
+      const versionHeader = await miroClient.createShape(this.boardId, {
         shape: 'rectangle',
-        x: stageX,
+        x: versionX,
         y: currentY,
         width: PROCESS_FRAME_WIDTH - 40,
         height: 30,
-        content: `🎯 ${stageName}`,
+        content: `🎯 ${versionName}`,
         style: {
           fillColor: '#374151',
           fontColor: '#FFFFFF',
@@ -339,14 +339,14 @@ class ProjectRowService {
         },
       });
 
-      // Stage content area
+      // Version content area
       await miroClient.createShape(this.boardId, {
         shape: 'rectangle',
-        x: stageX,
+        x: versionX,
         y: currentY + 110,
         width: PROCESS_FRAME_WIDTH - 60,
         height: 150,
-        content: `Add deliverables, mockups, and iterations for ${stageName}`,
+        content: `Add deliverables, mockups, and iterations for ${versionName}`,
         style: {
           fillColor: '#F9FAFB',
           borderColor: '#E5E7EB',
@@ -355,10 +355,10 @@ class ProjectRowService {
         },
       });
 
-      stages.push({
+      versions.push({
         id: crypto.randomUUID(),
-        miroItemId: stageHeader.id,
-        stageName,
+        miroItemId: versionHeader.id,
+        versionName,
       });
 
       currentY += 220;
@@ -367,7 +367,7 @@ class ProjectRowService {
     // Footer note
     await miroClient.createText(this.boardId, {
       content: 'Drag deliverables here. Add attachments here. Images + attachments',
-      x: stageX,
+      x: versionX,
       y: rowY + PROCESS_FRAME_HEIGHT - 50,
       width: PROCESS_FRAME_WIDTH - 40,
       style: {
@@ -377,7 +377,7 @@ class ProjectRowService {
       },
     });
 
-    return stages;
+    return versions;
   }
 
   /**

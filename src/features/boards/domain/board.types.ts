@@ -175,5 +175,5 @@ export interface ProjectRowState {
   processFrameId: string | null;
   y: number;
   briefingItems: Array<{ id: string; miroItemId: string | null; fieldKey: string }>;
-  processStages: Array<{ id: string; miroItemId: string | null; stageName: string }>;
+  processVersions: Array<{ id: string; miroItemId: string | null; versionName: string }>;
 }

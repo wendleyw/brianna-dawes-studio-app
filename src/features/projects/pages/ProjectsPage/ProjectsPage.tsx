@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Logo, SplashScreen, CreditBar } from '@shared/ui';
 import { useAuth } from '@features/auth';
 import logoImage from '../../../../assets/brand/logo-brianna.png';
-import { useMiro, zoomToProject, addStageToProject } from '@features/boards';
+import { useMiro, zoomToProject, addVersionToProject } from '@features/boards';
 import { useMiroBoardSync } from '@features/boards/hooks';
 import { miroProjectRowService } from '@features/boards/services/miroSdkService';
 import { useProjects, useUpdateProject, useArchiveProject } from '../../hooks';
@@ -350,13 +350,24 @@ export function ProjectsPage() {
     recentlySyncedRef.current.add(projectId);
     setTimeout(() => recentlySyncedRef.current.delete(projectId), 5000);
 
-    // Build update input - include wasReviewed if client marked as reviewed
-    const updateInput: { status: ProjectStatus; wasReviewed?: boolean } = { status };
+    // Build update input - include wasReviewed if client requested changes
+    const updateInput: { status: ProjectStatus; wasReviewed?: boolean; wasApproved?: boolean } = { status };
     if (options?.markAsReviewed) {
       updateInput.wasReviewed = true;
     }
-    // Clear wasReviewed when moving back to review status (so client can review again)
-    if (status === 'review' && !options?.markAsReviewed) {
+
+    // Clear flags when status changes:
+    // - wasReviewed: cleared when moving to review (so client can review again)
+    // - wasApproved: cleared when moving away from done or when sending back to review
+    if (status === 'review') {
+      // Sending for review - clear both flags so client can review fresh
+      updateInput.wasReviewed = false;
+      updateInput.wasApproved = false;
+    } else if (status === 'done') {
+      // Moving to done - clear wasApproved as it's now finalized
+      updateInput.wasApproved = false;
+    } else if (!options?.markAsReviewed) {
+      // Any other status change without explicit markAsReviewed - clear wasReviewed
       updateInput.wasReviewed = false;
     }
 
@@ -433,17 +444,17 @@ export function ProjectsPage() {
     });
   }, [archiveProject, refetch]);
 
-  // Create Stage - Add new stage to project board
-  const handleCreateStage = useCallback(async (project: Project) => {
+  // Create Version - Add new version to project board
+  const handleCreateVersion = useCallback(async (project: Project) => {
     try {
-      const stage = await addStageToProject(project.id, project.name);
-      if (stage) {
-        logger.info('Stage created', { stageNumber: stage.stageNumber, project: project.name });
+      const version = await addVersionToProject(project.id, project.name);
+      if (version) {
+        logger.info('Version created', { versionNumber: version.versionNumber, project: project.name });
       } else {
-        logger.warn('Could not create stage - project row not found');
+        logger.warn('Could not create version - project row not found');
       }
     } catch (error) {
-      logger.error('Failed to create stage', error);
+      logger.error('Failed to create version', error);
     }
   }, []);
 
@@ -749,7 +760,7 @@ export function ProjectsPage() {
               onReview={handleReview}
               onComplete={handleComplete}
               onArchive={handleArchive}
-              onCreateStage={handleCreateStage}
+              onCreateVersion={handleCreateVersion}
               onAssignDesigner={handleAssignDesigner}
               onOpenStatusModal={handleOpenBoardModal}
               isSelected={project.id === selectedProjectId}

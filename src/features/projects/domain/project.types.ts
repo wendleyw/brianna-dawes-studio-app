@@ -62,6 +62,7 @@ export interface Project {
   startDate: string | null;
   dueDate: string | null;
   completedAt: string | null;
+  archivedAt: string | null;
   clientId: string;
   client: ProjectClient | null;
   designers: ProjectDesigner[];
@@ -72,6 +73,7 @@ export interface Project {
   deliverablesCount: number;
   briefing: ProjectBriefing | null;
   wasReviewed: boolean;
+  wasApproved: boolean;
   // Due date request fields (for client approval workflow)
   requestedDueDate: string | null;
   dueDateRequestedAt: string | null;
@@ -122,6 +124,7 @@ export interface UpdateProjectInput {
   thumbnailUrl?: string | null;
   briefing?: Partial<ProjectBriefing> | null;
   wasReviewed?: boolean;
+  wasApproved?: boolean;
   // Due date request fields
   requestedDueDate?: string | null;
   dueDateRequestedAt?: string | null;

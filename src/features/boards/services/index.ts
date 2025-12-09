@@ -6,8 +6,8 @@ export { projectRowService } from './projectRowService';
 export {
   miroTimelineService,
   miroProjectRowService,
-  addStageToProject,
-  getProjectStageCount,
+  addVersionToProject,
+  getProjectVersionCount,
   zoomToProject,
 } from './miroSdkService';
 

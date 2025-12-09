@@ -22,7 +22,7 @@ export const ROLE_PERMISSIONS = {
     canCreateProjects: true,
     // Miro board permissions
     canSyncAllProjects: true,
-    canCreateStages: true,
+    canCreateVersions: true,
     canModifyBoardLayout: true,
     canDeleteFromBoard: true,
   },
@@ -35,7 +35,7 @@ export const ROLE_PERMISSIONS = {
     canCreateProjects: false,
     // Miro board permissions
     canSyncAllProjects: false,
-    canCreateStages: true,
+    canCreateVersions: true,
     canModifyBoardLayout: false,
     canDeleteFromBoard: false,
   },
@@ -48,7 +48,7 @@ export const ROLE_PERMISSIONS = {
     canCreateProjects: true,
     // Miro board permissions
     canSyncAllProjects: false,
-    canCreateStages: true,
+    canCreateVersions: true,
     canModifyBoardLayout: false,
     canDeleteFromBoard: false,
   },

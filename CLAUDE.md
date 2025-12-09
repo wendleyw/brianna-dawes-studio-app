@@ -6,6 +6,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is a **Miro App for Brianna Dawes Studios** - a project management system that transforms Miro boards into a comprehensive project management hub for design studios. The system enables collaboration between Admin, Designer, and Client roles with real-time synchronization between a database and visual Miro boards.
 
+## Commands
+
+```bash
+# Development
+npm run dev          # Start dev server (port 3000)
+npm run build        # Type check + build for production
+npm run preview      # Preview production build
+
+# Code Quality
+npm run typecheck    # TypeScript type checking only
+npm run lint         # ESLint check
+npm run lint:fix     # ESLint with auto-fix
+npm run format       # Prettier formatting
+```
+
 ## Documentation Files
 
 The `.md` files in this repository (PRD.md, AI-DEV-GUIDE.md) are actually **JavaScript files** that use the `docx` library to generate Word documents. They are not markdown files despite their extension. Run them with Node.js to generate `.docx` output files.
@@ -72,11 +87,36 @@ The system follows **Clean Architecture** with feature-based modules:
 - **Designer**: Access to assigned projects only
 - **Client**: Access to own projects only
 
-## Miro Integration Services
+## Miro Integration
+
+### Multiple Entry Points
+
+The app has three HTML entry points for different Miro contexts (configured in `vite.config.ts`):
+- `index.html` - Main panel entry
+- `app.html` - Full app interface
+- `board-modal.html` - Modal dialogs opened from board
+
+### SDK Access
+
+Use `miroAdapter` from `@shared/lib/miroAdapter` for all Miro SDK operations:
+```typescript
+import { miroAdapter } from '@shared/lib/miroAdapter';
+
+// Check if running in Miro context
+if (miroAdapter.isAvailable()) {
+  await miroAdapter.showInfo('Hello from the app!');
+}
+
+// Safe operations that won't throw
+const boardInfo = await miroAdapter.getBoardInfo(); // Returns null if not in Miro
+```
+
+### Services
 
 - **MasterTimelineService**: Manages Kanban board with status columns (draft, in_progress, review, done)
 - **BrandWorkspaceService**: Creates project workspace frames (brief, process sections)
 - **BoardSyncService**: Handles DB <-> Miro synchronization with reconciliation
+- **miroClient** (`src/features/boards/services/miroClient.ts`): REST API wrapper for Miro v2 API
 
 ## Database Tables
 
@@ -102,7 +142,26 @@ Border radius: 4, 8, 12px
 
 ## Path Aliases
 
-Configure these in tsconfig.json:
-- `@features` -> src/features
-- `@shared` -> src/shared
-- `@config` -> src/shared/config
+- `@features/*` -> src/features/*
+- `@shared/*` -> src/shared/*
+- `@config/*` -> src/shared/config/*
+- `@app/*` -> src/app/*
+
+## TypeScript Configuration
+
+Strict mode is enabled with additional checks:
+- `noUncheckedIndexedAccess`: Array/object access returns `T | undefined`
+- `exactOptionalPropertyTypes`: Optional props require explicit `undefined` when set
+
+## React Query Patterns
+
+Query keys follow a factory pattern in each feature's `services/` folder:
+```typescript
+// src/features/projects/services/projectKeys.ts
+export const projectKeys = {
+  all: ['projects'] as const,
+  lists: () => [...projectKeys.all, 'list'] as const,
+  list: (params: ProjectsQueryParams) => [...projectKeys.lists(), params] as const,
+  detail: (id: string) => [...projectKeys.details(), id] as const,
+};
+```

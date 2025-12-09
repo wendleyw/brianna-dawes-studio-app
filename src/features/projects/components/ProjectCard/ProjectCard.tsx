@@ -239,7 +239,7 @@ export const ProjectCard = memo(function ProjectCard({
   onArchive,
   onReview,
   onComplete,
-  onCreateStage,
+  onCreateVersion,
   onAssignDesigner,
   onOpenStatusModal,
   isSelected = false,
@@ -253,9 +253,10 @@ export const ProjectCard = memo(function ProjectCard({
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [showCompleteModal, setShowCompleteModal] = useState(false);
   const [showDeliverableModal, setShowDeliverableModal] = useState(false);
-  const [showStageModal, setShowStageModal] = useState(false);
+  const [showVersionModal, setShowVersionModal] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [showArchiveModal, setShowArchiveModal] = useState(false);
+  const [showClientRequestChangesModal, setShowClientRequestChangesModal] = useState(false);
   const [showClientApproveModal, setShowClientApproveModal] = useState(false);
   const [showClientCriticalModal, setShowClientCriticalModal] = useState(false);
   // Form states
@@ -575,15 +576,15 @@ export const ProjectCard = memo(function ProjectCard({
     }
   };
 
-  // ACTION: Stage - Create new stage
-  const handleStageClick = (e: React.MouseEvent) => {
+  // ACTION: Version - Create new version
+  const handleVersionClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setShowStageModal(true);
+    setShowVersionModal(true);
   };
 
-  const handleConfirmStage = () => {
-    onCreateStage?.(project);
-    setShowStageModal(false);
+  const handleConfirmVersion = () => {
+    onCreateVersion?.(project);
+    setShowVersionModal(false);
   };
 
   // ACTION: Assign - Assign designers
@@ -623,18 +624,31 @@ export const ProjectCard = memo(function ProjectCard({
     setArchiveReason('');
   };
 
-  // CLIENT ACTIONS: Approve (reviewed) - sends back to in_progress
+  // CLIENT ACTIONS: Request Changes - sends back to in_progress for more work
+  const handleClientRequestChangesClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowClientRequestChangesModal(true);
+  };
+
+  const handleConfirmClientRequestChanges = () => {
+    // Send back to in_progress with wasReviewed flag (indicates client reviewed and wants changes)
+    onUpdateStatus?.(project.id, 'in_progress', { markAsReviewed: true });
+    setShowClientRequestChangesModal(false);
+  };
+
+  // CLIENT ACTIONS: Approve - marks project as approved (stays in review for admin to finalize)
   const handleClientApproveClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     setShowClientApproveModal(true);
   };
 
   const handleConfirmClientApprove = () => {
-    onUpdateStatus?.(project.id, 'in_progress', { markAsReviewed: true });
+    // Mark as approved - project stays in current status but gets approved flag
+    onUpdate?.(project.id, { wasApproved: true });
     setShowClientApproveModal(false);
   };
 
-  // CLIENT ACTIONS: Move to Critical
+  // CLIENT ACTIONS: Move to Urgent
   const handleClientCriticalClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     setShowClientCriticalModal(true);
@@ -715,8 +729,46 @@ export const ProjectCard = memo(function ProjectCard({
     <article className={`${styles.card} ${isSelected ? styles.selected : ''} ${isDone ? styles.done : ''}`} data-project-id={project.id}>
       {/* Header */}
       <div className={styles.header}>
-        {/* Reviewed badge - highlighted at top when client has reviewed (hidden when done) */}
-        {project.wasReviewed && !isDone && (
+        {/* Review Ready banner - shown to client when project is in review status */}
+        {isInReview && isClient && (
+          <div className={styles.reviewReadyBanner}>
+            <Badge
+              variant="neutral"
+              size="sm"
+              style={{
+                backgroundColor: '#F59E0B',
+                color: '#fff',
+                border: 'none',
+                fontWeight: 700,
+                letterSpacing: '0.5px',
+                padding: '4px 12px',
+              }}
+            >
+              ⭐ REVIEW READY
+            </Badge>
+          </div>
+        )}
+        {/* Approved banner - shown when client has approved (ready for admin to finalize) */}
+        {project.wasApproved && !isDone && (
+          <div className={styles.approvedBanner}>
+            <Badge
+              variant="neutral"
+              size="sm"
+              style={{
+                backgroundColor: '#22C55E',
+                color: '#fff',
+                border: 'none',
+                fontWeight: 700,
+                letterSpacing: '0.5px',
+                padding: '4px 12px',
+              }}
+            >
+              ✓ CLIENT APPROVED
+            </Badge>
+          </div>
+        )}
+        {/* Reviewed badge - shown when client requested changes (hidden when done, in review, or approved) */}
+        {project.wasReviewed && !isDone && !isInReview && !project.wasApproved && (
           <div className={styles.reviewedBanner}>
             <Badge
               variant="neutral"
@@ -730,7 +782,7 @@ export const ProjectCard = memo(function ProjectCard({
                 padding: '4px 12px',
               }}
             >
-              ✓ REVIEWED BY CLIENT
+              ✎ CHANGES REQUESTED
             </Badge>
           </div>
         )}
@@ -1101,10 +1153,10 @@ export const ProjectCard = memo(function ProjectCard({
                   <span>Deliverable</span>
                 </button>
 
-                {/* 5. Stage */}
-                <button className={styles.adminBtn} onClick={handleStageClick}>
+                {/* 5. Version */}
+                <button className={styles.adminBtn} onClick={handleVersionClick}>
                   <div className={styles.adminBtnIcon}><PlusIcon /></div>
-                  <span>Stage</span>
+                  <span>Version</span>
                 </button>
 
                 {/* 6. Assign */}
@@ -1113,13 +1165,7 @@ export const ProjectCard = memo(function ProjectCard({
                   <span>Assign</span>
                 </button>
 
-                {/* 7. Status */}
-                <button className={styles.adminBtn} onClick={handleStatusClick}>
-                  <div className={styles.adminBtnIcon}><TagIcon /></div>
-                  <span>Status</span>
-                </button>
-
-                {/* 8. Archive */}
+                {/* 7. Archive */}
                 <button className={`${styles.adminBtn} ${styles.danger}`} onClick={handleArchiveClick}>
                   <div className={styles.adminBtnIcon}><ArchiveIcon /></div>
                   <span>Archive</span>
@@ -1133,11 +1179,11 @@ export const ProjectCard = memo(function ProjectCard({
             <div className={styles.adminActions}>
               <h4 className={styles.actionsTitle}>YOUR ACTIONS</h4>
               <div className={styles.actionsGrid}>
-                {/* Stage - available for assigned client, hidden when Done */}
+                {/* Version - available for assigned client, hidden when Done */}
                 {!isDone && (
-                  <button className={styles.adminBtn} onClick={handleStageClick}>
+                  <button className={styles.adminBtn} onClick={handleVersionClick}>
                     <div className={styles.adminBtnIcon}><PlusIcon /></div>
-                    <span>Stage</span>
+                    <span>Version</span>
                   </button>
                 )}
 
@@ -1149,19 +1195,19 @@ export const ProjectCard = memo(function ProjectCard({
                   </button>
                 )}
 
-                {/* Reviewed - ONLY when in REVIEW status */}
+                {/* Request Changes - ONLY when in REVIEW status (sends back to in_progress) */}
                 {isInReview && (
-                  <button className={`${styles.adminBtn} ${styles.primary}`} onClick={handleClientApproveClick}>
-                    <div className={styles.adminBtnIcon}><CheckIcon /></div>
-                    <span>Reviewed</span>
+                  <button className={`${styles.adminBtn} ${styles.warning}`} onClick={handleClientRequestChangesClick}>
+                    <div className={styles.adminBtnIcon}><EditIcon /></div>
+                    <span>Request Changes</span>
                   </button>
                 )}
 
-                {/* Complete - ONLY when in REVIEW status */}
+                {/* Approve - ONLY when in REVIEW status (marks as approved for admin to finalize) */}
                 {isInReview && (
-                  <button className={`${styles.adminBtn} ${styles.success}`} onClick={handleCompleteClick}>
+                  <button className={`${styles.adminBtn} ${styles.success}`} onClick={handleClientApproveClick}>
                     <div className={styles.adminBtnIcon}><CheckIcon /></div>
-                    <span>Complete</span>
+                    <span>Approve</span>
                   </button>
                 )}
               </div>
@@ -1401,31 +1447,31 @@ export const ProjectCard = memo(function ProjectCard({
         </div>
       </Dialog>
 
-      {/* Stage Modal */}
+      {/* Version Modal */}
       <Dialog
-        open={showStageModal}
-        onClose={() => setShowStageModal(false)}
-        title="Create New Stage"
-        description={`Add a new process stage for "${project.name}"`}
+        open={showVersionModal}
+        onClose={() => setShowVersionModal(false)}
+        title="Create New Version"
+        description={`Add a new process version for "${project.name}"`}
         size="sm"
       >
         <div className={styles.modalContent}>
           <div className={styles.modalInfo}>
-            <p>This will create a new stage frame in the project board:</p>
-            <div className={styles.stagePreview}>
-              <span className={styles.stageIcon}>🎯</span>
-              <span>{project.name} - STAGE {(project.deliverablesCount || 0) + 1}</span>
+            <p>This will create a new version frame in the project board:</p>
+            <div className={styles.versionPreview}>
+              <span className={styles.versionIcon}>🎯</span>
+              <span>{project.name} - VERSION {(project.deliverablesCount || 0) + 1}</span>
             </div>
-            <p className={styles.stageNote}>
-              The stage will be added to the right of existing stages and synced with the Admin panel.
+            <p className={styles.versionNote}>
+              The version will be added to the right of existing versions and synced with the Admin panel.
             </p>
           </div>
           <div className={styles.modalActions}>
-            <Button variant="ghost" onClick={() => setShowStageModal(false)}>
+            <Button variant="ghost" onClick={() => setShowVersionModal(false)}>
               Cancel
             </Button>
-            <Button onClick={handleConfirmStage}>
-              Create Stage
+            <Button onClick={handleConfirmVersion}>
+              Create Version
             </Button>
           </div>
         </div>
@@ -1519,11 +1565,11 @@ export const ProjectCard = memo(function ProjectCard({
         </div>
       </Dialog>
 
-      {/* Client Approve/Reviewed Modal */}
+      {/* Client Request Changes Modal */}
       <Dialog
-        open={showClientApproveModal}
-        onClose={() => setShowClientApproveModal(false)}
-        title="Mark as Reviewed"
+        open={showClientRequestChangesModal}
+        onClose={() => setShowClientRequestChangesModal(false)}
+        title="Request Changes"
         description={`Send "${project.name}" back to the design team?`}
         size="sm"
       >
@@ -1531,9 +1577,37 @@ export const ProjectCard = memo(function ProjectCard({
           <div className={styles.modalInfo}>
             <p>This will:</p>
             <ul>
-              <li>Mark this stage as <strong>reviewed</strong></li>
+              <li>Mark this version as <strong>reviewed</strong></li>
               <li>Send the project back to <strong>In Progress</strong></li>
-              <li>Notify the design team to continue working</li>
+              <li>Notify the design team to make changes</li>
+            </ul>
+          </div>
+          <div className={styles.modalActions}>
+            <Button variant="ghost" onClick={() => setShowClientRequestChangesModal(false)}>
+              Cancel
+            </Button>
+            <Button variant="secondary" onClick={handleConfirmClientRequestChanges}>
+              Request Changes
+            </Button>
+          </div>
+        </div>
+      </Dialog>
+
+      {/* Client Approve Modal */}
+      <Dialog
+        open={showClientApproveModal}
+        onClose={() => setShowClientApproveModal(false)}
+        title="Approve Project"
+        description={`Approve "${project.name}"?`}
+        size="sm"
+      >
+        <div className={styles.modalContent}>
+          <div className={styles.modalSuccess}>
+            <p>This will:</p>
+            <ul>
+              <li>Mark this project as <strong>APPROVED</strong></li>
+              <li>Notify the Creative Director</li>
+              <li>Project will be finalized by the team</li>
             </ul>
           </div>
           <div className={styles.modalActions}>
@@ -1541,7 +1615,7 @@ export const ProjectCard = memo(function ProjectCard({
               Cancel
             </Button>
             <Button variant="primary" onClick={handleConfirmClientApprove}>
-              Mark as Reviewed
+              Approve Project
             </Button>
           </div>
         </div>

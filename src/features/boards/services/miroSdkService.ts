@@ -5,17 +5,17 @@
  *
  * ┌─────────────────────────────┐     ┌────────────────────┬────────────────────┐
  * │ ⭐ MASTER PROJECT TIMELINE  │     │  Project 1         │  Project 1         │
- * │                             │     │  BRIEFING          │  STAGE 1           │
+ * │                             │     │  BRIEFING          │  VERSION 1         │
  * │ ┌─────┬─────┬─────┬─────┐  │     └────────────────────┴────────────────────┘
  * │ │CRIT │OVER │URG  │ON   │  │
  * │ ├─────┼─────┼─────┼─────┤  │     ┌────────────────────┬────────────────────┐
  * │ │PROG │REV  │DONE │     │  │     │  Project 2         │  Project 2         │
- * │ └─────┴─────┴─────┴─────┘  │     │  BRIEFING          │  STAGE 1           │
+ * │ └─────┴─────┴─────┴─────┘  │     │  BRIEFING          │  VERSION 1         │
  * │                             │     └────────────────────┴────────────────────┘
  * │  ┌─────────────────────┐   │
  * │  │ Project Card        │   │     ┌────────────────────┬────────────────────┐
  * │  │ Project Card        │   │     │  Project 3         │  Project 3         │
- * │  └─────────────────────┘   │     │  BRIEFING          │  STAGE 1           │
+ * │  └─────────────────────┘   │     │  BRIEFING          │  VERSION 1         │
  * │                             │     └────────────────────┴────────────────────┘
  * └─────────────────────────────┘
  *        Timeline Master                   Projects Details
@@ -1065,15 +1065,15 @@ class MiroMasterTimelineService {
 
 // ==================== PROJECT ROW SERVICE ====================
 
-interface StageState {
-  stageNumber: number;
+interface VersionState {
+  versionNumber: number;
   frameId: string;
   centerX: number;
   centerY: number;
 }
 
 interface ExtendedProjectRow extends Omit<ProjectRowState, 'y' | 'processFrameId'> {
-  stages: StageState[];
+  versions: VersionState[];
   rowY: number;
   clientName: string;
   processFrameId: string;
@@ -1254,14 +1254,14 @@ class MiroProjectRowService {
     // Create briefing content
     const { items: briefingItems, statusBadgeId } = await this.createBriefingContent(project, briefing, briefingX, briefingY);
 
-    // Create Stage 1
-    const stage1X = briefingX + FRAME.WIDTH + FRAME.GAP;
-    const stage1Y = rowY;
+    // Create Version 1
+    const version1X = briefingX + FRAME.WIDTH + FRAME.GAP;
+    const version1Y = rowY;
 
-    const stage1Frame = await miro.board.createFrame({
-      title: `${project.name} - STAGE 1 ${projectTag}`,
-      x: stage1X,
-      y: stage1Y,
+    const version1Frame = await miro.board.createFrame({
+      title: `${project.name} - VERSION 1 ${projectTag}`,
+      x: version1X,
+      y: version1Y,
       width: FRAME.WIDTH,
       height: FRAME.HEIGHT,
       style: {
@@ -1269,7 +1269,7 @@ class MiroProjectRowService {
       },
     });
 
-    await this.createStageContent(stage1X, stage1Y, 1);
+    await this.createVersionContent(version1X, version1Y, 1);
 
     // Update Y for next project
     this.nextY = rowY + FRAME.HEIGHT + FRAME.ROW_GAP;
@@ -1283,11 +1283,11 @@ class MiroProjectRowService {
       projectName: project.name,
       clientName: project.client?.name || 'Client',
       briefingFrameId: briefingFrame.id,
-      processFrameId: stage1Frame.id,
+      processFrameId: version1Frame.id,
       y: rowY,
       briefingItems,
-      processStages: [{ id: crypto.randomUUID(), miroItemId: stage1Frame.id, stageName: 'STAGE 1' }],
-      stages: [{ stageNumber: 1, frameId: stage1Frame.id, centerX: stage1X, centerY: stage1Y }],
+      processVersions: [{ id: crypto.randomUUID(), miroItemId: version1Frame.id, versionName: 'VERSION 1' }],
+      versions: [{ versionNumber: 1, frameId: version1Frame.id, centerX: version1X, centerY: version1Y }],
       rowY,
       ...(statusBadgeId ? { statusBadgeId } : {}),
     };
@@ -1296,7 +1296,7 @@ class MiroProjectRowService {
 
     // Zoom to show both the Timeline and the new project frames
     const timelineFrameId = miroTimelineService.getState()?.frameId;
-    const itemsToZoom = [briefingFrame, stage1Frame];
+    const itemsToZoom = [briefingFrame, version1Frame];
     if (timelineFrameId) {
       try {
         const timelineFrame = await miro.board.getById(timelineFrameId);
@@ -1312,7 +1312,7 @@ class MiroProjectRowService {
     return row;
   }
 
-  async addStage(projectId: string, projectName?: string): Promise<StageState | null> {
+  async addVersion(projectId: string, projectName?: string): Promise<VersionState | null> {
     const miro = getMiroSDK();
     let row = this.rows.get(projectId);
 
@@ -1329,7 +1329,7 @@ class MiroProjectRowService {
         const projectFrames = allFrames.filter(f => {
           if (!f.title) return false;
           // Extract project name from title (before " - ")
-          const titleMatch = f.title.match(/^(.+?)\s*-\s*(BRIEFING|STAGE)/);
+          const titleMatch = f.title.match(/^(.+?)\s*-\s*(BRIEFING|VERSION)/);
           const frameProjName = titleMatch?.[1]?.trim();
           return frameProjName === searchName;
         });
@@ -1337,20 +1337,20 @@ class MiroProjectRowService {
         log('MiroProject', `Found ${projectFrames.length} frames for project "${searchName}"`);
 
         if (projectFrames.length > 0) {
-          // Find all STAGE frames for this project
-          const stageFrames = projectFrames
-            .filter(f => f.title?.includes('- STAGE'))
+          // Find all VERSION frames for this project
+          const versionFrames = projectFrames
+            .filter(f => f.title?.includes('- VERSION'))
             .sort((a, b) => a.x - b.x); // Sort by X position (left to right)
 
-          if (stageFrames.length > 0) {
-            // Extract project name from frame title: "Project Name - STAGE 1 [PROJ-2025-12-001]" -> "Project Name"
-            const firstStageTitle = stageFrames[0]?.title || '';
-            const extractedName = firstStageTitle.split(' - ')[0]?.trim() || projectName || 'Unknown';
-            const firstStageFrame = stageFrames[0];
+          if (versionFrames.length > 0) {
+            // Extract project name from frame title: "Project Name - VERSION 1 [PROJ-2025-12-001]" -> "Project Name"
+            const firstVersionTitle = versionFrames[0]?.title || '';
+            const extractedName = firstVersionTitle.split(' - ')[0]?.trim() || projectName || 'Unknown';
+            const firstVersionFrame = versionFrames[0];
 
             // Reconstruct the row state
-            const stages: StageState[] = stageFrames.map((f, idx) => ({
-              stageNumber: idx + 1,
+            const versions: VersionState[] = versionFrames.map((f, idx) => ({
+              versionNumber: idx + 1,
               frameId: f.id,
               centerX: f.x,
               centerY: f.y,
@@ -1360,21 +1360,21 @@ class MiroProjectRowService {
               projectId,
               projectName: extractedName,
               clientName: 'Client',
-              rowY: firstStageFrame?.y || 0,
-              y: firstStageFrame?.y || 0,
+              rowY: firstVersionFrame?.y || 0,
+              y: firstVersionFrame?.y || 0,
               briefingFrameId: projectFrames.find(f => f.title?.includes('- BRIEFING'))?.id || '',
-              processFrameId: firstStageFrame?.id || '',
-              stages,
+              processFrameId: firstVersionFrame?.id || '',
+              versions,
               briefingItems: [],
-              processStages: stageFrames.map(f => ({
+              processVersions: versionFrames.map(f => ({
                 id: crypto.randomUUID(),
                 miroItemId: f.id,
-                stageName: f.title?.split(' - ').pop()?.replace(/\s*\[.*\]$/, '') || 'STAGE',
+                versionName: f.title?.split(' - ').pop()?.replace(/\s*\[.*\]$/, '') || 'VERSION',
               })),
             };
 
             this.rows.set(projectId, row);
-            log('MiroProject', `Reconstructed row with ${stages.length} stages for project "${extractedName}"`);
+            log('MiroProject', `Reconstructed row with ${versions.length} versions for project "${extractedName}"`);
           }
         }
       } catch (e) {
@@ -1387,20 +1387,20 @@ class MiroProjectRowService {
       return null;
     }
 
-    const num = row.stages.length + 1;
-    const lastStage = row.stages[row.stages.length - 1];
-    if (!lastStage) return null; // No existing stages to position from
+    const num = row.versions.length + 1;
+    const lastVersion = row.versions[row.versions.length - 1];
+    if (!lastVersion) return null; // No existing versions to position from
 
     // Get the actual frame from the board to check its real width (in case client expanded it)
     let actualLastFrameWidth: number = FRAME.WIDTH;
-    let actualLastFrameX: number = lastStage.centerX;
+    let actualLastFrameX: number = lastVersion.centerX;
 
     try {
-      const lastFrame = await miro.board.getById(lastStage.frameId) as { x: number; width: number } | null;
+      const lastFrame = await miro.board.getById(lastVersion.frameId) as { x: number; width: number } | null;
       if (lastFrame) {
         actualLastFrameWidth = lastFrame.width || FRAME.WIDTH;
         actualLastFrameX = lastFrame.x;
-        log('MiroProject', `Last stage frame actual size: ${actualLastFrameWidth}x at X=${actualLastFrameX}`);
+        log('MiroProject', `Last version frame actual size: ${actualLastFrameWidth}x at X=${actualLastFrameX}`);
       }
     } catch (e) {
       log('MiroProject', 'Could not get last frame, using stored position', e);
@@ -1411,7 +1411,7 @@ class MiroProjectRowService {
     const x = rightEdgeOfLastFrame + FRAME.GAP + FRAME.WIDTH / 2;
     const y = row.rowY;
 
-    log('MiroProject', `Creating STAGE ${num} at X=${x} (right edge of prev: ${rightEdgeOfLastFrame})`);
+    log('MiroProject', `Creating VERSION ${num} at X=${x} (right edge of prev: ${rightEdgeOfLastFrame})`);
 
     // Extract project tag from existing briefing frame title (format: [PROJ-YYYY-MM-XXX])
     let projectTag = '';
@@ -1426,7 +1426,7 @@ class MiroProjectRowService {
     }
 
     const frame = await miro.board.createFrame({
-      title: `${row.projectName} - STAGE ${num} ${projectTag}`.trim(),
+      title: `${row.projectName} - VERSION ${num} ${projectTag}`.trim(),
       x, y,
       width: FRAME.WIDTH,
       height: FRAME.HEIGHT,
@@ -1435,18 +1435,18 @@ class MiroProjectRowService {
       },
     });
 
-    await this.createStageContent(x, y, num);
+    await this.createVersionContent(x, y, num);
 
-    const stage: StageState = { stageNumber: num, frameId: frame.id, centerX: x, centerY: y };
-    row.stages.push(stage);
-    row.processStages.push({ id: crypto.randomUUID(), miroItemId: frame.id, stageName: `STAGE ${num}` });
+    const version: VersionState = { versionNumber: num, frameId: frame.id, centerX: x, centerY: y };
+    row.versions.push(version);
+    row.processVersions.push({ id: crypto.randomUUID(), miroItemId: frame.id, versionName: `VERSION ${num}` });
 
     await miro.board.viewport.zoomTo([frame]);
-    return stage;
+    return version;
   }
 
-  getStageCount(projectId: string): number {
-    return this.rows.get(projectId)?.stages.length || 0;
+  getVersionCount(projectId: string): number {
+    return this.rows.get(projectId)?.versions.length || 0;
   }
 
   private async createBriefingContent(
@@ -1680,7 +1680,7 @@ class MiroProjectRowService {
     return { items, statusBadgeId };
   }
 
-  private async createStageContent(x: number, y: number, num: number): Promise<void> {
+  private async createVersionContent(x: number, y: number, num: number): Promise<void> {
     const miro = getMiroSDK();
     const top = y - FRAME.HEIGHT / 2;
     const contentWidth = FRAME.WIDTH - 40;
@@ -1688,7 +1688,7 @@ class MiroProjectRowService {
     // Header (minimalist)
     await miro.board.createShape({
       shape: 'rectangle',
-      content: `<p><b>STAGE ${num}</b></p>`,
+      content: `<p><b>VERSION ${num}</b></p>`,
       x,
       y: top + 30,
       width: contentWidth,
@@ -2085,9 +2085,9 @@ class MiroProjectRowService {
       await safeRemove(row.briefingFrameId);
     }
 
-    // Remove all stage frames
-    for (const stage of row.stages) {
-      await safeRemove(stage.frameId);
+    // Remove all version frames
+    for (const version of row.versions) {
+      await safeRemove(version.frameId);
     }
 
     this.rows.delete(projectId);
@@ -2113,12 +2113,12 @@ class MiroProjectRowService {
 export const miroTimelineService = new MiroMasterTimelineService();
 export const miroProjectRowService = new MiroProjectRowService();
 
-export async function addStageToProject(projectId: string, projectName?: string) {
-  return miroProjectRowService.addStage(projectId, projectName);
+export async function addVersionToProject(projectId: string, projectName?: string) {
+  return miroProjectRowService.addVersion(projectId, projectName);
 }
 
-export function getProjectStageCount(projectId: string): number {
-  return miroProjectRowService.getStageCount(projectId);
+export function getProjectVersionCount(projectId: string): number {
+  return miroProjectRowService.getVersionCount(projectId);
 }
 
 export async function zoomToProject(projectId: string): Promise<boolean> {
@@ -2127,7 +2127,7 @@ export async function zoomToProject(projectId: string): Promise<boolean> {
   if (!row) return false;
 
   try {
-    const ids = [row.briefingFrameId, ...row.stages.map(s => s.frameId)].filter((id): id is string => id !== null);
+    const ids = [row.briefingFrameId, ...row.versions.map(s => s.frameId)].filter((id): id is string => id !== null);
     const items = [];
     for (const id of ids) {
       try { const item = await miro.board.getById(id); if (item) items.push(item); } catch {}

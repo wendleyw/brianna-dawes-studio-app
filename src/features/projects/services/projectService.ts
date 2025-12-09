@@ -268,6 +268,7 @@ class ProjectService {
     if (projectData.briefing !== undefined) updateData.briefing = projectData.briefing;
     if (projectData.googleDriveUrl !== undefined) updateData.google_drive_url = projectData.googleDriveUrl;
     if (projectData.wasReviewed !== undefined) updateData.was_reviewed = projectData.wasReviewed;
+    if (projectData.wasApproved !== undefined) updateData.was_approved = projectData.wasApproved;
     // Due date request fields
     if (projectData.requestedDueDate !== undefined) updateData.requested_due_date = projectData.requestedDueDate;
     if (projectData.dueDateRequestedAt !== undefined) updateData.due_date_requested_at = projectData.dueDateRequestedAt;
@@ -363,6 +364,7 @@ class ProjectService {
       deliverablesCount: (data.deliverables_count as number) || 0,
       briefing: data.briefing as Project['briefing'] || null,
       wasReviewed: (data.was_reviewed as boolean) || false,
+      wasApproved: (data.was_approved as boolean) || false,
       // Due date request fields
       requestedDueDate: data.requested_due_date as string | null,
       dueDateRequestedAt: data.due_date_requested_at as string | null,

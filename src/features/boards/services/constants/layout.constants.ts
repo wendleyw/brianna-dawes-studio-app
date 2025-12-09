@@ -7,7 +7,7 @@
 
 // ==================== FRAME SIZES ====================
 
-/** Project frame dimensions (briefing and stages) */
+/** Project frame dimensions (briefing and versions) */
 export const FRAME = {
   WIDTH: 800,
   HEIGHT: 600,

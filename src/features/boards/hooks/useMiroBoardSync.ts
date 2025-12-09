@@ -99,7 +99,7 @@ export function useMiroBoardSync(): UseMiroBoardSyncReturn {
   }, [isInMiro, miro, isInitialized, initializeBoard, user]);
 
   /**
-   * Create project row with briefing and process stages
+   * Create project row with briefing and process versions
    * Validates user has access to the project
    */
   const createProjectRow = useCallback(async (project: Project, briefing: ProjectBriefing) => {

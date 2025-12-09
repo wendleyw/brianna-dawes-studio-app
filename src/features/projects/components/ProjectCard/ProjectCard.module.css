@@ -31,7 +31,49 @@
   margin-bottom: var(--space-2);
 }
 
-/* Reviewed Banner - highlighted at top */
+/* Review Ready Banner - shown to client when project is awaiting review */
+.reviewReadyBanner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 8px 12px;
+  margin: -16px -16px 8px -16px;
+  background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+  border-radius: 10px 10px 0 0;
+  min-height: 32px;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.reviewReadyBanner > * {
+  background: transparent !important;
+  box-shadow: none !important;
+  white-space: nowrap;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.85; }
+}
+
+/* Approved Banner - shown when client approved */
+.approvedBanner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 8px 12px;
+  margin: -16px -16px 8px -16px;
+  background: linear-gradient(135deg, #22C55E 0%, #16A34A 100%);
+  border-radius: 10px 10px 0 0;
+  min-height: 32px;
+}
+
+.approvedBanner > * {
+  background: transparent !important;
+  box-shadow: none !important;
+  white-space: nowrap;
+}
+
+/* Reviewed/Changes Requested Banner - highlighted at top */
 .reviewedBanner {
   display: flex;
   justify-content: center;
@@ -782,6 +824,11 @@
   color: white;
 }
 
+.adminBtn.warning .adminBtnIcon {
+  background-color: #F59E0B;
+  color: white;
+}
+
 /* Modal Content */
 .modalContent {
   display: flex;
@@ -834,6 +881,34 @@
   margin: 0;
   font-size: var(--text-sm);
   color: #DC2626;
+}
+
+.modalSuccess {
+  background-color: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.2);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+}
+
+.modalSuccess p {
+  margin: 0 0 var(--space-2) 0;
+  font-size: var(--text-sm);
+  color: #16A34A;
+}
+
+.modalSuccess ul {
+  margin: 0;
+  padding-left: var(--space-4);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.modalSuccess li {
+  margin-bottom: var(--space-1);
+}
+
+.modalSuccess strong {
+  color: #16A34A;
 }
 
 /* Deliverable Section */
@@ -964,8 +1039,8 @@
   color: var(--color-text-muted);
 }
 
-/* Stage Preview */
-.stagePreview {
+/* Version Preview */
+.versionPreview {
   display: flex;
   align-items: center;
   gap: var(--space-2);
@@ -976,17 +1051,17 @@
   margin: var(--space-3) 0;
 }
 
-.stageIcon {
+.versionIcon {
   font-size: 20px;
 }
 
-.stagePreview span:last-child {
+.versionPreview span:last-child {
   font-size: var(--text-sm);
   font-weight: var(--font-medium);
   color: var(--color-text-primary);
 }
 
-.stageNote {
+.versionNote {
   font-size: var(--text-xs);
   color: var(--color-text-muted);
   margin-top: var(--space-2);
