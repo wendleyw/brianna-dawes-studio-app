@@ -796,6 +796,7 @@ export function ProjectsPage() {
               project={project}
               onEdit={handleEdit}
               onViewBoard={handleViewBoard}
+              onCardClick={handleViewBoard}
               onUpdateGoogleDrive={handleUpdateGoogleDrive}
               onUpdateStatus={handleUpdateStatus}
               onUpdate={handleUpdate}

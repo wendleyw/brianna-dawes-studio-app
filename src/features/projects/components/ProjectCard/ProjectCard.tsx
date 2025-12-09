@@ -1,4 +1,4 @@
-import { useState, useMemo, memo } from 'react';
+import { useState, useMemo, memo, useRef, useCallback } from 'react';
 import { Badge, Dialog, Input, Button } from '@shared/ui';
 import { useAuth } from '@features/auth';
 import { useDeliverables, useCreateDeliverable, useUpdateDeliverable, useDeleteDeliverable } from '@features/deliverables/hooks';
@@ -230,6 +230,7 @@ export const ProjectCard = memo(function ProjectCard({
   project,
   onEdit,
   onViewBoard,
+  onCardClick,
   onUpdateGoogleDrive,
   onUpdateStatus,
   onUpdate,
@@ -243,6 +244,10 @@ export const ProjectCard = memo(function ProjectCard({
   const { user } = useAuth();
   const [isExpanded, setIsExpanded] = useState(isSelected);
   const [showDeliverables, setShowDeliverables] = useState(false);
+
+  // Click handling for single vs double click
+  const clickTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const clickCountRef = useRef(0);
 
   // Modal states
   const [showDriveModal, setShowDriveModal] = useState(false);
@@ -352,6 +357,43 @@ export const ProjectCard = memo(function ProjectCard({
   const progress = getProgress();
 
   // Event handlers
+
+  // Handle card click: single click = zoom to board, double click = expand details
+  const handleCardClick = useCallback((e: React.MouseEvent) => {
+    // Don't handle clicks on buttons, inputs, or other interactive elements
+    const target = e.target as HTMLElement;
+    if (
+      target.closest('button') ||
+      target.closest('input') ||
+      target.closest('select') ||
+      target.closest('a') ||
+      target.closest('[role="button"]')
+    ) {
+      return;
+    }
+
+    clickCountRef.current += 1;
+
+    if (clickCountRef.current === 1) {
+      // Wait to see if it's a double click
+      clickTimerRef.current = setTimeout(() => {
+        // Single click - zoom to project on board
+        if (clickCountRef.current === 1) {
+          onCardClick?.(project);
+        }
+        clickCountRef.current = 0;
+      }, 250);
+    } else if (clickCountRef.current === 2) {
+      // Double click - expand/collapse details
+      if (clickTimerRef.current) {
+        clearTimeout(clickTimerRef.current);
+        clickTimerRef.current = null;
+      }
+      clickCountRef.current = 0;
+      setIsExpanded(!isExpanded);
+    }
+  }, [project, onCardClick, isExpanded]);
+
   const handleViewDetails = (e: React.MouseEvent) => {
     e.stopPropagation();
     setIsExpanded(!isExpanded);
@@ -696,7 +738,12 @@ export const ProjectCard = memo(function ProjectCard({
   };
 
   return (
-    <article className={`${styles.card} ${isSelected ? styles.selected : ''} ${isDone ? styles.done : ''}`} data-project-id={project.id}>
+    <article
+      className={`${styles.card} ${isSelected ? styles.selected : ''} ${isDone ? styles.done : ''}`}
+      data-project-id={project.id}
+      onClick={handleCardClick}
+      style={{ cursor: 'pointer' }}
+    >
       {/* Header */}
       <div className={styles.header}>
         {/* Review Ready banner - shown to client when project is in review status (hide if already approved) */}
