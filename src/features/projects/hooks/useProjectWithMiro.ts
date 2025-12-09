@@ -39,9 +39,12 @@ export function useCreateProjectWithMiro() {
       logger.debug('Starting project creation with orchestrator', { isInMiro, hasMiro: !!miro });
 
       // Prepare briefing data
+      // Note: Do NOT use input.description as fallback - it contains the full markdown description
+      // which would pollute individual briefing fields. If projectOverview is empty, keep it null
+      // so the Miro board shows "Needs attention" for that field.
       const briefing: ProjectBriefing = {
         ...DEFAULT_BRIEFING,
-        projectOverview: input.briefing?.projectOverview || input.description || null,
+        projectOverview: input.briefing?.projectOverview || null,
         finalMessaging: input.briefing?.finalMessaging || null,
         inspirations: input.briefing?.inspirations || null,
         targetAudience: input.briefing?.targetAudience || null,

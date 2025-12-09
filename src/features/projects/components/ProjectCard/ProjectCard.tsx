@@ -720,8 +720,8 @@ export const ProjectCard = memo(function ProjectCard({
     <article className={`${styles.card} ${isSelected ? styles.selected : ''} ${isDone ? styles.done : ''}`} data-project-id={project.id}>
       {/* Header */}
       <div className={styles.header}>
-        {/* Review Ready banner - shown to client when project is in review status */}
-        {isInReview && isClient && (
+        {/* Review Ready banner - shown to client when project is in review status (hide if already approved) */}
+        {isInReview && isClient && !project.wasApproved && (
           <div className={styles.reviewReadyBanner}>
             <Badge
               variant="neutral"
@@ -1027,22 +1027,12 @@ export const ProjectCard = memo(function ProjectCard({
             </div>
           )}
 
-          {/* Description - only show if no briefing data available, parse markdown sections */}
-          {project.description && !project.briefing?.projectOverview && !project.briefing?.goals && (
-            <>
-              {project.description.split(/\n##\s+/).filter(Boolean).map((section, idx) => {
-                const lines = section.trim().split('\n');
-                const title = lines[0]?.replace(/^#+\s*/, '').trim() || '';
-                const content = lines.slice(1).join('\n').trim();
-                if (!title || !content || content === 'Not specified') return null;
-                return (
-                  <div key={idx} className={styles.section}>
-                    <h4 className={styles.sectionTitle}>{title.toUpperCase()}</h4>
-                    <p className={styles.sectionText}>{content}</p>
-                  </div>
-                );
-              })}
-            </>
+          {/* Project Overview - show "Needs attention" if empty */}
+          {!project.briefing?.projectOverview && !project.briefing?.goals && (
+            <div className={styles.section}>
+              <h4 className={styles.sectionTitle}>PROJECT OVERVIEW</h4>
+              <p className={`${styles.sectionText} ${styles.needsAttention}`}>Needs attention</p>
+            </div>
           )}
 
           {/* Project Overview */}

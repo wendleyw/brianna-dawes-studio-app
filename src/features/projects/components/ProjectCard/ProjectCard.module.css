@@ -732,6 +732,12 @@
   margin: 0;
 }
 
+.sectionText.needsAttention {
+  color: #EF4444;
+  font-style: italic;
+  font-weight: 500;
+}
+
 /* Designers List */
 .designersList {
   display: flex;
