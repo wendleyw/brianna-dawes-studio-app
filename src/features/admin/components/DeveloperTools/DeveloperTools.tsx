@@ -3,177 +3,335 @@ import { Button } from '@shared/ui';
 import { useMiro } from '@features/boards';
 import { miroTimelineService, miroProjectRowService } from '@features/boards/services/miroSdkService';
 import { projectService } from '@features/projects/services/projectService';
+import { deliverableService } from '@features/deliverables/services/deliverableService';
 import { supabase } from '@shared/lib/supabase';
 import { createLogger } from '@shared/lib/logger';
-import type { CreateProjectInput, ProjectBriefing, ProjectStatus, ProjectPriority } from '@features/projects/domain/project.types';
+import type { CreateProjectInput, ProjectBriefing, ProjectStatus, ProjectPriority, ProjectType } from '@features/projects/domain/project.types';
+import type { DeliverableType, DeliverableStatus } from '@features/deliverables/domain/deliverable.types';
 import styles from './DeveloperTools.module.css';
 
 const logger = createLogger('DeveloperTools');
 
-// Test project data - realistic design studio projects
-const TEST_PROJECTS: Array<{
+// Project types from NewProjectPage - exact match
+const PROJECT_TYPES: Array<{ value: ProjectType; label: string; days: number }> = [
+  { value: 'social-post-design', label: 'Social Post Design (Carousel / Static)', days: 5 },
+  { value: 'hero-section', label: 'Hero Section or Image Set', days: 5 },
+  { value: 'ad-design', label: 'Ad Design (Static or GIF)', days: 5 },
+  { value: 'gif-design', label: 'GIF Design (Standalone)', days: 5 },
+  { value: 'website-assets', label: 'Website Assets (Individual Sections)', days: 5 },
+  { value: 'email-design', label: 'Email Design (Full In-Depth)', days: 7 },
+  { value: 'video-production', label: 'Video Production / Reels', days: 7 },
+  { value: 'website-ui-design', label: 'Website UI Design (Full Page)', days: 11 },
+  { value: 'marketing-campaign', label: 'Marketing Campaign (Multi-Channel)', days: 14 },
+  { value: 'other', label: 'Other', days: 15 },
+];
+
+// Comprehensive test project data - realistic design studio projects
+interface TestProjectData {
   name: string;
   description: string;
   status: ProjectStatus;
   priority: ProjectPriority;
-  daysUntilDue: number;
-  briefing: Partial<ProjectBriefing>;
-}> = [
+  projectType: ProjectType;
+  daysOffset: number; // days from now for due date
+  wasReviewed?: boolean;
+  wasApproved?: boolean;
+  briefing: ProjectBriefing;
+  deliverables: Array<{
+    name: string;
+    type: DeliverableType;
+    status: DeliverableStatus;
+    count: number;
+    bonusCount: number;
+    externalUrl?: string;
+  }>;
+}
+
+const TEST_PROJECTS: TestProjectData[] = [
+  // 1. Urgent project - Social Post Design
   {
-    name: 'Luna Wellness Brand Identity',
-    description: 'Complete brand identity design for a wellness spa',
-    status: 'in_progress',
-    priority: 'high',
-    daysUntilDue: 14,
-    briefing: {
-      projectOverview: 'Create a calming, luxurious brand identity for Luna Wellness Spa targeting high-end clientele',
-      targetAudience: 'Women 30-55, high income, health-conscious professionals',
-      goals: 'Establish premium positioning, differentiate from competitors, create memorable visual identity',
-      deliverables: 'Logo, color palette, typography, business cards, letterhead, social media templates',
-      styleNotes: 'Minimalist, elegant, earthy tones with gold accents',
-      inspirations: 'Aesop, Four Seasons Spa, Goop',
-    },
-  },
-  {
-    name: 'TechFlow App UI Design',
-    description: 'Mobile app interface design for productivity tool',
+    name: 'Quantum Tech - Product Launch Posts',
+    description: 'Social media campaign for SaaS product launch',
     status: 'urgent',
     priority: 'urgent',
-    daysUntilDue: 7,
+    projectType: 'social-post-design',
+    daysOffset: 3,
     briefing: {
-      projectOverview: 'Design intuitive UI/UX for a project management mobile app',
-      targetAudience: 'Remote workers, small business owners, freelancers 25-45',
-      goals: 'Improve user retention, simplify task management, modern aesthetic',
-      deliverables: 'Wireframes, UI kit, 25+ screen designs, prototypes, design specs',
-      styleNotes: 'Clean, modern, vibrant accent colors, dark mode support',
-      inspirations: 'Notion, Linear, Todoist',
+      projectOverview: 'Design engaging social media posts for Quantum Tech\'s new AI-powered analytics dashboard launch. The campaign will run across LinkedIn, Instagram, and Twitter.',
+      targetAudience: 'B2B decision makers, CTOs, Data Scientists, Tech-savvy business owners aged 30-55',
+      goals: 'Generate 500+ leads, achieve 10% engagement rate, build brand awareness for product launch',
+      deliverables: '8 carousel posts (LinkedIn), 12 static posts (Instagram), 6 animated posts (Twitter)',
+      styleNotes: 'Modern tech aesthetic, dark theme with neon accents (#00F5FF, #8B5CF6), clean typography, data visualization elements',
+      inspirations: 'Notion social media, Linear app, Stripe design system',
+      finalMessaging: 'Key messages: "Analytics reimagined", "AI-powered insights in seconds", "From data chaos to clarity"',
+      resourceLinks: 'Brand guidelines: drive.google.com/brand, Product screenshots: figma.com/file/xxx',
+      timeline: 'Social Post Design (5 days) - Target delivery: 3 days (URGENT)',
+      additionalNotes: 'CEO wants to review before final delivery. Priority accounts will be tagged.',
     },
+    deliverables: [
+      { name: 'LinkedIn Carousel - Product Features', type: 'design', status: 'in_progress', count: 4, bonusCount: 1 },
+      { name: 'Instagram Static Posts - Launch', type: 'design', status: 'draft', count: 6, bonusCount: 2 },
+      { name: 'Twitter Animated Posts', type: 'design', status: 'draft', count: 3, bonusCount: 0 },
+    ],
   },
+
+  // 2. In Progress - Website UI Design
   {
-    name: 'Artisan Coffee Packaging',
-    description: 'Package design for specialty coffee brand',
-    status: 'in_progress',
-    priority: 'medium',
-    daysUntilDue: 21,
-    briefing: {
-      projectOverview: 'Design premium packaging for artisan coffee roaster expanding retail presence',
-      targetAudience: 'Coffee enthusiasts, specialty food shoppers, gift buyers',
-      goals: 'Stand out on shelves, communicate quality and origin story, eco-friendly materials',
-      deliverables: '3 bag sizes, box designs, labels, hang tags, shipping materials',
-      styleNotes: 'Craft aesthetic, hand-drawn elements, sustainable feel',
-      inspirations: 'Counter Culture, Stumptown, Blue Bottle',
-    },
-  },
-  {
-    name: 'Verde Restaurant Website',
-    description: 'Website redesign for farm-to-table restaurant',
+    name: 'Stellar Finance - Dashboard Redesign',
+    description: 'Complete UI redesign for fintech dashboard',
     status: 'in_progress',
     priority: 'high',
-    daysUntilDue: 10,
+    projectType: 'website-ui-design',
+    daysOffset: 8,
     briefing: {
-      projectOverview: 'Modern website redesign with online reservation integration',
-      targetAudience: 'Local foodies, special occasion diners, tourists 28-60',
-      goals: 'Increase online reservations by 40%, showcase menu and ambiance, improve mobile experience',
-      deliverables: 'Homepage, menu page, about page, reservations, contact, blog template',
-      styleNotes: 'Warm, inviting, lots of food photography, easy navigation',
-      inspirations: 'Eleven Madison Park, Noma, The French Laundry websites',
+      projectOverview: 'Redesign the existing customer dashboard for Stellar Finance fintech platform. Focus on improved UX, modern aesthetics, and mobile responsiveness.',
+      targetAudience: 'Individual investors, financial advisors, wealth managers aged 28-55',
+      goals: 'Reduce bounce rate by 25%, increase user session time by 40%, improve mobile conversion',
+      deliverables: 'Dashboard home, Portfolio view, Transaction history, Settings, Mobile responsive versions',
+      styleNotes: 'Premium fintech feel, trust-inspiring colors (navy #1E3A5F, gold accents #D4AF37), clean data visualization, accessibility compliant',
+      inspirations: 'Robinhood app, Wealthfront, Mercury Bank dashboard',
+      finalMessaging: 'Brand voice: Professional yet approachable, "Your wealth, your way"',
+      resourceLinks: 'Current site: stellar-finance.com, Competitor analysis: notion.so/xxx',
+      timeline: 'Website UI Design (11 days) - Full page redesign with responsive versions',
+      additionalNotes: 'Must pass WCAG 2.1 AA accessibility standards. Include dark mode option.',
     },
+    deliverables: [
+      { name: 'Dashboard Home v1.0', type: 'design', status: 'in_review', count: 3, bonusCount: 1, externalUrl: 'https://figma.com/file/stellar-dashboard' },
+      { name: 'Portfolio View v1.0', type: 'design', status: 'in_progress', count: 2, bonusCount: 0 },
+      { name: 'Mobile Responsive Kit', type: 'design', status: 'draft', count: 5, bonusCount: 2 },
+    ],
   },
+
+  // 3. In Review - Marketing Campaign
   {
-    name: 'Bloom Kids Illustration Set',
-    description: 'Custom illustrations for children educational platform',
+    name: 'Bloom Beauty - Spring Collection',
+    description: 'Multi-channel marketing campaign for seasonal launch',
     status: 'review',
-    priority: 'low',
-    daysUntilDue: 45,
+    priority: 'high',
+    projectType: 'marketing-campaign',
+    daysOffset: 5,
+    wasReviewed: false,
     briefing: {
-      projectOverview: 'Create 50+ custom illustrations for children learning app',
-      targetAudience: 'Children ages 4-8 and their parents',
-      goals: 'Engaging, educational, inclusive characters, consistent style',
-      deliverables: '50 illustrations, character designs, scene backgrounds, animated assets',
-      styleNotes: 'Playful, colorful, diverse characters, friendly animals',
-      inspirations: 'Duolingo, Khan Academy Kids, Headspace illustrations',
+      projectOverview: 'Create comprehensive marketing campaign for Bloom Beauty\'s Spring 2024 skincare collection. Campaign spans digital ads, email marketing, social media, and in-store displays.',
+      targetAudience: 'Women 25-45, beauty enthusiasts, skincare-focused consumers, eco-conscious shoppers',
+      goals: 'Drive $500K in first-month sales, 50K email signups, 100K social impressions',
+      deliverables: 'Digital ads (5 sizes), Email templates (3), Social media kit (20 assets), In-store poster designs (2)',
+      styleNotes: 'Fresh spring palette (soft pinks, greens, lavender), botanical elements, clean beauty aesthetic, sustainable messaging',
+      inspirations: 'Glossier campaigns, Summer Fridays branding, Herbivore Botanicals',
+      finalMessaging: '"Bloom into your best skin", "Nature-powered radiance", "Clean beauty, real results"',
+      resourceLinks: 'Product photos: drive.google.com/bloom-spring, Brand book: figma.com/bloom-brand',
+      timeline: 'Marketing Campaign (14 days) - Multi-channel campaign with all deliverables',
+      additionalNotes: 'Influencer kit needed for 10 top-tier beauty influencers. Spanish language versions required.',
     },
+    deliverables: [
+      { name: 'Digital Ad Set - All Sizes', type: 'design', status: 'in_review', count: 5, bonusCount: 0 },
+      { name: 'Email Templates - Launch Series', type: 'design', status: 'approved', count: 3, bonusCount: 1 },
+      { name: 'Social Media Kit', type: 'design', status: 'in_review', count: 20, bonusCount: 5 },
+      { name: 'In-Store Display Posters', type: 'design', status: 'in_progress', count: 2, bonusCount: 0 },
+    ],
   },
+
+  // 4. Done/Approved - Email Design
   {
-    name: 'Stellar Fashion Lookbook',
-    description: 'Seasonal lookbook design for fashion brand',
+    name: 'TechHub - Newsletter Redesign',
+    description: 'Complete email template system redesign',
     status: 'done',
     priority: 'medium',
-    daysUntilDue: -5,
+    projectType: 'email-design',
+    daysOffset: -3,
+    wasReviewed: true,
+    wasApproved: true,
     briefing: {
-      projectOverview: 'Design Spring/Summer 2024 digital and print lookbook',
-      targetAudience: 'Fashion-forward women 22-35, influencers, buyers',
-      goals: 'Showcase new collection, create shareable content, support wholesale presentations',
-      deliverables: '24-page lookbook, digital version, social media crops, press kit',
-      styleNotes: 'Editorial, high fashion, bold typography, white space',
-      inspirations: 'Jacquemus, The Row, Toteme lookbooks',
+      projectOverview: 'Redesign TechHub\'s entire email template system including weekly newsletter, promotional emails, and transactional emails.',
+      targetAudience: 'Tech professionals, developers, startup founders, CTOs - primarily 25-40 years old',
+      goals: 'Increase email open rates by 30%, click-through rates by 50%, reduce unsubscribes by 20%',
+      deliverables: 'Newsletter template, Promotional template, Transactional emails (5 types), Welcome series (3 emails)',
+      styleNotes: 'Dark mode compatible, minimalist tech aesthetic, code-friendly formatting, mobile-first design',
+      inspirations: 'Morning Brew, The Hustle, TLDR newsletter designs',
+      finalMessaging: 'Tone: Informative but casual, "Tech insights that matter", "Your weekly dose of innovation"',
+      resourceLinks: 'Current templates: mailchimp.com/techhub, Analytics: docs.google.com/xxx',
+      timeline: 'Email Design (7 days) - Complete template system',
+      additionalNotes: 'Must be compatible with Mailchimp, Klaviyo, and SendGrid. Include dark mode variants.',
     },
+    deliverables: [
+      { name: 'Weekly Newsletter Template', type: 'design', status: 'delivered', count: 1, bonusCount: 0 },
+      { name: 'Promotional Email Set', type: 'design', status: 'delivered', count: 3, bonusCount: 1 },
+      { name: 'Transactional Email Suite', type: 'design', status: 'delivered', count: 5, bonusCount: 0 },
+      { name: 'Welcome Series', type: 'design', status: 'delivered', count: 3, bonusCount: 0 },
+    ],
   },
+
+  // 5. In Progress - Video Production
   {
-    name: 'Summit Conference Branding',
-    description: 'Event branding for tech conference',
-    status: 'urgent',
-    priority: 'urgent',
-    daysUntilDue: 5,
-    briefing: {
-      projectOverview: 'Complete visual identity for annual technology summit',
-      targetAudience: 'Tech professionals, developers, startup founders 25-50',
-      goals: 'Create memorable event experience, unify all touchpoints, social media buzz',
-      deliverables: 'Event logo, signage, badges, stage design, swag, digital assets',
-      styleNotes: 'Futuristic, bold, dynamic, tech-inspired but approachable',
-      inspirations: 'Web Summit, SXSW, Google I/O branding',
-    },
-  },
-  {
-    name: 'Harmony Music App Icons',
-    description: 'Icon set for music streaming application',
+    name: 'FitLife - Workout Reels',
+    description: 'Series of workout tutorial reels for Instagram',
     status: 'in_progress',
     priority: 'medium',
-    daysUntilDue: 18,
+    projectType: 'video-production',
+    daysOffset: 7,
     briefing: {
-      projectOverview: 'Design comprehensive icon system for music streaming app',
-      targetAudience: 'Music lovers all ages, primarily 18-35',
-      goals: 'Improve usability, create cohesive visual language, support all platforms',
-      deliverables: '100+ icons in 3 sizes, SVG and PNG formats, icon guidelines',
-      styleNotes: 'Outlined style, rounded corners, musical motifs, accessible',
-      inspirations: 'Spotify, Apple Music, SoundCloud iconography',
+      projectOverview: 'Create 15 short-form workout tutorial videos (Reels/TikTok format) for FitLife fitness app promotion.',
+      targetAudience: 'Fitness enthusiasts, home workout fans, millennials and Gen Z, primarily women 20-35',
+      goals: 'Drive app downloads, build social following, establish FitLife as approachable fitness brand',
+      deliverables: '15 workout reels (15-60 seconds each), 5 trainer intro videos, Thumbnail designs for YouTube',
+      styleNotes: 'High energy, motivational, bright and airy aesthetic, upbeat music, text overlays in brand font',
+      inspirations: 'Nike Training Club, Peloton social content, Pamela Reif videos',
+      finalMessaging: '"Your fitness, your way", "Quick workouts, real results", "No gym? No problem."',
+      resourceLinks: 'Raw footage: dropbox.com/fitlife-raw, Music library: artlist.io',
+      timeline: 'Video Production (7 days) - 15 reels with all edits and effects',
+      additionalNotes: 'All videos need closed captions. Include Spanish subtitles. Aspect ratios: 9:16 and 1:1.',
     },
+    deliverables: [
+      { name: 'Core Workout Series', type: 'design', status: 'in_progress', count: 5, bonusCount: 2 },
+      { name: 'HIIT Workout Series', type: 'design', status: 'draft', count: 5, bonusCount: 1 },
+      { name: 'Trainer Intro Videos', type: 'concept', status: 'in_progress', count: 5, bonusCount: 0 },
+    ],
   },
+
+  // 6. Urgent - Ad Design
   {
-    name: 'Eco Home Product Catalog',
-    description: 'Product catalog for sustainable home goods',
+    name: 'CloudSync - Black Friday Ads',
+    description: 'Urgent Black Friday promotional ad campaign',
+    status: 'urgent',
+    priority: 'urgent',
+    projectType: 'ad-design',
+    daysOffset: 2,
+    briefing: {
+      projectOverview: 'Design Black Friday promotional ads for CloudSync cloud storage service. Campaign runs across Google Display Network, Facebook, and programmatic.',
+      targetAudience: 'SMB owners, remote teams, tech-forward professionals, 30-50 years old',
+      goals: 'Achieve 3% CTR, 500 new subscriptions during Black Friday week, 2x ROAS minimum',
+      deliverables: 'Google Display ads (8 sizes), Facebook/Instagram ads (4 formats), Static and animated versions',
+      styleNotes: 'Bold Black Friday aesthetic, brand blue (#2563EB) with gold accents, urgency-driven design, clear CTAs',
+      inspirations: 'Dropbox campaigns, Google Workspace ads, Monday.com promotions',
+      finalMessaging: '"50% OFF - Black Friday Only", "Unlimited storage, limited time", "Save big on cloud"',
+      resourceLinks: 'Brand assets: figma.com/cloudsync, Previous campaigns: drive.google.com/ads',
+      timeline: 'Ad Design (5 days) - URGENT: 2 days deadline',
+      additionalNotes: 'A/B testing variants needed. Include countdown timer animations. Must be approved by noon Thursday.',
+    },
+    deliverables: [
+      { name: 'Google Display Ad Set', type: 'design', status: 'in_progress', count: 8, bonusCount: 0 },
+      { name: 'Facebook Ad Creatives', type: 'design', status: 'draft', count: 4, bonusCount: 2 },
+      { name: 'Animated Banner Variants', type: 'design', status: 'draft', count: 4, bonusCount: 0 },
+    ],
+  },
+
+  // 7. In Progress - Hero Section
+  {
+    name: 'Artisan Bakery - Website Hero',
+    description: 'Homepage hero section for local bakery website',
     status: 'in_progress',
     priority: 'low',
-    daysUntilDue: 30,
+    projectType: 'hero-section',
+    daysOffset: 12,
     briefing: {
-      projectOverview: 'Design annual product catalog showcasing sustainable home products',
-      targetAudience: 'Eco-conscious consumers, interior designers, retailers',
-      goals: 'Drive wholesale orders, educate on sustainability, premium positioning',
-      deliverables: '48-page catalog, digital flipbook, product sheets, price list',
-      styleNotes: 'Natural, warm, lifestyle photography, eco-credentials highlighted',
-      inspirations: 'West Elm, Parachute Home, Made Trade catalogs',
+      projectOverview: 'Design a warm, inviting hero section for Artisan Bakery\'s new website. Should showcase their handcrafted breads and pastries.',
+      targetAudience: 'Local community members, food enthusiasts, families, ages 25-55',
+      goals: 'Increase online orders by 40%, showcase product quality, build local brand recognition',
+      deliverables: 'Hero section design (desktop + tablet + mobile), Image direction guide, Copy recommendations',
+      styleNotes: 'Warm, rustic, handcrafted feel, earth tones with warm accents, beautiful food photography integration',
+      inspirations: 'Le Pain Quotidien, Tartine Bakery, local artisan bakery aesthetics',
+      finalMessaging: '"Baked fresh daily", "Handcrafted with love", "From our ovens to your table"',
+      resourceLinks: 'Product photos: drive.google.com/artisan-photos, Current site: artisanbakery.com',
+      timeline: 'Hero Section (5 days) - Desktop and responsive versions',
+      additionalNotes: 'Include seasonal variant (for holiday promotions). Consider parallax scrolling effect.',
     },
+    deliverables: [
+      { name: 'Hero Section - Desktop', type: 'design', status: 'in_progress', count: 1, bonusCount: 0 },
+      { name: 'Hero Section - Mobile', type: 'design', status: 'draft', count: 1, bonusCount: 1 },
+      { name: 'Seasonal Holiday Variant', type: 'concept', status: 'draft', count: 1, bonusCount: 0 },
+    ],
   },
+
+  // 8. Review - GIF Design
   {
-    name: 'Spark Fitness Social Campaign',
-    description: 'Social media campaign design for fitness brand',
+    name: 'GameHub - Animated Stickers',
+    description: 'Animated sticker pack for gaming community',
+    status: 'review',
+    priority: 'medium',
+    projectType: 'gif-design',
+    daysOffset: 4,
+    wasReviewed: false,
+    briefing: {
+      projectOverview: 'Create animated sticker/GIF pack for GameHub Discord community and social media. Fun, expressive animations for gamers.',
+      targetAudience: 'Gamers aged 16-30, Discord community members, streamers, esports fans',
+      goals: 'Increase community engagement, provide shareable content, build brand personality',
+      deliverables: '20 animated stickers/GIFs, Discord emoji set (10), Twitch emotes (5)',
+      styleNotes: 'Vibrant gaming aesthetic, pixel art touches, smooth animations, meme-friendly expressions',
+      inspirations: 'Twitch emotes, Discord Nitro stickers, gaming meme culture',
+      finalMessaging: 'Express gaming emotions: victory, defeat, excitement, rage, GG moments',
+      resourceLinks: 'Mascot files: figma.com/gamehub-mascot, Reference GIFs: giphy.com/gamehub',
+      timeline: 'GIF Design (5 days) - Animated sticker pack',
+      additionalNotes: 'All GIFs must be under 256KB for Discord. Include looping and non-looping versions.',
+    },
+    deliverables: [
+      { name: 'Animated Sticker Pack', type: 'design', status: 'in_review', count: 20, bonusCount: 5 },
+      { name: 'Discord Emoji Set', type: 'design', status: 'in_review', count: 10, bonusCount: 2 },
+      { name: 'Twitch Emotes', type: 'design', status: 'approved', count: 5, bonusCount: 0 },
+    ],
+  },
+
+  // 9. Done - Website Assets
+  {
+    name: 'EcoShop - Product Icons',
+    description: 'Icon set for sustainable e-commerce website',
+    status: 'done',
+    priority: 'low',
+    projectType: 'website-assets',
+    daysOffset: -5,
+    wasReviewed: true,
+    wasApproved: true,
+    briefing: {
+      projectOverview: 'Design custom icon set for EcoShop sustainable products e-commerce site. Icons for product categories, features, and checkout flow.',
+      targetAudience: 'Eco-conscious consumers, sustainable living enthusiasts, ages 25-45',
+      goals: 'Improve site navigation, reinforce sustainable brand identity, enhance product presentation',
+      deliverables: '40 custom icons (SVG), 3 sizes each, Light and dark variants, Icon usage guidelines',
+      styleNotes: 'Organic, hand-drawn feel with clean execution, leaf/nature motifs, sage green (#84A98C) palette',
+      inspirations: 'Patagonia iconography, Allbirds design system, sustainable brand aesthetics',
+      finalMessaging: 'Icons should communicate: eco-friendly, quality, trustworthy, natural',
+      resourceLinks: 'Brand guidelines: notion.so/ecoshop, Website: ecoshop.com',
+      timeline: 'Website Assets (5 days) - Complete icon system',
+      additionalNotes: 'All icons must be SVG and accessible. Include Figma component library.',
+    },
+    deliverables: [
+      { name: 'Product Category Icons', type: 'design', status: 'delivered', count: 15, bonusCount: 3 },
+      { name: 'Feature & Benefit Icons', type: 'design', status: 'delivered', count: 15, bonusCount: 2 },
+      { name: 'Checkout Flow Icons', type: 'design', status: 'delivered', count: 10, bonusCount: 0 },
+    ],
+  },
+
+  // 10. In Progress - Other (Custom Project)
+  {
+    name: 'Summit 2024 - Event Branding',
+    description: 'Complete brand identity for annual tech conference',
     status: 'in_progress',
     priority: 'high',
-    daysUntilDue: 12,
+    projectType: 'other',
+    daysOffset: 10,
     briefing: {
-      projectOverview: 'Design 30-day social media campaign for gym chain launch',
-      targetAudience: 'Fitness enthusiasts, gym-goers 20-40, local community',
-      goals: 'Generate 1000 pre-launch signups, build brand awareness, community engagement',
-      deliverables: '60 social posts, stories templates, ad creatives, email graphics',
-      styleNotes: 'Energetic, motivational, bold colors, action photography',
-      inspirations: 'Peloton, Nike Training, Equinox social media',
+      projectOverview: 'Design complete visual identity system for Summit 2024 technology conference. Includes logo, marketing materials, signage, swag, and digital assets.',
+      targetAudience: 'Tech professionals, developers, startup founders, investors, ages 25-50',
+      goals: 'Establish Summit as premier tech event, create memorable attendee experience, drive 5000 registrations',
+      deliverables: 'Event logo system, Marketing collateral (flyers, banners), Stage design, Name badges, Swag designs (t-shirts, bags), Digital assets',
+      styleNotes: 'Futuristic yet approachable, bold geometric shapes, tech-inspired gradients, dark theme with vibrant accents',
+      inspirations: 'Web Summit, SXSW, Google I/O, AWS re:Invent branding',
+      finalMessaging: '"The future is now", "Connect. Learn. Build.", "Where ideas become reality"',
+      resourceLinks: 'Previous years: drive.google.com/summit-archive, Venue specs: pdf/venue-layout',
+      timeline: 'Custom Project (15 days) - Full event branding package',
+      additionalNotes: 'Sponsor integration needed for platinum tier sponsors. All assets need print-ready and digital versions.',
     },
+    deliverables: [
+      { name: 'Event Logo System', type: 'concept', status: 'approved', count: 1, bonusCount: 0 },
+      { name: 'Marketing Collateral', type: 'design', status: 'in_progress', count: 8, bonusCount: 2 },
+      { name: 'Stage & Signage Design', type: 'design', status: 'draft', count: 6, bonusCount: 0 },
+      { name: 'Swag Design Package', type: 'design', status: 'in_progress', count: 5, bonusCount: 3 },
+      { name: 'Digital Asset Kit', type: 'design', status: 'draft', count: 15, bonusCount: 5 },
+    ],
   },
 ];
 
 export function DeveloperTools() {
   const { isInMiro, miro } = useMiro();
-  const [isResetting, setIsResetting] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
   const [isRenaming, setIsRenaming] = useState(false);
   const [progress, setProgress] = useState<string[]>([]);
@@ -201,10 +359,7 @@ export function DeveloperTools() {
     try {
       addProgress('Searching for frames with STAGE in title...');
 
-      // Get all frames from the board
       const frames = await miro.board.get({ type: 'frame' });
-
-      // Filter frames with STAGE in title
       const stageFrames = frames.filter((f: { title?: string }) =>
         f.title?.includes('STAGE')
       );
@@ -225,7 +380,6 @@ export function DeveloperTools() {
         const newTitle = oldTitle.replace(/STAGE/g, 'VERSION');
 
         try {
-          // Update frame title using Miro SDK
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const miroFrame = frame as any;
           miroFrame.title = newTitle;
@@ -246,13 +400,12 @@ export function DeveloperTools() {
     } catch (err) {
       logger.error('Rename failed', err);
       setError(err instanceof Error ? err.message : 'Failed to rename frames');
-      addProgress(`❌ ERROR: ${err instanceof Error ? err.message : 'Unknown error'}`);
     } finally {
       setIsRenaming(false);
     }
   };
 
-  // Clear ALL data from the system (for manual testing)
+  // Clear ALL data from the system
   const handleClearAll = async () => {
     if (!confirm('⚠️ WARNING: This will DELETE ALL data from the system!\n\n- All projects\n- All deliverables\n- All Miro board elements\n\nAre you sure?')) {
       return;
@@ -267,7 +420,6 @@ export function DeveloperTools() {
     setError(null);
 
     try {
-      // Step 0: Check current auth state
       addProgress('Checking authentication...');
       const { data: { user: authUser } } = await supabase.auth.getUser();
 
@@ -287,7 +439,7 @@ export function DeveloperTools() {
         addProgress('⚠ WARNING: Not authenticated! Delete will likely fail.');
       }
 
-      // Step 1: Get all projects first to see what we're dealing with
+      // Get all projects
       addProgress('Fetching all projects...');
       const { data: allProjects, error: fetchError } = await supabase
         .from('projects')
@@ -299,95 +451,41 @@ export function DeveloperTools() {
         addProgress(`Found ${allProjects?.length || 0} projects to delete`);
       }
 
-      // Step 2: Delete junction tables first (foreign key dependencies)
+      // Delete junction tables
       addProgress('Deleting project_designers...');
-      const { error: designersError, count: designersCount } = await supabase
-        .from('project_designers')
-        .delete()
-        .neq('project_id', '00000000-0000-0000-0000-000000000000');
-      if (designersError) addProgress(`⚠ project_designers: ${designersError.message}`);
-      else addProgress(`✓ project_designers deleted (${designersCount || 'all'})`);
+      await supabase.from('project_designers').delete().neq('project_id', '00000000-0000-0000-0000-000000000000');
+      addProgress('✓ project_designers deleted');
 
-      // Step 3: Delete deliverable-related tables
+      // Delete deliverable-related tables
       addProgress('Deleting deliverable_feedback...');
-      const { error: feedbackError } = await supabase
-        .from('deliverable_feedback')
-        .delete()
-        .neq('id', '00000000-0000-0000-0000-000000000000');
-      if (feedbackError) addProgress(`⚠ deliverable_feedback: ${feedbackError.message}`);
-      else addProgress('✓ deliverable_feedback deleted');
+      await supabase.from('deliverable_feedback').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      addProgress('✓ deliverable_feedback deleted');
 
       addProgress('Deleting deliverable_versions...');
-      const { error: versionsError } = await supabase
-        .from('deliverable_versions')
-        .delete()
-        .neq('id', '00000000-0000-0000-0000-000000000000');
-      if (versionsError) addProgress(`⚠ deliverable_versions: ${versionsError.message}`);
-      else addProgress('✓ deliverable_versions deleted');
+      await supabase.from('deliverable_versions').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      addProgress('✓ deliverable_versions deleted');
 
       addProgress('Deleting deliverables...');
-      const { error: deliverablesError } = await supabase
-        .from('deliverables')
-        .delete()
-        .neq('id', '00000000-0000-0000-0000-000000000000');
-      if (deliverablesError) addProgress(`⚠ deliverables: ${deliverablesError.message}`);
-      else addProgress('✓ deliverables deleted');
+      await supabase.from('deliverables').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      addProgress('✓ deliverables deleted');
 
-      // Step 4: Delete all projects one by one
+      // Delete all projects
       addProgress('Deleting projects...');
-
       if (allProjects && allProjects.length > 0) {
-        let deletedCount = 0;
-        let failedProjects: string[] = [];
-
         for (const project of allProjects) {
-          const { error: deleteError } = await supabase
-            .from('projects')
-            .delete()
-            .eq('id', project.id);
-
-          if (!deleteError) {
-            deletedCount++;
-            addProgress(`  ✓ Deleted: ${project.name}`);
-          } else {
-            failedProjects.push(project.name);
-            addProgress(`  ⚠ Failed: ${project.name} - ${deleteError.message}`);
-            logger.error('Delete error for project', { id: project.id, error: deleteError });
-          }
+          await supabase.from('projects').delete().eq('id', project.id);
+          addProgress(`  ✓ Deleted: ${project.name}`);
         }
-
-        addProgress(`✓ ${deletedCount}/${allProjects.length} projects deleted`);
-
-        if (failedProjects.length > 0) {
-          addProgress(`⚠ Failed projects: ${failedProjects.join(', ')}`);
-        }
-      } else {
-        addProgress('✓ No projects to delete');
       }
+      addProgress('✓ All projects deleted');
 
-      // Step 6: Verify deletion
-      addProgress('Verifying deletion...');
-      const { data: remaining, error: verifyError } = await supabase
-        .from('projects')
-        .select('id, name');
-
-      if (verifyError) {
-        addProgress(`⚠ Verify error: ${verifyError.message}`);
-      } else if (remaining && remaining.length > 0) {
-        addProgress(`⚠ WARNING: ${remaining.length} projects still remain!`);
-        remaining.forEach(p => addProgress(`  - ${p.name} (${p.id})`));
-        addProgress('These may be protected by RLS policies.');
-      } else {
-        addProgress('✓ All projects deleted successfully!');
-      }
-
-      // Step 7: Reset Miro services
+      // Reset Miro services
       addProgress('Resetting Miro services...');
       miroTimelineService.reset();
       miroProjectRowService.reset();
       addProgress('✓ Miro services reset');
 
-      // Step 8: Clear Miro board if in Miro
+      // Clear Miro board if in Miro
       if (isInMiro && miro) {
         addProgress('Clearing Miro board elements...');
         try {
@@ -398,21 +496,18 @@ export function DeveloperTools() {
           const texts = await miro.board.get({ type: 'text' });
 
           const allItems = [...frames, ...shapes, ...cards, ...stickies, ...texts];
-          addProgress(`Found ${allItems.length} Miro elements to remove`);
-
           let removed = 0;
           for (const item of allItems) {
             try {
               await miro.board.remove(item);
               removed++;
-            } catch (e) {
-              // Ignore individual removal errors
+            } catch {
+              // Ignore
             }
           }
           addProgress(`✓ ${removed}/${allItems.length} elements removed from Miro`);
-        } catch (e) {
+        } catch {
           addProgress('⚠ Could not clear all Miro elements');
-          logger.error('Miro clear error', e);
         }
       }
 
@@ -423,97 +518,53 @@ export function DeveloperTools() {
     } catch (err) {
       logger.error('Clear failed', err);
       setError(err instanceof Error ? err.message : 'Failed to clear data');
-      addProgress(`❌ ERROR: ${err instanceof Error ? err.message : 'Unknown error'}`);
     } finally {
       setIsClearing(false);
     }
   };
 
-  const handleResetAndSeed = async () => {
-    if (!confirm('This will DELETE all projects and Miro board elements. Are you sure?')) {
+  // Create 10 test projects with full data
+  const handleCreateTestProjects = async () => {
+    if (!confirm('This will create 10 test projects with deliverables. Continue?')) {
       return;
     }
 
-    setIsResetting(true);
+    setIsCreating(true);
     setProgress([]);
     setError(null);
 
     try {
-      // Step 1: Delete ALL projects directly from Supabase (bypass any filters)
-      addProgress('Deleting all projects from database...');
-      const { error: deleteError, count } = await supabase
-        .from('projects')
-        .delete()
-        .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all (neq trick)
+      // Step 1: Check authentication
+      addProgress('Checking authentication...');
+      const { data: { user: authUser } } = await supabase.auth.getUser();
 
-      if (deleteError) {
-        logger.error('Delete error', deleteError);
-        addProgress(`Warning: Delete may have failed - ${deleteError.message}`);
-      } else {
-        addProgress(`Database cleared! (${count || 'all'} projects deleted)`);
+      if (!authUser) {
+        throw new Error('Not authenticated');
       }
 
-      // Step 2: Reset Miro service singletons
-      addProgress('Resetting Miro services...');
-      miroTimelineService.reset();
-      miroProjectRowService.reset();
-      addProgress('Miro services reset!');
+      const { data: userData } = await supabase
+        .from('users')
+        .select('id, name, role')
+        .eq('id', authUser.id)
+        .single();
 
-      // Step 3: Clear Miro board if in Miro
-      if (isInMiro && miro) {
-        addProgress('Clearing Miro board elements...');
-        try {
-          // Remove all frames
-          const frames = await miro.board.get({ type: 'frame' });
-          for (const frame of frames) {
-            try {
-              await miro.board.remove(frame);
-            } catch (e) {
-              logger.warn('Failed to remove frame', e);
-            }
-          }
+      addProgress(`✓ Logged in as: ${userData?.name || authUser.email} (${userData?.role})`);
 
-          // Also remove all shapes and cards
-          const shapes = await miro.board.get({ type: 'shape' });
-          for (const shape of shapes) {
-            try {
-              await miro.board.remove(shape);
-            } catch (e) {
-              logger.warn('Failed to remove shape', e);
-            }
-          }
-
-          const cards = await miro.board.get({ type: 'card' });
-          for (const card of cards) {
-            try {
-              await miro.board.remove(card);
-            } catch (e) {
-              logger.warn('Failed to remove card', e);
-            }
-          }
-
-          addProgress(`Cleared board: ${frames.length} frames, ${shapes.length} shapes, ${cards.length} cards`);
-        } catch (e) {
-          addProgress('Warning: Could not clear all Miro elements');
-        }
-      }
-
-      // Step 4: Get a client ID (need to find or create a test client)
+      // Step 2: Get or create a client
       addProgress('Finding or creating test client...');
-      const { data: users } = await supabase
+      const { data: clients } = await supabase
         .from('users')
         .select('id, name, role')
         .eq('role', 'client')
         .limit(1);
 
       let clientId: string;
-      const existingClient = users?.[0];
-      if (existingClient) {
-        clientId = existingClient.id;
-        addProgress(`Using existing client: ${existingClient.name}`);
+      if (clients && clients.length > 0 && clients[0]) {
+        clientId = clients[0].id;
+        addProgress(`✓ Using existing client: ${clients[0].name}`);
       } else {
         // Create a test client
-        const { data: newUser, error: userError } = await supabase
+        const { data: newClient, error: clientError } = await supabase
           .from('users')
           .insert({
             email: 'testclient@example.com',
@@ -523,81 +574,156 @@ export function DeveloperTools() {
           .select()
           .single();
 
-        if (userError) throw new Error('Failed to create test client');
-        clientId = newUser.id;
-        addProgress('Created test client');
+        if (clientError) throw new Error('Failed to create test client');
+        clientId = newClient.id;
+        addProgress('✓ Created test client');
       }
 
-      // Step 5: Create Master Timeline if in Miro
+      // Step 3: Get designers for assignment
+      addProgress('Fetching available designers...');
+      const { data: designers } = await supabase
+        .from('users')
+        .select('id, name')
+        .eq('role', 'designer');
+
+      const designerIds = designers?.map(d => d.id) || [];
+      addProgress(`✓ Found ${designerIds.length} designers`);
+
+      // Step 4: Initialize Miro timeline if in Miro
       if (isInMiro && miro) {
-        addProgress('Creating Master Timeline...');
+        addProgress('Initializing Master Timeline...');
         await miroTimelineService.initializeTimeline();
-        addProgress('Master Timeline created!');
+        addProgress('✓ Master Timeline ready');
       }
 
-      // Step 6: Create 10 test projects
-      addProgress('Creating 10 test projects...');
+      // Step 5: Create 10 test projects with full data
+      addProgress('');
+      addProgress('🚀 Creating 10 test projects...');
+      addProgress('');
+
+      let successCount = 0;
+      let deliverableCount = 0;
 
       for (let i = 0; i < TEST_PROJECTS.length; i++) {
-        const testProject = TEST_PROJECTS[i];
-        if (!testProject) continue;
+        const testData = TEST_PROJECTS[i];
+        if (!testData) continue;
 
+        // Calculate due date based on project type
+        const projectTypeConfig = PROJECT_TYPES.find(pt => pt.value === testData.projectType);
+        const daysToAdd = testData.daysOffset;
         const dueDate = new Date();
-        dueDate.setDate(dueDate.getDate() + testProject.daysUntilDue);
+        dueDate.setDate(dueDate.getDate() + daysToAdd);
 
-        const projectInput: CreateProjectInput = {
-          name: testProject.name,
-          description: testProject.description,
-          status: testProject.status,
-          priority: testProject.priority,
-          clientId,
-          dueDate: dueDate.toISOString().split('T')[0] ?? null,
-          startDate: new Date().toISOString().split('T')[0] ?? null,
-          briefing: testProject.briefing,
-        };
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - Math.floor(Math.random() * 5)); // Started 0-5 days ago
 
-        addProgress(`Creating project ${i + 1}/10: ${testProject.name}...`);
+        addProgress(`[${i + 1}/10] Creating: ${testData.name}`);
 
-        // Create project in database
-        const project = await projectService.createProject(projectInput);
+        try {
+          // Build complete briefing with projectType
+          const fullBriefing: ProjectBriefing = {
+            ...testData.briefing,
+            projectType: testData.projectType,
+            timeline: `${projectTypeConfig?.label || testData.projectType} (${projectTypeConfig?.days || 15} days) - ${testData.briefing.timeline || ''}`,
+          };
 
-        // Create Miro elements if in Miro
-        if (isInMiro && miro) {
-          try {
-            // Add to timeline
-            await miroTimelineService.syncProject(project);
+          // Create project input
+          const projectInput: CreateProjectInput = {
+            name: testData.name,
+            description: testData.description,
+            status: testData.status,
+            priority: testData.priority,
+            clientId,
+            designerIds: designerIds.length > 0 ? [designerIds[i % designerIds.length]!] : [],
+            dueDate: dueDate.toISOString().split('T')[0] ?? null,
+            startDate: startDate.toISOString().split('T')[0] ?? null,
+            briefing: fullBriefing,
+            dueDateApproved: true,
+            googleDriveUrl: `https://drive.google.com/drive/folders/${testData.name.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}`,
+          };
 
-            // Create project row with briefing
-            const briefing: ProjectBriefing = {
-              projectOverview: testProject.briefing.projectOverview || null,
-              finalMessaging: testProject.briefing.finalMessaging || null,
-              inspirations: testProject.briefing.inspirations || null,
-              targetAudience: testProject.briefing.targetAudience || null,
-              deliverables: testProject.briefing.deliverables || null,
-              styleNotes: testProject.briefing.styleNotes || null,
-              goals: testProject.briefing.goals || null,
-              timeline: testProject.briefing.timeline || null,
-              resourceLinks: testProject.briefing.resourceLinks || null,
-              additionalNotes: testProject.briefing.additionalNotes || null,
-            };
+          // Create project in database
+          const project = await projectService.createProject(projectInput);
+          addProgress(`  ✓ Project created: ${project.id}`);
 
-            await miroProjectRowService.createProjectRow(project, briefing);
-            addProgress(`  ✓ Miro elements created for: ${testProject.name}`);
-          } catch (e) {
-            addProgress(`  ⚠ Miro sync failed for: ${testProject.name}`);
+          // Update wasReviewed and wasApproved if needed
+          if (testData.wasReviewed || testData.wasApproved) {
+            await projectService.updateProject(project.id, {
+              wasReviewed: testData.wasReviewed || false,
+              wasApproved: testData.wasApproved || false,
+            });
+            addProgress(`  ✓ Status flags updated`);
           }
+
+          // Create deliverables for this project
+          for (const delData of testData.deliverables) {
+            try {
+              await deliverableService.createDeliverable({
+                projectId: project.id,
+                name: delData.name,
+                type: delData.type,
+                status: delData.status,
+                count: delData.count,
+                bonusCount: delData.bonusCount,
+                externalUrl: delData.externalUrl || null,
+                miroUrl: null,
+              });
+              deliverableCount++;
+            } catch (delErr) {
+              addProgress(`  ⚠ Deliverable failed: ${delData.name}`);
+              logger.error('Deliverable creation failed', delErr);
+            }
+          }
+          addProgress(`  ✓ ${testData.deliverables.length} deliverables created`);
+
+          // Sync with Miro if available
+          if (isInMiro && miro) {
+            try {
+              // Add to timeline
+              await miroTimelineService.syncProject(project);
+
+              // Create project row with briefing
+              await miroProjectRowService.createProjectRow(project, fullBriefing);
+              addProgress(`  ✓ Miro board synced`);
+            } catch (miroErr) {
+              addProgress(`  ⚠ Miro sync failed`);
+              logger.error('Miro sync failed', miroErr);
+            }
+          }
+
+          successCount++;
+          addProgress('');
+
+        } catch (err) {
+          addProgress(`  ✗ FAILED: ${err instanceof Error ? err.message : 'Unknown error'}`);
+          logger.error('Project creation failed', err);
         }
       }
 
+      // Summary
+      addProgress('═══════════════════════════════════════');
       addProgress('');
-      addProgress('✅ SUCCESS! Created 10 test projects');
-      addProgress('Refresh the page to see the new projects');
+      addProgress(`✅ SUCCESS! Created ${successCount}/10 projects`);
+      addProgress(`📦 Created ${deliverableCount} deliverables total`);
+      addProgress('');
+      addProgress('📊 Summary by status:');
+      const statusCounts = TEST_PROJECTS.reduce((acc, p) => {
+        acc[p.status] = (acc[p.status] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+      Object.entries(statusCounts).forEach(([status, count]) => {
+        addProgress(`   • ${status}: ${count} projects`);
+      });
+      addProgress('');
+      addProgress('🔄 Refresh the page to see the new projects!');
+      addProgress('📈 Go to Reports to generate analytics!');
 
     } catch (err) {
-      logger.error('Reset failed', err);
-      setError(err instanceof Error ? err.message : 'Failed to reset and seed data');
+      logger.error('Test project creation failed', err);
+      setError(err instanceof Error ? err.message : 'Failed to create test projects');
+      addProgress(`❌ ERROR: ${err instanceof Error ? err.message : 'Unknown error'}`);
     } finally {
-      setIsResetting(false);
+      setIsCreating(false);
     }
   };
 
@@ -608,22 +734,48 @@ export function DeveloperTools() {
         <p className={styles.subtitle}>Testing and development utilities</p>
       </div>
 
-      {/* Clear All Data Section */}
+      {/* Create Test Projects Section */}
       <div className={styles.section}>
-        <h3 className={styles.sectionTitle}>🧹 Clear All System Data</h3>
+        <h3 className={styles.sectionTitle}>🚀 Create 10 Test Projects</h3>
         <p className={styles.sectionDescription}>
-          Remove ALL data from the system to start fresh. Ideal for manual testing.
+          Create realistic test projects with full briefing data, deliverables, assets, and versions.
+          Perfect for testing reports and understanding the complete workflow.
         </p>
 
-        <div className={styles.warningDanger}>
-          <strong>⚠️ CAUTION:</strong> This will permanently delete all projects, deliverables, and Miro board elements.
+        <div className={styles.featureList}>
+          <div className={styles.featureItem}>✓ 10 realistic design studio projects</div>
+          <div className={styles.featureItem}>✓ Complete briefing data for all fields</div>
+          <div className={styles.featureItem}>✓ Deliverables with assets and bonus counts</div>
+          <div className={styles.featureItem}>✓ Mix of statuses: urgent, in_progress, review, done</div>
+          <div className={styles.featureItem}>✓ Miro board sync (if connected)</div>
         </div>
 
         <div className={styles.status}>
           <span>Miro Connection: </span>
           <span className={isInMiro ? styles.connected : styles.disconnected}>
-            {isInMiro ? '✓ Connected' : '✗ Not in Miro'}
+            {isInMiro ? '✓ Connected' : '○ Not in Miro (will skip board sync)'}
           </span>
+        </div>
+
+        <Button
+          onClick={handleCreateTestProjects}
+          isLoading={isCreating}
+          variant="primary"
+          className={styles.primaryButton}
+        >
+          {isCreating ? 'Creating Projects...' : '✨ Create 10 Test Projects'}
+        </Button>
+      </div>
+
+      {/* Clear All Data Section */}
+      <div className={styles.section}>
+        <h3 className={styles.sectionTitle}>🧹 Clear All System Data</h3>
+        <p className={styles.sectionDescription}>
+          Remove ALL data from the system to start fresh. Use this for a clean slate.
+        </p>
+
+        <div className={styles.warningDanger}>
+          <strong>⚠️ CAUTION:</strong> This will permanently delete all projects, deliverables, and Miro board elements.
         </div>
 
         <Button
@@ -640,7 +792,7 @@ export function DeveloperTools() {
       <div className={styles.section}>
         <h3 className={styles.sectionTitle}>🔄 Rename STAGE → VERSION</h3>
         <p className={styles.sectionDescription}>
-          Renames all Miro frames with "STAGE" in the title to "VERSION".
+          Migration tool: Renames all Miro frames with "STAGE" to "VERSION".
         </p>
 
         <div className={styles.status}>
@@ -654,31 +806,10 @@ export function DeveloperTools() {
           onClick={handleRenameStageToVersion}
           isLoading={isRenaming}
           variant="primary"
-          className={styles.primaryButton}
+          className={styles.secondaryButton}
           disabled={!isInMiro}
         >
           {isRenaming ? 'Renaming...' : '📝 Rename STAGE to VERSION'}
-        </Button>
-      </div>
-
-      {/* Reset & Seed Section */}
-      <div className={styles.section}>
-        <h3 className={styles.sectionTitle}>🔄 Reset & Create Test Data</h3>
-        <p className={styles.sectionDescription}>
-          Clears everything and creates 10 test projects with realistic briefing data.
-        </p>
-
-        <div className={styles.warning}>
-          <strong>Warning:</strong> This action cannot be undone. All existing data will be permanently deleted.
-        </div>
-
-        <Button
-          onClick={handleResetAndSeed}
-          isLoading={isResetting}
-          variant="primary"
-          className={styles.primaryButton}
-        >
-          {isResetting ? 'Resetting...' : 'Reset & Create 10 Test Projects'}
         </Button>
       </div>
 
