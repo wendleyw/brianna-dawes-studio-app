@@ -221,7 +221,7 @@ class ProjectRowService {
 
       // Field value or empty placeholder
       const value = briefing[field.key];
-      const displayValue = value || '(Not provided)';
+      const displayValue = value || '⚠️ Needs attention';
       const isEmpty = !value;
 
       const valueItem = await miroClient.createShape(this.boardId, {

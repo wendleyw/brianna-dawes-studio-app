@@ -57,17 +57,17 @@ interface ProjectBriefing {
   priority: 'urgent' | 'high' | 'medium' | 'low';
 }
 
-// Project types with durations in business days
+// Project types with durations in business days (sorted by days ascending)
 const PROJECT_TYPES = [
   { value: 'social-post-design', label: 'Social Post Design (Carousel / Static)', days: 5 },
-  { value: 'email-design', label: 'Email Design (Full In-Depth)', days: 7 },
   { value: 'hero-section', label: 'Hero Section or Image Set', days: 5 },
   { value: 'ad-design', label: 'Ad Design (Static or GIF)', days: 5 },
-  { value: 'marketing-campaign', label: 'Marketing Campaign (Multi-Channel)', days: 14 },
-  { value: 'video-production', label: 'Video Production / Reels', days: 7 },
   { value: 'gif-design', label: 'GIF Design (Standalone)', days: 5 },
   { value: 'website-assets', label: 'Website Assets (Individual Sections)', days: 5 },
+  { value: 'email-design', label: 'Email Design (Full In-Depth)', days: 7 },
+  { value: 'video-production', label: 'Video Production / Reels', days: 7 },
   { value: 'website-ui-design', label: 'Website UI Design (Full Page)', days: 11 },
+  { value: 'marketing-campaign', label: 'Marketing Campaign (Multi-Channel)', days: 14 },
   { value: 'other', label: 'Other', days: 15 },
 ] as const;
 
@@ -256,36 +256,38 @@ export function NewProjectPage() {
       const projectTypeLabel = selectedProjectType?.label || formData.projectType;
 
       // Create the project with briefing data in description
+      // Empty fields show "Needs attention" to indicate client input required
+      const needsAttention = '⚠️ Needs attention';
       const briefingDescription = `
 ## Project Type
 ${projectTypeLabel} (${selectedProjectType?.days || 0} business days)
 
 ## Goals & Objectives
-${formData.goalsObjectives || 'Not specified'}
+${formData.goalsObjectives || needsAttention}
 
 ## Project Overview
-${formData.projectOverview || 'Not specified'}
+${formData.projectOverview || needsAttention}
 
 ## Target Audience
-${formData.targetAudience || 'Not specified'}
+${formData.targetAudience || needsAttention}
 
 ## Final Messaging / Copy
-${formData.finalMessaging || 'Not specified'}
+${formData.finalMessaging || needsAttention}
 
 ## Deliverables
-${formData.deliverables || 'Not specified'}
+${formData.deliverables || needsAttention}
 
 ## Resource Links / Assets
-${formData.resourceLinks || 'Not specified'}
+${formData.resourceLinks || needsAttention}
 
 ## Inspirations / References
-${formData.inspirations || 'Not specified'}
+${formData.inspirations || needsAttention}
 
 ## Style / Design Notes
-${formData.styleNotes || 'Not specified'}
+${formData.styleNotes || needsAttention}
 
 ## Additional Notes
-${formData.additionalNotes || 'Not specified'}
+${formData.additionalNotes || needsAttention}
       `.trim();
 
       // Format due date to ISO 8601 format if provided
