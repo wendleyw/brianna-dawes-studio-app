@@ -478,15 +478,14 @@ class MiroMasterTimelineService {
                          '🟢'; // low/standard
 
     // Build clean card title - multi-line format
-    // Line 1: [ARCHIVED] or [APPROVED] or [Changes Requested] [icon] Project Title
+    // Line 1: [ARCHIVED] or [Changes Requested] [icon] Project Title
     // Line 2: Due Date
     // Line 3: Author
     const isArchived = project.archivedAt !== null;
-    const wasApproved = project.wasApproved || false;
     // Show [Changes Requested] only when wasReviewed=true AND status is in_progress (client requested changes)
-    // When admin sends back to review, show normal title (no prefix)
+    // When admin sends back to review or moves to done, show normal title (no prefix)
     const hasChangesRequested = wasReviewed && status === 'in_progress';
-    const statusTag = isArchived ? '[ARCHIVED] ' : (wasApproved ? '[APPROVED] ✓ ' : (hasChangesRequested ? '[Changes Requested] 🔄 ' : ''));
+    const statusTag = isArchived ? '[ARCHIVED] ' : (hasChangesRequested ? '[Changes Requested] 🔄 ' : '');
     const datePart = formatDueDate(project.dueDate);
     const authorPart = project.client?.name || '';
 
