@@ -48,9 +48,9 @@ const SATISFACTION_FACES = [
   { level: 5, label: 'Very Happy', color: '#22C55E', face: '😄', bgColor: '#DCFCE7' },
 ];
 
-export interface WeeklyData {
-  weekNumber: number;
-  weekLabel: string;
+export interface PeriodData {
+  periodNumber: number;
+  periodLabel: string;
   startDate: string;
   endDate: string;
   assets: number;
@@ -58,6 +58,9 @@ export interface WeeklyData {
   deliverables: Deliverable[];
   projects: Project[];
 }
+
+// Alias for backwards compatibility
+export type WeeklyData = PeriodData;
 
 export interface ClientReportData {
   clientName: string;
@@ -77,6 +80,7 @@ export interface ClientReportMetrics {
   completedProjects: number;
   deliverablesByProjectType: Record<string, number>;
   weeklyData: WeeklyData[];
+  isMonthly: boolean; // true if data is grouped by month (for periods > 90 days)
 }
 
 /**
@@ -140,38 +144,108 @@ function getWeeksInRange(startDate: string, endDate: string): { start: Date; end
 }
 
 /**
- * Calculate report metrics with weekly breakdown
- * Uses dueDate to distribute deliverables across weeks (if no dueDate, uses createdAt)
+ * Break date range into months
+ */
+function getMonthsInRange(startDate: string, endDate: string): { start: Date; end: Date; monthNum: number; label: string }[] {
+  const months: { start: Date; end: Date; monthNum: number; label: string }[] = [];
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+
+  // Start from the first day of start month
+  const currentStart = new Date(start.getFullYear(), start.getMonth(), 1);
+
+  while (currentStart <= end) {
+    const monthEnd = new Date(currentStart.getFullYear(), currentStart.getMonth() + 1, 0); // Last day of month
+    const label = currentStart.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+
+    months.push({
+      start: new Date(currentStart),
+      end: monthEnd > end ? new Date(end) : monthEnd,
+      monthNum: currentStart.getMonth() + 1,
+      label,
+    });
+
+    // Move to next month
+    currentStart.setMonth(currentStart.getMonth() + 1);
+  }
+
+  return months;
+}
+
+/**
+ * Calculate the number of days between two dates
+ */
+function getDaysBetween(startDate: string, endDate: string): number {
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  return Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+}
+
+/**
+ * Calculate report metrics with period breakdown
+ * Uses monthly breakdown for periods > 90 days, weekly for shorter periods
+ * Uses dueDate to distribute deliverables (or createdAt as fallback)
  */
 function calculateClientMetrics(data: ClientReportData): ClientReportMetrics {
-  const weeks = getWeeksInRange(data.startDate, data.endDate);
+  const daysBetween = getDaysBetween(data.startDate, data.endDate);
+  const useMonthly = daysBetween > 90; // Use monthly for periods > 3 months
 
-  // For weekly data, distribute deliverables across weeks based on dueDate (or createdAt as fallback)
-  const weeklyData: WeeklyData[] = weeks.map((week, index) => {
-    // Filter deliverables by dueDate (if available) or createdAt
-    const weekDeliverables = data.deliverables.filter(d => {
-      // Use dueDate if available, otherwise createdAt
-      const dateToUse = d.dueDate ? new Date(d.dueDate) : new Date(d.createdAt);
-      return dateToUse >= week.start && dateToUse <= week.end;
+  let periodData: PeriodData[];
+
+  if (useMonthly) {
+    // Group by month for longer periods
+    const months = getMonthsInRange(data.startDate, data.endDate);
+    periodData = months.map((month, index) => {
+      const monthDeliverables = data.deliverables.filter(d => {
+        const dateToUse = d.dueDate ? new Date(d.dueDate) : new Date(d.createdAt);
+        return dateToUse >= month.start && dateToUse <= month.end;
+      });
+
+      const monthProjects = data.projects.filter(p => {
+        const dateToUse = p.dueDate ? new Date(p.dueDate) : new Date(p.createdAt);
+        return dateToUse >= month.start && dateToUse <= month.end;
+      });
+
+      return {
+        periodNumber: index + 1,
+        periodLabel: month.label,
+        startDate: month.start.toISOString(),
+        endDate: month.end.toISOString(),
+        assets: monthDeliverables.reduce((sum, d) => sum + (d.count || 0), 0),
+        bonus: monthDeliverables.reduce((sum, d) => sum + (d.bonusCount || 0), 0),
+        deliverables: monthDeliverables,
+        projects: monthProjects,
+      };
     });
+  } else {
+    // Group by week for shorter periods
+    const weeks = getWeeksInRange(data.startDate, data.endDate);
+    periodData = weeks.map((week, index) => {
+      const weekDeliverables = data.deliverables.filter(d => {
+        const dateToUse = d.dueDate ? new Date(d.dueDate) : new Date(d.createdAt);
+        return dateToUse >= week.start && dateToUse <= week.end;
+      });
 
-    const weekProjects = data.projects.filter(p => {
-      // Use dueDate if available, otherwise createdAt
-      const dateToUse = p.dueDate ? new Date(p.dueDate) : new Date(p.createdAt);
-      return dateToUse >= week.start && dateToUse <= week.end;
+      const weekProjects = data.projects.filter(p => {
+        const dateToUse = p.dueDate ? new Date(p.dueDate) : new Date(p.createdAt);
+        return dateToUse >= week.start && dateToUse <= week.end;
+      });
+
+      return {
+        periodNumber: index + 1,
+        periodLabel: formatWeekLabel(week.start, week.end),
+        startDate: week.start.toISOString(),
+        endDate: week.end.toISOString(),
+        assets: weekDeliverables.reduce((sum, d) => sum + (d.count || 0), 0),
+        bonus: weekDeliverables.reduce((sum, d) => sum + (d.bonusCount || 0), 0),
+        deliverables: weekDeliverables,
+        projects: weekProjects,
+      };
     });
+  }
 
-    return {
-      weekNumber: index + 1,
-      weekLabel: formatWeekLabel(week.start, week.end),
-      startDate: week.start.toISOString(),
-      endDate: week.end.toISOString(),
-      assets: weekDeliverables.reduce((sum, d) => sum + (d.count || 0), 0),
-      bonus: weekDeliverables.reduce((sum, d) => sum + (d.bonusCount || 0), 0),
-      deliverables: weekDeliverables,
-      projects: weekProjects,
-    };
-  });
+  // Alias for backwards compatibility
+  const weeklyData = periodData;
 
   // Count deliverables by project type (from briefing.projectType)
   const deliverablesByProjectType: Record<string, number> = {};
@@ -191,6 +265,7 @@ function calculateClientMetrics(data: ClientReportData): ClientReportMetrics {
     completedProjects: data.projects.filter(p => p.status === 'done').length,
     deliverablesByProjectType,
     weeklyData,
+    isMonthly: useMonthly,
   };
 }
 
@@ -409,12 +484,12 @@ class MiroClientReportService {
     await this.createSummaryCards(metrics, frameX, currentY);
     currentY += REPORT.CARD_HEIGHT + REPORT.SECTION_GAP + 20;
 
-    // === 1. WEEKLY PERFORMANCE BAR CHART ===
-    await this.createWeeklyBarChart(metrics.weeklyData, frameLeft + REPORT.PADDING, currentY, REPORT.FRAME_WIDTH - REPORT.PADDING * 2);
+    // === 1. PERFORMANCE BAR CHART (Weekly or Monthly based on period length) ===
+    await this.createWeeklyBarChart(metrics.weeklyData, frameLeft + REPORT.PADDING, currentY, REPORT.FRAME_WIDTH - REPORT.PADDING * 2, metrics.isMonthly);
     currentY += 300 + REPORT.SECTION_GAP;
 
-    // === 2. WEEKLY BREAKDOWN TABLE ===
-    await this.createWeeklyBreakdownTable(metrics.weeklyData, frameLeft + REPORT.PADDING, currentY, REPORT.FRAME_WIDTH - REPORT.PADDING * 2);
+    // === 2. BREAKDOWN TABLE (Weekly or Monthly based on period length) ===
+    await this.createWeeklyBreakdownTable(metrics.weeklyData, frameLeft + REPORT.PADDING, currentY, REPORT.FRAME_WIDTH - REPORT.PADDING * 2, metrics.isMonthly);
     currentY += tableHeight + REPORT.SECTION_GAP;
 
     // === 3. PROJECT TYPE BREAKDOWN ===
@@ -538,14 +613,15 @@ class MiroClientReportService {
   }
 
   /**
-   * Create weekly bar chart visualization
+   * Create bar chart visualization (weekly or monthly based on period)
    */
-  private async createWeeklyBarChart(weeklyData: WeeklyData[], startX: number, topY: number, width: number): Promise<void> {
+  private async createWeeklyBarChart(weeklyData: WeeklyData[], startX: number, topY: number, width: number, isMonthly: boolean = false): Promise<void> {
     const miro = getMiroSDK();
 
-    // Section title
+    // Section title (changes based on period type)
+    const sectionTitle = isMonthly ? 'MONTHLY PERFORMANCE' : 'WEEKLY PERFORMANCE';
     await miro.board.createText({
-      content: '<b>WEEKLY PERFORMANCE</b>',
+      content: `<b>${sectionTitle}</b>`,
       x: startX + width / 2,
       y: topY,
       width: width,
@@ -694,14 +770,15 @@ class MiroClientReportService {
         });
       }
 
-      // Week label
+      // Period label (Week number for weekly, Month name for monthly)
+      const periodLabel = isMonthly ? week.periodLabel : `W${week.periodNumber}`;
       await miro.board.createText({
-        content: `W${week.weekNumber}`,
+        content: periodLabel,
         x: groupX,
         y: baseY + 15,
         width: barGroupWidth - 10,
         style: {
-          fontSize: 10,
+          fontSize: isMonthly ? 9 : 10,
           textAlign: 'center',
           color: '#6B7280',
         },
@@ -949,14 +1026,15 @@ class MiroClientReportService {
   }
 
   /**
-   * Create weekly breakdown table
+   * Create breakdown table (weekly or monthly based on period)
    */
-  private async createWeeklyBreakdownTable(weeklyData: WeeklyData[], startX: number, topY: number, width: number): Promise<void> {
+  private async createWeeklyBreakdownTable(weeklyData: WeeklyData[], startX: number, topY: number, width: number, isMonthly: boolean = false): Promise<void> {
     const miro = getMiroSDK();
 
-    // Section title
+    // Section title (changes based on period type)
+    const sectionTitle = isMonthly ? 'MONTHLY BREAKDOWN' : 'WEEKLY BREAKDOWN';
     await miro.board.createText({
-      content: '<b>WEEKLY BREAKDOWN</b>',
+      content: `<b>${sectionTitle}</b>`,
       x: startX + width / 2,
       y: topY,
       width: width,
@@ -970,7 +1048,8 @@ class MiroClientReportService {
     const tableTop = topY + 30;
     const rowHeight = 35;
     const colWidths = [150, 100, 100, 150];
-    const headers = ['Week', 'Assets', 'Bonus', 'Deliverables'];
+    const firstColumnHeader = isMonthly ? 'Month' : 'Week';
+    const headers = [firstColumnHeader, 'Assets', 'Bonus', 'Deliverables'];
 
     // Header row
     await miro.board.createShape({
@@ -1028,7 +1107,7 @@ class MiroClientReportService {
 
       // Row data
       const rowData = [
-        week.weekLabel,
+        week.periodLabel,
         week.assets.toString(),
         week.bonus.toString(),
         week.deliverables.length.toString(),
