@@ -478,12 +478,15 @@ class MiroMasterTimelineService {
                          '🟢'; // low/standard
 
     // Build clean card title - multi-line format
-    // Line 1: [ARCHIVED] or [APPROVED] or [REVIEWED] [icon] Project Title
+    // Line 1: [ARCHIVED] or [APPROVED] or [Changes Requested] [icon] Project Title
     // Line 2: Due Date
     // Line 3: Author
     const isArchived = project.archivedAt !== null;
     const wasApproved = project.wasApproved || false;
-    const statusTag = isArchived ? '[ARCHIVED] ' : (wasApproved ? '[APPROVED] ✓ ' : (wasReviewed ? '[REVIEWED] ' : ''));
+    // Show [Changes Requested] only when wasReviewed=true AND status is in_progress (client requested changes)
+    // When admin sends back to review, show normal title (no prefix)
+    const hasChangesRequested = wasReviewed && status === 'in_progress';
+    const statusTag = isArchived ? '[ARCHIVED] ' : (wasApproved ? '[APPROVED] ✓ ' : (hasChangesRequested ? '[Changes Requested] 🔄 ' : ''));
     const datePart = formatDueDate(project.dueDate);
     const authorPart = project.client?.name || '';
 
@@ -499,8 +502,8 @@ class MiroMasterTimelineService {
     // Use plain text with newlines for card title (Miro SDK v2 supports \n in title)
     const cardTitle = title;
 
-    // Build description with reviewed flag
-    const description = `projectId:${project.id}${wasReviewed ? '|reviewed:true' : ''}`;
+    // Build description with changes requested flag
+    const description = `projectId:${project.id}${hasChangesRequested ? '|changes_requested:true' : ''}`;
 
     // STEP 2: Find existing card BY PROJECTID IN DESCRIPTION (works across iframe contexts)
     // This is the source of truth - search on the actual board, not memory
