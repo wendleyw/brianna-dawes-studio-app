@@ -8,7 +8,7 @@
 
 import type { Project, ProjectStatus } from '@features/projects/domain/project.types';
 import type { Deliverable } from '@features/deliverables/domain/deliverable.types';
-import { STATUS_COLUMNS } from '@shared/lib/timelineStatus';
+import { STATUS_COLUMNS, getStatusProgress } from '@shared/lib/timelineStatus';
 import { PRIORITY_CONFIG } from '@shared/lib/priorityConfig';
 import { formatDateFull, formatDateShort } from '@shared/lib/dateFormat';
 import { createLogger } from '@shared/lib/logger';
@@ -592,11 +592,9 @@ class MiroReportService {
         },
       });
 
-      // Progress indicator (simple bar)
+      // Progress indicator (simple bar) using centralized function
       const progressWidth = 80;
-      const progress = project.status === 'done' ? 100 :
-                       project.status === 'review' ? 80 :
-                       project.status === 'in_progress' ? 50 : 20;
+      const progress = getStatusProgress(project.status);
 
       // Progress background
       await miro.board.createShape({

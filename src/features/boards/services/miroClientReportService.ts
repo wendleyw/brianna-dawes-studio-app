@@ -4,7 +4,7 @@
  * Generates enhanced visual client reports with:
  * - Weekly breakdown of deliverables
  * - Bar charts for assets and bonus counts
- * - Funnel/pyramid visualizations
+ * - Project type breakdown
  * - Client satisfaction tracking
  */
 
@@ -18,13 +18,13 @@ const logger = createLogger('MiroClientReport');
 
 // Report Layout Constants
 const REPORT = {
-  FRAME_WIDTH: 1400,
-  FRAME_HEIGHT: 2000,
+  FRAME_WIDTH: 1200,
+  FRAME_HEIGHT: 1600,
   PADDING: 40,
-  SECTION_GAP: 30,
-  HEADER_HEIGHT: 100,
-  CARD_HEIGHT: 100,
-  CARD_GAP: 20,
+  SECTION_GAP: 25,
+  HEADER_HEIGHT: 80,
+  CARD_HEIGHT: 90,
+  CARD_GAP: 16,
 };
 
 // Chart Colors
@@ -35,17 +35,17 @@ const CHART_COLORS = {
   inProgress: '#F59E0B',  // Yellow
   pending: '#6B7280',     // Gray
   rejected: '#EF4444',    // Red
-  primary: '#000000',     // Brand primary
+  primary: '#050038',     // Brand primary (dark navy)
   accent: '#2563EB',      // Brand accent
 };
 
-// Satisfaction Levels
-const SATISFACTION_LEVELS = [
-  { level: 5, label: 'Excellent', color: '#22C55E', emoji: '🌟' },
-  { level: 4, label: 'Good', color: '#84CC16', emoji: '😊' },
-  { level: 3, label: 'Satisfactory', color: '#F59E0B', emoji: '😐' },
-  { level: 2, label: 'Needs Improvement', color: '#F97316', emoji: '😕' },
-  { level: 1, label: 'Poor', color: '#EF4444', emoji: '😞' },
+// Satisfaction Levels with face icons (text-based faces for Miro compatibility)
+const SATISFACTION_FACES = [
+  { level: 1, label: 'Very Unhappy', color: '#EF4444', face: '😞', bgColor: '#FEE2E2' },
+  { level: 2, label: 'Unhappy', color: '#F97316', face: '😕', bgColor: '#FFEDD5' },
+  { level: 3, label: 'Neutral', color: '#F59E0B', face: '😐', bgColor: '#FEF3C7' },
+  { level: 4, label: 'Happy', color: '#84CC16', face: '😊', bgColor: '#ECFCCB' },
+  { level: 5, label: 'Very Happy', color: '#22C55E', face: '😄', bgColor: '#DCFCE7' },
 ];
 
 export interface WeeklyData {
@@ -68,8 +68,6 @@ export interface ClientReportData {
   endDate: string;
   generatedAt: string;
   generatedBy: string;
-  satisfactionRating?: number; // 1-5
-  satisfactionNotes?: string;
 }
 
 export interface ClientReportMetrics {
@@ -77,7 +75,7 @@ export interface ClientReportMetrics {
   totalBonus: number;
   totalProjects: number;
   completedProjects: number;
-  deliverablesByStatus: Record<string, number>;
+  deliverablesByProjectType: Record<string, number>;
   weeklyData: WeeklyData[];
 }
 
@@ -143,11 +141,14 @@ function getWeeksInRange(startDate: string, endDate: string): { start: Date; end
 
 /**
  * Calculate report metrics with weekly breakdown
+ * Uses createdAt to distribute deliverables across weeks
  */
 function calculateClientMetrics(data: ClientReportData): ClientReportMetrics {
   const weeks = getWeeksInRange(data.startDate, data.endDate);
 
+  // For weekly data, distribute deliverables across weeks based on createdAt
   const weeklyData: WeeklyData[] = weeks.map((week, index) => {
+    // Filter deliverables created during this week
     const weekDeliverables = data.deliverables.filter(d => {
       const createdAt = new Date(d.createdAt);
       return createdAt >= week.start && createdAt <= week.end;
@@ -170,17 +171,15 @@ function calculateClientMetrics(data: ClientReportData): ClientReportMetrics {
     };
   });
 
-  const deliverablesByStatus: Record<string, number> = {
-    draft: 0,
-    in_progress: 0,
-    in_review: 0,
-    approved: 0,
-    rejected: 0,
-    delivered: 0,
-  };
+  // Count deliverables by project type (from briefing.projectType)
+  const deliverablesByProjectType: Record<string, number> = {};
 
-  for (const d of data.deliverables) {
-    deliverablesByStatus[d.status] = (deliverablesByStatus[d.status] || 0) + 1;
+  // Group deliverables by their project's type
+  for (const project of data.projects) {
+    const projectType = project.briefing?.projectType || 'other';
+    const projectDeliverables = data.deliverables.filter(d => d.projectId === project.id);
+    const deliverableCount = projectDeliverables.reduce((sum, d) => sum + (d.count || 0), 0);
+    deliverablesByProjectType[projectType] = (deliverablesByProjectType[projectType] || 0) + deliverableCount;
   }
 
   return {
@@ -188,12 +187,80 @@ function calculateClientMetrics(data: ClientReportData): ClientReportMetrics {
     totalBonus: data.deliverables.reduce((sum, d) => sum + (d.bonusCount || 0), 0),
     totalProjects: data.projects.length,
     completedProjects: data.projects.filter(p => p.status === 'done').length,
-    deliverablesByStatus,
+    deliverablesByProjectType,
     weeklyData,
   };
 }
 
 class MiroClientReportService {
+  /**
+   * Find Timeline Master frame to position report to its left
+   * The Timeline Master frame is created at origin (0,0) with empty title,
+   * but has a "Timeline Master" text above it
+   */
+  private async findTimelineMasterPosition(): Promise<{ x: number; y: number } | null> {
+    const miro = getMiroSDK();
+    try {
+      // Strategy 1: Find frame by title
+      const frames = await miro.board.get({ type: 'frame' });
+      let timelineFrame = frames.find(f =>
+        f.title?.includes('TIMELINE MASTER') ||
+        f.title?.includes('Timeline Master') ||
+        f.title?.includes('MASTER TIMELINE')
+      );
+
+      // Strategy 2: Look for "Timeline Master" text and find nearby frame
+      if (!timelineFrame) {
+        const texts = await miro.board.get({ type: 'text' });
+        const timelineText = texts.find(t =>
+          t.content?.includes('Timeline Master') ||
+          t.content?.includes('MASTER TIMELINE') ||
+          t.content?.includes('TIMELINE MASTER')
+        );
+
+        if (timelineText) {
+          // Find the frame that is near this text (below it)
+          timelineFrame = frames.find(f => {
+            if (!f.width || !f.height) return false;
+            // Frame should be below the text and horizontally close
+            const frameTop = f.y - f.height / 2;
+            const horizontalClose = Math.abs(f.x - timelineText.x) < 500;
+            const verticalClose = frameTop > timelineText.y && frameTop < timelineText.y + 200;
+            return horizontalClose && verticalClose;
+          });
+        }
+      }
+
+      // Strategy 3: Timeline Master is created at origin (0,0) - find frame near origin
+      if (!timelineFrame) {
+        timelineFrame = frames.find(f => {
+          if (!f.width || !f.height) return false;
+          // Frame should be near origin and large enough to be a timeline
+          return Math.abs(f.x) < 100 && Math.abs(f.y) < 100 && f.width > 1000;
+        });
+      }
+
+      if (timelineFrame && timelineFrame.width) {
+        // Position report to the LEFT of Timeline Master with gap
+        return {
+          x: timelineFrame.x - (timelineFrame.width / 2) - REPORT.FRAME_WIDTH / 2 - 100,
+          y: timelineFrame.y,
+        };
+      }
+    } catch (err) {
+      logger.warn('Could not find Timeline Master frame', err);
+    }
+    return null;
+  }
+
+  /**
+   * Get month name from date string
+   */
+  private getMonthName(dateStr: string): string {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  }
+
   /**
    * Generate enhanced client report with charts
    */
@@ -210,14 +277,27 @@ class MiroClientReportService {
 
     // Adjust frame height based on content
     const weekCount = metrics.weeklyData.length;
-    const dynamicHeight = REPORT.FRAME_HEIGHT + Math.max(0, (weekCount - 4) * 50);
+    const dynamicHeight = REPORT.FRAME_HEIGHT + Math.max(0, (weekCount - 4) * 40);
 
-    const frameX = position?.x ?? 4000;
-    const frameY = position?.y ?? 0;
+    // Find position: use provided position, or left of Timeline Master, or default
+    let frameX = position?.x ?? 4000;
+    let frameY = position?.y ?? 0;
+
+    if (!position) {
+      const timelinePos = await this.findTimelineMasterPosition();
+      if (timelinePos) {
+        frameX = timelinePos.x;
+        frameY = timelinePos.y;
+      }
+    }
+
+    // Create report title with month
+    const reportMonth = this.getMonthName(data.startDate);
+    const reportTitle = `Report - ${reportMonth}`;
 
     // Create main report frame
     const reportFrame = await miro.board.createFrame({
-      title: `📊 CLIENT REPORT - ${data.clientName.toUpperCase()}`,
+      title: reportTitle,
       x: frameX,
       y: frameY,
       width: REPORT.FRAME_WIDTH,
@@ -243,15 +323,13 @@ class MiroClientReportService {
     await this.createWeeklyBarChart(metrics.weeklyData, frameLeft + REPORT.PADDING, currentY, REPORT.FRAME_WIDTH - REPORT.PADDING * 2);
     currentY += 300 + REPORT.SECTION_GAP;
 
-    // === DELIVERABLES FUNNEL ===
-    await this.createDeliverablesFunnel(metrics.deliverablesByStatus, frameX, currentY);
+    // === PROJECT TYPE BREAKDOWN ===
+    await this.createProjectTypeBreakdown(metrics.deliverablesByProjectType, frameX, currentY);
     currentY += 280 + REPORT.SECTION_GAP;
 
-    // === CLIENT SATISFACTION ===
-    if (data.satisfactionRating) {
-      await this.createSatisfactionSection(data.satisfactionRating, data.satisfactionNotes, frameX, currentY);
-      currentY += 200 + REPORT.SECTION_GAP;
-    }
+    // === CLIENT SATISFACTION (Interactive faces for client to choose) ===
+    await this.createSatisfactionFaces(frameX, currentY);
+    currentY += 140 + REPORT.SECTION_GAP;
 
     // === WEEKLY BREAKDOWN TABLE ===
     await this.createWeeklyBreakdownTable(metrics.weeklyData, frameLeft + REPORT.PADDING, currentY, REPORT.FRAME_WIDTH - REPORT.PADDING * 2);
@@ -273,15 +351,15 @@ class MiroClientReportService {
     // Title bar
     await miro.board.createShape({
       shape: 'rectangle',
-      content: `<p><b>📊 CLIENT REPORT</b></p>`,
+      content: `<p><b>CLIENT REPORT</b></p>`,
       x: centerX,
-      y: topY + 30,
+      y: topY + 25,
       width: contentWidth,
-      height: 60,
+      height: 50,
       style: {
         fillColor: CHART_COLORS.primary,
         color: '#FFFFFF',
-        fontSize: 24,
+        fontSize: 22,
         textAlign: 'center',
         textAlignVertical: 'middle',
       },
@@ -292,10 +370,10 @@ class MiroClientReportService {
     await miro.board.createText({
       content: `<b>${data.clientName}</b> | ${dateRange} | Generated by ${data.generatedBy}`,
       x: centerX,
-      y: topY + 80,
+      y: topY + 65,
       width: contentWidth,
       style: {
-        fontSize: 14,
+        fontSize: 12,
         textAlign: 'center',
         color: '#6B7280',
       },
@@ -309,13 +387,13 @@ class MiroClientReportService {
     const miro = getMiroSDK();
 
     const cards = [
-      { label: 'TOTAL ASSETS', value: metrics.totalAssets.toString(), color: CHART_COLORS.assets, icon: '📦' },
-      { label: 'BONUS ITEMS', value: metrics.totalBonus.toString(), color: CHART_COLORS.bonus, icon: '🎁' },
-      { label: 'PROJECTS', value: metrics.totalProjects.toString(), color: CHART_COLORS.accent, icon: '📁' },
-      { label: 'COMPLETED', value: metrics.completedProjects.toString(), color: CHART_COLORS.approved, icon: '✅' },
+      { label: 'TOTAL ASSETS', value: metrics.totalAssets.toString(), color: CHART_COLORS.assets },
+      { label: 'BONUS ITEMS', value: metrics.totalBonus.toString(), color: CHART_COLORS.bonus },
+      { label: 'PROJECTS', value: metrics.totalProjects.toString(), color: CHART_COLORS.accent },
+      { label: 'COMPLETED', value: metrics.completedProjects.toString(), color: CHART_COLORS.approved },
     ];
 
-    const cardWidth = 280;
+    const cardWidth = 250;
     const totalWidth = cards.length * cardWidth + (cards.length - 1) * REPORT.CARD_GAP;
     const startX = centerX - totalWidth / 2 + cardWidth / 2;
 
@@ -341,14 +419,14 @@ class MiroClientReportService {
         },
       });
 
-      // Icon and Value
+      // Value
       await miro.board.createText({
-        content: `<b>${card.icon} ${card.value}</b>`,
+        content: `<b>${card.value}</b>`,
         x: cardX,
-        y: cardY - 10,
+        y: cardY - 8,
         width: cardWidth - 20,
         style: {
-          fontSize: 36,
+          fontSize: 32,
           textAlign: 'center',
           color: card.color,
         },
@@ -358,10 +436,10 @@ class MiroClientReportService {
       await miro.board.createText({
         content: card.label,
         x: cardX,
-        y: cardY + 30,
+        y: cardY + 25,
         width: cardWidth - 20,
         style: {
-          fontSize: 12,
+          fontSize: 11,
           textAlign: 'center',
           color: '#6B7280',
         },
@@ -377,12 +455,12 @@ class MiroClientReportService {
 
     // Section title
     await miro.board.createText({
-      content: '<b>📈 WEEKLY PERFORMANCE</b>',
+      content: '<b>WEEKLY PERFORMANCE</b>',
       x: startX + width / 2,
       y: topY,
       width: width,
       style: {
-        fontSize: 16,
+        fontSize: 14,
         textAlign: 'left',
         color: '#000000',
       },
@@ -562,181 +640,194 @@ class MiroClientReportService {
   }
 
   /**
-   * Create deliverables funnel/pyramid visualization
+   * Create project type breakdown visualization
+   * Shows which project types have the most deliverables/assets
    */
-  private async createDeliverablesFunnel(byStatus: Record<string, number>, centerX: number, topY: number): Promise<void> {
+  private async createProjectTypeBreakdown(byProjectType: Record<string, number>, centerX: number, topY: number): Promise<void> {
     const miro = getMiroSDK();
     const contentWidth = REPORT.FRAME_WIDTH - REPORT.PADDING * 2;
 
     // Section title
     await miro.board.createText({
-      content: '<b>🔻 DELIVERABLES FUNNEL</b>',
+      content: '<b>PROJECT TYPE BREAKDOWN</b>',
       x: centerX,
       y: topY,
       width: contentWidth,
       style: {
-        fontSize: 16,
+        fontSize: 14,
         textAlign: 'left',
         color: '#000000',
       },
     });
 
-    const funnelTop = topY + 40;
-    const funnelStages = [
-      { status: 'draft', label: 'Draft', color: '#9CA3AF' },
-      { status: 'in_progress', label: 'In Progress', color: '#F59E0B' },
-      { status: 'in_review', label: 'In Review', color: '#3B82F6' },
-      { status: 'approved', label: 'Approved', color: '#22C55E' },
-      { status: 'delivered', label: 'Delivered', color: '#10B981' },
-    ];
+    const chartTop = topY + 35;
 
-    const total = Object.values(byStatus).reduce((a, b) => a + b, 0);
-    const maxWidth = 500;
-    const stageHeight = 40;
-    const stageGap = 5;
+    // Project type labels for display (no emojis)
+    const PROJECT_TYPE_LABELS: Record<string, { label: string; color: string }> = {
+      'social-post-design': { label: 'Social Post Design', color: '#3B82F6' },
+      'email-design': { label: 'Email Design', color: '#8B5CF6' },
+      'hero-section': { label: 'Hero Section', color: '#EC4899' },
+      'ad-design': { label: 'Ad Design', color: '#F59E0B' },
+      'marketing-campaign': { label: 'Marketing Campaign', color: '#10B981' },
+      'video-production': { label: 'Video Production', color: '#EF4444' },
+      'gif-design': { label: 'GIF Design', color: '#6366F1' },
+      'website-assets': { label: 'Website Assets', color: '#14B8A6' },
+      'website-ui-design': { label: 'Website UI Design', color: '#F97316' },
+      'other': { label: 'Other', color: '#6B7280' },
+    };
 
-    for (let i = 0; i < funnelStages.length; i++) {
-      const stage = funnelStages[i];
-      if (!stage) continue;
+    // Sort project types by count (descending)
+    const sortedTypes = Object.entries(byProjectType)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6); // Show top 6
 
-      const count = byStatus[stage.status] || 0;
+    const total = Object.values(byProjectType).reduce((a, b) => a + b, 0);
+    const maxWidth = 450;
+    const barHeight = 32;
+    const barGap = 6;
+
+    // Find max value for scaling
+    const maxCount = sortedTypes.length > 0 ? Math.max(...sortedTypes.map(([, count]) => count)) : 1;
+
+    for (let i = 0; i < sortedTypes.length; i++) {
+      const [typeKey, count] = sortedTypes[i]!;
+      const typeInfo = PROJECT_TYPE_LABELS[typeKey] || PROJECT_TYPE_LABELS['other']!;
       const percentage = total > 0 ? Math.round((count / total) * 100) : 0;
 
-      // Calculate width (funnel shape - wider at top, narrower at bottom)
-      const widthRatio = 1 - (i * 0.15);
-      const stageWidth = Math.max(maxWidth * widthRatio, 200);
+      // Calculate bar width based on proportion to max value
+      const barWidth = Math.max((count / maxCount) * maxWidth, 120);
 
-      const stageY = funnelTop + i * (stageHeight + stageGap);
+      const barY = chartTop + i * (barHeight + barGap);
 
-      // Stage bar (using round_rectangle as trapezoid is not supported)
+      // Bar background
       await miro.board.createShape({
         shape: 'round_rectangle',
         content: '',
-        x: centerX,
-        y: stageY + stageHeight / 2,
-        width: stageWidth,
-        height: stageHeight,
+        x: centerX - (maxWidth - barWidth) / 2,
+        y: barY + barHeight / 2,
+        width: barWidth,
+        height: barHeight,
         style: {
-          fillColor: count > 0 ? stage.color : '#E5E7EB',
+          fillColor: typeInfo.color,
           borderWidth: 0,
         },
       });
 
-      // Label with count
+      // Label with name, count and percentage
       await miro.board.createText({
-        content: `<b>${stage.label}</b>: ${count} (${percentage}%)`,
-        x: centerX,
-        y: stageY + stageHeight / 2,
-        width: stageWidth - 20,
+        content: `<b>${typeInfo.label}</b>: ${count} assets (${percentage}%)`,
+        x: centerX - (maxWidth - barWidth) / 2,
+        y: barY + barHeight / 2,
+        width: barWidth - 16,
         style: {
-          fontSize: 12,
+          fontSize: 10,
           textAlign: 'center',
-          color: count > 0 ? '#FFFFFF' : '#9CA3AF',
+          color: '#FFFFFF',
         },
       });
     }
 
-    // Rejected count (shown separately)
-    const rejectedCount = byStatus['rejected'] || 0;
-    if (rejectedCount > 0) {
-      await miro.board.createShape({
-        shape: 'round_rectangle',
-        content: `<p><b>❌ Rejected: ${rejectedCount}</b></p>`,
-        x: centerX + 320,
-        y: funnelTop + 100,
-        width: 140,
-        height: 40,
+    // Show "No data" if empty
+    if (sortedTypes.length === 0) {
+      await miro.board.createText({
+        content: 'No project type data available',
+        x: centerX,
+        y: chartTop + 60,
+        width: 300,
         style: {
-          fillColor: CHART_COLORS.rejected,
-          borderWidth: 0,
-          color: '#FFFFFF',
           fontSize: 12,
           textAlign: 'center',
-          textAlignVertical: 'middle',
+          color: '#9CA3AF',
         },
       });
     }
   }
 
   /**
-   * Create client satisfaction section with pyramid/rating visualization
+   * Create client satisfaction section with clickable face options
+   * Client can select one of 5 faces to indicate satisfaction
    */
-  private async createSatisfactionSection(rating: number, notes: string | undefined, centerX: number, topY: number): Promise<void> {
+  private async createSatisfactionFaces(centerX: number, topY: number): Promise<void> {
     const miro = getMiroSDK();
     const contentWidth = REPORT.FRAME_WIDTH - REPORT.PADDING * 2;
 
     // Section title
     await miro.board.createText({
-      content: '<b>⭐ CLIENT SATISFACTION</b>',
+      content: '<b>HOW WAS YOUR EXPERIENCE?</b>',
       x: centerX,
       y: topY,
       width: contentWidth,
       style: {
-        fontSize: 16,
-        textAlign: 'left',
+        fontSize: 14,
+        textAlign: 'center',
         color: '#000000',
       },
     });
 
-    const satisfactionTop = topY + 40;
-    const starSize = 50;
-    const starGap = 10;
-    const startX = centerX - ((5 * (starSize + starGap) - starGap) / 2) + starSize / 2;
+    // Subtitle
+    await miro.board.createText({
+      content: 'Select a face to share your feedback',
+      x: centerX,
+      y: topY + 22,
+      width: contentWidth,
+      style: {
+        fontSize: 11,
+        textAlign: 'center',
+        color: '#6B7280',
+      },
+    });
 
-    // Star rating display
-    for (let i = 1; i <= 5; i++) {
-      const starX = startX + (i - 1) * (starSize + starGap);
-      const isFilled = i <= rating;
-      const level = SATISFACTION_LEVELS.find(l => l.level === i);
+    const facesTop = topY + 50;
+    const faceSize = 60;
+    const faceGap = 20;
+    const totalWidth = SATISFACTION_FACES.length * faceSize + (SATISFACTION_FACES.length - 1) * faceGap;
+    const startX = centerX - totalWidth / 2 + faceSize / 2;
 
-      // Using circle since star shape is not supported in Miro SDK
+    // Create face options
+    for (let i = 0; i < SATISFACTION_FACES.length; i++) {
+      const face = SATISFACTION_FACES[i];
+      if (!face) continue;
+
+      const faceX = startX + i * (faceSize + faceGap);
+      const faceY = facesTop + faceSize / 2;
+
+      // Face circle background
       await miro.board.createShape({
         shape: 'circle',
-        content: isFilled ? '\u2605' : '\u2606',
-        x: starX,
-        y: satisfactionTop + starSize / 2,
-        width: starSize,
-        height: starSize,
+        content: '',
+        x: faceX,
+        y: faceY,
+        width: faceSize,
+        height: faceSize,
         style: {
-          fillColor: isFilled ? (level?.color || '#F59E0B') : '#E5E7EB',
-          borderWidth: 0,
+          fillColor: face.bgColor,
+          borderColor: face.color,
+          borderWidth: 2,
         },
       });
-    }
 
-    // Current satisfaction level label
-    const currentLevel = SATISFACTION_LEVELS.find(l => l.level === rating);
-    if (currentLevel) {
+      // Face emoji
       await miro.board.createText({
-        content: `<b>${currentLevel.emoji} ${currentLevel.label}</b>`,
-        x: centerX,
-        y: satisfactionTop + starSize + 25,
-        width: 300,
+        content: face.face,
+        x: faceX,
+        y: faceY - 2,
+        width: faceSize,
         style: {
-          fontSize: 18,
+          fontSize: 28,
           textAlign: 'center',
-          color: currentLevel.color,
         },
       });
-    }
 
-    // Notes
-    if (notes) {
-      await miro.board.createShape({
-        shape: 'round_rectangle',
-        content: `<p><i>"${notes}"</i></p>`,
-        x: centerX,
-        y: satisfactionTop + starSize + 80,
-        width: 500,
-        height: 60,
+      // Label below face
+      await miro.board.createText({
+        content: face.label,
+        x: faceX,
+        y: faceY + faceSize / 2 + 12,
+        width: faceSize + 20,
         style: {
-          fillColor: '#F8FAFC',
-          borderColor: '#E5E7EB',
-          borderWidth: 1,
-          color: '#6B7280',
-          fontSize: 12,
+          fontSize: 9,
           textAlign: 'center',
-          textAlignVertical: 'middle',
+          color: face.color,
         },
       });
     }
@@ -750,12 +841,12 @@ class MiroClientReportService {
 
     // Section title
     await miro.board.createText({
-      content: '<b>📅 WEEKLY BREAKDOWN</b>',
+      content: '<b>WEEKLY BREAKDOWN</b>',
       x: startX + width / 2,
       y: topY,
       width: width,
       style: {
-        fontSize: 16,
+        fontSize: 14,
         textAlign: 'left',
         color: '#000000',
       },

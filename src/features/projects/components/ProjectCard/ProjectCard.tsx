@@ -7,7 +7,7 @@ import type { DeliverableType, DeliverableStatus } from '@features/deliverables/
 import { useUsers } from '@features/admin/hooks/useUsers';
 import { useProjects } from '../../hooks/useProjects';
 import { createLogger } from '@shared/lib/logger';
-import { getStatusColumn } from '@shared/lib/timelineStatus';
+import { getStatusColumn, getStatusProgress } from '@shared/lib/timelineStatus';
 import { PRIORITY_CONFIG, PROJECT_TYPE_CONFIG } from '@features/boards/services/constants/colors.constants';
 import type { ProjectCardProps } from './ProjectCard.types';
 import styles from './ProjectCard.module.css';
@@ -345,29 +345,8 @@ export const ProjectCard = memo(function ProjectCard({
     return { text: `${diff} days left`, isOverdue: false, isPending: false };
   };
 
-  // Calculate progress based on deliverables or project status
-  const getProgress = () => {
-    // If there are deliverables, calculate based on completed/approved/delivered
-    if (deliverables.length > 0) {
-      const completedCount = deliverables.filter(d =>
-        d.status === 'approved' || d.status === 'delivered'
-      ).length;
-      return Math.round((completedCount / deliverables.length) * 100);
-    }
-
-    // Fall back to status-based progress
-    const statusProgress: Record<string, number> = {
-      'draft': 5,
-      'pending': 10,
-      'in_progress': 40,
-      'wip': 40,
-      'review': 70,
-      'approved': 90,
-      'done': 100,
-      'completed': 100,
-    };
-    return statusProgress[project.status] || 0;
-  };
+  // Calculate progress based on project status using centralized function
+  const getProgress = () => getStatusProgress(project.status);
 
   const daysInfo = getDaysInfo();
   const progress = getProgress();
@@ -723,20 +702,7 @@ export const ProjectCard = memo(function ProjectCard({
         {/* Review Ready banner - shown to client when project is in review status (hide if already approved) */}
         {isInReview && isClient && !project.wasApproved && (
           <div className={styles.reviewReadyBanner}>
-            <Badge
-              variant="neutral"
-              size="sm"
-              style={{
-                backgroundColor: '#F59E0B',
-                color: '#fff',
-                border: 'none',
-                fontWeight: 700,
-                letterSpacing: '0.5px',
-                padding: '4px 12px',
-              }}
-            >
-              ⭐ REVIEW READY
-            </Badge>
+            <span className={styles.reviewReadyText}>★ REVIEW READY</span>
           </div>
         )}
         {/* Approved banner - shown when client has approved (ready for admin to finalize) */}
@@ -918,7 +884,13 @@ export const ProjectCard = memo(function ProjectCard({
           ) : (
             <>
               <CalendarIcon />
-              <span className={styles.statValue}>{daysInfo ? (daysInfo.isOverdue ? `-${daysInfo.text.match(/\d+/)?.[0] || 0}` : daysInfo.text.match(/\d+/)?.[0] || '—') : '—'}</span>
+              <span className={styles.statValue}>
+                {daysInfo
+                  ? (daysInfo.isOverdue
+                      ? daysInfo.text.match(/\d+/)?.[0] || '0'
+                      : daysInfo.text.match(/\d+/)?.[0] || '—')
+                  : '—'}
+              </span>
               <span className={styles.statLabel}>{daysInfo?.isOverdue ? 'OVERDUE' : 'DAYS LEFT'}</span>
             </>
           )}

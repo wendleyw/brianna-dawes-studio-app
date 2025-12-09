@@ -82,3 +82,24 @@ export function getTimelineStatusVariant(status: ProjectStatus): 'error' | 'warn
 export function getDbStatusFromTimeline(status: ProjectStatus): { status: ProjectStatus } {
   return { status };
 }
+
+/**
+ * Get progress percentage based on project status
+ *
+ * Progress represents how far along in the workflow the project is:
+ * - overdue/urgent: Early stages, high priority work needed (25%)
+ * - in_progress: Actively being worked on (50%)
+ * - review: Awaiting client approval (75%)
+ * - done: Completed and approved (100%)
+ */
+export const STATUS_PROGRESS: Record<ProjectStatus, number> = {
+  'overdue': 25,      // Behind schedule but still in progress
+  'urgent': 25,       // High priority, early/mid stage
+  'in_progress': 50,  // Actively being worked on
+  'review': 75,       // Awaiting client review/approval
+  'done': 100,        // Completed
+};
+
+export function getStatusProgress(status: ProjectStatus): number {
+  return STATUS_PROGRESS[status] ?? 50;
+}

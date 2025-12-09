@@ -289,10 +289,32 @@ export function ProjectsPage() {
   const { data: projectsData, isLoading, refetch } = useProjects({ filters });
 
   // Filter projects by timeline status (client-side)
+  // Sort priority: REVIEW first (client action needed), then active, DONE last
   const allProjects = projectsData?.data || [];
   const projects = useMemo(() => {
-    if (!timelineFilter) return allProjects;
-    return allProjects.filter(p => getTimelineStatus(p) === timelineFilter);
+    let filtered = allProjects;
+    if (timelineFilter) {
+      filtered = allProjects.filter(p => getTimelineStatus(p) === timelineFilter);
+    }
+    // Sort order: review > overdue > urgent > in_progress > done
+    // This helps clients see what needs their attention first
+    const statusPriority: Record<string, number> = {
+      'review': 1,      // Client action needed - FIRST
+      'overdue': 2,     // Urgent attention
+      'urgent': 3,      // High priority
+      'in_progress': 4, // Being worked on
+      'done': 5,        // Completed - LAST
+    };
+    return [...filtered].sort((a, b) => {
+      const aPriority = statusPriority[a.status] ?? 4;
+      const bPriority = statusPriority[b.status] ?? 4;
+      // Sort by priority first
+      if (aPriority !== bPriority) {
+        return aPriority - bPriority;
+      }
+      // Same priority: sort by updatedAt (most recent first)
+      return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+    });
   }, [allProjects, timelineFilter]);
 
   const totalProjects = projects.length;

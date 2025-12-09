@@ -29,14 +29,6 @@ const MONTHS = [
   { value: 12, label: 'December' },
 ];
 
-const SATISFACTION_LABELS: Record<number, { label: string; className: string }> = {
-  1: { label: 'Poor', className: styles.ratingPoor || '' },
-  2: { label: 'Needs Improvement', className: styles.ratingNeedsImprovement || '' },
-  3: { label: 'Satisfactory', className: styles.ratingSatisfactory || '' },
-  4: { label: 'Good', className: styles.ratingGood || '' },
-  5: { label: 'Excellent', className: styles.ratingExcellent || '' },
-};
-
 // Generate year options (current year - 2 to current year + 1)
 function getYearOptions(): number[] {
   const currentYear = new Date().getFullYear();
@@ -53,8 +45,6 @@ export function ReportModal({ open, onClose }: ReportModalProps) {
     year: new Date().getFullYear(),
     month: null,
     statusFilter: [],
-    satisfactionRating: null,
-    satisfactionNotes: '',
   });
 
   // UI state
@@ -116,13 +106,6 @@ export function ReportModal({ open, onClose }: ReportModalProps) {
     }));
   };
 
-  const handleSatisfactionClick = (rating: number) => {
-    setFilters((prev) => ({
-      ...prev,
-      satisfactionRating: prev.satisfactionRating === rating ? null : rating,
-    }));
-  };
-
   const handleGenerateReport = async () => {
     if (!isInMiro) {
       setError('You must be running inside Miro to generate reports');
@@ -178,7 +161,17 @@ export function ReportModal({ open, onClose }: ReportModalProps) {
         throw new Error(`Failed to fetch projects: ${projectsError.message}`);
       }
 
-      const projects = (projectsData || []) as Project[];
+      // Map snake_case DB fields to camelCase
+      const projects = (projectsData || []).map((p) => ({
+        ...p,
+        id: p.id as string,
+        name: p.name as string,
+        status: p.status as Project['status'],
+        clientId: p.client_id as string,
+        createdAt: p.created_at as string,
+        updatedAt: p.updated_at as string,
+        briefing: p.briefing as Project['briefing'],
+      })) as Project[];
       addProgress(`Found ${projects.length} projects`);
 
       if (projects.length === 0) {
@@ -202,7 +195,18 @@ export function ReportModal({ open, onClose }: ReportModalProps) {
         if (deliverablesError) {
           addProgress(`Warning: Could not fetch deliverables: ${deliverablesError.message}`);
         } else {
-          deliverables = (deliverablesData || []) as Deliverable[];
+          // Map snake_case DB fields to camelCase
+          deliverables = (deliverablesData || []).map((d) => ({
+            ...d,
+            id: d.id as string,
+            projectId: d.project_id as string,
+            name: d.name as string,
+            status: d.status as Deliverable['status'],
+            count: (d.count as number) || 0,
+            bonusCount: (d.bonus_count as number) || 0,
+            createdAt: d.created_at as string,
+            updatedAt: d.updated_at as string,
+          })) as Deliverable[];
         }
       }
 
@@ -224,10 +228,7 @@ export function ReportModal({ open, onClose }: ReportModalProps) {
       addProgress('Creating visual report with charts on Miro board...');
       addProgress('  - Building weekly breakdown...');
       addProgress('  - Creating bar charts...');
-      addProgress('  - Creating deliverables funnel...');
-      if (filters.satisfactionRating) {
-        addProgress('  - Adding satisfaction rating...');
-      }
+      addProgress('  - Creating project type breakdown...');
 
       const reportData = {
         clientName: `${clientLabel} - ${periodLabel}`,
@@ -238,8 +239,6 @@ export function ReportModal({ open, onClose }: ReportModalProps) {
         endDate,
         generatedAt: new Date().toISOString(),
         generatedBy: user?.name || user?.email || 'Admin',
-        ...(filters.satisfactionRating ? { satisfactionRating: filters.satisfactionRating } : {}),
-        ...(filters.satisfactionNotes ? { satisfactionNotes: filters.satisfactionNotes } : {}),
       };
 
       const frameId = await miroClientReportService.generateClientReport(reportData);
@@ -252,11 +251,7 @@ export function ReportModal({ open, onClose }: ReportModalProps) {
       addProgress(`  - ${totalAssets} total assets across ${deliverables.length} deliverables`);
       addProgress(`  - ${totalBonus} bonus items`);
       addProgress('  - Weekly performance bar chart');
-      addProgress('  - Deliverables funnel visualization');
-      if (filters.satisfactionRating) {
-        const ratingInfo = SATISFACTION_LABELS[filters.satisfactionRating];
-        addProgress(`  - Client satisfaction: ${filters.satisfactionRating}/5 (${ratingInfo?.label})`);
-      }
+      addProgress('  - Project type breakdown');
       setSuccess(true);
 
     } catch (err) {
@@ -267,8 +262,6 @@ export function ReportModal({ open, onClose }: ReportModalProps) {
       setIsGenerating(false);
     }
   };
-
-  const currentRatingInfo = filters.satisfactionRating ? SATISFACTION_LABELS[filters.satisfactionRating] : null;
 
   return (
     <Dialog
@@ -381,46 +374,6 @@ export function ReportModal({ open, onClose }: ReportModalProps) {
               <span className={styles.hint}>No filter = all statuses included</span>
             )}
           </div>
-        </div>
-
-        {/* Client Satisfaction Section */}
-        <div className={styles.satisfactionSection}>
-          <label className={styles.satisfactionLabel}>
-            Client Satisfaction Rating (optional)
-          </label>
-          <div className={styles.starRating}>
-            {[1, 2, 3, 4, 5].map((rating) => (
-              <button
-                key={rating}
-                type="button"
-                className={`${styles.star} ${
-                  filters.satisfactionRating && rating <= filters.satisfactionRating
-                    ? styles.starActive
-                    : ''
-                }`}
-                onClick={() => handleSatisfactionClick(rating)}
-                disabled={isGenerating}
-                aria-label={`Rate ${rating} stars`}
-              >
-                ⭐
-              </button>
-            ))}
-            {currentRatingInfo && (
-              <span className={`${styles.ratingLabel} ${currentRatingInfo.className}`}>
-                {currentRatingInfo.label}
-              </span>
-            )}
-          </div>
-          <textarea
-            className={styles.notesInput}
-            placeholder="Add notes about client satisfaction (optional)..."
-            value={filters.satisfactionNotes}
-            onChange={(e) => setFilters((prev) => ({ ...prev, satisfactionNotes: e.target.value }))}
-            disabled={isGenerating}
-          />
-          {!filters.satisfactionRating && (
-            <span className={styles.hint}>Click stars to add satisfaction rating to the report</span>
-          )}
         </div>
 
         {/* Progress Log */}

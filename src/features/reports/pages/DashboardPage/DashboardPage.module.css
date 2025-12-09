@@ -206,8 +206,9 @@
   border-radius: var(--radius-md);
   padding: var(--space-3);
   min-height: 280px;
-  overflow-x: auto;
-  overflow-y: hidden;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .legend {
@@ -248,7 +249,31 @@
   display: flex;
   gap: var(--space-2);
   overflow-x: auto;
-  padding-bottom: var(--space-2);
+  overflow-y: hidden;
+  flex: 1;
+  padding-bottom: var(--space-3);
+  margin-bottom: var(--space-1);
+  /* Custom scrollbar styling */
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) transparent;
+}
+
+.monthColumns::-webkit-scrollbar {
+  height: 6px;
+}
+
+.monthColumns::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 3px;
+}
+
+.monthColumns::-webkit-scrollbar-thumb {
+  background-color: var(--color-border);
+  border-radius: 3px;
+}
+
+.monthColumns::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-text-muted);
 }
 
 .monthColumn {

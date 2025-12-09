@@ -44,6 +44,24 @@ export function formatDateMonth(dateString: string | Date | null): string {
 }
 
 /**
+ * Format date as month with year (DEC 2025)
+ * Used in: timeline headers where year context is important
+ */
+export function formatDateMonthYear(dateString: string | Date | null): string {
+  if (!dateString) return '—';
+  const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
+  const month = date.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
+  const year = date.getFullYear();
+  const currentYear = new Date().getFullYear();
+
+  // Only show year if different from current year
+  if (year !== currentYear) {
+    return `${month} ${year}`;
+  }
+  return month;
+}
+
+/**
  * Format date with time (Dec 6, 2025 at 3:45 PM)
  * Used in: activity feed, notifications, audit logs
  */
