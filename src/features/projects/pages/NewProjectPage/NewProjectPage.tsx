@@ -59,11 +59,15 @@ interface ProjectBriefing {
 
 // Project types with durations in business days
 const PROJECT_TYPES = [
-  { value: 'website-ui-design', label: 'Website UI Design', days: 45 },
-  { value: 'marketing-campaign', label: 'Marketing Campaign', days: 14 },
-  { value: 'video-production', label: 'Video Production', days: 9 },
-  { value: 'email-design', label: 'Email Design', days: 7 },
-  { value: 'social-post-carousel', label: 'Social Post Design', days: 5 },
+  { value: 'social-post-design', label: 'Social Post Design (Carousel / Static)', days: 5 },
+  { value: 'email-design', label: 'Email Design (Full In-Depth)', days: 7 },
+  { value: 'hero-section', label: 'Hero Section or Image Set', days: 5 },
+  { value: 'ad-design', label: 'Ad Design (Static or GIF)', days: 5 },
+  { value: 'marketing-campaign', label: 'Marketing Campaign (Multi-Channel)', days: 14 },
+  { value: 'video-production', label: 'Video Production / Reels', days: 7 },
+  { value: 'gif-design', label: 'GIF Design (Standalone)', days: 5 },
+  { value: 'website-assets', label: 'Website Assets (Individual Sections)', days: 5 },
+  { value: 'website-ui-design', label: 'Website UI Design (Full Page)', days: 11 },
 ] as const;
 
 // PRIORITY_OPTIONS imported from @shared/lib/priorityConfig

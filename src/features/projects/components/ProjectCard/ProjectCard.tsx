@@ -69,11 +69,15 @@ function getProjectType(project: { briefing?: { timeline?: string | null; projec
   }
 
   // Try to match longer label variations
-  if (textToSearch.includes('Website UI Design')) return PROJECT_TYPE_CONFIG['website-ui-design'] || null;
+  if (textToSearch.includes('Social Post Design')) return PROJECT_TYPE_CONFIG['social-post-design'] || null;
+  if (textToSearch.includes('Email Design')) return PROJECT_TYPE_CONFIG['email-design'] || null;
+  if (textToSearch.includes('Hero Section')) return PROJECT_TYPE_CONFIG['hero-section'] || null;
+  if (textToSearch.includes('Ad Design')) return PROJECT_TYPE_CONFIG['ad-design'] || null;
   if (textToSearch.includes('Marketing Campaign')) return PROJECT_TYPE_CONFIG['marketing-campaign'] || null;
   if (textToSearch.includes('Video Production')) return PROJECT_TYPE_CONFIG['video-production'] || null;
-  if (textToSearch.includes('Email Design')) return PROJECT_TYPE_CONFIG['email-design'] || null;
-  if (textToSearch.includes('Social Post')) return PROJECT_TYPE_CONFIG['social-post-carousel'] || null;
+  if (textToSearch.includes('GIF Design')) return PROJECT_TYPE_CONFIG['gif-design'] || null;
+  if (textToSearch.includes('Website Assets')) return PROJECT_TYPE_CONFIG['website-assets'] || null;
+  if (textToSearch.includes('Website UI Design')) return PROJECT_TYPE_CONFIG['website-ui-design'] || null;
 
   return null;
 }

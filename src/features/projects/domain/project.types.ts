@@ -32,11 +32,15 @@ export interface ProjectDesigner {
 
 // Project Types
 export type ProjectType =
-  | 'website-ui-design'
+  | 'social-post-design'
+  | 'email-design'
+  | 'hero-section'
+  | 'ad-design'
   | 'marketing-campaign'
   | 'video-production'
-  | 'email-design'
-  | 'social-post-carousel';
+  | 'gif-design'
+  | 'website-assets'
+  | 'website-ui-design';
 
 // Project Briefing
 export interface ProjectBriefing {

@@ -34,11 +34,15 @@ export const TIMELINE_COLUMNS: Array<{
 
 /** Colors and config for project types */
 export const PROJECT_TYPE_CONFIG: Record<string, { label: string; color: string; icon: string }> = {
-  'website-ui-design': { label: 'Website UI', color: '#000000', icon: '🌐' },
-  'marketing-campaign': { label: 'Marketing', color: '#000000', icon: '📣' },
-  'video-production': { label: 'Video', color: '#000000', icon: '🎬' },
-  'email-design': { label: 'Email', color: '#000000', icon: '📧' },
-  'social-post-carousel': { label: 'Social Post', color: '#000000', icon: '📱' },
+  'social-post-design': { label: 'Social Post', color: '#E91E63', icon: '📱' },
+  'email-design': { label: 'Email', color: '#9C27B0', icon: '📧' },
+  'hero-section': { label: 'Hero Section', color: '#673AB7', icon: '🖼️' },
+  'ad-design': { label: 'Ad Design', color: '#3F51B5', icon: '📢' },
+  'marketing-campaign': { label: 'Marketing', color: '#2196F3', icon: '📣' },
+  'video-production': { label: 'Video', color: '#00BCD4', icon: '🎬' },
+  'gif-design': { label: 'GIF', color: '#009688', icon: '✨' },
+  'website-assets': { label: 'Web Assets', color: '#4CAF50', icon: '🧩' },
+  'website-ui-design': { label: 'Website UI', color: '#FF9800', icon: '🌐' },
 } as const;
 
 // ==================== UI COLORS ====================
