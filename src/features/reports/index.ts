@@ -15,12 +15,7 @@ export type {
 export { reportService, reportKeys } from './services';
 
 // Hooks
-export {
-  useDashboardMetrics,
-  useProjectMetrics,
-  useTimelineMetrics,
-  useRecentActivity,
-} from './hooks';
+export { useRecentActivity } from './hooks';
 
 // Components
 export { MetricCard, ActivityFeed } from './components';

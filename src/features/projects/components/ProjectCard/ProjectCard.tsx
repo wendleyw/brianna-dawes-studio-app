@@ -1,129 +1,41 @@
 import { useState, useMemo, memo, useRef, useCallback } from 'react';
 import { Badge, Dialog, Input, Button } from '@shared/ui';
+import {
+  ClientIcon,
+  CalendarIcon,
+  PackageIcon,
+  EyeIcon,
+  BoardIcon,
+  CheckIcon,
+  EditIcon,
+  FileIcon,
+  UsersIcon,
+  ArchiveIcon,
+  StarIcon,
+  PlusIcon,
+  ExternalLinkIcon,
+  ChevronDownIcon,
+  TrashIcon,
+} from '@shared/ui/Icons';
 import { useAuth } from '@features/auth';
 import { useDeliverables, useCreateDeliverable, useUpdateDeliverable, useDeleteDeliverable } from '@features/deliverables/hooks';
-import type { Deliverable } from '@features/deliverables/domain/deliverable.types';
-import type { DeliverableType, DeliverableStatus } from '@features/deliverables/domain/deliverable.types';
+import type { Deliverable, DeliverableType, DeliverableStatus } from '@features/deliverables/domain/deliverable.types';
+import { DELIVERABLE_TYPES, DELIVERABLE_STATUSES, DEFAULT_DELIVERABLE_FORM } from '@features/deliverables/domain/deliverable.constants';
 import { useUsers } from '@features/admin/hooks/useUsers';
 import { useProjects } from '../../hooks/useProjects';
 import { createLogger } from '@shared/lib/logger';
 import { getStatusColumn, getStatusProgress } from '@shared/lib/timelineStatus';
-import { PRIORITY_CONFIG, PROJECT_TYPE_CONFIG } from '@features/boards/services/constants/colors.constants';
+import { PRIORITY_CONFIG, BADGE_COLORS } from '@features/boards/services/constants/colors.constants';
+import { getProjectType } from '@features/boards/services/miroHelpers';
 import type { ProjectCardProps } from './ProjectCard.types';
 import styles from './ProjectCard.module.css';
 
 const logger = createLogger('ProjectCard');
 
-// Deliverable type options
-const DELIVERABLE_TYPES = [
-  { value: 'concept' as DeliverableType, label: 'Concept', description: 'Initial ideas' },
-  { value: 'design' as DeliverableType, label: 'Design', description: 'Main design work' },
-  { value: 'revision' as DeliverableType, label: 'Revision', description: 'Updates & changes' },
-  { value: 'final' as DeliverableType, label: 'Final', description: 'Ready to deliver' },
-] as const;
+// getProjectType is now imported from miroHelpers
 
-// Deliverable status options
-const DELIVERABLE_STATUSES = [
-  { value: 'draft' as DeliverableStatus, label: 'Draft' },
-  { value: 'in_progress' as DeliverableStatus, label: 'In Progress' },
-  { value: 'in_review' as DeliverableStatus, label: 'In Review' },
-  { value: 'approved' as DeliverableStatus, label: 'Approved' },
-  { value: 'delivered' as DeliverableStatus, label: 'Delivered' },
-] as const;
-
-// Initial deliverable form state
-const initialDeliverableForm = {
-  name: '',
-  type: 'design' as DeliverableType,
-  version: '1.0',
-  count: 1,
-  bonusCount: 0,
-  hoursSpent: 0,
-  status: 'in_progress' as DeliverableStatus,
-  notes: '',
-  externalUrl: '',
-  miroUrl: '',
-};
-
-// PROJECT_TYPE_CONFIG is now imported from colors.constants.ts
-
-// Extract project type from briefing timeline or description
-function getProjectType(project: { briefing?: { timeline?: string | null; projectType?: string | null } | null; description?: string | null }): { label: string; color: string; icon: string } | null {
-  // Check briefing.projectType first
-  if (project.briefing?.projectType) {
-    const config = PROJECT_TYPE_CONFIG[project.briefing.projectType];
-    if (config) return config;
-  }
-
-  // Try to extract from briefing.timeline (format: "Website UI Design (45 days) - Target: ...")
-  const timeline = project.briefing?.timeline || '';
-  const desc = project.description || '';
-  const textToSearch = timeline + ' ' + desc;
-
-  for (const [key, config] of Object.entries(PROJECT_TYPE_CONFIG)) {
-    // Check for the key directly or the label
-    if (textToSearch.toLowerCase().includes(key) ||
-        textToSearch.toLowerCase().includes(config.label.toLowerCase())) {
-      return config;
-    }
-  }
-
-  // Try to match longer label variations
-  if (textToSearch.includes('Social Post Design')) return PROJECT_TYPE_CONFIG['social-post-design'] || null;
-  if (textToSearch.includes('Email Design')) return PROJECT_TYPE_CONFIG['email-design'] || null;
-  if (textToSearch.includes('Hero Section')) return PROJECT_TYPE_CONFIG['hero-section'] || null;
-  if (textToSearch.includes('Ad Design')) return PROJECT_TYPE_CONFIG['ad-design'] || null;
-  if (textToSearch.includes('Marketing Campaign')) return PROJECT_TYPE_CONFIG['marketing-campaign'] || null;
-  if (textToSearch.includes('Video Production')) return PROJECT_TYPE_CONFIG['video-production'] || null;
-  if (textToSearch.includes('GIF Design')) return PROJECT_TYPE_CONFIG['gif-design'] || null;
-  if (textToSearch.includes('Website Assets')) return PROJECT_TYPE_CONFIG['website-assets'] || null;
-  if (textToSearch.includes('Website UI Design')) return PROJECT_TYPE_CONFIG['website-ui-design'] || null;
-
-  return null;
-}
-
-// Icons
-const ClientIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-    <circle cx="12" cy="7" r="4"/>
-  </svg>
-);
-
-const CalendarIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-    <line x1="16" y1="2" x2="16" y2="6"/>
-    <line x1="8" y1="2" x2="8" y2="6"/>
-    <line x1="3" y1="10" x2="21" y2="10"/>
-  </svg>
-);
-
-const PackageIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M16.5 9.4l-9-5.19M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-    <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
-    <line x1="12" y1="22.08" x2="12" y2="12"/>
-  </svg>
-);
-
-const EyeIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-    <circle cx="12" cy="12" r="3"/>
-  </svg>
-);
-
-const BoardIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <rect x="3" y="3" width="7" height="7"/>
-    <rect x="14" y="3" width="7" height="7"/>
-    <rect x="14" y="14" width="7" height="7"/>
-    <rect x="3" y="14" width="7" height="7"/>
-  </svg>
-);
-
-const DriveIcon = ({ hasLink }: { hasLink?: boolean }) => (
+// Google Drive icon uses image (not SVG) for brand consistency
+const DriveIconImg = ({ hasLink }: { hasLink?: boolean }) => (
   <img
     src="/googledrive-icon.png"
     alt="Google Drive"
@@ -131,95 +43,6 @@ const DriveIcon = ({ hasLink }: { hasLink?: boolean }) => (
     height="18"
     style={{ opacity: hasLink ? 1 : 0.4 }}
   />
-);
-
-const CheckIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <polyline points="20 6 9 17 4 12"/>
-  </svg>
-);
-
-const EditIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-  </svg>
-);
-
-const FileIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-    <polyline points="14 2 14 8 20 8"/>
-  </svg>
-);
-
-const UsersIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-    <circle cx="9" cy="7" r="4"/>
-    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-  </svg>
-);
-
-const ArchiveIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <polyline points="21 8 21 21 3 21 3 8"/>
-    <rect x="1" y="3" width="22" height="5"/>
-    <line x1="10" y1="12" x2="14" y2="12"/>
-  </svg>
-);
-
-const StarIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-  </svg>
-);
-
-const PlusIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <line x1="12" y1="5" x2="12" y2="19"/>
-    <line x1="5" y1="12" x2="19" y2="12"/>
-  </svg>
-);
-
-const ExternalLinkIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-    <polyline points="15 3 21 3 21 9"/>
-    <line x1="10" y1="14" x2="21" y2="3"/>
-  </svg>
-);
-
-const ChevronIcon = ({ isOpen }: { isOpen: boolean }) => (
-  <svg
-    width="16"
-    height="16"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    style={{
-      transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-      transition: 'transform 0.2s ease'
-    }}
-  >
-    <polyline points="6 9 12 15 18 9"/>
-  </svg>
-);
-
-const PencilIcon = () => (
-  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-  </svg>
-);
-
-const TrashIcon = () => (
-  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <polyline points="3 6 5 6 21 6"/>
-    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-  </svg>
 );
 
 /**
@@ -268,7 +91,7 @@ export const ProjectCard = memo(function ProjectCard({
   );
 
   // Deliverable form state
-  const [deliverableForm, setDeliverableForm] = useState(initialDeliverableForm);
+  const [deliverableForm, setDeliverableForm] = useState(DEFAULT_DELIVERABLE_FORM);
   const [isAddingDeliverable, setIsAddingDeliverable] = useState(false);
   const [editingDeliverable, setEditingDeliverable] = useState<Deliverable | null>(null);
   const [deletingDeliverable, setDeletingDeliverable] = useState<Deliverable | null>(null);
@@ -335,8 +158,8 @@ export const ProjectCard = memo(function ProjectCard({
 
   const priority = PRIORITY_CONFIG[project.priority];
 
-  // Calculate days left/overdue
-  const getDaysInfo = () => {
+  // Calculate days left/overdue - memoized to avoid recalculation on every render
+  const daysInfo = useMemo(() => {
     if (!project.dueDate) return null;
     // If due date is not approved, show "Em análise"
     if (!project.dueDateApproved) {
@@ -348,13 +171,10 @@ export const ProjectCard = memo(function ProjectCard({
     if (diff < 0) return { text: `${Math.abs(diff)} days overdue`, isOverdue: true, isPending: false };
     if (diff === 0) return { text: 'Due today', isOverdue: false, isPending: false };
     return { text: `${diff} days left`, isOverdue: false, isPending: false };
-  };
+  }, [project.dueDate, project.dueDateApproved]);
 
-  // Calculate progress based on project status using centralized function
-  const getProgress = () => getStatusProgress(project.status);
-
-  const daysInfo = getDaysInfo();
-  const progress = getProgress();
+  // Calculate progress based on project status using centralized function - memoized
+  const progress = useMemo(() => getStatusProgress(project.status), [project.status]);
 
   // Event handlers
 
@@ -586,7 +406,7 @@ export const ProjectCard = memo(function ProjectCard({
       });
 
       // Reset form but keep project name
-      setDeliverableForm({ ...initialDeliverableForm, name: project.name });
+      setDeliverableForm({ ...DEFAULT_DELIVERABLE_FORM, name: project.name });
     } catch (error) {
       logger.error('Failed to create deliverable', error);
     } finally {
@@ -720,7 +540,7 @@ export const ProjectCard = memo(function ProjectCard({
         },
       });
       setEditingDeliverable(null);
-      setDeliverableForm(initialDeliverableForm);
+      setDeliverableForm(DEFAULT_DELIVERABLE_FORM);
     } catch (error) {
       logger.error('Failed to update deliverable', error);
     }
@@ -759,7 +579,7 @@ export const ProjectCard = memo(function ProjectCard({
               variant="neutral"
               size="sm"
               style={{
-                backgroundColor: '#22C55E',
+                backgroundColor: BADGE_COLORS.SUCCESS,
                 color: '#fff',
                 border: 'none',
                 fontWeight: 700,
@@ -778,7 +598,7 @@ export const ProjectCard = memo(function ProjectCard({
               variant="neutral"
               size="sm"
               style={{
-                backgroundColor: '#8B5CF6',
+                backgroundColor: BADGE_COLORS.PURPLE,
                 color: '#fff',
                 border: 'none',
                 fontWeight: 700,
@@ -797,7 +617,7 @@ export const ProjectCard = memo(function ProjectCard({
               variant="neutral"
               size="sm"
               style={{
-                backgroundColor: '#374151',
+                backgroundColor: BADGE_COLORS.NEUTRAL,
                 color: '#fff',
                 border: 'none',
                 fontWeight: 700,
@@ -838,7 +658,7 @@ export const ProjectCard = memo(function ProjectCard({
           <Badge
             size="sm"
             style={{
-              backgroundColor: isArchived ? '#374151' : statusColumn.color,
+              backgroundColor: isArchived ? BADGE_COLORS.NEUTRAL : statusColumn.color,
               color: '#fff',
               border: 'none'
             }}
@@ -854,7 +674,7 @@ export const ProjectCard = memo(function ProjectCard({
       {/* Client */}
       {project.client && (
         <div className={styles.clientRow}>
-          <ClientIcon />
+          <ClientIcon size={14} />
           <span className={styles.clientName}>{project.client.name}</span>
         </div>
       )}
@@ -879,7 +699,7 @@ export const ProjectCard = memo(function ProjectCard({
               <PackageIcon />
               <span className={styles.statValue}>{deliverables.length}</span>
               <span className={styles.statLabel}>DELIVERABLES</span>
-              <ChevronIcon isOpen={showDeliverables} />
+              <ChevronDownIcon isOpen={showDeliverables} />
             </button>
           ) : (
             <div className={styles.stat}>
@@ -902,7 +722,7 @@ export const ProjectCard = memo(function ProjectCard({
             </>
           ) : daysInfo?.isPending ? (
             <>
-              <CalendarIcon />
+              <CalendarIcon size={14} />
               <div className={styles.pendingDateInfo}>
                 <span className={styles.pendingLabel}>PENDING</span>
                 <span className={styles.pendingDate}>
@@ -930,7 +750,7 @@ export const ProjectCard = memo(function ProjectCard({
             </>
           ) : (
             <>
-              <CalendarIcon />
+              <CalendarIcon size={14} />
               <span className={styles.statValue}>
                 {daysInfo
                   ? (daysInfo.isOverdue
@@ -996,14 +816,14 @@ export const ProjectCard = memo(function ProjectCard({
                       onClick={(e) => { e.stopPropagation(); handleEditDeliverable(d); }}
                       title="Edit"
                     >
-                      <PencilIcon />
+                      <EditIcon size={12} />
                     </button>
                     <button
                       className={styles.deliverableDelete}
                       onClick={(e) => { e.stopPropagation(); setDeletingDeliverable(d); }}
                       title="Delete"
                     >
-                      <TrashIcon />
+                      <TrashIcon size={12} />
                     </button>
                   </>
                 )}
@@ -1030,7 +850,7 @@ export const ProjectCard = memo(function ProjectCard({
             onClick={handleGoogleDrive}
             title={project.googleDriveUrl ? 'Open Google Drive' : 'Add Google Drive link'}
           >
-            <DriveIcon hasLink={!!project.googleDriveUrl} />
+            <DriveIconImg hasLink={!!project.googleDriveUrl} />
           </button>
         )}
               </div>
@@ -1621,7 +1441,7 @@ export const ProjectCard = memo(function ProjectCard({
       {/* Edit Deliverable Modal */}
       <Dialog
         open={!!editingDeliverable}
-        onClose={() => { setEditingDeliverable(null); setDeliverableForm(initialDeliverableForm); }}
+        onClose={() => { setEditingDeliverable(null); setDeliverableForm(DEFAULT_DELIVERABLE_FORM); }}
         title="Edit Deliverable"
         size="md"
       >
@@ -1686,7 +1506,7 @@ export const ProjectCard = memo(function ProjectCard({
             />
           </div>
           <div className={styles.modalActions}>
-            <Button variant="ghost" onClick={() => { setEditingDeliverable(null); setDeliverableForm(initialDeliverableForm); }}>
+            <Button variant="ghost" onClick={() => { setEditingDeliverable(null); setDeliverableForm(DEFAULT_DELIVERABLE_FORM); }}>
               Cancel
             </Button>
             <Button onClick={handleSaveDeliverable} disabled={updateDeliverable.isPending}>

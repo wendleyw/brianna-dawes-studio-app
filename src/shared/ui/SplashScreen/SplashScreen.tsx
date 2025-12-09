@@ -1,5 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { createLogger } from '@shared/lib/logger';
 import styles from './SplashScreen.module.css';
+
+const logger = createLogger('SplashScreen');
 
 interface SplashScreenProps {
   /** Duration to show centered before animation starts (default: 1500ms) */
@@ -57,7 +60,7 @@ export function SplashScreen({
     if (videoRef.current) {
       videoRef.current.play().catch(() => {
         // Video failed to play, continue anyway
-        console.log('[SplashScreen] Video play failed, continuing with static');
+        logger.debug('Video play failed, continuing with static');
       });
     }
   }, []);

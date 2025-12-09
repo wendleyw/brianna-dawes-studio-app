@@ -46,7 +46,9 @@ export function validateEnv(): { valid: boolean; missing: string[] } {
     .map(([name]) => name);
 
   if (missing.length > 0) {
-    console.error('Missing required environment variables:', missing);
+    // Using console.error here intentionally - this runs at app bootstrap
+    // before the logger may be initialized
+    console.error('[ENV] Missing required environment variables:', missing);
   }
 
   return { valid: missing.length === 0, missing };

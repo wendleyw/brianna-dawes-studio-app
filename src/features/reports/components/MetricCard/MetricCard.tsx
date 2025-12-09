@@ -5,11 +5,6 @@ interface MetricCardProps {
   label: string;
   value: number | string;
   icon?: React.ReactNode;
-  trend?: {
-    value: number;
-    isPositive: boolean;
-  };
-  description?: string;
 }
 
 /**

@@ -1,5 +1,6 @@
 import { Input, Button } from '@shared/ui';
 import { useDebounce } from '@shared/hooks/useDebounce';
+import { UI_TIMING } from '@shared/config';
 import type { ProjectFiltersProps } from './ProjectFilters.types';
 import type { ProjectStatus, ProjectPriority, ProjectSort } from '../../domain/project.types';
 import styles from './ProjectFilters.module.css';
@@ -43,7 +44,7 @@ export function ProjectFilters({
   onReset,
 }: ProjectFiltersProps) {
   const [searchValue, setSearchValue] = useState(filters.search || '');
-  const debouncedSearch = useDebounce(searchValue, 300);
+  const debouncedSearch = useDebounce(searchValue, UI_TIMING.SEARCH_DEBOUNCE);
   const prevSearchRef = useRef(filters.search);
   const filtersRef = useRef(filters);
 

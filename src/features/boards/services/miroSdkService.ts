@@ -39,8 +39,8 @@ import {
   PRIORITY_COLORS,
   TIMELINE_COLUMNS,
   BRIEFING_FIELDS,
-  PROJECT_TYPE_CONFIG,
 } from './constants';
+import { getProjectTypeFromBriefing } from './miroHelpers';
 import { createLogger } from '@shared/lib/logger';
 import { miroAdapter } from '@shared/lib/miroAdapter';
 
@@ -164,27 +164,7 @@ function getStatusConfig(status: ProjectStatus): { label: string; color: string 
   return { label: status.toUpperCase().replace('_', ' '), color: '#6B7280' };
 }
 
-// Extract project type from briefing timeline
-function getProjectTypeFromBriefing(briefing: ProjectBriefing): { label: string; color: string; icon: string } | null {
-  const timeline = briefing.timeline || '';
-
-  // Try to match project type from timeline string (format: "Website UI Design (45 days) - Target: ...")
-  for (const [key, config] of Object.entries(PROJECT_TYPE_CONFIG)) {
-    if (timeline.toLowerCase().includes(key) ||
-        timeline.toLowerCase().includes(config.label.toLowerCase())) {
-      return config;
-    }
-  }
-
-  // Try to match longer label variations
-  if (timeline.includes('Website UI Design')) return PROJECT_TYPE_CONFIG['website-ui-design'] || null;
-  if (timeline.includes('Marketing Campaign')) return PROJECT_TYPE_CONFIG['marketing-campaign'] || null;
-  if (timeline.includes('Video Production')) return PROJECT_TYPE_CONFIG['video-production'] || null;
-  if (timeline.includes('Email Design')) return PROJECT_TYPE_CONFIG['email-design'] || null;
-  if (timeline.includes('Social Post')) return PROJECT_TYPE_CONFIG['social-post-carousel'] || null;
-
-  return null;
-}
+// getProjectTypeFromBriefing is now imported from miroHelpers
 
 // ==================== MASTER TIMELINE SERVICE (LEFT SIDE) ====================
 
@@ -431,7 +411,7 @@ class MiroMasterTimelineService {
     const column = this.state.columns.find(c => c.id === status);
     if (!column) throw new Error(`Column ${status} not found`);
 
-    console.log('[MiroTimeline] Syncing project:', project.name, '(', project.id, ') to status:', status);
+    timelineLogger.debug('Syncing project', { name: project.name, id: project.id, status });
 
     // STEP 1: Get all cards from board
     let allBoardCards: MiroCard[] = [];
@@ -450,7 +430,7 @@ class MiroMasterTimelineService {
     const columnWidth = column.width ?? TIMELINE.COLUMN_WIDTH;
     const isCardInCorrectColumn = existingCard && Math.abs(existingCard.x - columnX) < columnWidth / 2;
 
-    console.log('[MiroTimeline] Card status:', {
+    timelineLogger.debug('Card status', {
       exists: !!existingCard,
       currentX: existingCard?.x,
       currentY: existingCard?.y,
@@ -570,7 +550,7 @@ class MiroMasterTimelineService {
       }
     }
 
-    console.log('[MiroTimeline] Found timeline frame:', timelineFrame?.id, 'at', timelineFrame?.x, timelineFrame?.y, 'size:', timelineFrame?.width, 'x', timelineFrame?.height);
+    timelineLogger.debug('Found timeline frame', { id: timelineFrame?.id, x: timelineFrame?.x, y: timelineFrame?.y, width: timelineFrame?.width, height: timelineFrame?.height });
 
     // Calculate frame bounds
     // IMPORTANT: The frameTop should ALWAYS be at a FIXED position relative to origin
@@ -591,7 +571,7 @@ class MiroMasterTimelineService {
     const dropZoneTop = frameTop + TIMELINE.PADDING + TIMELINE.HEADER_HEIGHT + 10;
     const firstCardY = dropZoneTop + TIMELINE.CARD_HEIGHT / 2 + 10; // Start cards 10px inside drop zone
 
-    console.log('[MiroTimeline] Frame calculations:', { ORIGINAL_FRAME_TOP, frameTop, frameBottom, currentFrameHeight });
+    timelineLogger.debug('Frame calculations', { ORIGINAL_FRAME_TOP, frameTop, frameBottom, currentFrameHeight });
 
     // Find all cards that have projectId in description (our cards) in this column
     // Use description matching instead of position matching for reliability
@@ -611,7 +591,7 @@ class MiroMasterTimelineService {
       return inColumnX;
     });
 
-    console.log('[MiroTimeline] Found', cardsInColumnOnBoard.length, 'other cards in column', status);
+    timelineLogger.debug('Found other cards in column', { count: cardsInColumnOnBoard.length, status });
 
     // Sort cards by Y position (top to bottom)
     cardsInColumnOnBoard.sort((a, b) => a.y - b.y);
@@ -623,7 +603,7 @@ class MiroMasterTimelineService {
       // IMPORTANT: Card already exists in the correct column - KEEP ITS POSITION
       // This prevents cards from drifting down on each sync
       cardY = existingCard.y;
-      console.log('[MiroTimeline] Card already in correct column, keeping Y position:', cardY);
+      timelineLogger.debug('Card already in correct column, keeping Y position', { cardY });
     } else if (cardsInColumnOnBoard.length > 0) {
       // Card is NEW to this column (either new card or moved from another column)
       // Find the lowest card (highest Y value) and position below it
@@ -632,14 +612,14 @@ class MiroMasterTimelineService {
         // Position new card below the lowest card with gap
         const lowestCardBottom = lowestCard.y + (lowestCard.height || TIMELINE.CARD_HEIGHT) / 2;
         cardY = lowestCardBottom + TIMELINE.CARD_GAP + TIMELINE.CARD_HEIGHT / 2;
-        console.log('[MiroTimeline] Positioning below lowest card at Y:', cardY);
+        timelineLogger.debug('Positioning below lowest card', { cardY });
       } else {
         cardY = firstCardY;
       }
     } else {
       // First card in column
       cardY = firstCardY;
-      console.log('[MiroTimeline] First card in column, using Y:', cardY);
+      timelineLogger.debug('First card in column', { cardY });
     }
 
     // Check if ANY card in the timeline would exceed frame bottom and expand if needed
@@ -667,7 +647,7 @@ class MiroMasterTimelineService {
     const lowestCardBottom = Math.max(...allCardBottoms);
 
     const needsExpansion = lowestCardBottom + bottomPadding > currentFrameBottom;
-    console.log('[MiroTimeline] Checking frame expansion:', {
+    timelineLogger.debug('Checking frame expansion', {
       cardsInTimeline: allProjectCardsInTimeline.length,
       lowestCardBottom,
       bottomPadding,
@@ -684,7 +664,7 @@ class MiroMasterTimelineService {
       // newCenterY = frameTop + newHeight / 2 = ORIGINAL_FRAME_TOP + newHeight / 2
       const newCenterY = ORIGINAL_FRAME_TOP + newHeight / 2;
 
-      console.log('[MiroTimeline] Expanding frame:', {
+      timelineLogger.debug('Expanding frame', {
         oldHeight: currentFrameHeight,
         newHeight,
         newCenterY,
@@ -698,7 +678,7 @@ class MiroMasterTimelineService {
         timelineFrame.height = newHeight;
         timelineFrame.y = newCenterY;
         await miro.board.sync(timelineFrame);
-        console.log('[MiroTimeline] Frame expanded successfully to height', newHeight, 'center Y:', newCenterY);
+        timelineLogger.debug('Frame expanded successfully', { newHeight, centerY: newCenterY });
 
         // Update the frame bottom for this sync (top stays fixed)
         currentFrameBottom = ORIGINAL_FRAME_TOP + newHeight;
@@ -708,7 +688,7 @@ class MiroMasterTimelineService {
       await this.expandColumnDropZones(ORIGINAL_FRAME_TOP, newHeight);
     }
 
-    console.log('[MiroTimeline] Card position:', {
+    timelineLogger.debug('Card position', {
       cardX,
       cardY,
       firstCardY,
@@ -735,12 +715,12 @@ class MiroMasterTimelineService {
 
           if (itemInCorrectColumn) {
             // Card is already in correct column - keep its current position
-            console.log('[MiroTimeline] Card already in correct column, keeping position:', { x: item.x, y: item.y });
+            timelineLogger.debug('Card already in correct column, keeping position', { x: item.x, y: item.y });
           } else {
             // Card is moving to a different column - update position
             item.x = cardX;
             item.y = cardY;
-            console.log('[MiroTimeline] Moving card to new column:', { x: cardX, y: cardY });
+            timelineLogger.debug('Moving card to new column', { x: cardX, y: cardY });
           }
 
           await miro.board.sync(item);
@@ -799,9 +779,9 @@ class MiroMasterTimelineService {
           // Only update position if card is in a different column
           existingCardFinalCheck.x = cardX;
           existingCardFinalCheck.y = cardY;
-          console.log('[MiroTimeline] Final check: Moving card to new column');
+          timelineLogger.debug('Final check: Moving card to new column');
         } else {
-          console.log('[MiroTimeline] Final check: Card already in correct column, keeping position');
+          timelineLogger.debug('Final check: Card already in correct column, keeping position');
         }
 
         await miro.board.sync(existingCardFinalCheck);
@@ -885,7 +865,7 @@ class MiroMasterTimelineService {
       const frameRight = currentFrameX + TIMELINE.FRAME_WIDTH / 2;
       const newFrameBottom = frameTop + newFrameHeight;
 
-      console.log('[MiroTimeline] expandColumnDropZones: Looking for columns in X range', frameLeft, 'to', frameRight);
+      timelineLogger.debug('expandColumnDropZones: Looking for columns', { frameLeft, frameRight });
 
       // Find all rectangle shapes (column drop zones)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -911,7 +891,7 @@ class MiroMasterTimelineService {
         return isValid;
       });
 
-      console.log('[MiroTimeline] Found', columnDropZones.length, 'column drop zones to expand (including duplicates)');
+      timelineLogger.debug('Found column drop zones to expand', { count: columnDropZones.length });
 
       // Calculate new column dimensions
       // Columns should fill from below header to near bottom of frame
@@ -919,7 +899,7 @@ class MiroMasterTimelineService {
       const newColumnTopY = frameTop + TIMELINE.PADDING + TIMELINE.HEADER_HEIGHT + 10;
       const newColumnCenterY = newColumnTopY + newColumnHeight / 2;
 
-      console.log('[MiroTimeline] New column dimensions:', {
+      timelineLogger.debug('New column dimensions', {
         newColumnHeight,
         newColumnTopY,
         newColumnCenterY,
@@ -936,9 +916,9 @@ class MiroMasterTimelineService {
         zone.y = newColumnCenterY;
         await miro.board.sync(zone);
         expandedCount++;
-        console.log('[MiroTimeline] Expanded column', zone.id, 'at X=', Math.round(zone.x), 'Y:', Math.round(oldY), '->', Math.round(newColumnCenterY), 'height:', oldHeight, '->', newColumnHeight);
+        timelineLogger.debug('Expanded column', { id: zone.id, x: Math.round(zone.x), oldY: Math.round(oldY), newY: Math.round(newColumnCenterY), oldHeight, newHeight: newColumnHeight });
       }
-      console.log('[MiroTimeline] Total columns expanded:', expandedCount);
+      timelineLogger.debug('Total columns expanded', { count: expandedCount });
 
       // Also find and move any horizontal separator lines or borders
       // These can be:
@@ -967,27 +947,27 @@ class MiroMasterTimelineService {
         const isInContentArea = s.y > frameTop + TIMELINE.PADDING + TIMELINE.HEADER_HEIGHT + 50;
 
         if (isSeparator && isInContentArea) {
-          console.log('[MiroTimeline] Found separator line:', { id: s.id, x: s.x, y: s.y, width: s.width, height: s.height });
+          timelineLogger.debug('Found separator line', { id: s.id, x: s.x, y: s.y, width: s.width, height: s.height });
         }
 
         return isSeparator && isInContentArea;
       });
 
-      console.log('[MiroTimeline] Found', separatorLines.length, 'separator lines to move');
+      timelineLogger.debug('Found separator lines to move', { count: separatorLines.length });
 
       // Move separator lines to new frame bottom
       for (const line of separatorLines) {
         const newLineY = newFrameBottom - TIMELINE.PADDING;
-        console.log('[MiroTimeline] Moving separator line from Y=', line.y, 'to Y=', newLineY);
+        timelineLogger.debug('Moving separator line', { fromY: line.y, toY: newLineY });
         line.y = newLineY;
         await miro.board.sync(line);
       }
 
       if (columnDropZones.length === 0) {
-        console.log('[MiroTimeline] WARNING: No column drop zones found to expand!');
+        timelineLogger.warn('No column drop zones found to expand');
       }
     } catch (e) {
-      console.error('[MiroTimeline] Failed to expand column drop zones', e);
+      timelineLogger.error('Failed to expand column drop zones', e);
     }
   }
 
@@ -1730,14 +1710,13 @@ class MiroProjectRowService {
    * Searches for the badge on the board if not in memory
    */
   async updateBriefingStatus(projectId: string, status: ProjectStatus, projectName?: string): Promise<boolean> {
-    // Use console.log directly for debugging (bypasses production log filtering)
-    console.log('[MiroProject] [updateBriefingStatus] Starting update for project:', projectName || projectId, 'new status:', status);
+    projectLogger.debug('[updateBriefingStatus] Starting update', { project: projectName || projectId, status });
 
     const miro = getMiroSDK();
     const statusConfig = getStatusConfig(status);
     const row = this.rows.get(projectId);
 
-    console.log('[MiroProject] [updateBriefingStatus] Status config:', statusConfig, 'has row in memory:', !!row);
+    projectLogger.debug('[updateBriefingStatus] Status config', { label: statusConfig.label, hasRowInMemory: !!row });
 
     // Try using stored ID first
     if (row?.statusBadgeId) {
@@ -1759,7 +1738,7 @@ class MiroProjectRowService {
 
     // Search for the badge on the board by finding briefing frame and status shape
     try {
-      console.log('[MiroProject] [updateBriefingStatus] Searching for status badge on board for project:', projectName || projectId);
+      projectLogger.debug('[updateBriefingStatus] Searching for status badge', { project: projectName || projectId });
 
       let briefingFrame: MiroFrame | undefined;
 
@@ -1768,18 +1747,18 @@ class MiroProjectRowService {
         try {
           const frame = await miro.board.getById(row.briefingFrameId) as MiroFrame;
           if (frame) {
-            console.log('[MiroProject] [updateBriefingStatus] Using stored briefingFrameId:', row.briefingFrameId);
+            projectLogger.debug('[updateBriefingStatus] Using stored briefingFrameId', { id: row.briefingFrameId });
             briefingFrame = frame;
           }
         } catch {
-          console.log('[MiroProject] [updateBriefingStatus] Stored briefingFrameId invalid, searching...');
+          projectLogger.debug('[updateBriefingStatus] Stored briefingFrameId invalid, searching');
         }
       }
 
       // If not found in memory, search all frames
       if (!briefingFrame) {
         const allFrames = await miro.board.get({ type: 'frame' }) as MiroFrame[];
-        console.log('[MiroProject] [updateBriefingStatus] Found', allFrames.length, 'frames on board');
+        projectLogger.debug('[updateBriefingStatus] Found frames on board', { count: allFrames.length });
 
         // Try exact match by project name (format: "Project Name - BRIEFING [PROJ-YYYY-MM-XXX]")
         if (projectName) {
@@ -1792,7 +1771,7 @@ class MiroProjectRowService {
         }
 
         if (briefingFrame) {
-          console.log('[MiroProject] [updateBriefingStatus] Found by project name:', briefingFrame.title);
+          projectLogger.debug('[updateBriefingStatus] Found by project name', { title: briefingFrame.title });
         }
 
         // Fallback: contains (for partial matches)
@@ -1807,11 +1786,11 @@ class MiroProjectRowService {
       }
 
       if (!briefingFrame) {
-        console.log('[MiroProject] [updateBriefingStatus] No briefing frame found for project:', projectName || projectId);
+        projectLogger.debug('[updateBriefingStatus] No briefing frame found', { project: projectName || projectId });
         return false;
       }
 
-      console.log('[MiroProject] [updateBriefingStatus] Found briefing frame:', briefingFrame.title);
+      projectLogger.debug('[updateBriefingStatus] Found briefing frame', { title: briefingFrame.title });
 
       // Get all shapes on the board
       const allShapes = await miro.board.get({ type: 'shape' }) as Array<{
@@ -1832,21 +1811,16 @@ class MiroProjectRowService {
         return s.x >= frameLeft && s.x <= frameRight && s.y >= frameTop && s.y <= frameBottom;
       });
 
-      console.log('[MiroProject] [updateBriefingStatus] Found', shapesInFrame.length, 'shapes inside frame');
+      projectLogger.debug('[updateBriefingStatus] Found shapes inside frame', { count: shapesInFrame.length });
 
       // Priority labels that should NOT be considered as status badges
       const PRIORITY_LABELS = ['URGENT', 'HIGH', 'MEDIUM', 'STANDARD'];
       // Status labels - these are the actual status values (pure = not shared with priority)
       const PURE_STATUS_LABELS = ['CRITICAL', 'OVERDUE', 'ON TRACK', 'IN PROGRESS', 'REVIEW', 'DONE'];
 
-      // Log all shapes with content for debugging
+      // Filter shapes with content for debugging
       const shapesWithContent = shapesInFrame.filter(s => s.content && s.content.length > 0);
-      console.log('[MiroProject] [updateBriefingStatus] Shapes with content:', shapesWithContent.map(s => ({
-        x: Math.round(s.x),
-        y: Math.round(s.y),
-        content: s.content?.replace(/<[^>]*>/g, '').substring(0, 15),
-        color: s.style?.fillColor
-      })));
+      projectLogger.debug('[updateBriefingStatus] Shapes with content', { count: shapesWithContent.length });
 
       // Find all shapes that could be badges - look for shapes in a horizontal line (same Y)
       // Group shapes by Y position (within tolerance) to find the badge row
@@ -1873,16 +1847,13 @@ class MiroProjectRowService {
         }
       }
 
-      console.log('[MiroProject] [updateBriefingStatus] Found badge row at Y=', badgeRowY, 'with', badgeRow.length, 'items');
+      projectLogger.debug('[updateBriefingStatus] Found badge row', { y: badgeRowY, count: badgeRow.length });
 
       // Sort badges by X position (left to right)
       badgeRow.sort((a, b) => a.x - b.x);
 
-      // Log badges in order for debugging
-      console.log('[MiroProject] [updateBriefingStatus] Badges left-to-right:', badgeRow.map(s => ({
-        x: Math.round(s.x),
-        content: s.content?.replace(/<[^>]*>/g, '').substring(0, 15)
-      })));
+      // Sort badges by X position (left to right)
+      projectLogger.debug('[updateBriefingStatus] Badges sorted left-to-right', { count: badgeRow.length });
 
       let statusShape: typeof shapesInFrame[0] | undefined;
 
@@ -1897,7 +1868,7 @@ class MiroProjectRowService {
           return matchesStatus && !matchesPriority;
         });
         if (statusShape) {
-          console.log('[MiroProject] [updateBriefingStatus] Strategy 1: Found pure status label');
+          projectLogger.debug('[updateBriefingStatus] Strategy 1: Found pure status label');
         }
       }
 
@@ -1906,7 +1877,7 @@ class MiroProjectRowService {
       if (!statusShape && badgeRow.length >= 3) {
         const thirdBadge = badgeRow[2];
         if (thirdBadge) {
-          console.log('[MiroProject] [updateBriefingStatus] Strategy 2: Using 3rd badge:', thirdBadge.content);
+          projectLogger.debug('[updateBriefingStatus] Strategy 2: Using 3rd badge');
           statusShape = thirdBadge;
         }
       }
@@ -1920,13 +1891,13 @@ class MiroProjectRowService {
           return fillColor && uniqueStatusColors.some(c => c.toUpperCase() === fillColor);
         });
         if (statusShape) {
-          console.log('[MiroProject] [updateBriefingStatus] Strategy 3: Found by unique color:', statusShape.style?.fillColor);
+          projectLogger.debug('[updateBriefingStatus] Strategy 3: Found by unique color', { color: statusShape.style?.fillColor });
         }
       }
 
       // Strategy 4: LAST RESORT - search all shapes for pure status labels only
       if (!statusShape) {
-        console.log('[MiroProject] [updateBriefingStatus] Strategy 4: Searching all shapes for pure status labels');
+        projectLogger.debug('[updateBriefingStatus] Strategy 4: Searching all shapes for pure status labels');
         statusShape = shapesWithContent.find(s => {
           const content = (s.content || '').toUpperCase();
           // Only match pure status labels that are NOT also priority labels
@@ -1937,7 +1908,7 @@ class MiroProjectRowService {
       }
 
       if (statusShape) {
-        console.log('[MiroProject] [updateBriefingStatus] Found status shape:', statusShape.content, 'at X:', Math.round(statusShape.x));
+        projectLogger.debug('[updateBriefingStatus] Found status shape', { x: Math.round(statusShape.x) });
 
         // Update the shape
         const shape = await miro.board.getById(statusShape.id);
@@ -1953,7 +1924,7 @@ class MiroProjectRowService {
             row.statusBadgeId = statusShape.id;
           }
 
-          console.log('[MiroProject] [updateBriefingStatus] SUCCESS - Updated status badge to:', statusConfig.label);
+          projectLogger.info('[updateBriefingStatus] SUCCESS - Updated status badge', { label: statusConfig.label });
 
           // Handle done overlay
           await this.handleDoneOverlay(projectId, status, briefingFrame);
@@ -1961,7 +1932,7 @@ class MiroProjectRowService {
           return true;
         }
       } else {
-        console.log('[MiroProject] [updateBriefingStatus] No status shape found in briefing frame');
+        projectLogger.debug('[updateBriefingStatus] No status shape found in briefing frame');
       }
 
       // Even if we didn't find status shape, handle the done overlay if we found the frame
@@ -1969,7 +1940,7 @@ class MiroProjectRowService {
         await this.handleDoneOverlay(projectId, status, briefingFrame);
       }
     } catch (error) {
-      console.error('[MiroProject] [updateBriefingStatus] ERROR:', error);
+      projectLogger.error('[updateBriefingStatus] ERROR', error);
     }
 
     return false;
@@ -1988,7 +1959,7 @@ class MiroProjectRowService {
     const row = this.rows.get(projectId);
     const isDone = status === 'done';
 
-    console.log('[MiroProject] [handleDoneOverlay] Status:', status, 'isDone:', isDone, 'has overlay ID:', !!row?.doneOverlayId);
+    projectLogger.debug('[handleDoneOverlay]', { status, isDone, hasOverlayId: !!row?.doneOverlayId });
 
     // If status is done, create or keep the overlay
     if (isDone) {
@@ -1997,7 +1968,7 @@ class MiroProjectRowService {
         try {
           const existing = await miro.board.getById(row.doneOverlayId);
           if (existing) {
-            console.log('[MiroProject] [handleDoneOverlay] Overlay already exists');
+            projectLogger.debug('[handleDoneOverlay] Overlay already exists');
             return;
           }
         } catch {
@@ -2009,7 +1980,7 @@ class MiroProjectRowService {
       const frameWidth = briefingFrame.width || FRAME.WIDTH;
       const frameHeight = briefingFrame.height || FRAME.HEIGHT;
 
-      console.log('[MiroProject] [handleDoneOverlay] Creating semi-transparent green overlay on frame:', briefingFrame.title);
+      projectLogger.debug('[handleDoneOverlay] Creating semi-transparent green overlay', { frameTitle: briefingFrame.title });
 
       // Using fillOpacity for real transparency so content is still visible
       // Note: fillOpacity is supported by Miro SDK but not in the TypeScript types
@@ -2026,7 +1997,7 @@ class MiroProjectRowService {
         } as { fillColor: string; fillOpacity: number; borderWidth: number },
       });
 
-      console.log('[MiroProject] [handleDoneOverlay] Created overlay with ID:', overlay.id);
+      projectLogger.debug('[handleDoneOverlay] Created overlay', { overlayId: overlay.id });
 
       // Store the overlay ID in the row if it exists
       if (row) {
@@ -2036,12 +2007,12 @@ class MiroProjectRowService {
       // Status is not done, remove overlay if it exists
       if (row?.doneOverlayId) {
         try {
-          console.log('[MiroProject] [handleDoneOverlay] Removing overlay:', row.doneOverlayId);
+          projectLogger.debug('[handleDoneOverlay] Removing overlay', { overlayId: row.doneOverlayId });
           await safeRemove(row.doneOverlayId);
           delete row.doneOverlayId;
-          console.log('[MiroProject] [handleDoneOverlay] Overlay removed');
+          projectLogger.debug('[handleDoneOverlay] Overlay removed');
         } catch (error) {
-          console.error('[MiroProject] [handleDoneOverlay] Failed to remove overlay:', error);
+          projectLogger.error('[handleDoneOverlay] Failed to remove overlay', error);
         }
       } else {
         // Try to find and remove overlay by searching shapes in the frame area
@@ -2068,7 +2039,7 @@ class MiroProjectRowService {
           });
 
           if (overlayShape) {
-            console.log('[MiroProject] [handleDoneOverlay] Found orphan overlay, removing:', overlayShape.id);
+            projectLogger.debug('[handleDoneOverlay] Found orphan overlay, removing', { overlayId: overlayShape.id });
             await safeRemove(overlayShape.id);
           }
         } catch {

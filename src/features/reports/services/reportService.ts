@@ -3,7 +3,6 @@ import { createLogger } from '@shared/lib/logger';
 import type {
   DashboardMetrics,
   ProjectMetrics,
-  DesignerMetrics,
   TimelineMetrics,
   ReportFilters,
   ActivityItem,
@@ -212,64 +211,6 @@ class ReportService {
       averageApprovalTime: Math.round(averageApprovalTime * 10) / 10,
       totalFeedback: stats?.total_feedback || 0,
       resolvedFeedback: (stats?.total_feedback || 0) - (stats?.pending_feedback || 0),
-    };
-  }
-
-  async getDesignerMetrics(designerId: string): Promise<DesignerMetrics> {
-    const { data: designer } = await supabase
-      .from('users')
-      .select('id, name, avatar_url')
-      .eq('id', designerId)
-      .single();
-
-    const { data: projects } = await supabase
-      .from('project_designers')
-      .select('project_id')
-      .eq('user_id', designerId);
-
-    const projectIds = projects?.map((p) => p.project_id) || [];
-
-    const { data: deliverables } = await supabase
-      .from('deliverable_versions')
-      .select(`
-        id,
-        deliverable:deliverables(id, status)
-      `)
-      .eq('uploaded_by_id', designerId);
-
-    const deliverableIds = (deliverables || [])
-      .map((d) => {
-        const delData = d.deliverable;
-        const del = Array.isArray(delData)
-          ? delData[0] as { id: string; status: string } | undefined
-          : delData as { id: string; status: string } | null;
-        return del?.id;
-      })
-      .filter((id): id is string => Boolean(id));
-
-    const { data: feedback } = await supabase
-      .from('deliverable_feedback')
-      .select('id')
-      .in('deliverable_id', deliverableIds.length > 0 ? deliverableIds : ['']);
-
-    const created = deliverables?.length || 0;
-    const approved = deliverables?.filter((d) => {
-      const delData = d.deliverable;
-      const del = Array.isArray(delData)
-        ? delData[0] as { id: string; status: string } | undefined
-        : delData as { id: string; status: string } | null;
-      return del?.status === 'approved';
-    }).length || 0;
-
-    return {
-      designerId,
-      designerName: designer?.name || '',
-      avatarUrl: designer?.avatar_url || null,
-      projectsCount: projectIds.length,
-      deliverablesCreated: created,
-      deliverablesApproved: approved,
-      averageApprovalRate: created > 0 ? Math.round((approved / created) * 100) : 0,
-      feedbackReceived: feedback?.length || 0,
     };
   }
 

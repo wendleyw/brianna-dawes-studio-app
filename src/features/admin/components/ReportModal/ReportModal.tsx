@@ -37,7 +37,7 @@ const PERIOD_PRESETS = [
     const now = new Date();
     return {
       start: new Date(now.getFullYear(), 0, 1),
-      end: new Date(now.getFullYear(), 11, 31),
+      end: now, // Up to today instead of Dec 31
     };
   }},
   { label: 'Last Year', getValue: () => {
@@ -174,12 +174,14 @@ export function ReportModal({ open, onClose }: ReportModalProps) {
       addProgress(`Date range: ${startDisplay} - ${endDisplay}`);
 
       // Fetch projects with filters
+      // Filter by due_date to get projects that were due/completed in the selected period
+      // This is more useful for reports than created_at
       addProgress('Fetching projects...');
       let projectsQuery = supabase
         .from('projects')
         .select('*')
-        .gte('created_at', startDate)
-        .lte('created_at', endDate);
+        .gte('due_date', startDate)
+        .lte('due_date', endDate);
 
       if (filters.clientId !== 'all' && selectedClient) {
         projectsQuery = projectsQuery.eq('client_id', selectedClient.id);
@@ -204,6 +206,7 @@ export function ReportModal({ open, onClose }: ReportModalProps) {
         clientId: p.client_id as string,
         createdAt: p.created_at as string,
         updatedAt: p.updated_at as string,
+        dueDate: p.due_date as string | undefined,
         briefing: p.briefing as Project['briefing'],
       })) as Project[];
       addProgress(`Found ${projects.length} projects`);
@@ -240,6 +243,8 @@ export function ReportModal({ open, onClose }: ReportModalProps) {
             bonusCount: (d.bonus_count as number) || 0,
             createdAt: d.created_at as string,
             updatedAt: d.updated_at as string,
+            dueDate: d.due_date as string | undefined,
+            deliveredAt: d.delivered_at as string | undefined,
           })) as Deliverable[];
         }
       }

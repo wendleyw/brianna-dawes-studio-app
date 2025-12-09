@@ -70,6 +70,9 @@ export const MiroNotifications = {
   boardInitialized: () => showMiroInfo('Project board initialized'),
   briefingCreated: (name: string) => showMiroInfo(`Briefing frame created for "${name}"`),
 
+  // Generic notifications
+  showInfo: (message: string) => showMiroInfo(message),
+
   // Errors
   error: (message: string) => showMiroError(message),
 };

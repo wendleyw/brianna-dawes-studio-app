@@ -1,12 +1,13 @@
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { Skeleton, Logo } from '@shared/ui';
 import { useAuth } from '@features/auth';
 import { useProjects } from '@features/projects';
 import { projectKeys } from '@features/projects/services/projectKeys';
-import { zoomToProject } from '@features/boards';
+import { zoomToProject, useMiro } from '@features/boards';
 import { supabase } from '@shared/lib/supabase';
+import type { ProjectFilters as ProjectFiltersType } from '@features/projects/domain/project.types';
 import { STATUS_COLUMNS, getStatusColumn } from '@shared/lib/timelineStatus';
 import { formatDateShort, formatDateMonthYear } from '@shared/lib/dateFormat';
 import { useRealtimeSubscription } from '@shared/hooks/useRealtimeSubscription';
@@ -97,7 +98,18 @@ export function DashboardPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const { data: projectsData, isLoading: projectsLoading, refetch } = useProjects();
+  const { isInMiro, boardId: currentBoardId } = useMiro();
+
+  // IMPORTANT: Filter projects by current board for data isolation
+  const filters: ProjectFiltersType = useMemo(() => {
+    const f: ProjectFiltersType = {};
+    if (isInMiro && currentBoardId) {
+      f.miroBoardId = currentBoardId;
+    }
+    return f;
+  }, [isInMiro, currentBoardId]);
+
+  const { data: projectsData, isLoading: projectsLoading, refetch } = useProjects({ filters });
 
   // Realtime subscription for project updates
   useRealtimeSubscription<{ id: string; status: string }>({
@@ -111,25 +123,39 @@ export function DashboardPage() {
     enabled: true,
   });
 
-  // Query deliverables directly to avoid RPC issues
+  // Get project IDs for filtering deliverables
+  const projectIds = useMemo(() => {
+    return (projectsData?.data || []).map(p => p.id);
+  }, [projectsData]);
+
+  // Query deliverables filtered by board (via project IDs)
   const { data: deliverablesData, isLoading: deliverablesLoading } = useQuery({
-    queryKey: ['deliverables-stats'],
+    queryKey: ['deliverables-stats', projectIds],
     queryFn: async () => {
-      // Try to get count and bonus_count
+      // If no projects, return empty array
+      if (projectIds.length === 0) {
+        return [];
+      }
+
+      // Try to get count and bonus_count for deliverables of current board's projects
       const { data, error } = await supabase
         .from('deliverables')
-        .select('count, bonus_count');
+        .select('count, bonus_count')
+        .in('project_id', projectIds);
 
       // If bonus_count doesn't exist, fallback to just count
       if (error) {
         const { data: fallbackData, error: fallbackError } = await supabase
           .from('deliverables')
-          .select('count');
+          .select('count')
+          .in('project_id', projectIds);
         if (fallbackError) throw fallbackError;
         return (fallbackData || []).map(d => ({ count: d.count, bonus_count: 0 }));
       }
       return data || [];
     },
+    // Only run when we have project IDs (after projects are loaded)
+    enabled: !projectsLoading,
   });
 
   const isLoading = projectsLoading || deliverablesLoading;
@@ -140,25 +166,32 @@ export function DashboardPage() {
   // Get projects array from response
   const projectsList = projectsData?.data || [];
 
-  // Calculate stats using new 7-status system
-  const activeProjects = projectsList.filter(p =>
-    p.status !== 'done' // All non-done projects are considered active
-  ).length;
-  const completedProjects = projectsList.filter(p => p.status === 'done').length;
+  // Calculate stats (memoized to prevent recalculation on every render)
+  const { activeProjects, completedProjects } = useMemo(() => ({
+    activeProjects: projectsList.filter(p => p.status !== 'done').length,
+    completedProjects: projectsList.filter(p => p.status === 'done').length,
+  }), [projectsList]);
 
-  // Calculate deliverable stats from direct query
-  const totalDeliverables = deliverablesData?.length || 0;
-  const totalAssets = deliverablesData?.reduce((sum, d) => sum + ((d.count as number) || 0), 0) || 0;
-  const totalBonusAssets = deliverablesData?.reduce((sum, d) => sum + ((d.bonus_count as number) || 0), 0) || 0;
+  // Calculate deliverable stats from direct query (memoized)
+  const { totalDeliverables, totalAssets, totalBonusAssets } = useMemo(() => ({
+    totalDeliverables: deliverablesData?.length || 0,
+    totalAssets: deliverablesData?.reduce((sum, d) => sum + ((d.count as number) || 0), 0) || 0,
+    totalBonusAssets: deliverablesData?.reduce((sum, d) => sum + ((d.bonus_count as number) || 0), 0) || 0,
+  }), [deliverablesData]);
 
-  // Get projects for timeline (ALL statuses, organized by date)
-  const timelineProjects = projectsList
-    .filter(p => p.dueDate) // Only need due date
-    .sort((a, b) => new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime());
+  // Get projects for timeline (ALL statuses, organized by date) - memoized
+  const timelineProjects = useMemo(() =>
+    projectsList
+      .filter(p => p.dueDate)
+      .sort((a, b) => new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime()),
+    [projectsList]
+  );
 
-  // Get all months in range and group projects by month
-  const monthRange = getMonthRange(timelineProjects);
-  const projectsByMonth = groupProjectsByMonth(timelineProjects);
+  // Get all months in range and group projects by month (memoized)
+  const { monthRange, projectsByMonth } = useMemo(() => ({
+    monthRange: getMonthRange(timelineProjects),
+    projectsByMonth: groupProjectsByMonth(timelineProjects),
+  }), [timelineProjects]);
 
   if (isLoading) {
     return (

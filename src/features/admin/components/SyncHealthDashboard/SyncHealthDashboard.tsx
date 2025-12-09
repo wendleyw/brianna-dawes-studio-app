@@ -11,8 +11,11 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@shared/ui';
-import { projectSyncOrchestrator } from '@features/boards/services';
+// Import directly from the module to avoid circular dependency
+import { projectSyncOrchestrator } from '@features/boards/services/projectSyncOrchestrator';
+import { getSyncStatusColor } from '@features/boards/services/constants/colors.constants';
 import { createLogger } from '@shared/lib/logger';
+import { POLLING_INTERVALS } from '@shared/config';
 import styles from './SyncHealthDashboard.module.css';
 
 const logger = createLogger('SyncHealthDashboard');
@@ -56,8 +59,8 @@ export function SyncHealthDashboard() {
 
   useEffect(() => {
     fetchMetrics();
-    // Refresh every 30 seconds
-    const interval = setInterval(fetchMetrics, 30000);
+    // Refresh periodically
+    const interval = setInterval(fetchMetrics, POLLING_INTERVALS.HEALTH_CHECK);
     return () => clearInterval(interval);
   }, [fetchMetrics]);
 
@@ -78,21 +81,6 @@ export function SyncHealthDashboard() {
       setError('Failed to retry sync operations');
     } finally {
       setIsRetrying(false);
-    }
-  };
-
-  const getStatusColor = (status: string): string => {
-    switch (status) {
-      case 'synced':
-        return '#22C55E'; // Green
-      case 'pending':
-        return '#F59E0B'; // Yellow
-      case 'syncing':
-        return '#3B82F6'; // Blue
-      case 'sync_error':
-        return '#EF4444'; // Red
-      default:
-        return '#6B7280'; // Gray
     }
   };
 
@@ -183,7 +171,7 @@ export function SyncHealthDashboard() {
         <div className={styles.statusItem}>
           <div
             className={styles.statusDot}
-            style={{ backgroundColor: getStatusColor('synced') }}
+            style={{ backgroundColor: getSyncStatusColor('synced') }}
           />
           <span className={styles.statusLabel}>Synced</span>
           <span className={styles.statusCount}>{metrics?.syncedCount || 0}</span>
@@ -191,7 +179,7 @@ export function SyncHealthDashboard() {
         <div className={styles.statusItem}>
           <div
             className={styles.statusDot}
-            style={{ backgroundColor: getStatusColor('pending') }}
+            style={{ backgroundColor: getSyncStatusColor('pending') }}
           />
           <span className={styles.statusLabel}>Pending</span>
           <span className={styles.statusCount}>{metrics?.pendingCount || 0}</span>
@@ -199,7 +187,7 @@ export function SyncHealthDashboard() {
         <div className={styles.statusItem}>
           <div
             className={styles.statusDot}
-            style={{ backgroundColor: getStatusColor('syncing') }}
+            style={{ backgroundColor: getSyncStatusColor('syncing') }}
           />
           <span className={styles.statusLabel}>Syncing</span>
           <span className={styles.statusCount}>{metrics?.syncingCount || 0}</span>
@@ -207,7 +195,7 @@ export function SyncHealthDashboard() {
         <div className={styles.statusItem}>
           <div
             className={styles.statusDot}
-            style={{ backgroundColor: getStatusColor('sync_error') }}
+            style={{ backgroundColor: getSyncStatusColor('sync_error') }}
           />
           <span className={styles.statusLabel}>Errors</span>
           <span className={styles.statusCount}>{metrics?.errorCount || 0}</span>

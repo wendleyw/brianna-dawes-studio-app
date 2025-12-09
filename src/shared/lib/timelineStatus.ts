@@ -44,11 +44,6 @@ export function getStatusColumn(status: ProjectStatus): StatusColumn {
   return STATUS_COLUMNS.find(col => col.id === status) ?? DEFAULT_COLUMN;
 }
 
-// Backward compatibility alias
-export function getTimelineColumn(status: ProjectStatus): StatusColumn {
-  return getStatusColumn(status);
-}
-
 // Get status directly from project (no derivation needed anymore!)
 export function getTimelineStatus(project: { status: ProjectStatus }): ProjectStatus {
   return project.status;
@@ -70,17 +65,6 @@ export function getStatusVariant(status: ProjectStatus): 'error' | 'warning' | '
     default:
       return 'neutral';
   }
-}
-
-// Backward compatibility alias
-export function getTimelineStatusVariant(status: ProjectStatus): 'error' | 'warning' | 'info' | 'success' | 'neutral' {
-  return getStatusVariant(status);
-}
-
-// No longer needed - status is direct, not derived
-// Kept for backward compatibility but just returns the status as-is
-export function getDbStatusFromTimeline(status: ProjectStatus): { status: ProjectStatus } {
-  return { status };
 }
 
 /**

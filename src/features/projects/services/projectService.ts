@@ -1,4 +1,5 @@
 import { supabase } from '@shared/lib/supabase';
+import { createLogger } from '@shared/lib/logger';
 import type {
   Project,
   CreateProjectInput,
@@ -6,6 +7,8 @@ import type {
   ProjectsQueryParams,
   ProjectsResponse,
 } from '../domain/project.types';
+
+const logger = createLogger('ProjectService');
 
 /**
  * ProjectService - Handles all project-related database operations
@@ -98,6 +101,11 @@ class ProjectService {
 
     if (filters.dueDateTo) {
       query = query.lte('due_date', filters.dueDateTo);
+    }
+
+    // Filter by Miro board ID - IMPORTANT for data isolation between boards
+    if (filters.miroBoardId) {
+      query = query.eq('miro_board_id', filters.miroBoardId);
     }
 
     // Apply sorting
@@ -213,6 +221,11 @@ class ProjectService {
   async createProject(input: CreateProjectInput): Promise<Project> {
     const { designerIds, ...projectData } = input;
 
+    // Determine sync status: if no miroBoardId, set 'not_required'
+    // Otherwise use provided status or let DB default to 'pending'
+    const syncStatus = projectData.syncStatus ||
+      (projectData.miroBoardId ? undefined : 'not_required');
+
     const { data: project, error: projectError } = await supabase
       .from('projects')
       .insert({
@@ -228,6 +241,7 @@ class ProjectService {
         briefing: projectData.briefing || {},
         google_drive_url: projectData.googleDriveUrl,
         due_date_approved: projectData.dueDateApproved ?? true,
+        ...(syncStatus && { sync_status: syncStatus }),
       })
       .select()
       .single();
@@ -429,7 +443,7 @@ class ProjectService {
       });
       if (error) {
         // Fallback: just set the status without incrementing
-        console.warn('Failed to increment retry count:', error);
+        logger.warn('Failed to increment retry count', error);
       }
     }
 
@@ -440,6 +454,36 @@ class ProjectService {
     if (options?.miroFrameId !== undefined) {
       updateData.miro_frame_id = options.miroFrameId;
     }
+
+    const { error } = await supabase
+      .from('projects')
+      .update(updateData)
+      .eq('id', projectId);
+
+    if (error) throw error;
+  }
+
+  /**
+   * Clear stale Miro references when card/frame no longer exists on board
+   * This is called when sync detects the card was deleted from Miro
+   */
+  async clearMiroReferences(
+    projectId: string,
+    options?: { clearCard?: boolean; clearFrame?: boolean }
+  ): Promise<void> {
+    const updateData: Record<string, unknown> = {};
+
+    if (options?.clearCard !== false) {
+      updateData.miro_card_id = null;
+    }
+
+    if (options?.clearFrame !== false) {
+      updateData.miro_frame_id = null;
+    }
+
+    // Set status to pending so it will be re-synced
+    updateData.sync_status = 'pending';
+    updateData.sync_error_message = 'Miro card was deleted, will re-sync on next operation';
 
     const { error } = await supabase
       .from('projects')

@@ -1,5 +1,6 @@
 export type { IconProps, IconComponent } from './Icons.types';
 export {
+  // Core Icons
   UserIcon,
   UsersIcon,
   CalendarIcon,
@@ -25,4 +26,19 @@ export {
   ClockIcon,
   RefreshIcon,
   DriveIcon,
+  SearchIcon,
+  ArrowLeftIcon,
+  CodeIcon,
+  ShieldIcon,
+  BriefcaseIcon,
+  // Aliases for semantic naming
+  BoardIcon,
+  ClientIcon,
+  BackIcon,
+  TeamIcon,
+  BoardsIcon,
+  DeveloperIcon,
+  SyncIcon,
+  AdminIcon,
+  DesignerIcon,
 } from './Icons';

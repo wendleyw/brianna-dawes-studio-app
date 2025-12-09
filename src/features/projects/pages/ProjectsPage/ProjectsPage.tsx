@@ -15,7 +15,7 @@ import { onProjectChange, broadcastProjectChange } from '@shared/lib/projectBroa
 import { useRealtimeSubscription } from '@shared/hooks/useRealtimeSubscription';
 import { projectService } from '../../services/projectService';
 import { supabase } from '@shared/lib/supabase';
-import { env } from '@shared/config/env';
+import { env, SYNC_TIMING, UI_TIMING } from '@shared/config';
 import { useClientPlanStatsByBoard, useClientTotalAssetsByBoard } from '@features/admin/hooks/useSubscriptionPlans';
 import type { ProjectFilters as ProjectFiltersType, Project, ProjectStatus, UpdateProjectInput } from '../../domain/project.types';
 import styles from './ProjectsPage.module.css';
@@ -98,7 +98,7 @@ export function ProjectsPage() {
   // Fetch client associated with current board
   useEffect(() => {
     async function fetchBoardClient() {
-      console.log('[ProjectsPage] fetchBoardClient starting...', { isInMiro, hasMiro: !!miro });
+      logger.debug('fetchBoardClient starting', { isInMiro, hasMiro: !!miro });
 
       let boardId: string | null = null;
 
@@ -107,9 +107,9 @@ export function ProjectsPage() {
         try {
           const boardInfo = await miro.board.getInfo();
           boardId = boardInfo.id;
-          console.log('[ProjectsPage] Current board ID from Miro SDK:', boardId);
+          logger.debug('Current board ID from Miro SDK', { boardId });
         } catch (err) {
-          console.log('[ProjectsPage] Could not get board ID from Miro SDK:', err);
+          logger.warn('Could not get board ID from Miro SDK', err);
         }
       }
 
@@ -122,7 +122,7 @@ export function ProjectsPage() {
         // Board-based strategies (only if we have a board ID)
         if (boardId) {
           // Strategy 1: Find client whose primaryBoardId matches this board
-          console.log('[ProjectsPage] Strategy 1: Looking by primary_board_id...');
+          logger.debug('Strategy 1: Looking by primary_board_id');
           const { data: clientByPrimary, error: error1 } = await supabase
             .from('users')
             .select('id, name, company_name, company_logo_url')
@@ -130,7 +130,7 @@ export function ProjectsPage() {
             .eq('primary_board_id', boardId)
             .maybeSingle();
 
-          console.log('[ProjectsPage] Strategy 1 result:', { clientByPrimary, error: error1 });
+          logger.debug('Strategy 1 result', { found: !!clientByPrimary, error: error1 });
 
           if (clientByPrimary) {
             setBoardClient({
@@ -139,134 +139,128 @@ export function ProjectsPage() {
               companyName: clientByPrimary.company_name,
               companyLogoUrl: clientByPrimary.company_logo_url,
             });
-            console.log('[ProjectsPage] Found client by primary_board_id:', clientByPrimary.name);
+            logger.debug('Found client by primary_board_id', { name: clientByPrimary.name });
             return;
           }
 
           // Strategy 2: Find client via user_boards table (prioritize is_primary)
-          console.log('[ProjectsPage] Strategy 2: Looking by user_boards...');
+          logger.debug('Strategy 2: Looking by user_boards');
           const { data: userBoards, error: error2 } = await supabase
             .from('user_boards')
             .select('user_id, is_primary')
             .eq('board_id', boardId)
             .order('is_primary', { ascending: false }); // Primary boards first
 
-          console.log('[ProjectsPage] Strategy 2 user_boards:', { userBoards, error: error2 });
+          logger.debug('Strategy 2 user_boards', { count: userBoards?.length ?? 0, error: error2 });
 
           if (userBoards && userBoards.length > 0) {
-            // First pass: find primary client with logo
-            for (const ub of userBoards) {
-              if (!ub.is_primary) continue;
-              const { data: clientByUserBoard } = await supabase
-                .from('users')
-                .select('id, name, company_name, company_logo_url')
-                .eq('id', ub.user_id)
-                .eq('role', 'client')
-                .maybeSingle();
+            // Batch fetch all users at once (fixes N+1 query problem)
+            const userIds = userBoards.map(ub => ub.user_id);
+            const { data: clients } = await supabase
+              .from('users')
+              .select('id, name, company_name, company_logo_url')
+              .in('id', userIds)
+              .eq('role', 'client');
 
-              if (clientByUserBoard && clientByUserBoard.company_logo_url) {
+            if (clients && clients.length > 0) {
+              // Create a map for quick lookup
+              const clientMap = new Map(clients.map(c => [c.id, c]));
+
+              // Priority 1: Find primary client with logo
+              const primaryUserBoards = userBoards.filter(ub => ub.is_primary);
+              for (const ub of primaryUserBoards) {
+                const client = clientMap.get(ub.user_id);
+                if (client && client.company_logo_url) {
+                  setBoardClient({
+                    userId: client.id,
+                    name: client.name,
+                    companyName: client.company_name,
+                    companyLogoUrl: client.company_logo_url,
+                  });
+                  logger.debug('Found primary client with logo', { name: client.name });
+                  return;
+                }
+              }
+
+              // Priority 2: Find any client with logo
+              const clientWithLogo = clients.find(c => c.company_logo_url);
+              if (clientWithLogo) {
                 setBoardClient({
-                  userId: clientByUserBoard.id,
-                  name: clientByUserBoard.name,
-                  companyName: clientByUserBoard.company_name,
-                  companyLogoUrl: clientByUserBoard.company_logo_url,
+                  userId: clientWithLogo.id,
+                  name: clientWithLogo.name,
+                  companyName: clientWithLogo.company_name,
+                  companyLogoUrl: clientWithLogo.company_logo_url,
                 });
-                console.log('[ProjectsPage] Found primary client with logo:', clientByUserBoard.name);
+                logger.debug('Found client with logo', { name: clientWithLogo.name });
                 return;
               }
-            }
 
-            // Second pass: find any client with logo
-            for (const ub of userBoards) {
-              const { data: clientByUserBoard } = await supabase
-                .from('users')
-                .select('id, name, company_name, company_logo_url')
-                .eq('id', ub.user_id)
-                .eq('role', 'client')
-                .maybeSingle();
-
-              if (clientByUserBoard && clientByUserBoard.company_logo_url) {
+              // Priority 3: Any client (fallback)
+              const anyClient = clients[0];
+              if (anyClient) {
                 setBoardClient({
-                  userId: clientByUserBoard.id,
-                  name: clientByUserBoard.name,
-                  companyName: clientByUserBoard.company_name,
-                  companyLogoUrl: clientByUserBoard.company_logo_url,
+                  userId: anyClient.id,
+                  name: anyClient.name,
+                  companyName: anyClient.company_name,
+                  companyLogoUrl: anyClient.company_logo_url,
                 });
-                console.log('[ProjectsPage] Found client with logo:', clientByUserBoard.name);
-                return;
-              }
-            }
-
-            // Third pass: find any client (fallback without logo)
-            for (const ub of userBoards) {
-              const { data: clientByUserBoard } = await supabase
-                .from('users')
-                .select('id, name, company_name, company_logo_url')
-                .eq('id', ub.user_id)
-                .eq('role', 'client')
-                .maybeSingle();
-
-              if (clientByUserBoard) {
-                setBoardClient({
-                  userId: clientByUserBoard.id,
-                  name: clientByUserBoard.name,
-                  companyName: clientByUserBoard.company_name,
-                  companyLogoUrl: clientByUserBoard.company_logo_url,
-                });
-                console.log('[ProjectsPage] Found client by user_boards:', clientByUserBoard.name);
+                logger.debug('Found client by user_boards', { name: anyClient.name });
                 return;
               }
             }
           }
 
           // Strategy 3: Find client who has projects on this board (via miro_board_id)
-          console.log('[ProjectsPage] Strategy 3: Looking by projects.miro_board_id...');
+          logger.debug('Strategy 3: Looking by projects.miro_board_id');
           const { data: projectsOnBoard, error: error3 } = await supabase
             .from('projects')
             .select('client_id')
             .eq('miro_board_id', boardId)
             .not('client_id', 'is', null);
 
-          console.log('[ProjectsPage] Strategy 3 projects:', { projectsOnBoard, error: error3 });
+          logger.debug('Strategy 3 projects', { count: projectsOnBoard?.length ?? 0, error: error3 });
 
           if (projectsOnBoard && projectsOnBoard.length > 0) {
-            // Get unique client IDs
-            const clientIds = [...new Set(projectsOnBoard.map(p => p.client_id).filter(Boolean))];
+            // Get unique client IDs and batch fetch (fixes N+1 query problem)
+            const clientIds = [...new Set(projectsOnBoard.map(p => p.client_id).filter(Boolean))] as string[];
 
-            for (const clientId of clientIds) {
-              const { data: clientByProject } = await supabase
+            if (clientIds.length > 0) {
+              const { data: clientsByProject } = await supabase
                 .from('users')
                 .select('id, name, company_name, company_logo_url')
-                .eq('id', clientId as string)
-                .eq('role', 'client')
-                .maybeSingle();
+                .in('id', clientIds)
+                .eq('role', 'client');
 
-              if (clientByProject) {
+              // Prefer client with logo, otherwise take first one
+              const clientWithLogo = clientsByProject?.find(c => c.company_logo_url);
+              const clientToUse = clientWithLogo || clientsByProject?.[0];
+
+              if (clientToUse) {
                 setBoardClient({
-                  userId: clientByProject.id,
-                  name: clientByProject.name,
-                  companyName: clientByProject.company_name,
-                  companyLogoUrl: clientByProject.company_logo_url,
+                  userId: clientToUse.id,
+                  name: clientToUse.name,
+                  companyName: clientToUse.company_name,
+                  companyLogoUrl: clientToUse.company_logo_url,
                 });
-                console.log('[ProjectsPage] Found client by project:', clientByProject.name);
+                logger.debug('Found client by project', { name: clientToUse.name });
                 return;
               }
             }
           }
         } else {
-          console.log('[ProjectsPage] No board ID available, skipping board-based strategies');
+          logger.debug('No board ID available, skipping board-based strategies');
         }
 
         // Strategy 4: If current user is a client, use their own data
         if (user?.role === 'client') {
-          console.log('[ProjectsPage] Strategy 4: Current user is client, checking for company info...');
+          logger.debug('Strategy 4: Current user is client, checking for company info');
           const { data: currentClient } = await supabase
             .from('users')
             .select('id, name, company_name, company_logo_url')
             .eq('id', user.id)
             .maybeSingle();
 
-          console.log('[ProjectsPage] Current client data:', currentClient);
+          logger.debug('Current client data', { hasCompanyInfo: !!(currentClient?.company_name || currentClient?.company_logo_url) });
 
           if (currentClient && (currentClient.company_name || currentClient.company_logo_url)) {
             setBoardClient({
@@ -275,16 +269,16 @@ export function ProjectsPage() {
               companyName: currentClient.company_name,
               companyLogoUrl: currentClient.company_logo_url,
             });
-            console.log('[ProjectsPage] Using current client data:', currentClient.name);
+            logger.debug('Using current client data', { name: currentClient.name });
             return;
           }
         }
 
         // No client found for this board
         setBoardClient(null);
-        console.log('[ProjectsPage] No client found for board', boardId);
+        logger.debug('No client found for board', { boardId });
       } catch (err) {
-        console.error('[ProjectsPage] Error fetching board client:', err);
+        logger.error('Error fetching board client', err);
       }
     }
 
@@ -294,9 +288,17 @@ export function ProjectsPage() {
   // Get selected project from URL
   const selectedProjectId = searchParams.get('selected');
 
-  // Fetch all non-archived projects
-  const filters: ProjectFiltersType = {};
-  if (searchQuery) filters.search = searchQuery;
+  // Fetch projects filtered by current board (for data isolation)
+  // Only filter by board if we're inside Miro and have a board ID
+  const filters: ProjectFiltersType = useMemo(() => {
+    const f: ProjectFiltersType = {};
+    if (searchQuery) f.search = searchQuery;
+    // IMPORTANT: Filter by current board to ensure data isolation
+    if (isInMiro && currentBoardId) {
+      f.miroBoardId = currentBoardId;
+    }
+    return f;
+  }, [searchQuery, isInMiro, currentBoardId]);
 
   const { data: projectsData, isLoading, refetch } = useProjects({ filters });
 
@@ -382,7 +384,7 @@ export function ProjectsPage() {
 
     // Mark as recently synced to prevent realtime subscription from re-syncing
     recentlySyncedRef.current.add(projectId);
-    setTimeout(() => recentlySyncedRef.current.delete(projectId), 5000);
+    setTimeout(() => recentlySyncedRef.current.delete(projectId), SYNC_TIMING.RECENT_SYNC_COOLDOWN);
 
     // Build update input - include wasReviewed if client requested changes
     const updateInput: { status: ProjectStatus; wasReviewed?: boolean; wasApproved?: boolean } = { status };
@@ -405,13 +407,13 @@ export function ProjectsPage() {
       updateInput.wasReviewed = false;
     }
 
-    console.log('[ProjectsPage] handleUpdateStatus called with:', { projectId, status, options });
+    logger.debug('handleUpdateStatus called', { projectId, status, options });
 
     updateProject(
       { id: projectId, input: updateInput },
       {
         onSuccess: (updatedProject) => {
-          console.log('[ProjectsPage] updateProject onSuccess, updatedProject:', updatedProject.name, updatedProject.status);
+          logger.debug('updateProject onSuccess', { name: updatedProject.name, status: updatedProject.status });
 
           // Sync with Miro board using the response from database
           // Pass markAsReviewed option if client reviewed the project
@@ -420,7 +422,7 @@ export function ProjectsPage() {
           });
 
           // Update the status badge in the briefing frame
-          console.log('[ProjectsPage] Attempting to update briefing status badge', {
+          logger.debug('Attempting to update briefing status badge', {
             isInMiro,
             projectId: updatedProject.id,
             projectName: updatedProject.name,
@@ -428,18 +430,18 @@ export function ProjectsPage() {
           });
 
           if (isInMiro) {
-            console.log('[ProjectsPage] Calling miroProjectRowService.updateBriefingStatus...');
+            logger.debug('Calling miroProjectRowService.updateBriefingStatus');
             miroProjectRowService.updateBriefingStatus(
               updatedProject.id,
               updatedProject.status,
               updatedProject.name
             ).then(result => {
-              console.log('[ProjectsPage] Briefing status badge update result:', result);
+              logger.debug('Briefing status badge update result', { success: result });
             }).catch(err => {
-              console.error('[ProjectsPage] Briefing status badge update failed:', err);
+              logger.error('Briefing status badge update failed', err);
             });
           } else {
-            console.log('[ProjectsPage] Not in Miro, skipping briefing status badge update');
+            logger.debug('Not in Miro, skipping briefing status badge update');
           }
 
           // Broadcast to other contexts
@@ -534,8 +536,8 @@ export function ProjectsPage() {
         // Clear the selection from URL after scrolling
         setTimeout(() => {
           setSearchParams({}, { replace: true });
-        }, 1500);
-      }, 100);
+        }, UI_TIMING.URL_CLEAR_DELAY);
+      }, UI_TIMING.SCROLL_DELAY);
     }
   }, [selectedProjectId, isLoading, projects.length, setSearchParams]);
 
@@ -566,6 +568,13 @@ export function ProjectsPage() {
         return;
       }
 
+      // Skip if status didn't actually change (avoid unnecessary syncs)
+      if (newRecord.status === oldRecord.status && newRecord.was_reviewed === oldRecord.was_reviewed) {
+        logger.debug('Skipping sync - no status change', { projectId });
+        refetch(); // Still refetch to update UI
+        return;
+      }
+
       logger.info('Realtime: Project updated in database', {
         projectId,
         oldStatus: oldRecord.status,
@@ -573,25 +582,36 @@ export function ProjectsPage() {
         wasReviewed: newRecord.was_reviewed,
       });
 
-      // Mark as recently synced for 5 seconds
+      // Mark as recently synced to prevent duplicate syncs
       recentlySyncedRef.current.add(projectId);
-      setTimeout(() => recentlySyncedRef.current.delete(projectId), 5000);
+      setTimeout(() => recentlySyncedRef.current.delete(projectId), SYNC_TIMING.RECENT_SYNC_COOLDOWN);
 
       // Refetch the updated project
       refetch();
 
-      // Sync to Miro board if we're in Miro
+      // Sync to Miro board if we're in Miro (only for projects on this board)
       if (isInMiro) {
         try {
           // Fetch full project data for Miro sync
           const fullProject = await projectService.getProject(projectId);
+
+          // IMPORTANT: Only sync projects that belong to this board
+          if (currentBoardId && fullProject.miroBoardId !== currentBoardId) {
+            logger.debug('Skipping Miro sync - project belongs to different board', {
+              projectId,
+              projectBoardId: fullProject.miroBoardId,
+              currentBoardId,
+            });
+            return;
+          }
+
           await syncProject(fullProject, { markAsReviewed: fullProject.wasReviewed });
           logger.info('Realtime: Miro sync completed', { projectId, status: fullProject.status });
         } catch (err) {
           logger.error('Realtime: Miro sync failed', err);
         }
       }
-    }, [refetch, isInMiro, syncProject]),
+    }, [refetch, isInMiro, syncProject, currentBoardId]),
     enabled: true,
   });
 

@@ -1,60 +1,11 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, memo } from 'react';
 import { Button, Input, Skeleton } from '@shared/ui';
+import { BoardIcon, PlusIcon, SearchIcon, StarIcon, TrashIcon, ExternalLinkIcon } from '@shared/ui/Icons';
 import { useUsers } from '../../hooks/useUsers';
 import { useBoardAssignmentMutations, useAllBoards } from '../../hooks/useBoardAssignments';
+import { ROLE_COLORS } from '@shared/config';
 import type { User } from '../../domain';
-import type { UserRole } from '@shared/config/roles';
 import styles from './BoardManagement.module.css';
-
-// Icons
-const BoardIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-    <line x1="3" y1="9" x2="21" y2="9"/>
-    <line x1="9" y1="21" x2="9" y2="9"/>
-  </svg>
-);
-
-const PlusIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <line x1="12" y1="5" x2="12" y2="19"/>
-    <line x1="5" y1="12" x2="19" y2="12"/>
-  </svg>
-);
-
-const SearchIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <circle cx="11" cy="11" r="8"/>
-    <path d="m21 21-4.35-4.35"/>
-  </svg>
-);
-
-const StarIcon = ({ filled }: { filled?: boolean }) => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
-    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-  </svg>
-);
-
-const TrashIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <polyline points="3 6 5 6 21 6"/>
-    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-  </svg>
-);
-
-const ExternalLinkIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-    <polyline points="15 3 21 3 21 9"/>
-    <line x1="10" y1="14" x2="21" y2="3"/>
-  </svg>
-);
-
-const ROLE_COLORS: Record<UserRole, { color: string; bg: string }> = {
-  admin: { color: '#7C3AED', bg: '#EDE9FE' },
-  designer: { color: '#0891B2', bg: '#CFFAFE' },
-  client: { color: '#D97706', bg: '#FEF3C7' },
-};
 
 interface BoardWithMembers {
   boardId: string;
@@ -65,7 +16,7 @@ interface BoardWithMembers {
   }>;
 }
 
-export function BoardManagement() {
+export const BoardManagement = memo(function BoardManagement() {
   const { data: users, isLoading: loadingUsers } = useUsers();
   const { data: allBoards, isLoading: loadingBoards } = useAllBoards();
   const { assignBoard, removeBoard, setPrimaryBoard, isAssigning } = useBoardAssignmentMutations();
@@ -330,8 +281,8 @@ export function BoardManagement() {
                             <span
                               className={styles.roleBadge}
                               style={{
-                                backgroundColor: ROLE_COLORS[user.role].bg,
-                                color: ROLE_COLORS[user.role].color,
+                                backgroundColor: ROLE_COLORS[user.role]?.bg,
+                                color: ROLE_COLORS[user.role]?.color,
                               }}
                             >
                               {user.role}
@@ -434,4 +385,4 @@ export function BoardManagement() {
       )}
     </div>
   );
-}
+});

@@ -72,32 +72,51 @@ export function getTimelineStatus(project: { status: ProjectStatus }): ProjectSt
 }
 
 /**
- * Extract project type from briefing timeline
+ * Extract project type from project data
+ * Checks briefing.projectType first, then timeline, then description
  */
-export function getProjectTypeFromBriefing(
-  briefing: ProjectBriefing
+export function getProjectType(
+  project: { briefing?: { timeline?: string | null; projectType?: string | null } | null; description?: string | null }
 ): { label: string; color: string; icon: string } | null {
-  const timeline = briefing.timeline || '';
+  // Check briefing.projectType first (most reliable source)
+  if (project.briefing?.projectType) {
+    const config = PROJECT_TYPE_CONFIG[project.briefing.projectType];
+    if (config) return config;
+  }
 
-  // Try to match project type from timeline string (format: "Website UI Design (45 days) - Target: ...")
+  // Try to extract from briefing.timeline and description
+  const timeline = project.briefing?.timeline || '';
+  const desc = project.description || '';
+  const textToSearch = (timeline + ' ' + desc).toLowerCase();
+
+  // Match against PROJECT_TYPE_CONFIG keys and labels
   for (const [key, config] of Object.entries(PROJECT_TYPE_CONFIG)) {
-    if (
-      timeline.toLowerCase().includes(key) ||
-      timeline.toLowerCase().includes(config.label.toLowerCase())
-    ) {
+    if (textToSearch.includes(key) || textToSearch.includes(config.label.toLowerCase())) {
       return config;
     }
   }
 
-  // Try to match longer label variations
-  if (timeline.includes('Website UI Design'))
-    return PROJECT_TYPE_CONFIG['website-ui-design'] || null;
-  if (timeline.includes('Marketing Campaign'))
-    return PROJECT_TYPE_CONFIG['marketing-campaign'] || null;
-  if (timeline.includes('Video Production'))
-    return PROJECT_TYPE_CONFIG['video-production'] || null;
-  if (timeline.includes('Email Design')) return PROJECT_TYPE_CONFIG['email-design'] || null;
-  if (timeline.includes('Social Post')) return PROJECT_TYPE_CONFIG['social-post-carousel'] || null;
+  // Try to match longer label variations (case-sensitive for exact matches)
+  const fullText = timeline + ' ' + desc;
+  if (fullText.includes('Social Post Design')) return PROJECT_TYPE_CONFIG['social-post-design'] || null;
+  if (fullText.includes('Email Design')) return PROJECT_TYPE_CONFIG['email-design'] || null;
+  if (fullText.includes('Hero Section')) return PROJECT_TYPE_CONFIG['hero-section'] || null;
+  if (fullText.includes('Ad Design')) return PROJECT_TYPE_CONFIG['ad-design'] || null;
+  if (fullText.includes('Marketing Campaign')) return PROJECT_TYPE_CONFIG['marketing-campaign'] || null;
+  if (fullText.includes('Video Production')) return PROJECT_TYPE_CONFIG['video-production'] || null;
+  if (fullText.includes('GIF Design')) return PROJECT_TYPE_CONFIG['gif-design'] || null;
+  if (fullText.includes('Website Assets')) return PROJECT_TYPE_CONFIG['website-assets'] || null;
+  if (fullText.includes('Website UI Design')) return PROJECT_TYPE_CONFIG['website-ui-design'] || null;
 
   return null;
+}
+
+/**
+ * Extract project type from briefing (backward compatibility wrapper)
+ * @deprecated Use getProjectType() instead for more complete detection
+ */
+export function getProjectTypeFromBriefing(
+  briefing: ProjectBriefing
+): { label: string; color: string; icon: string } | null {
+  return getProjectType({ briefing });
 }

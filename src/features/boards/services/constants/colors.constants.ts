@@ -46,6 +46,34 @@ export const PROJECT_TYPE_CONFIG: Record<string, { label: string; color: string;
   'other': { label: 'Other', color: '#607D8B', icon: '📋' },
 } as const;
 
+// ==================== SYNC STATUS COLORS ====================
+
+/** Colors for sync status indicators */
+export const SYNC_STATUS_COLORS = {
+  synced: '#22C55E',     // Green - successfully synced
+  pending: '#F59E0B',    // Yellow - waiting to sync
+  syncing: '#3B82F6',    // Blue - currently syncing
+  sync_error: '#EF4444', // Red - sync failed
+  unknown: '#6B7280',    // Gray - unknown/default
+} as const;
+
+/** Get color for a sync status */
+export function getSyncStatusColor(status: string): string {
+  return SYNC_STATUS_COLORS[status as keyof typeof SYNC_STATUS_COLORS] ?? SYNC_STATUS_COLORS.unknown;
+}
+
+// ==================== BADGE COLORS ====================
+
+/** Colors used for status badges in UI */
+export const BADGE_COLORS = {
+  SUCCESS: '#22C55E',    // Green - approved, done, success
+  WARNING: '#F59E0B',    // Yellow/amber - pending, warning
+  ERROR: '#EF4444',      // Red - error, urgent
+  INFO: '#3B82F6',       // Blue - in progress, info
+  PURPLE: '#8B5CF6',     // Purple - reviewed, special
+  NEUTRAL: '#374151',    // Gray - archived, neutral
+} as const;
+
 // ==================== UI COLORS ====================
 
 /** Common UI colors */

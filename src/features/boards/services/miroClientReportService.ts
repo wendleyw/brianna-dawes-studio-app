@@ -183,9 +183,26 @@ function getDaysBetween(startDate: string, endDate: string): number {
 }
 
 /**
+ * Get the best date to use for distributing a deliverable into periods
+ * Priority: deliveredAt (for completed items) > dueDate > createdAt
+ */
+function getDeliverablePeriodDate(d: Deliverable): Date {
+  // For delivered items, use the actual delivery date
+  if (d.deliveredAt) {
+    return new Date(d.deliveredAt);
+  }
+  // For items with a due date, use that
+  if (d.dueDate) {
+    return new Date(d.dueDate);
+  }
+  // Fallback to creation date
+  return new Date(d.createdAt);
+}
+
+/**
  * Calculate report metrics with period breakdown
  * Uses monthly breakdown for periods > 90 days, weekly for shorter periods
- * Uses dueDate to distribute deliverables (or createdAt as fallback)
+ * Uses deliveredAt > dueDate > createdAt to distribute deliverables
  */
 function calculateClientMetrics(data: ClientReportData): ClientReportMetrics {
   const daysBetween = getDaysBetween(data.startDate, data.endDate);
@@ -198,7 +215,7 @@ function calculateClientMetrics(data: ClientReportData): ClientReportMetrics {
     const months = getMonthsInRange(data.startDate, data.endDate);
     periodData = months.map((month, index) => {
       const monthDeliverables = data.deliverables.filter(d => {
-        const dateToUse = d.dueDate ? new Date(d.dueDate) : new Date(d.createdAt);
+        const dateToUse = getDeliverablePeriodDate(d);
         return dateToUse >= month.start && dateToUse <= month.end;
       });
 
@@ -223,7 +240,7 @@ function calculateClientMetrics(data: ClientReportData): ClientReportMetrics {
     const weeks = getWeeksInRange(data.startDate, data.endDate);
     periodData = weeks.map((week, index) => {
       const weekDeliverables = data.deliverables.filter(d => {
-        const dateToUse = d.dueDate ? new Date(d.dueDate) : new Date(d.createdAt);
+        const dateToUse = getDeliverablePeriodDate(d);
         return dateToUse >= week.start && dateToUse <= week.end;
       });
 
@@ -418,7 +435,7 @@ class MiroClientReportService {
     const metrics = calculateClientMetrics(data);
 
     // Calculate dynamic height based on actual content
-    const tableWeekCount = Math.min(metrics.weeklyData.length, 12);
+    const tableWeekCount = Math.min(metrics.weeklyData.length, 13);
     const tableHeight = 30 + (tableWeekCount + 2) * 35;
     const projectTypeCount = Math.min(Object.keys(metrics.deliverablesByProjectType).length, 6);
     const projectTypeHeight = projectTypeCount > 0 ? 35 + projectTypeCount * 38 : 100;
@@ -989,11 +1006,11 @@ class MiroClientReportService {
         },
       });
 
-      // Face emoji
+      // Face emoji - centered with the circle background
       await miro.board.createText({
         content: face.face,
         x: faceX,
-        y: faceY - 2,
+        y: faceY,
         width: faceSize,
         style: {
           fontSize: 28,
@@ -1073,8 +1090,8 @@ class MiroClientReportService {
       headerX += colWidth + 10;
     }
 
-    // Data rows
-    const maxRows = Math.min(weeklyData.length, 12);
+    // Data rows - show up to 13 months to accommodate full year plus possible overlap
+    const maxRows = Math.min(weeklyData.length, 13);
     for (let i = 0; i < maxRows; i++) {
       const week = weeklyData[i];
       if (!week) continue;

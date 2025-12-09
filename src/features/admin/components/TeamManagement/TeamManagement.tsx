@@ -1,69 +1,17 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, memo } from 'react';
 import { Button, Input, Skeleton, CreditBar } from '@shared/ui';
+import { PlusIcon, BoardIcon, TrashIcon, StarIcon, AdminIcon, DesignerIcon, ClientIcon } from '@shared/ui/Icons';
 import { useUsers, useUserMutations } from '../../hooks';
 import { useAllBoards, useBoards, useBoardAssignmentMutations } from '../../hooks/useBoardAssignments';
 import { useSubscriptionPlans, useSubscriptionPlanMutations } from '../../hooks/useSubscriptionPlans';
 import { isMainAdmin } from '@shared/config/env';
+import { ROLE_CONFIG } from '@shared/config';
 import type { UserRole } from '@shared/config/roles';
 import { createLogger } from '@shared/lib/logger';
 import type { User, CreateUserInput, SubscriptionPlanId } from '../../domain';
 import styles from './TeamManagement.module.css';
 
 const logger = createLogger('TeamManagement');
-
-// Icons
-const AdminIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-    <path d="M2 17l10 5 10-5"/>
-    <path d="M2 12l10 5 10-5"/>
-  </svg>
-);
-
-const DesignerIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M12 19l7-7 3 3-7 7-3-3z"/>
-    <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/>
-    <path d="M2 2l7.586 7.586"/>
-    <circle cx="11" cy="11" r="2"/>
-  </svg>
-);
-
-const ClientIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <rect x="4" y="2" width="16" height="20" rx="2"/>
-    <path d="M9 22v-4h6v4"/>
-    <path d="M8 6h.01M16 6h.01M12 6h.01M8 10h.01M16 10h.01M12 10h.01M8 14h.01M16 14h.01M12 14h.01"/>
-  </svg>
-);
-
-const PlusIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <line x1="12" y1="5" x2="12" y2="19"/>
-    <line x1="5" y1="12" x2="19" y2="12"/>
-  </svg>
-);
-
-const BoardIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-    <line x1="3" y1="9" x2="21" y2="9"/>
-    <line x1="9" y1="21" x2="9" y2="9"/>
-  </svg>
-);
-
-const TrashIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <polyline points="3 6 5 6 21 6"/>
-    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-  </svg>
-);
-
-const StarIcon = ({ filled }: { filled?: boolean }) => (
-  <svg width="12" height="12" viewBox="0 0 24 24" fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
-    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-  </svg>
-);
 
 type RoleFilter = 'all' | UserRole;
 
@@ -85,13 +33,14 @@ const emptyFormData: MemberFormData = {
   miroUserId: '',
 };
 
-const ROLE_CONFIG: Record<UserRole, { label: string; color: string; bgColor: string; icon: React.ReactNode }> = {
-  admin: { label: 'Admin', color: '#7C3AED', bgColor: '#EDE9FE', icon: <AdminIcon /> },
-  designer: { label: 'Designer', color: '#0891B2', bgColor: '#CFFAFE', icon: <DesignerIcon /> },
-  client: { label: 'Client', color: '#D97706', bgColor: '#FEF3C7', icon: <ClientIcon /> },
+// Extend centralized ROLE_CONFIG with icons for this component
+const ROLE_UI_CONFIG: Record<UserRole, { label: string; color: string; bgColor: string; icon: React.ReactNode }> = {
+  admin: { ...ROLE_CONFIG.admin, icon: <AdminIcon size={16} /> },
+  designer: { ...ROLE_CONFIG.designer, icon: <DesignerIcon size={16} /> },
+  client: { ...ROLE_CONFIG.client, icon: <ClientIcon size={16} /> },
 };
 
-export function TeamManagement() {
+export const TeamManagement = memo(function TeamManagement() {
   const { data: allUsers, isLoading } = useUsers();
   const { data: allBoardAssignments } = useAllBoards();
   const { data: masterBoards } = useBoards();
@@ -388,7 +337,7 @@ export function TeamManagement() {
         <div className={styles.form}>
           <div className={styles.formHeader}>
             <h3 className={styles.formTitle}>
-              Add New {ROLE_CONFIG[formData.role].label}
+              Add New {ROLE_UI_CONFIG[formData.role].label}
             </h3>
             <div className={styles.roleSelector}>
               {(['admin', 'designer', 'client'] as UserRole[]).map(role => (
@@ -397,12 +346,12 @@ export function TeamManagement() {
                   className={`${styles.roleButton} ${formData.role === role ? styles.roleActive : ''}`}
                   onClick={() => setFormData({ ...formData, role })}
                   style={{
-                    '--role-color': ROLE_CONFIG[role].color,
-                    '--role-bg': ROLE_CONFIG[role].bgColor,
+                    '--role-color': ROLE_UI_CONFIG[role].color,
+                    '--role-bg': ROLE_UI_CONFIG[role].bgColor,
                   } as React.CSSProperties}
                 >
-                  {ROLE_CONFIG[role].icon}
-                  {ROLE_CONFIG[role].label}
+                  {ROLE_UI_CONFIG[role].icon}
+                  {ROLE_UI_CONFIG[role].label}
                 </button>
               ))}
             </div>
@@ -470,7 +419,7 @@ export function TeamManagement() {
               Cancel
             </Button>
             <Button onClick={handleCreate} isLoading={isCreating}>
-              Create {ROLE_CONFIG[formData.role].label}
+              Create {ROLE_UI_CONFIG[formData.role].label}
             </Button>
           </div>
         </div>
@@ -485,15 +434,15 @@ export function TeamManagement() {
             onClick={() => openCreateWithRole(roleFilter)}
           >
             <PlusIcon />
-            <span>Add {ROLE_CONFIG[roleFilter].label}</span>
+            <span>Add {ROLE_UI_CONFIG[roleFilter].label}</span>
           </button>
         )}
 
         {filteredUsers.length === 0 && !showCreateForm && (
           <div className={styles.empty}>
-            {roleFilter === 'all' ? <ClientIcon /> : ROLE_CONFIG[roleFilter].icon}
-            <p>No {roleFilter === 'all' ? 'members' : `${ROLE_CONFIG[roleFilter].label.toLowerCase()}s`} found</p>
-            <span>{roleFilter === 'all' ? 'Select a role tab and add your first team member' : `Click "Add ${ROLE_CONFIG[roleFilter].label}" above to get started`}</span>
+            {roleFilter === 'all' ? <ClientIcon /> : ROLE_UI_CONFIG[roleFilter].icon}
+            <p>No {roleFilter === 'all' ? 'members' : `${ROLE_UI_CONFIG[roleFilter].label.toLowerCase()}s`} found</p>
+            <span>{roleFilter === 'all' ? 'Select a role tab and add your first team member' : `Click "Add ${ROLE_UI_CONFIG[roleFilter].label}" above to get started`}</span>
           </div>
         )}
 
@@ -508,7 +457,7 @@ export function TeamManagement() {
                   ) : (
                     <div
                       className={styles.editLogoPlaceholder}
-                      style={{ backgroundColor: ROLE_CONFIG[formData.role].color }}
+                      style={{ backgroundColor: ROLE_UI_CONFIG[formData.role].color }}
                     >
                       {formData.name?.charAt(0) || 'M'}
                     </div>
@@ -522,11 +471,11 @@ export function TeamManagement() {
                         className={`${styles.roleChip} ${formData.role === role ? styles.roleChipActive : ''}`}
                         onClick={() => setFormData({ ...formData, role })}
                         style={{
-                          '--role-color': ROLE_CONFIG[role].color,
-                          '--role-bg': ROLE_CONFIG[role].bgColor,
+                          '--role-color': ROLE_UI_CONFIG[role].color,
+                          '--role-bg': ROLE_UI_CONFIG[role].bgColor,
                         } as React.CSSProperties}
                       >
-                        {ROLE_CONFIG[role].label}
+                        {ROLE_UI_CONFIG[role].label}
                       </button>
                     ))}
                   </div>
@@ -565,7 +514,7 @@ export function TeamManagement() {
               <div className={styles.memberDisplay}>
                 <div
                   className={styles.memberAvatar}
-                  style={{ backgroundColor: member.companyLogoUrl ? 'white' : ROLE_CONFIG[member.role].color }}
+                  style={{ backgroundColor: member.companyLogoUrl ? 'white' : ROLE_UI_CONFIG[member.role].color }}
                 >
                   {member.companyLogoUrl ? (
                     <img src={member.companyLogoUrl} alt={member.companyName || member.name} />
@@ -583,12 +532,12 @@ export function TeamManagement() {
                     <span
                       className={styles.roleBadge}
                       style={{
-                        backgroundColor: ROLE_CONFIG[member.role].bgColor,
-                        color: ROLE_CONFIG[member.role].color,
+                        backgroundColor: ROLE_UI_CONFIG[member.role].bgColor,
+                        color: ROLE_UI_CONFIG[member.role].color,
                       }}
                     >
-                      {ROLE_CONFIG[member.role].icon}
-                      {ROLE_CONFIG[member.role].label}
+                      {ROLE_UI_CONFIG[member.role].icon}
+                      {ROLE_UI_CONFIG[member.role].label}
                     </span>
                     {member.isSuperAdmin && (
                       <span className={styles.superBadge}>Super</span>
@@ -876,4 +825,4 @@ export function TeamManagement() {
       )}
     </div>
   );
-}
+});

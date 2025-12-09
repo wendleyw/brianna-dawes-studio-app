@@ -99,6 +99,46 @@ class ProjectSyncOrchestrator {
   }
 
   /**
+   * Update a project in DB and sync to Miro with proper status tracking
+   * Unlike useUpdateProjectWithMiro which calls miroTimelineService directly,
+   * this method tracks sync status in the database
+   */
+  async updateProjectWithSync(
+    projectId: string,
+    input: Parameters<typeof projectService.updateProject>[1]
+  ): Promise<SyncResult> {
+    logger.info('Updating project with sync', { projectId });
+
+    // Step 1: Update project in database
+    let project: Project;
+    try {
+      project = await projectService.updateProject(projectId, input);
+      logger.debug('Project updated in DB', { id: project.id, name: project.name });
+    } catch (error) {
+      logger.error('Failed to update project in DB', error);
+      throw error;
+    }
+
+    // Step 2: If project has no miroBoardId, skip sync
+    if (!project.miroBoardId) {
+      logger.debug('Project has no miroBoardId, skipping sync');
+      return {
+        success: true,
+        project,
+        retryable: false,
+      };
+    }
+
+    // Step 3: Attempt Miro sync with status tracking
+    const syncResult = await this.syncProjectToMiro(project);
+
+    return {
+      ...syncResult,
+      project: await projectService.getProject(project.id),
+    };
+  }
+
+  /**
    * Sync an existing project to Miro
    * Updates sync status throughout the process
    */
@@ -122,6 +162,24 @@ class ProjectSyncOrchestrator {
         error: new Error('Miro SDK not available'),
         retryable: true,
       };
+    }
+
+    // Check for stale Miro references - if project has miroCardId but card doesn't exist
+    if (project.miroCardId) {
+      try {
+        const cardExists = await this.checkMiroCardExists(project.miroCardId);
+        if (!cardExists) {
+          logger.warn('Stale miroCardId detected - card no longer exists on board', {
+            projectId: project.id,
+            miroCardId: project.miroCardId,
+          });
+          // Clear the stale reference in DB
+          await projectService.clearMiroReferences(project.id, { clearCard: true, clearFrame: true });
+          // Continue with sync - will create a new card
+        }
+      } catch (error) {
+        logger.debug('Could not verify card existence, proceeding with sync', error);
+      }
     }
 
     // Mark as syncing
@@ -208,15 +266,19 @@ class ProjectSyncOrchestrator {
   }
 
   /**
-   * Perform the actual Miro sync operations
+   * Perform the actual Miro sync operations with timeout protection
    */
   private async performSync(project: Project): Promise<{ cardId?: string | undefined; frameId?: string | undefined }> {
     let cardId: string | undefined;
     let frameId: string | undefined;
 
-    // Create/update timeline card
+    // Create/update timeline card with timeout
     try {
-      await miroTimelineService.syncProject(project);
+      await this.withTimeout(
+        miroTimelineService.syncProject(project),
+        SYNC_CONFIG.SYNC_TIMEOUT_MS,
+        'Timeline sync'
+      );
       // Get the card ID from the timeline service's state
       const cardInfo = await this.getProjectCardInfo(project);
       cardId = cardInfo?.cardId;
@@ -228,9 +290,13 @@ class ProjectSyncOrchestrator {
     // Create/update project row (briefing frame) if briefing exists
     if (project.briefing) {
       try {
-        await miroProjectRowService.createProjectRow(
-          project,
-          project.briefing as ProjectBriefing
+        await this.withTimeout(
+          miroProjectRowService.createProjectRow(
+            project,
+            project.briefing as ProjectBriefing
+          ),
+          SYNC_CONFIG.SYNC_TIMEOUT_MS,
+          'Project row creation'
         );
         // The frame ID could be retrieved similarly
         const frameInfo = await this.getProjectFrameInfo(project);
@@ -461,6 +527,42 @@ class ProjectSyncOrchestrator {
 
   private sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  /**
+   * Check if a Miro card still exists on the board
+   */
+  private async checkMiroCardExists(cardId: string): Promise<boolean> {
+    try {
+      const cards = await miroAdapter.getBoardItems<{ id: string }>('card');
+      return cards.some(card => card.id === cardId);
+    } catch {
+      // If we can't check, assume it exists to avoid false positives
+      return true;
+    }
+  }
+
+  /**
+   * Execute a promise with a timeout
+   * Throws TimeoutError if operation takes longer than specified ms
+   */
+  private async withTimeout<T>(promise: Promise<T>, timeoutMs: number, operation: string): Promise<T> {
+    let timeoutId: ReturnType<typeof setTimeout>;
+
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      timeoutId = setTimeout(() => {
+        reject(new Error(`${operation} timed out after ${timeoutMs}ms`));
+      }, timeoutMs);
+    });
+
+    try {
+      const result = await Promise.race([promise, timeoutPromise]);
+      clearTimeout(timeoutId!);
+      return result;
+    } catch (error) {
+      clearTimeout(timeoutId!);
+      throw error;
+    }
   }
 }
 

@@ -5,10 +5,9 @@ export {
   type TimelineStatus,
   type TimelineColumn,
   TIMELINE_COLUMNS,
-  getTimelineColumn,
   getTimelineStatus,
-  getDbStatusFromTimeline,
-  getTimelineStatusVariant,
+  getStatusColumn,
+  getStatusVariant,
 } from './timelineStatus';
 export {
   type UIDeliverableStatus,

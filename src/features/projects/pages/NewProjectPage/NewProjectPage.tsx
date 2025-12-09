@@ -31,6 +31,15 @@ const WarningIcon = () => (
   </svg>
 );
 
+// Alert icon for board mismatch
+const AlertIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <circle cx="12" cy="12" r="10"/>
+    <line x1="12" y1="8" x2="12" y2="12"/>
+    <line x1="12" y1="16" x2="12.01" y2="16"/>
+  </svg>
+);
+
 interface ProjectBriefing {
   // Basic Info
   name: string;
@@ -121,8 +130,6 @@ export function NewProjectPage() {
     return usersData.find(u => u.role === 'client' && u.primaryBoardId === boardId) || null;
   }, [boardId, usersData]);
 
-  logger.debug('Board detection', { boardId, isInMiro, clientFromBoard: clientFromBoard?.name, clients: clients.length });
-
   const [formData, setFormData] = useState<ProjectBriefing>({
     name: '',
     clientId: isAdmin ? '' : (user?.id || ''),
@@ -138,6 +145,40 @@ export function NewProjectPage() {
     additionalNotes: '',
     targetDate: '',
     priority: 'medium',
+  });
+
+  // Find selected client info (for board mismatch detection)
+  const selectedClient = useMemo(() => {
+    if (!formData.clientId || !usersData) return null;
+    return usersData.find(u => u.id === formData.clientId) || null;
+  }, [formData.clientId, usersData]);
+
+  // Detect board mismatch: selected client has a different primaryBoardId than current board
+  const boardMismatch = useMemo(() => {
+    if (!isInMiro || !boardId || !selectedClient) return null;
+
+    // If selected client has a primary board and it's different from current board
+    if (selectedClient.primaryBoardId && selectedClient.primaryBoardId !== boardId) {
+      return {
+        currentBoardId: boardId,
+        clientBoardId: selectedClient.primaryBoardId,
+        clientName: selectedClient.name,
+      };
+    }
+    return null;
+  }, [isInMiro, boardId, selectedClient]);
+
+  // State to track which board to use when there's a mismatch
+  // 'current' = create on current board, 'client' = save with client's board (no sync until correct board)
+  const [boardChoice, setBoardChoice] = useState<'current' | 'client'>('client');
+
+  logger.debug('Board detection', {
+    boardId,
+    isInMiro,
+    clientFromBoard: clientFromBoard?.name,
+    selectedClient: selectedClient?.name,
+    boardMismatch: !!boardMismatch,
+    clients: clients.length
   });
 
   const updateField = (field: keyof ProjectBriefing, value: string) => {
@@ -296,12 +337,27 @@ ${formData.additionalNotes || needsAttention}
         ? new Date(formData.targetDate + 'T12:00:00.000Z').toISOString()
         : null;
 
+      // Determine which board to use:
+      // - If there's a mismatch and user chose 'client', use client's board (no immediate sync)
+      // - If there's a mismatch and user chose 'current', use current board (sync happens now)
+      // - If no mismatch, use current board
+      const targetBoardId = boardMismatch && boardChoice === 'client'
+        ? boardMismatch.clientBoardId
+        : boardId;
+
+      // Determine if we should skip sync (when creating on client's board but we're on different board)
+      const skipMiroSync = !!(boardMismatch && boardChoice === 'client');
+
       logger.debug('Creating project', {
         name: formData.name,
         priority: formData.priority,
         dueDate: formattedDueDate,
         clientId: formData.clientId,
-        miroBoardId: boardId,
+        currentBoardId: boardId,
+        targetBoardId,
+        boardMismatch: !!boardMismatch,
+        boardChoice,
+        skipMiroSync,
       });
 
       // Set initial status based on priority - urgent priority goes to urgent column
@@ -329,12 +385,14 @@ ${formData.additionalNotes || needsAttention}
           resourceLinks: formData.resourceLinks || null,
           additionalNotes: formData.additionalNotes || null,
         },
+        // Flag to skip Miro sync when board mismatch and creating for client's board
+        skipMiroSync,
       };
 
-      // Add Miro board info if available
-      if (boardId) {
-        projectData.miroBoardId = boardId;
-        projectData.miroBoardUrl = `https://miro.com/app/board/${boardId}`;
+      // Add Miro board info - use target board (client's or current)
+      if (targetBoardId) {
+        projectData.miroBoardId = targetBoardId;
+        projectData.miroBoardUrl = `https://miro.com/app/board/${targetBoardId}`;
       }
 
       await createProject.mutateAsync(projectData);
@@ -417,6 +475,48 @@ ${formData.additionalNotes || needsAttention}
                   : 'Who owns this project? Select yourself or a client'
                 }
               </span>
+
+              {/* Board Mismatch Warning */}
+              {boardMismatch && (
+                <div className={styles.boardMismatchWarning}>
+                  <div className={styles.boardMismatchHeader}>
+                    <AlertIcon />
+                    <span>Different Board Detected</span>
+                  </div>
+                  <p className={styles.boardMismatchText}>
+                    You're on a different board than <strong>{boardMismatch.clientName}</strong>'s assigned board.
+                    Choose where to create this project:
+                  </p>
+                  <div className={styles.boardChoiceOptions}>
+                    <label className={`${styles.boardChoice} ${boardChoice === 'client' ? styles.boardChoiceActive : ''}`}>
+                      <input
+                        type="radio"
+                        name="boardChoice"
+                        value="client"
+                        checked={boardChoice === 'client'}
+                        onChange={() => setBoardChoice('client')}
+                      />
+                      <div className={styles.boardChoiceContent}>
+                        <strong>Client's Board</strong>
+                        <span>Save project for {boardMismatch.clientName}'s board. Miro sync will happen when you open that board.</span>
+                      </div>
+                    </label>
+                    <label className={`${styles.boardChoice} ${boardChoice === 'current' ? styles.boardChoiceActive : ''}`}>
+                      <input
+                        type="radio"
+                        name="boardChoice"
+                        value="current"
+                        checked={boardChoice === 'current'}
+                        onChange={() => setBoardChoice('current')}
+                      />
+                      <div className={styles.boardChoiceContent}>
+                        <strong>Current Board</strong>
+                        <span>Create on THIS board instead. Project will appear here immediately.</span>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

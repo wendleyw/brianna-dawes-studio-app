@@ -6,8 +6,9 @@
  */
 import { useProjects, useProjectMutations } from '@features/projects';
 import { useMiro, useMiroBoardSync, miroProjectRowService, zoomToProject } from '@features/boards';
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import type { ProjectFilters as ProjectFiltersType } from '@features/projects/domain/project.types';
 import { STATUS_COLUMNS } from '@shared/lib/timelineStatus';
 import { formatDateShort } from '@shared/lib/dateFormat';
 import { projectKeys } from '@features/projects/services/projectKeys';
@@ -16,6 +17,7 @@ import { MiroNotifications } from '@shared/lib/miroNotifications';
 import { useRealtimeSubscription } from '@shared/hooks/useRealtimeSubscription';
 import { projectService } from '@features/projects/services/projectService';
 import { createLogger } from '@shared/lib/logger';
+import { SYNC_TIMING } from '@shared/config';
 import type { Project, ProjectStatus } from '@features/projects/domain/project.types';
 import styles from './BoardModalApp.module.css';
 
@@ -29,9 +31,19 @@ const CloseIcon = () => (
 );
 
 export function BoardModalApp() {
-  const { miro, isInMiro } = useMiro();
+  const { miro, isInMiro, boardId: currentBoardId } = useMiro();
   const queryClient = useQueryClient();
-  const { data: projectsData, isLoading, refetch } = useProjects({});
+
+  // IMPORTANT: Filter projects by current board for data isolation
+  const filters: ProjectFiltersType = useMemo(() => {
+    const f: ProjectFiltersType = {};
+    if (isInMiro && currentBoardId) {
+      f.miroBoardId = currentBoardId;
+    }
+    return f;
+  }, [isInMiro, currentBoardId]);
+
+  const { data: projectsData, isLoading, refetch } = useProjects({ filters });
   const { updateProject } = useProjectMutations();
   const { initializeBoard, syncProject, syncAllProjects, isInitialized, isSyncing } = useMiroBoardSync();
 
@@ -77,6 +89,13 @@ export function BoardModalApp() {
         return;
       }
 
+      // Skip if status didn't actually change (avoid unnecessary syncs)
+      if (newRecord.status === oldRecord.status && newRecord.was_reviewed === oldRecord.was_reviewed) {
+        logger.debug('BoardModal: Skipping - no status change', { projectId });
+        await refetch(); // Still refetch to update UI
+        return;
+      }
+
       logger.info('BoardModal: Realtime update received', {
         projectId,
         oldStatus: oldRecord.status,
@@ -86,15 +105,26 @@ export function BoardModalApp() {
 
       // Mark as recently synced for 5 seconds
       recentlySyncedRef.current.add(projectId);
-      setTimeout(() => recentlySyncedRef.current.delete(projectId), 5000);
+      setTimeout(() => recentlySyncedRef.current.delete(projectId), SYNC_TIMING.RECENT_SYNC_COOLDOWN);
 
       // Refetch projects to update the board UI
       await refetch();
 
-      // Sync to Miro timeline
+      // Sync to Miro timeline (only for projects on this board)
       if (isInMiro && isInitialized) {
         try {
           const fullProject = await projectService.getProject(projectId);
+
+          // IMPORTANT: Only sync projects that belong to this board
+          if (currentBoardId && fullProject.miroBoardId !== currentBoardId) {
+            logger.debug('BoardModal: Skipping sync - project belongs to different board', {
+              projectId,
+              projectBoardId: fullProject.miroBoardId,
+              currentBoardId,
+            });
+            return;
+          }
+
           await syncProject(fullProject, { markAsReviewed: fullProject.wasReviewed });
 
           // Also update briefing status badge
@@ -105,15 +135,17 @@ export function BoardModalApp() {
           logger.error('BoardModal: Miro sync failed', err);
         }
       }
-    }, [refetch, isInMiro, isInitialized, syncProject]),
+    }, [refetch, isInMiro, isInitialized, syncProject, currentBoardId]),
     enabled: true,
   });
 
-  // Group projects by status (direct from database)
-  const projectsByStatus = STATUS_COLUMNS.reduce((acc, column) => {
-    acc[column.id] = projects.filter(p => p.status === column.id);
-    return acc;
-  }, {} as Record<ProjectStatus, Project[]>);
+  // Group projects by status (memoized to prevent recalculation on every render)
+  const projectsByStatus = useMemo(() => {
+    return STATUS_COLUMNS.reduce((acc, column) => {
+      acc[column.id] = projects.filter(p => p.status === column.id);
+      return acc;
+    }, {} as Record<ProjectStatus, Project[]>);
+  }, [projects]);
 
   const handleClose = useCallback(async () => {
     if (miro) {
@@ -169,13 +201,13 @@ export function BoardModalApp() {
       await syncProject(updatedProjectFromDB);
 
       // 3. Update the status badge in the briefing frame
-      console.log('[BoardModal] Updating briefing status badge for:', projectName, newStatus);
+      logger.debug('Updating briefing status badge', { projectName, newStatus });
       miroProjectRowService.updateBriefingStatus(projectId, newStatus, projectName)
         .then(result => {
-          console.log('[BoardModal] Briefing status update result:', result);
+          logger.debug('Briefing status update result', { result });
         })
         .catch(err => {
-          console.error('[BoardModal] Briefing status update failed:', err);
+          logger.error('Briefing status update failed', err);
         });
 
       // 4. Invalidate and refetch to ensure UI is in sync

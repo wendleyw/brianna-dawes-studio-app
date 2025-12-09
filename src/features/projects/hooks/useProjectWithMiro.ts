@@ -35,8 +35,15 @@ export function useCreateProjectWithMiro() {
   const { isInMiro, miro } = useMiro();
 
   return useMutation({
-    mutationFn: async (input: CreateProjectInput & { briefing?: Partial<ProjectBriefing> }) => {
-      logger.debug('Starting project creation with orchestrator', { isInMiro, hasMiro: !!miro });
+    mutationFn: async (input: CreateProjectInput & { briefing?: Partial<ProjectBriefing>; skipMiroSync?: boolean }) => {
+      const { skipMiroSync, ...projectInput } = input;
+
+      logger.debug('Starting project creation', {
+        isInMiro,
+        hasMiro: !!miro,
+        skipMiroSync,
+        miroBoardId: projectInput.miroBoardId,
+      });
 
       // Prepare briefing data
       // Note: Do NOT use input.description as fallback - it contains the full markdown description
@@ -44,17 +51,29 @@ export function useCreateProjectWithMiro() {
       // so the Miro board shows "Needs attention" for that field.
       const briefing: ProjectBriefing = {
         ...DEFAULT_BRIEFING,
-        projectOverview: input.briefing?.projectOverview || null,
-        finalMessaging: input.briefing?.finalMessaging || null,
-        inspirations: input.briefing?.inspirations || null,
-        targetAudience: input.briefing?.targetAudience || null,
-        deliverables: input.briefing?.deliverables || null,
-        styleNotes: input.briefing?.styleNotes || null,
-        goals: input.briefing?.goals || null,
-        timeline: input.briefing?.timeline || null,
-        resourceLinks: input.briefing?.resourceLinks || null,
-        additionalNotes: input.briefing?.additionalNotes || null,
+        projectOverview: projectInput.briefing?.projectOverview || null,
+        finalMessaging: projectInput.briefing?.finalMessaging || null,
+        inspirations: projectInput.briefing?.inspirations || null,
+        targetAudience: projectInput.briefing?.targetAudience || null,
+        deliverables: projectInput.briefing?.deliverables || null,
+        styleNotes: projectInput.briefing?.styleNotes || null,
+        goals: projectInput.briefing?.goals || null,
+        timeline: projectInput.briefing?.timeline || null,
+        resourceLinks: projectInput.briefing?.resourceLinks || null,
+        additionalNotes: projectInput.briefing?.additionalNotes || null,
       };
+
+      // If skipMiroSync is true, only create in DB (project is for different board)
+      if (skipMiroSync) {
+        logger.debug('Skipping Miro sync - project is for a different board');
+        const project = await projectService.createProject({ ...projectInput, briefing });
+        logger.info('Project created in DB (sync skipped - different board)', {
+          id: project.id,
+          miroBoardId: project.miroBoardId,
+        });
+        await MiroNotifications.showInfo(`Project created! It will appear on the client's board when you open it.`);
+        return project;
+      }
 
       // If in Miro, use orchestrator for proper sync status tracking
       if (isInMiro && miro) {
@@ -68,7 +87,7 @@ export function useCreateProjectWithMiro() {
         }
 
         const result = await projectSyncOrchestrator.createProjectWithSync({
-          ...input,
+          ...projectInput,
           briefing,
         });
 
@@ -89,7 +108,7 @@ export function useCreateProjectWithMiro() {
 
       // Not in Miro - just create in database
       logger.debug('Not in Miro environment, creating project in DB only');
-      const project = await projectService.createProject(input);
+      const project = await projectService.createProject({ ...projectInput, briefing });
       logger.info('Project created in DB (no Miro sync)', { id: project.id });
 
       return project;
@@ -106,31 +125,49 @@ export function useUpdateProjectWithMiro() {
 
   return useMutation({
     mutationFn: async ({ id, input }: { id: string; input: UpdateProjectInput }) => {
-      // 1. Update project in database
-      const project = await projectService.updateProject(id, input);
-
-      // 2. If running in Miro, sync to timeline and update briefing status badge
+      // Use orchestrator when in Miro for proper sync status tracking
       if (isInMiro && miro) {
-        try {
-          // Sync project to timeline (updates position based on status/priority)
-          await miroTimelineService.syncProject(project);
+        logger.debug('In Miro environment, using orchestrator for update sync');
 
-          // Update the status badge in the briefing frame if status changed
+        const result = await projectSyncOrchestrator.updateProjectWithSync(id, input);
+
+        if (!result.success) {
+          logger.warn('Miro sync failed during update', {
+            projectId: id,
+            error: result.error?.message,
+          });
+          await MiroNotifications.syncError('Project updated but Miro sync failed');
+        } else {
+          // Update briefing status badge if status changed
           if (input.status) {
-            await miroProjectRowService.updateBriefingStatus(project.id, project.status, project.name);
+            try {
+              await miroProjectRowService.updateBriefingStatus(
+                result.project.id,
+                result.project.status,
+                result.project.name
+              );
+            } catch (error) {
+              logger.warn('Failed to update briefing status badge', error);
+            }
           }
 
-          logger.debug('Project synced to Miro', { name: project.name, status: project.status });
-        } catch (error) {
-          logger.error('Miro sync failed', error);
-          await MiroNotifications.syncError('Failed to sync project to Miro');
+          logger.debug('Project synced to Miro via orchestrator', {
+            name: result.project.name,
+            status: result.project.status,
+          });
         }
+
+        // Show Miro notification (only for non-status updates)
+        if (!input.status) {
+          await MiroNotifications.projectUpdated(result.project.name);
+        }
+
+        return result.project;
       }
 
-      // 3. Show Miro notification (only for non-status updates, status changes are handled by BoardModal)
-      if (!input.status) {
-        await MiroNotifications.projectUpdated(project.name);
-      }
+      // Not in Miro - just update in database
+      logger.debug('Not in Miro, updating project in DB only');
+      const project = await projectService.updateProject(id, input);
 
       return project;
     },

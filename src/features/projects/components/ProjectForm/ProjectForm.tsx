@@ -1,26 +1,16 @@
 import { useState, FormEvent } from 'react';
-import { Input, Button } from '@shared/ui';
+import { Button } from '@shared/ui';
 import { createProjectSchema, updateProjectSchema } from '../../domain/project.schema';
 import { STATUS_COLUMNS } from '@shared/lib/timelineStatus';
 import { PRIORITY_OPTIONS } from '@shared/lib/priorityConfig';
 import type { ProjectFormProps, ProjectFormData } from './ProjectForm.types';
 import styles from './ProjectForm.module.css';
 
-// Edit icon for due date field
-const EditIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-  </svg>
-);
-
 // Generate STATUS_OPTIONS from centralized STATUS_COLUMNS
 const STATUS_OPTIONS = STATUS_COLUMNS.map(col => ({
   value: col.id,
   label: col.label,
 }));
-
-// PRIORITY_OPTIONS is now imported from @shared/lib/priorityConfig
 
 export function ProjectForm({
   project,
@@ -43,7 +33,6 @@ export function ProjectForm({
 
   const [errors, setErrors] = useState<Partial<Record<keyof ProjectFormData, string>>>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [isEditingDueDate, setIsEditingDueDate] = useState(false);
 
   const handleChange = (field: keyof ProjectFormData) => (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
@@ -82,7 +71,6 @@ export function ProjectForm({
     }
 
     try {
-      // Cast to the expected type for onSubmit
       await onSubmit(result.data as Parameters<typeof onSubmit>[0]);
     } catch (error) {
       setSubmitError(
@@ -95,157 +83,125 @@ export function ProjectForm({
     <form className={styles.form} onSubmit={handleSubmit}>
       {submitError && <div className={styles.submitError}>{submitError}</div>}
 
-      <div className={styles.section}>
-        <h3 className={styles.sectionTitle}>Basic Information</h3>
+      {/* Project Name */}
+      <div className={styles.fieldCompact}>
+        <input
+          type="text"
+          className={`${styles.inputCompact} ${styles.inputName}`}
+          placeholder="Project name"
+          value={formData.name}
+          onChange={handleChange('name')}
+          disabled={isLoading}
+          required
+        />
+        {errors.name && <span className={styles.error}>{errors.name}</span>}
+      </div>
 
-        <div className={styles.field}>
-          <Input
-            label="Project Name"
-            placeholder="E.g.: Corporate Website Redesign"
-            value={formData.name}
-            onChange={handleChange('name')}
-            {...(errors.name ? { error: errors.name } : {})}
-            disabled={isLoading}
-            required
-          />
-        </div>
-
-        <div className={styles.field}>
-          <label htmlFor="project-description" className={styles.label}>Description</label>
-          <textarea
-            id="project-description"
-            className={styles.textarea}
-            placeholder="Describe the project goals and scope..."
-            value={formData.description}
-            onChange={handleChange('description')}
-            disabled={isLoading}
-            aria-describedby={errors.description ? 'description-error' : undefined}
-          />
-          {errors.description && <span id="description-error" className={styles.error}>{errors.description}</span>}
-        </div>
-
-        <div className={styles.row}>
-          <div className={styles.field}>
-            <label htmlFor="project-status" className={styles.label}>Status</label>
-            <select
-              id="project-status"
-              className={styles.select}
-              value={formData.status}
-              onChange={handleChange('status')}
-              disabled={isLoading}
-            >
-              {STATUS_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className={styles.field}>
-            <label htmlFor="project-priority" className={styles.label}>Priority</label>
-            <select
-              id="project-priority"
-              className={styles.select}
-              value={formData.priority}
-              onChange={handleChange('priority')}
-              disabled={isLoading}
-            >
-              {PRIORITY_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+      {/* Status & Priority - Chip Selection */}
+      <div className={styles.chipRow}>
+        <div className={styles.chipGroup}>
+          <span className={styles.chipLabel}>Status</span>
+          <div className={styles.chips}>
+            {STATUS_OPTIONS.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                className={`${styles.chip} ${formData.status === option.value ? styles.chipActive : ''}`}
+                onClick={() => setFormData(prev => ({ ...prev, status: option.value }))}
+                disabled={isLoading}
+              >
+                {option.label}
+              </button>
+            ))}
           </div>
         </div>
       </div>
 
-      <div className={styles.section}>
-        <h3 className={styles.sectionTitle}>Dates</h3>
-
-        <div className={styles.row}>
-          <div className={styles.field}>
-            <label htmlFor="project-start-date" className={styles.label}>Start Date</label>
-            <input
-              id="project-start-date"
-              type="date"
-              className={styles.dateInput}
-              value={formData.startDate}
-              onChange={handleChange('startDate')}
-              disabled={isLoading}
-            />
-          </div>
-
-          <div className={styles.field}>
-            <label htmlFor="project-due-date" className={styles.label}>Specific due date</label>
-            <div className={styles.dueDateWrapper}>
-              {isEditingDueDate ? (
-                <input
-                  id="project-due-date"
-                  type="date"
-                  className={styles.dateInputEditing}
-                  value={formData.dueDate}
-                  onChange={handleChange('dueDate')}
-                  disabled={isLoading}
-                  autoFocus
-                  onBlur={() => setIsEditingDueDate(false)}
-                />
-              ) : (
-                <>
-                  <div className={`${styles.dueDateDisplay} ${formData.dueDate ? styles.hasValue : ''}`}>
-                    {formData.dueDate
-                      ? new Date(formData.dueDate + 'T00:00:00').toLocaleDateString('en-US', {
-                          month: 'short',
-                          day: 'numeric',
-                          year: 'numeric'
-                        })
-                      : 'Not set'}
-                  </div>
-                  <button
-                    type="button"
-                    className={styles.dueDateEditBtn}
-                    onClick={() => setIsEditingDueDate(true)}
-                    disabled={isLoading}
-                    title="Set due date"
-                  >
-                    <EditIcon />
-                  </button>
-                </>
-              )}
-            </div>
-            {!isEditing && formData.dueDate && (
-              <span className={styles.dueDateNote}>Due date will be pending approval</span>
-            )}
+      <div className={styles.chipRow}>
+        <div className={styles.chipGroup}>
+          <span className={styles.chipLabel}>Priority</span>
+          <div className={styles.chips}>
+            {PRIORITY_OPTIONS.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                className={`${styles.chip} ${styles.chipPriority} ${formData.priority === option.value ? styles.chipActive : ''}`}
+                onClick={() => setFormData(prev => ({ ...prev, priority: option.value }))}
+                disabled={isLoading}
+                data-priority={option.value}
+              >
+                {option.label}
+              </button>
+            ))}
           </div>
         </div>
       </div>
 
-      <div className={styles.section}>
-        <h3 className={styles.sectionTitle}>Assignment</h3>
-
-        <div className={styles.field}>
-          <Input
-            label="Client ID"
-            placeholder="Client UUID"
-            value={formData.clientId}
-            onChange={handleChange('clientId')}
-            {...(errors.clientId ? { error: errors.clientId } : {})}
+      {/* Dates Row - Compact */}
+      <div className={styles.datesRow}>
+        <div className={styles.dateField}>
+          <span className={styles.dateLabel}>Start</span>
+          <input
+            type="date"
+            className={styles.dateInputCompact}
+            value={formData.startDate}
+            onChange={handleChange('startDate')}
             disabled={isLoading}
-            required
-            helperText="Select the client responsible for this project"
+          />
+        </div>
+        <div className={styles.dateSeparator}>→</div>
+        <div className={styles.dateField}>
+          <span className={styles.dateLabel}>Due</span>
+          <input
+            type="date"
+            className={styles.dateInputCompact}
+            value={formData.dueDate}
+            onChange={handleChange('dueDate')}
+            disabled={isLoading}
           />
         </div>
       </div>
+      {!isEditing && formData.dueDate && (
+        <span className={styles.dueDateNote}>Due date will be pending approval</span>
+      )}
 
+      {/* Client ID - Compact */}
+      <div className={styles.fieldCompact}>
+        <span className={styles.fieldLabel}>Client ID</span>
+        <input
+          type="text"
+          className={styles.inputCompact}
+          placeholder="Client UUID"
+          value={formData.clientId}
+          onChange={handleChange('clientId')}
+          disabled={isLoading}
+          required
+        />
+        {errors.clientId && <span className={styles.error}>{errors.clientId}</span>}
+      </div>
+
+      {/* Description - Optional, collapsed by default */}
+      <details className={styles.optionalSection}>
+        <summary className={styles.optionalSummary}>Add description</summary>
+        <textarea
+          className={styles.textareaCompact}
+          placeholder="Project goals and scope..."
+          value={formData.description}
+          onChange={handleChange('description')}
+          disabled={isLoading}
+          rows={3}
+        />
+      </details>
+
+      {/* Actions */}
       <div className={styles.actions}>
         {onCancel && (
-          <Button type="button" variant="secondary" onClick={onCancel} disabled={isLoading}>
+          <Button type="button" variant="ghost" size="sm" onClick={onCancel} disabled={isLoading}>
             Cancel
           </Button>
         )}
-        <Button type="submit" variant="primary" isLoading={isLoading}>
-          {isEditing ? 'Save Changes' : 'Create Project'}
+        <Button type="submit" variant="primary" size="sm" isLoading={isLoading}>
+          {isEditing ? 'Save' : 'Create'}
         </Button>
       </div>
     </form>

@@ -1,7 +1,10 @@
 import { useEffect, useRef, useCallback } from 'react';
 import type { LogoProps } from './Logo.types';
+import { createLogger } from '@shared/lib/logger';
 import logoImage from '../../../assets/brand/logo-brianna.png';
 import styles from './Logo.module.css';
+
+const logger = createLogger('Logo');
 
 const SIZES = {
   sm: 32,
@@ -15,13 +18,13 @@ export function Logo({ size = 'md', className, animated = false, onAnimationComp
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const handleVideoEnd = useCallback(() => {
-    console.log('[Logo] Video ended - staying on last frame');
+    logger.debug('Video ended - staying on last frame');
     // Video stays on last frame (no switch to static image)
     onAnimationComplete?.();
   }, [onAnimationComplete]);
 
   const handleVideoError = useCallback(() => {
-    console.log('[Logo] Video error');
+    logger.debug('Video error');
     onAnimationComplete?.();
   }, [onAnimationComplete]);
 
@@ -30,7 +33,7 @@ export function Logo({ size = 'md', className, animated = false, onAnimationComp
 
     // Fallback timer in case video doesn't end properly
     const fallbackTimer = setTimeout(() => {
-      console.log('[Logo] Fallback timer triggered');
+      logger.debug('Fallback timer triggered');
       onAnimationComplete?.();
     }, 5000); // 5s fallback
 

@@ -146,11 +146,24 @@ export function ArchiveIcon(props: IconProps) {
 }
 
 // Star / Favorite
-export function StarIcon(props: IconProps) {
+export function StarIcon(props: IconProps & { filled?: boolean }) {
+  const { filled, size = 16, className, style, ...rest } = props;
   return (
-    <IconBase {...props}>
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill={filled ? 'currentColor' : 'none'}
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      style={style}
+      aria-hidden={rest['aria-hidden'] ?? true}
+    >
       <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-    </IconBase>
+    </svg>
   );
 }
 
@@ -301,3 +314,82 @@ export function DriveIcon(props: IconProps) {
     </svg>
   );
 }
+
+// Search / Magnifying Glass
+export function SearchIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <circle cx="11" cy="11" r="8" />
+      <line x1="21" y1="21" x2="16.65" y2="16.65" />
+    </IconBase>
+  );
+}
+
+// Arrow Left / Back
+export function ArrowLeftIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <line x1="19" y1="12" x2="5" y2="12" />
+      <polyline points="12 19 5 12 12 5" />
+    </IconBase>
+  );
+}
+
+// Code / Developer
+export function CodeIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <polyline points="16 18 22 12 16 6" />
+      <polyline points="8 6 2 12 8 18" />
+    </IconBase>
+  );
+}
+
+// Shield / Admin
+export function ShieldIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+    </IconBase>
+  );
+}
+
+// Briefcase / Designer
+export function BriefcaseIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+      <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+    </IconBase>
+  );
+}
+
+// ==================== ALIASES ====================
+// For backward compatibility and semantic naming
+
+/** Alias for GridIcon - used for board/canvas views */
+export const BoardIcon = GridIcon;
+
+/** Alias for UserIcon - used for client context */
+export const ClientIcon = UserIcon;
+
+/** Alias for ArrowLeftIcon - used for navigation */
+export const BackIcon = ArrowLeftIcon;
+
+/** Alias for UsersIcon - used for team context */
+export const TeamIcon = UsersIcon;
+
+/** Alias for GridIcon - used for boards context */
+export const BoardsIcon = GridIcon;
+
+/** Alias for CodeIcon - used for developer tools */
+export const DeveloperIcon = CodeIcon;
+
+/** Alias for RefreshIcon - used for sync context */
+export const SyncIcon = RefreshIcon;
+
+/** Alias for ShieldIcon - used for admin role */
+export const AdminIcon = ShieldIcon;
+
+/** Alias for BriefcaseIcon - used for designer role */
+export const DesignerIcon = BriefcaseIcon;

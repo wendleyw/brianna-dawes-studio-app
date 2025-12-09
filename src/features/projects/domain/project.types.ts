@@ -112,6 +112,8 @@ export interface CreateProjectInput {
   googleDriveUrl?: string | null;
   // Due date approval (false = custom date needs approval)
   dueDateApproved?: boolean;
+  // Sync status - set 'not_required' when project doesn't need Miro sync
+  syncStatus?: MiroSyncStatus;
 }
 
 export interface UpdateProjectInput {
@@ -148,6 +150,8 @@ export interface ProjectFilters {
   startDateTo?: string;
   dueDateFrom?: string;
   dueDateTo?: string;
+  /** Filter projects by Miro board ID - for data isolation between boards */
+  miroBoardId?: string;
 }
 
 export interface ProjectSort {
