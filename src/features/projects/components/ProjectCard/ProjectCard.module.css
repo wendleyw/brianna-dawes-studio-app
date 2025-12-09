@@ -17,6 +17,12 @@
   box-shadow: 0 0 0 2px var(--color-accent), var(--shadow-md);
 }
 
+/* Completed/Done card - light green background */
+.card.done {
+  background-color: rgba(34, 197, 94, 0.05);
+  border-color: rgba(34, 197, 94, 0.3);
+}
+
 /* Header */
 .header {
   display: flex;

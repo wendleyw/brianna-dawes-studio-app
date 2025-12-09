@@ -712,11 +712,11 @@ export const ProjectCard = memo(function ProjectCard({
   };
 
   return (
-    <article className={`${styles.card} ${isSelected ? styles.selected : ''}`} data-project-id={project.id}>
+    <article className={`${styles.card} ${isSelected ? styles.selected : ''} ${isDone ? styles.done : ''}`} data-project-id={project.id}>
       {/* Header */}
       <div className={styles.header}>
-        {/* Reviewed badge - highlighted at top when client has reviewed */}
-        {project.wasReviewed && (
+        {/* Reviewed badge - highlighted at top when client has reviewed (hidden when done) */}
+        {project.wasReviewed && !isDone && (
           <div className={styles.reviewedBanner}>
             <Badge
               variant="neutral"
