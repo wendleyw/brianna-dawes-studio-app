@@ -1253,18 +1253,10 @@ export const ProjectCard = memo(function ProjectCard({
         open={showReviewModal}
         onClose={() => setShowReviewModal(false)}
         title="Send for Review"
-        description={`Send "${project.name}" for client validation?`}
+        description={`The client will be notified to review and approve "${project.name}".`}
         size="sm"
       >
         <div className={styles.modalContent}>
-          <div className={styles.modalInfo}>
-            <p>This will:</p>
-            <ul>
-              <li>Update status to <strong>Review</strong></li>
-              <li>Highlight the card on the client's board</li>
-              <li>Client will receive a notification to approve or request changes</li>
-            </ul>
-          </div>
           <div className={styles.modalActions}>
             <Button variant="ghost" onClick={() => setShowReviewModal(false)}>
               Cancel
@@ -1281,19 +1273,10 @@ export const ProjectCard = memo(function ProjectCard({
         open={showCompleteModal}
         onClose={() => setShowCompleteModal(false)}
         title="Complete Project"
-        description={`Mark "${project.name}" as completed?`}
+        description={`Finalize "${project.name}"? The project will be moved to Done.`}
         size="sm"
       >
         <div className={styles.modalContent}>
-          <div className={styles.modalInfo}>
-            <p>This will:</p>
-            <ul>
-              <li>Update status to <strong>Completed</strong></li>
-              <li>Move card to the Done column</li>
-              <li>Lock editing (only admin can reopen)</li>
-              <li>Record completion timestamp</li>
-            </ul>
-          </div>
           <div className={styles.modalActions}>
             <Button variant="ghost" onClick={() => setShowCompleteModal(false)}>
               Cancel
@@ -1455,21 +1438,11 @@ export const ProjectCard = memo(function ProjectCard({
       <Dialog
         open={showVersionModal}
         onClose={() => setShowVersionModal(false)}
-        title="Create New Version"
-        description={`Add a new process version for "${project.name}"`}
+        title="New Version"
+        description={`Create "${project.name} - VERSION ${(project.deliverablesCount || 0) + 1}" frame on the board?`}
         size="sm"
       >
         <div className={styles.modalContent}>
-          <div className={styles.modalInfo}>
-            <p>This will create a new version frame in the project board:</p>
-            <div className={styles.versionPreview}>
-              <span className={styles.versionIcon}>🎯</span>
-              <span>{project.name} - VERSION {(project.deliverablesCount || 0) + 1}</span>
-            </div>
-            <p className={styles.versionNote}>
-              The version will be added to the right of existing versions and synced with the Admin panel.
-            </p>
-          </div>
           <div className={styles.modalActions}>
             <Button variant="ghost" onClick={() => setShowVersionModal(false)}>
               Cancel
@@ -1545,13 +1518,10 @@ export const ProjectCard = memo(function ProjectCard({
         open={showArchiveModal}
         onClose={() => setShowArchiveModal(false)}
         title="Archive Project"
-        description={`Archive "${project.name}"?`}
+        description={`Move "${project.name}" to the archive?`}
         size="sm"
       >
         <div className={styles.modalContent}>
-          <div className={styles.modalWarning}>
-            <p>This will move the project to the archive. Only admins can restore archived projects.</p>
-          </div>
           <Input
             label="Reason (optional)"
             placeholder="Why is this project being archived?"
@@ -1563,7 +1533,7 @@ export const ProjectCard = memo(function ProjectCard({
               Cancel
             </Button>
             <Button variant="danger" onClick={handleConfirmArchive}>
-              Archive Project
+              Archive
             </Button>
           </div>
         </div>
@@ -1574,18 +1544,10 @@ export const ProjectCard = memo(function ProjectCard({
         open={showClientRequestChangesModal}
         onClose={() => setShowClientRequestChangesModal(false)}
         title="Request Changes"
-        description={`Send "${project.name}" back to the design team?`}
+        description={`Send "${project.name}" back to the design team for revisions?`}
         size="sm"
       >
         <div className={styles.modalContent}>
-          <div className={styles.modalInfo}>
-            <p>This will:</p>
-            <ul>
-              <li>Mark this version as <strong>reviewed</strong></li>
-              <li>Send the project back to <strong>In Progress</strong></li>
-              <li>Notify the design team to make changes</li>
-            </ul>
-          </div>
           <div className={styles.modalActions}>
             <Button variant="ghost" onClick={() => setShowClientRequestChangesModal(false)}>
               Cancel
@@ -1602,18 +1564,10 @@ export const ProjectCard = memo(function ProjectCard({
         open={showClientApproveModal}
         onClose={() => setShowClientApproveModal(false)}
         title="Approve Project"
-        description={`Approve "${project.name}"?`}
+        description={`Approve "${project.name}"? The team will be notified to finalize the project.`}
         size="sm"
       >
         <div className={styles.modalContent}>
-          <div className={styles.modalSuccess}>
-            <p>This will:</p>
-            <ul>
-              <li>Mark this project as <strong>APPROVED</strong></li>
-              <li>Notify the Creative Director</li>
-              <li>Project will be finalized by the team</li>
-            </ul>
-          </div>
           <div className={styles.modalActions}>
             <Button variant="ghost" onClick={() => setShowClientApproveModal(false)}>
               Cancel
@@ -1630,19 +1584,10 @@ export const ProjectCard = memo(function ProjectCard({
         open={showClientCriticalModal}
         onClose={() => setShowClientCriticalModal(false)}
         title="Move to Urgent"
-        description={`Mark "${project.name}" as urgent priority?`}
+        description={`Mark "${project.name}" as urgent? The team will be alerted immediately.`}
         size="sm"
       >
         <div className={styles.modalContent}>
-          <div className={styles.modalWarning}>
-            <p>This will:</p>
-            <ul>
-              <li>Mark this project as <strong>URGENT</strong></li>
-              <li>Alert the design team immediately</li>
-              <li>Move the card to the Urgent column</li>
-            </ul>
-            <p style={{ marginTop: '12px', fontWeight: 500 }}>Use this only for urgent issues that need immediate attention.</p>
-          </div>
           <div className={styles.modalActions}>
             <Button variant="ghost" onClick={() => setShowClientCriticalModal(false)}>
               Cancel

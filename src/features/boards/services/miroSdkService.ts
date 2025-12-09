@@ -478,11 +478,12 @@ class MiroMasterTimelineService {
                          '🟢'; // low/standard
 
     // Build clean card title - multi-line format
-    // Line 1: [ARCHIVED] or [REVIEWED] [icon] Project Title
+    // Line 1: [ARCHIVED] or [APPROVED] or [REVIEWED] [icon] Project Title
     // Line 2: Due Date
     // Line 3: Author
     const isArchived = project.archivedAt !== null;
-    const statusTag = isArchived ? '[ARCHIVED] ' : (wasReviewed ? '[REVIEWED] ' : '');
+    const wasApproved = project.wasApproved || false;
+    const statusTag = isArchived ? '[ARCHIVED] ' : (wasApproved ? '[APPROVED] ✓ ' : (wasReviewed ? '[REVIEWED] ' : ''));
     const datePart = formatDueDate(project.dueDate);
     const authorPart = project.client?.name || '';
 
