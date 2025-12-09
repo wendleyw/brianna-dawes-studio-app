@@ -90,3 +90,9 @@
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
 }
+
+.settingsContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
