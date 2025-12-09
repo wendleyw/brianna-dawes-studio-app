@@ -43,27 +43,6 @@ export const PRIORITY_COLORS: Record<ProjectPriority, string> = {
   low: '#10B981',
 } as const;
 
-// Get priority column by ID
-export function getPriorityColumn(priority: ProjectPriority): PriorityColumn {
-  return PRIORITY_COLUMNS.find(col => col.id === priority) ?? PRIORITY_COLUMNS[3]!;
-}
-
-// Get badge variant for priority
-export function getPriorityVariant(priority: ProjectPriority): 'error' | 'warning' | 'info' | 'success' {
-  switch (priority) {
-    case 'urgent':
-      return 'error';
-    case 'high':
-      return 'warning';
-    case 'medium':
-      return 'info';
-    case 'low':
-      return 'success';
-    default:
-      return 'info';
-  }
-}
-
 // Priority options for forms (in order of urgency)
 export const PRIORITY_OPTIONS = PRIORITY_COLUMNS.map(col => ({
   value: col.id,

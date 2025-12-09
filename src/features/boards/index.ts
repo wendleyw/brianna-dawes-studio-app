@@ -40,7 +40,6 @@ export {
   miroTimelineService,
   miroProjectRowService,
   addVersionToProject,
-  getProjectVersionCount,
   zoomToProject,
   miroReportService,
   miroClientReportService,

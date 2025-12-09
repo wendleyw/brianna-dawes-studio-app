@@ -1,1 +1,0 @@
-export { LogoSplash } from './LogoSplash';

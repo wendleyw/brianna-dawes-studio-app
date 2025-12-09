@@ -7,7 +7,6 @@ export {
   miroTimelineService,
   miroProjectRowService,
   addVersionToProject,
-  getProjectVersionCount,
   zoomToProject,
 } from './miroSdkService';
 

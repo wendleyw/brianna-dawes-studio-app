@@ -49,24 +49,6 @@ export function getTimelineStatus(project: { status: ProjectStatus }): ProjectSt
   return project.status;
 }
 
-// Get badge variant for status
-export function getStatusVariant(status: ProjectStatus): 'error' | 'warning' | 'info' | 'success' | 'neutral' {
-  switch (status) {
-    case 'overdue':
-      return 'error';
-    case 'urgent':
-      return 'warning';
-    case 'in_progress':
-      return 'info';
-    case 'review':
-      return 'warning';
-    case 'done':
-      return 'success';
-    default:
-      return 'neutral';
-  }
-}
-
 /**
  * Get progress percentage based on project status
  *

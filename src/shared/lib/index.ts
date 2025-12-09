@@ -7,7 +7,6 @@ export {
   TIMELINE_COLUMNS,
   getTimelineStatus,
   getStatusColumn,
-  getStatusVariant,
 } from './timelineStatus';
 export {
   type UIDeliverableStatus,
@@ -29,8 +28,6 @@ export {
   PRIORITY_CONFIG,
   PRIORITY_COLORS,
   PRIORITY_OPTIONS,
-  getPriorityColumn,
-  getPriorityVariant,
 } from './priorityConfig';
 export {
   formatDateShort,

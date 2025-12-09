@@ -56,12 +56,3 @@ export function onProjectChange(callback: (message: ProjectBroadcastMessage) => 
   };
 }
 
-/**
- * Close the broadcast channel (cleanup)
- */
-export function closeBroadcastChannel(): void {
-  if (channel) {
-    channel.close();
-    channel = null;
-  }
-}

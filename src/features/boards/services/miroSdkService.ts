@@ -2094,10 +2094,6 @@ export async function addVersionToProject(projectId: string, projectName?: strin
   return miroProjectRowService.addVersion(projectId, projectName);
 }
 
-export function getProjectVersionCount(projectId: string): number {
-  return miroProjectRowService.getVersionCount(projectId);
-}
-
 export async function zoomToProject(projectId: string): Promise<boolean> {
   const miro = getMiroSDK();
   const row = miroProjectRowService.getProjectRow(projectId);
