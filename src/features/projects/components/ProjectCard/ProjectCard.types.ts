@@ -1,4 +1,4 @@
-import type { Project, ProjectStatus } from '../../domain/project.types';
+import type { Project, ProjectStatus, UpdateProjectInput } from '../../domain/project.types';
 
 export interface ProjectCardProps {
   project: Project;
@@ -8,6 +8,7 @@ export interface ProjectCardProps {
   onViewBoard?: (project: Project) => void;
   onUpdateGoogleDrive?: (projectId: string, googleDriveUrl: string) => void;
   onUpdateStatus?: (projectId: string, status: ProjectStatus, options?: { markAsReviewed?: boolean }) => void;
+  onUpdate?: (projectId: string, input: UpdateProjectInput) => void;
   onDelete?: (projectId: string) => void;
   onReview?: (project: Project) => void;
   onComplete?: (project: Project) => void;

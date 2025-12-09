@@ -16,7 +16,7 @@ import { projectService } from '../../services/projectService';
 import { supabase } from '@shared/lib/supabase';
 import { env } from '@shared/config/env';
 import { useClientPlanStatsByBoard, useClientTotalAssetsByBoard } from '@features/admin/hooks/useSubscriptionPlans';
-import type { ProjectFilters as ProjectFiltersType, Project, ProjectStatus } from '../../domain/project.types';
+import type { ProjectFilters as ProjectFiltersType, Project, ProjectStatus, UpdateProjectInput } from '../../domain/project.types';
 import styles from './ProjectsPage.module.css';
 
 // Type for board client info
@@ -461,6 +461,22 @@ export function ProjectsPage() {
     );
   }, [updateProject, syncProject]);
 
+  // Generic Update - Used for due date requests and other project updates
+  const handleUpdate = useCallback((projectId: string, input: UpdateProjectInput) => {
+    updateProject(
+      { id: projectId, input },
+      {
+        onSuccess: (updatedProject) => {
+          logger.debug('Project updated', { projectId, input });
+          // Sync with Miro if there was a status change
+          if (input.status || input.dueDate) {
+            syncProject(updatedProject).catch(err => logger.error('Sync failed', err));
+          }
+        },
+      }
+    );
+  }, [updateProject, syncProject]);
+
   // Scroll to selected project when loaded
   useEffect(() => {
     if (selectedProjectId && !isLoading && projects.length > 0) {
@@ -729,6 +745,7 @@ export function ProjectsPage() {
               onViewBoard={handleViewBoard}
               onUpdateGoogleDrive={handleUpdateGoogleDrive}
               onUpdateStatus={handleUpdateStatus}
+              onUpdate={handleUpdate}
               onReview={handleReview}
               onComplete={handleComplete}
               onArchive={handleArchive}

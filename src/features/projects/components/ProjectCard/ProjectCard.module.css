@@ -1524,3 +1524,130 @@
   padding-top: var(--space-2);
   border-top: 1px solid var(--color-border);
 }
+
+/* Due Date Request Banner */
+.dueDateRequestBanner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
+  border: 1px solid #F59E0B;
+  border-radius: var(--radius-md);
+  margin-top: var(--space-2);
+}
+
+.dueDateRequestInfo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.dueDateRequestIcon {
+  font-size: 14px;
+}
+
+.dueDateRequestText {
+  font-size: var(--text-xs);
+  color: #92400E;
+}
+
+.dueDateRequestText strong {
+  color: #78350F;
+}
+
+.dueDateRequestActions {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.dueDateApprove,
+.dueDateReject {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: bold;
+  transition: all var(--transition-fast);
+}
+
+.dueDateApprove {
+  background-color: #10B981;
+  color: white;
+}
+
+.dueDateApprove:hover {
+  background-color: #059669;
+  transform: scale(1.1);
+}
+
+.dueDateReject {
+  background-color: #EF4444;
+  color: white;
+}
+
+.dueDateReject:hover {
+  background-color: #DC2626;
+  transform: scale(1.1);
+}
+
+/* Pending request indicator on days left */
+.stat.hasPendingRequest {
+  position: relative;
+}
+
+.stat.hasPendingRequest::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 8px;
+  height: 8px;
+  background-color: #F59E0B;
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.2);
+  }
+}
+
+/* Due Date Request Form */
+.dueDateRequestForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.currentDateInfo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-2) var(--space-3);
+  background-color: var(--color-bg-secondary);
+  border-radius: var(--radius-md);
+}
+
+.currentDateLabel {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.currentDateValue {
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+}

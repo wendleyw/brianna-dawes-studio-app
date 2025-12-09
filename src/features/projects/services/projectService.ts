@@ -267,6 +267,10 @@ class ProjectService {
     if (projectData.briefing !== undefined) updateData.briefing = projectData.briefing;
     if (projectData.googleDriveUrl !== undefined) updateData.google_drive_url = projectData.googleDriveUrl;
     if (projectData.wasReviewed !== undefined) updateData.was_reviewed = projectData.wasReviewed;
+    // Due date request fields
+    if (projectData.requestedDueDate !== undefined) updateData.requested_due_date = projectData.requestedDueDate;
+    if (projectData.dueDateRequestedAt !== undefined) updateData.due_date_requested_at = projectData.dueDateRequestedAt;
+    if (projectData.dueDateRequestedBy !== undefined) updateData.due_date_requested_by = projectData.dueDateRequestedBy;
 
     if (Object.keys(updateData).length > 0) {
       updateData.updated_at = new Date().toISOString();
@@ -357,6 +361,10 @@ class ProjectService {
       deliverablesCount: (data.deliverables_count as number) || 0,
       briefing: data.briefing as Project['briefing'] || null,
       wasReviewed: (data.was_reviewed as boolean) || false,
+      // Due date request fields
+      requestedDueDate: data.requested_due_date as string | null,
+      dueDateRequestedAt: data.due_date_requested_at as string | null,
+      dueDateRequestedBy: data.due_date_requested_by as string | null,
       // Miro sync tracking fields
       syncStatus: (data.sync_status as Project['syncStatus']) || 'pending',
       syncErrorMessage: data.sync_error_message as string | null,

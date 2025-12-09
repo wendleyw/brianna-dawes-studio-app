@@ -72,6 +72,10 @@ export interface Project {
   deliverablesCount: number;
   briefing: ProjectBriefing | null;
   wasReviewed: boolean;
+  // Due date request fields (for client approval workflow)
+  requestedDueDate: string | null;
+  dueDateRequestedAt: string | null;
+  dueDateRequestedBy: string | null;
   // Miro sync tracking fields
   syncStatus: MiroSyncStatus;
   syncErrorMessage: string | null;
@@ -114,6 +118,10 @@ export interface UpdateProjectInput {
   thumbnailUrl?: string | null;
   briefing?: Partial<ProjectBriefing> | null;
   wasReviewed?: boolean;
+  // Due date request fields
+  requestedDueDate?: string | null;
+  dueDateRequestedAt?: string | null;
+  dueDateRequestedBy?: string | null;
 }
 
 export interface ProjectFilters {
