@@ -196,15 +196,17 @@ function calculateClientMetrics(data: ClientReportData): ClientReportMetrics {
 
 class MiroClientReportService {
   /**
-   * Find Timeline Master frame to position report to its left
-   * The Timeline Master frame is created at origin (0,0) with empty title,
-   * but has a "Timeline Master" text above it
+   * Find Timeline Master frame and existing report frames
+   * Returns position info for placing new report
    */
-  private async findTimelineMasterPosition(): Promise<{ x: number; y: number } | null> {
+  private async findReportPosition(): Promise<{ x: number; y: number; timelineTop: number }> {
     const miro = getMiroSDK();
+    const defaultPosition = { x: -1500, y: 0, timelineTop: 0 };
+
     try {
-      // Strategy 1: Find frame by title
       const frames = await miro.board.get({ type: 'frame' });
+
+      // Find Timeline Master frame
       let timelineFrame = frames.find(f =>
         f.title?.includes('TIMELINE MASTER') ||
         f.title?.includes('Timeline Master') ||
@@ -221,10 +223,8 @@ class MiroClientReportService {
         );
 
         if (timelineText) {
-          // Find the frame that is near this text (below it)
           timelineFrame = frames.find(f => {
             if (!f.width || !f.height) return false;
-            // Frame should be below the text and horizontally close
             const frameTop = f.y - f.height / 2;
             const horizontalClose = Math.abs(f.x - timelineText.x) < 500;
             const verticalClose = frameTop > timelineText.y && frameTop < timelineText.y + 200;
@@ -233,26 +233,63 @@ class MiroClientReportService {
         }
       }
 
-      // Strategy 3: Timeline Master is created at origin (0,0) - find frame near origin
+      // Strategy 3: Find frame near origin
       if (!timelineFrame) {
         timelineFrame = frames.find(f => {
           if (!f.width || !f.height) return false;
-          // Frame should be near origin and large enough to be a timeline
           return Math.abs(f.x) < 100 && Math.abs(f.y) < 100 && f.width > 1000;
         });
       }
 
-      if (timelineFrame && timelineFrame.width) {
-        // Position report to the LEFT of Timeline Master with gap
+      if (!timelineFrame || !timelineFrame.width || !timelineFrame.height) {
+        return defaultPosition;
+      }
+
+      // Calculate Timeline Master top edge
+      const timelineTop = timelineFrame.y - timelineFrame.height / 2;
+      const timelineLeft = timelineFrame.x - timelineFrame.width / 2;
+
+      // Find existing report frames (to the left of timeline)
+      const reportFrames = frames.filter(f => {
+        if (!f.title?.startsWith('Report -')) return false;
+        if (!f.width || !f.height) return false;
+        // Report should be to the left of timeline
+        return f.x < timelineFrame.x;
+      });
+
+      // Calculate X position (to the left of Timeline Master)
+      const reportX = timelineLeft - REPORT.FRAME_WIDTH / 2 - 100;
+
+      // If there are existing reports, stack below them
+      if (reportFrames.length > 0) {
+        // Find the bottom of the lowest report
+        let lowestBottom = timelineTop;
+        for (const rf of reportFrames) {
+          if (rf.height) {
+            const bottom = rf.y + rf.height / 2;
+            if (bottom > lowestBottom) {
+              lowestBottom = bottom;
+            }
+          }
+        }
+        // New report starts below existing reports with gap
         return {
-          x: timelineFrame.x - (timelineFrame.width / 2) - REPORT.FRAME_WIDTH / 2 - 100,
-          y: timelineFrame.y,
+          x: reportX,
+          y: lowestBottom + 50, // This will be adjusted to be the TOP of the new frame
+          timelineTop,
         };
       }
+
+      // First report - align top with Timeline Master top
+      return {
+        x: reportX,
+        y: timelineTop, // This is the TOP edge, will be adjusted for frame center
+        timelineTop,
+      };
     } catch (err) {
       logger.warn('Could not find Timeline Master frame', err);
+      return defaultPosition;
     }
-    return null;
   }
 
   /**
@@ -277,21 +314,45 @@ class MiroClientReportService {
 
     const metrics = calculateClientMetrics(data);
 
-    // Adjust frame height based on content
-    const weekCount = metrics.weeklyData.length;
-    const dynamicHeight = REPORT.FRAME_HEIGHT + Math.max(0, (weekCount - 4) * 40);
+    // Calculate dynamic height based on actual content
+    const tableWeekCount = Math.min(metrics.weeklyData.length, 12);
+    const tableHeight = 30 + (tableWeekCount + 2) * 35;
+    const projectTypeCount = Math.min(Object.keys(metrics.deliverablesByProjectType).length, 6);
+    const projectTypeHeight = projectTypeCount > 0 ? 35 + projectTypeCount * 38 : 100;
 
-    // Find position: use provided position, or left of Timeline Master, or default
-    let frameX = position?.x ?? 4000;
-    let frameY = position?.y ?? 0;
+    // Calculate total height: header + cards + chart + table + project type + satisfaction + padding
+    const totalContentHeight =
+      REPORT.PADDING +                    // Top padding
+      REPORT.HEADER_HEIGHT +              // Header
+      REPORT.SECTION_GAP +
+      REPORT.CARD_HEIGHT + 20 +           // Summary cards
+      REPORT.SECTION_GAP +
+      300 +                               // Weekly Performance chart
+      REPORT.SECTION_GAP +
+      tableHeight +                       // Weekly Breakdown table
+      REPORT.SECTION_GAP +
+      projectTypeHeight +                 // Project Type Breakdown
+      REPORT.SECTION_GAP +
+      140 +                               // Satisfaction faces
+      REPORT.PADDING;                     // Bottom padding
 
-    if (!position) {
-      const timelinePos = await this.findTimelineMasterPosition();
-      if (timelinePos) {
-        frameX = timelinePos.x;
-        frameY = timelinePos.y;
-      }
+    const dynamicHeight = totalContentHeight;
+
+    // Find position: use provided position, or calculate based on Timeline Master
+    let frameX: number;
+    let frameTopY: number;
+
+    if (position) {
+      frameX = position.x;
+      frameTopY = position.y;
+    } else {
+      const positionInfo = await this.findReportPosition();
+      frameX = positionInfo.x;
+      frameTopY = positionInfo.y;
     }
+
+    // Frame Y is the CENTER, so adjust from top edge
+    const frameY = frameTopY + dynamicHeight / 2;
 
     // Create report title with month
     const reportMonth = this.getMonthName(data.startDate);
@@ -326,14 +387,12 @@ class MiroClientReportService {
     currentY += 300 + REPORT.SECTION_GAP;
 
     // === 2. WEEKLY BREAKDOWN TABLE ===
-    const tableWeekCount = Math.min(metrics.weeklyData.length, 12);
-    const tableHeight = 30 + (tableWeekCount + 2) * 35; // header + rows + total
     await this.createWeeklyBreakdownTable(metrics.weeklyData, frameLeft + REPORT.PADDING, currentY, REPORT.FRAME_WIDTH - REPORT.PADDING * 2);
     currentY += tableHeight + REPORT.SECTION_GAP;
 
     // === 3. PROJECT TYPE BREAKDOWN ===
     await this.createProjectTypeBreakdown(metrics.deliverablesByProjectType, frameX, currentY);
-    currentY += 280 + REPORT.SECTION_GAP;
+    currentY += projectTypeHeight + REPORT.SECTION_GAP;
 
     // === 4. CLIENT SATISFACTION (Interactive faces for client to choose) ===
     await this.createSatisfactionFaces(frameX, currentY);
@@ -475,9 +534,31 @@ class MiroClientReportService {
     const chartWidth = width - 100;
     const barAreaWidth = chartWidth - 60;
 
+    // Filter to only show weeks that have data (assets > 0 or bonus > 0)
+    const weeksWithData = weeklyData.filter(w => w.assets > 0 || w.bonus > 0);
+
+    // If no weeks have data, show message
+    if (weeksWithData.length === 0) {
+      await miro.board.createText({
+        content: 'No deliverables in the selected date range',
+        x: startX + width / 2,
+        y: chartTop + chartHeight / 2,
+        width: width - 100,
+        style: {
+          fontSize: 14,
+          textAlign: 'center',
+          color: '#9CA3AF',
+        },
+      });
+      return;
+    }
+
+    // Show up to 8 weeks with data
+    const displayWeeks = weeksWithData.slice(0, 8);
+
     // Find max value for scaling
     const maxValue = Math.max(
-      ...weeklyData.map(w => Math.max(w.assets, w.bonus)),
+      ...displayWeeks.map(w => Math.max(w.assets, w.bonus)),
       1
     );
 
@@ -512,13 +593,13 @@ class MiroClientReportService {
       });
     }
 
-    // Bars for each week
-    const maxWeeksToShow = Math.min(weeklyData.length, 8);
-    const barGroupWidth = barAreaWidth / maxWeeksToShow;
-    const singleBarWidth = (barGroupWidth - 20) / 2;
+    // Bars for each week with data
+    const maxWeeksToShow = displayWeeks.length;
+    const barGroupWidth = barAreaWidth / Math.max(maxWeeksToShow, 1);
+    const singleBarWidth = Math.min((barGroupWidth - 20) / 2, 40);
 
     for (let i = 0; i < maxWeeksToShow; i++) {
-      const week = weeklyData[i];
+      const week = displayWeeks[i];
       if (!week) continue;
 
       const groupX = startX + 60 + i * barGroupWidth + barGroupWidth / 2;
