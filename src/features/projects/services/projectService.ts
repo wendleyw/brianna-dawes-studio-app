@@ -316,8 +316,17 @@ class ProjectService {
   }
 
   async archiveProject(id: string): Promise<Project> {
-    // Archive now maps to 'done' status
-    return this.updateProject(id, { status: 'done' });
+    // Archive: set status to 'done' and set archived_at timestamp
+    const { error } = await supabase
+      .from('projects')
+      .update({
+        status: 'done',
+        archived_at: new Date().toISOString(),
+      })
+      .eq('id', id);
+
+    if (error) throw error;
+    return this.getProject(id);
   }
 
   private mapSortField(field: string): string {
@@ -342,6 +351,7 @@ class ProjectService {
       startDate: data.start_date as string | null,
       dueDate: data.due_date as string | null,
       completedAt: data.completed_at as string | null,
+      archivedAt: data.archived_at as string | null,
       clientId: data.client_id as string,
       client: data.client
         ? {

@@ -57,4 +57,4 @@ export type {
 } from './components';
 
 // Pages
-export { ProjectsPage, ProjectDetailPage, NewProjectPage } from './pages';
+export { ProjectsPage, ProjectDetailPage, NewProjectPage, EditProjectPage } from './pages';

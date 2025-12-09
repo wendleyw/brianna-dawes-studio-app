@@ -91,6 +91,24 @@
   white-space: nowrap;
 }
 
+/* Archived Banner - shown when project is archived */
+.archivedBanner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 8px 12px;
+  margin: -16px -16px 8px -16px;
+  background: linear-gradient(135deg, #374151 0%, #1F2937 100%);
+  border-radius: 10px 10px 0 0;
+  min-height: 32px;
+}
+
+.archivedBanner > * {
+  background: transparent !important;
+  box-shadow: none !important;
+  white-space: nowrap;
+}
+
 .badges {
   display: flex;
   flex-wrap: wrap;

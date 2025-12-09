@@ -21,6 +21,9 @@ const ProjectDetailPage = lazy(() =>
 const NewProjectPage = lazy(() =>
   import('@features/projects').then((module) => ({ default: module.NewProjectPage }))
 );
+const EditProjectPage = lazy(() =>
+  import('@features/projects').then((module) => ({ default: module.EditProjectPage }))
+);
 const AdminSettingsPage = lazy(() =>
   import('@features/admin').then((module) => ({ default: module.AdminSettingsPage }))
 );
@@ -111,6 +114,14 @@ export function Router() {
             element={
               <ProtectedRoute allowedRoles={['admin', 'client']}>
                 <NewProjectPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/projects/:id/edit"
+            element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <EditProjectPage />
               </ProtectedRoute>
             }
           />

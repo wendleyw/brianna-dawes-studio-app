@@ -14,7 +14,6 @@ export interface ProjectCardProps {
   onComplete?: (project: Project) => void;
   onCreateVersion?: (project: Project) => void;
   onAssignDesigner?: (projectId: string, designerIds: string[]) => void;
-  onOpenStatusModal?: () => void;
   isSelected?: boolean;
 }
 

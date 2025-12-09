@@ -175,11 +175,81 @@ export function DeveloperTools() {
   const { isInMiro, miro } = useMiro();
   const [isResetting, setIsResetting] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
+  const [isRenaming, setIsRenaming] = useState(false);
   const [progress, setProgress] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const addProgress = (message: string) => {
     setProgress((prev) => [...prev, message]);
+  };
+
+  // Rename all STAGE frames to VERSION on the Miro board
+  const handleRenameStageToVersion = async () => {
+    if (!isInMiro || !miro) {
+      setError('Must be running inside Miro to rename frames');
+      return;
+    }
+
+    if (!confirm('This will rename all frames with "STAGE" to "VERSION" on the current board. Continue?')) {
+      return;
+    }
+
+    setIsRenaming(true);
+    setProgress([]);
+    setError(null);
+
+    try {
+      addProgress('Searching for frames with STAGE in title...');
+
+      // Get all frames from the board
+      const frames = await miro.board.get({ type: 'frame' });
+
+      // Filter frames with STAGE in title
+      const stageFrames = frames.filter((f: { title?: string }) =>
+        f.title?.includes('STAGE')
+      );
+
+      addProgress(`Found ${stageFrames.length} frames with STAGE`);
+
+      if (stageFrames.length === 0) {
+        addProgress('✓ No frames to rename');
+        setIsRenaming(false);
+        return;
+      }
+
+      let renamed = 0;
+      let failed = 0;
+
+      for (const frame of stageFrames) {
+        const oldTitle = (frame as { title?: string }).title || '';
+        const newTitle = oldTitle.replace(/STAGE/g, 'VERSION');
+
+        try {
+          // Update frame title using Miro SDK
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const miroFrame = frame as any;
+          miroFrame.title = newTitle;
+          if (typeof miroFrame.sync === 'function') {
+            await miroFrame.sync();
+          }
+          renamed++;
+          addProgress(`✓ Renamed: "${oldTitle}" → "${newTitle}"`);
+        } catch (err) {
+          failed++;
+          addProgress(`✗ Failed: "${oldTitle}" - ${err instanceof Error ? err.message : 'Unknown error'}`);
+        }
+      }
+
+      addProgress('');
+      addProgress(`✅ Migration complete: ${renamed} renamed, ${failed} failed`);
+
+    } catch (err) {
+      logger.error('Rename failed', err);
+      setError(err instanceof Error ? err.message : 'Failed to rename frames');
+      addProgress(`❌ ERROR: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    } finally {
+      setIsRenaming(false);
+    }
   };
 
   // Clear ALL data from the system (for manual testing)
@@ -563,6 +633,31 @@ export function DeveloperTools() {
           className={styles.dangerButton}
         >
           {isClearing ? 'Clearing...' : '🗑️ Clear Everything'}
+        </Button>
+      </div>
+
+      {/* Rename STAGE to VERSION Section */}
+      <div className={styles.section}>
+        <h3 className={styles.sectionTitle}>🔄 Rename STAGE → VERSION</h3>
+        <p className={styles.sectionDescription}>
+          Renames all Miro frames with "STAGE" in the title to "VERSION".
+        </p>
+
+        <div className={styles.status}>
+          <span>Miro Connection: </span>
+          <span className={isInMiro ? styles.connected : styles.disconnected}>
+            {isInMiro ? '✓ Connected' : '✗ Not in Miro'}
+          </span>
+        </div>
+
+        <Button
+          onClick={handleRenameStageToVersion}
+          isLoading={isRenaming}
+          variant="primary"
+          className={styles.primaryButton}
+          disabled={!isInMiro}
+        >
+          {isRenaming ? 'Renaming...' : '📝 Rename STAGE to VERSION'}
         </Button>
       </div>
 

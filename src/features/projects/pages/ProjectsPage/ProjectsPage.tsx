@@ -762,7 +762,6 @@ export function ProjectsPage() {
               onArchive={handleArchive}
               onCreateVersion={handleCreateVersion}
               onAssignDesigner={handleAssignDesigner}
-              onOpenStatusModal={handleOpenBoardModal}
               isSelected={project.id === selectedProjectId}
             />
           ))

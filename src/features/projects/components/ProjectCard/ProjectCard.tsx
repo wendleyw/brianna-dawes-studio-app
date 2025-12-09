@@ -158,13 +158,6 @@ const UsersIcon = () => (
   </svg>
 );
 
-const TagIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
-    <line x1="7" y1="7" x2="7.01" y2="7"/>
-  </svg>
-);
-
 const ArchiveIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
     <polyline points="21 8 21 21 3 21 3 8"/>
@@ -241,7 +234,6 @@ export const ProjectCard = memo(function ProjectCard({
   onComplete,
   onCreateVersion,
   onAssignDesigner,
-  onOpenStatusModal,
   isSelected = false,
 }: ProjectCardProps) {
   const { user } = useAuth();
@@ -322,6 +314,7 @@ export const ProjectCard = memo(function ProjectCard({
   const isClient = user?.role === 'client';
   const isInReview = project.status === 'review';
   const isDone = project.status === 'done';
+  const isArchived = project.archivedAt !== null;
   // Check if current user is the assigned client for this project
   const isAssignedClient = isClient && project.clientId === user?.id;
 
@@ -606,12 +599,6 @@ export const ProjectCard = memo(function ProjectCard({
     setShowAssignModal(false);
   };
 
-  // ACTION: Status - Open status modal
-  const handleStatusClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    onOpenStatusModal?.();
-  };
-
   // ACTION: Archive - Archive project
   const handleArchiveClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -786,6 +773,25 @@ export const ProjectCard = memo(function ProjectCard({
             </Badge>
           </div>
         )}
+        {/* Archived banner - shown when project is archived */}
+        {isArchived && (
+          <div className={styles.archivedBanner}>
+            <Badge
+              variant="neutral"
+              size="sm"
+              style={{
+                backgroundColor: '#374151',
+                color: '#fff',
+                border: 'none',
+                fontWeight: 700,
+                letterSpacing: '0.5px',
+                padding: '4px 12px',
+              }}
+            >
+              📦 ARCHIVED
+            </Badge>
+          </div>
+        )}
         {/* Badges row: Priority | Type | Status */}
         <div className={styles.badges}>
           {/* 1. Priority badge */}
@@ -811,12 +817,16 @@ export const ProjectCard = memo(function ProjectCard({
               </Badge>
             ) : null;
           })()}
-          {/* 3. Status badge - uses exact color from timeline config */}
+          {/* 3. Status badge - uses exact color from timeline config, or ARCHIVED if archived */}
           <Badge
             size="sm"
-            style={{ backgroundColor: statusColumn.color, color: '#fff', border: 'none' }}
+            style={{
+              backgroundColor: isArchived ? '#374151' : statusColumn.color,
+              color: '#fff',
+              border: 'none'
+            }}
           >
-            {statusColumn.label}
+            {isArchived ? 'ARCHIVED' : statusColumn.label}
           </Badge>
         </div>
       </div>

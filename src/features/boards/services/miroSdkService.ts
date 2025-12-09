@@ -478,16 +478,17 @@ class MiroMasterTimelineService {
                          '🟢'; // low/standard
 
     // Build clean card title - multi-line format
-    // Line 1: [REVIEWED] [icon] Project Title (if reviewed)
+    // Line 1: [ARCHIVED] or [REVIEWED] [icon] Project Title
     // Line 2: Due Date
     // Line 3: Author
-    const reviewedTag = wasReviewed ? '[REVIEWED] ' : '';
+    const isArchived = project.archivedAt !== null;
+    const statusTag = isArchived ? '[ARCHIVED] ' : (wasReviewed ? '[REVIEWED] ' : '');
     const datePart = formatDueDate(project.dueDate);
     const authorPart = project.client?.name || '';
 
     // Build title with line breaks - Miro cards support plain text with \n for multi-line
     const titleLines = [
-      `${reviewedTag}${priorityIcon} ${project.name}`,
+      `${statusTag}${isArchived ? '📦' : priorityIcon} ${project.name}`,
       datePart ? `› ${datePart}` : '',
       authorPart ? `› ${authorPart}` : '',
     ].filter(Boolean);
@@ -727,7 +728,7 @@ class MiroMasterTimelineService {
 
           item.title = cardTitle; // Use HTML title for proper multi-line display
           item.description = description; // Ensure projectId is stored
-          item.style = { cardTheme: column.color };
+          item.style = { cardTheme: isArchived ? '#000000' : column.color };
 
           if (itemInCorrectColumn) {
             // Card is already in correct column - keep its current position
@@ -789,7 +790,7 @@ class MiroMasterTimelineService {
         // Update the existing card - only move if in different column
         existingCardFinalCheck.title = title;
         existingCardFinalCheck.description = description;
-        existingCardFinalCheck.style = { cardTheme: column.color };
+        existingCardFinalCheck.style = { cardTheme: isArchived ? '#000000' : column.color };
 
         if (!finalCheckInCorrectColumn) {
           // Only update position if card is in a different column
@@ -828,13 +829,15 @@ class MiroMasterTimelineService {
     log('MiroTimeline', `Creating NEW card for "${project.name}" at position (${cardX}, ${cardY})`);
 
     // Create card with multi-line title (using \n for line breaks)
+    // Use black (#000000) for archived projects
+    const cardColor = isArchived ? '#000000' : column.color;
     const newMiroCard = await miro.board.createCard({
       title: cardTitle,
       description, // Store projectId in description for cross-context discovery
       x: cardX,
       y: cardY,
       width: TIMELINE.CARD_WIDTH,
-      style: { cardTheme: column.color },
+      style: { cardTheme: cardColor },
     });
 
     const newCard: TimelineCard = {
