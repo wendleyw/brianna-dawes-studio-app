@@ -1,12 +1,18 @@
 import { useState } from 'react';
-import { Button } from '@shared/ui';
+import { useNavigate } from 'react-router-dom';
 import { TeamManagement } from '../../components/TeamManagement';
 import { BoardManagement } from '../../components/BoardManagement';
 import { DeveloperTools } from '../../components/DeveloperTools';
 import { SyncHealthDashboard } from '../../components/SyncHealthDashboard';
-import { ReportModal } from '../../components/ReportModal';
 import type { AdminTab } from '../../domain';
 import styles from './AdminSettingsPage.module.css';
+
+// Back icon
+const BackIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M19 12H5M12 19l-7-7 7-7"/>
+  </svg>
+);
 
 // Icons for tabs
 const TeamIcon = () => (
@@ -50,26 +56,26 @@ const TABS: { id: AdminTab; label: string; icon: React.ReactNode }[] = [
 ];
 
 export function AdminSettingsPage() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<AdminTab>('team');
-  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
 
   return (
     <div className={styles.container}>
       <header className={styles.header}>
-        <div className={styles.headerContent}>
-          <div>
+        <div className={styles.headerRow}>
+          <button
+            className={styles.backButton}
+            onClick={() => navigate('/projects')}
+            title="Back to Projects"
+          >
+            <BackIcon />
+          </button>
+          <div className={styles.headerText}>
             <h1 className={styles.title}>Admin Settings</h1>
             <p className={styles.subtitle}>
               Manage users, board assignments, and application settings
             </p>
           </div>
-          <Button
-            variant="primary"
-            onClick={() => setIsReportModalOpen(true)}
-            className={styles.reportButton}
-          >
-            Generate Report
-          </Button>
         </div>
       </header>
 
@@ -81,7 +87,7 @@ export function AdminSettingsPage() {
             onClick={() => setActiveTab(tab.id)}
           >
             <span className={styles.tabIcon}>{tab.icon}</span>
-            {tab.label}
+            <span className={styles.tabLabel}>{tab.label}</span>
           </button>
         ))}
       </nav>
@@ -92,11 +98,6 @@ export function AdminSettingsPage() {
         {activeTab === 'sync' && <SyncHealthDashboard />}
         {activeTab === 'developer' && <DeveloperTools />}
       </div>
-
-      <ReportModal
-        open={isReportModalOpen}
-        onClose={() => setIsReportModalOpen(false)}
-      />
     </div>
   );
 }
