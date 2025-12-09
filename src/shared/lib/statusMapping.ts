@@ -24,39 +24,39 @@ export type UIDeliverableStatus =
 
 /**
  * DB Status values stored in Supabase
- * Based on: CREATE TYPE deliverable_status AS ENUM ('pending', 'wip', 'review', 'approved')
+ * Based on: CREATE TYPE deliverable_status AS ENUM ('draft', 'in_progress', 'in_review', 'approved', 'rejected', 'delivered')
+ * NOTE: DB enum now matches UI values exactly - no mapping needed
  */
-export type DBDeliverableStatus = 'pending' | 'wip' | 'review' | 'approved';
+export type DBDeliverableStatus = 'draft' | 'in_progress' | 'in_review' | 'approved' | 'rejected' | 'delivered';
 
 /**
  * Map UI deliverable status to DB status
+ * Since DB now uses same values as UI, this is essentially a passthrough with validation
  */
 const DELIVERABLE_STATUS_UI_TO_DB: Record<string, DBDeliverableStatus> = {
-  // UI -> DB
-  draft: 'pending',
-  in_progress: 'wip',
-  in_review: 'review',
+  draft: 'draft',
+  in_progress: 'in_progress',
+  in_review: 'in_review',
   approved: 'approved',
-  rejected: 'pending', // fallback
-  delivered: 'approved', // fallback
-  // DB -> DB (passthrough)
-  pending: 'pending',
-  wip: 'wip',
-  review: 'review',
+  rejected: 'rejected',
+  delivered: 'delivered',
 };
 
 /**
  * Map DB deliverable status to UI status
+ * Since DB now uses same values as UI, this is essentially a passthrough
  */
 const DELIVERABLE_STATUS_DB_TO_UI: Record<DBDeliverableStatus, UIDeliverableStatus> = {
-  pending: 'draft',
-  wip: 'in_progress',
-  review: 'in_review',
+  draft: 'draft',
+  in_progress: 'in_progress',
+  in_review: 'in_review',
   approved: 'approved',
+  rejected: 'rejected',
+  delivered: 'delivered',
 };
 
 export function mapDeliverableStatusToDb(uiStatus: string): DBDeliverableStatus {
-  return DELIVERABLE_STATUS_UI_TO_DB[uiStatus] || 'pending';
+  return DELIVERABLE_STATUS_UI_TO_DB[uiStatus] || 'draft';
 }
 
 export function mapDeliverableStatusToUi(dbStatus: string): UIDeliverableStatus {
