@@ -103,6 +103,8 @@ export interface CreateProjectInput {
   miroBoardUrl?: string | null;
   briefing?: Partial<ProjectBriefing> | null;
   googleDriveUrl?: string | null;
+  // Due date approval (false = custom date needs approval)
+  dueDateApproved?: boolean;
 }
 
 export interface UpdateProjectInput {

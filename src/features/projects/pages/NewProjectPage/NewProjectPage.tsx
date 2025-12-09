@@ -12,6 +12,25 @@ import styles from './NewProjectPage.module.css';
 
 const logger = createLogger('NewProjectPage');
 
+// Calendar icon
+const CalendarIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+    <line x1="16" y1="2" x2="16" y2="6"/>
+    <line x1="8" y1="2" x2="8" y2="6"/>
+    <line x1="3" y1="10" x2="21" y2="10"/>
+  </svg>
+);
+
+// Warning icon
+const WarningIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+    <line x1="12" y1="9" x2="12" y2="13"/>
+    <line x1="12" y1="17" x2="12.01" y2="17"/>
+  </svg>
+);
+
 interface ProjectBriefing {
   // Basic Info
   name: string;
@@ -80,6 +99,11 @@ export function NewProjectPage() {
   const [error, setError] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Specific date state
+  const [wantsSpecificDate, setWantsSpecificDate] = useState(false);
+  const [autoCalculatedDate, setAutoCalculatedDate] = useState<string>('');
+  const [hasCustomDate, setHasCustomDate] = useState(false);
+
   const isAdmin = user?.role === 'admin';
 
   // Get list of clients for admin to select from
@@ -123,14 +147,39 @@ export function NewProjectPage() {
       // Calculate due date from today + business days
       const today = new Date();
       const dueDate = addBusinessDays(today, projectType.days);
+      const dueDateStr = formatDateForInput(dueDate);
+
+      // Save auto-calculated date for comparison later
+      setAutoCalculatedDate(dueDateStr);
+      setHasCustomDate(false);
+      setWantsSpecificDate(false);
 
       setFormData(prev => ({
         ...prev,
         projectType: typeValue,
-        targetDate: formatDateForInput(dueDate),
+        targetDate: dueDateStr,
       }));
     } else {
       setFormData(prev => ({ ...prev, projectType: typeValue }));
+    }
+  };
+
+  // Handle specific date change
+  const handleSpecificDateChange = (newDate: string) => {
+    setFormData(prev => ({ ...prev, targetDate: newDate }));
+    // Check if the date is different from auto-calculated
+    setHasCustomDate(newDate !== autoCalculatedDate);
+  };
+
+  // Handle toggle for specific date
+  const handleToggleSpecificDate = () => {
+    if (wantsSpecificDate) {
+      // Reverting to auto-calculated date
+      setWantsSpecificDate(false);
+      setFormData(prev => ({ ...prev, targetDate: autoCalculatedDate }));
+      setHasCustomDate(false);
+    } else {
+      setWantsSpecificDate(true);
     }
   };
 
@@ -258,6 +307,8 @@ ${formData.additionalNotes || 'Not specified'}
         dueDate: formattedDueDate,
         status: initialStatus,
         clientId: formData.clientId,
+        // Due date approval - false if user customized the date
+        dueDateApproved: !hasCustomDate,
         // Pass briefing data for Miro board creation
         briefing: {
           projectOverview: formData.projectOverview || null,
@@ -547,13 +598,62 @@ ${formData.additionalNotes || 'Not specified'}
             <label className={styles.label}>
               TARGET COMPLETION DATE <span className={styles.required}>*</span>
             </label>
-            <input
-              type="date"
-              className={styles.input}
-              value={formData.targetDate}
-              onChange={(e) => updateField('targetDate', e.target.value)}
-            />
-            <span className={styles.hint}>When do you need this completed?</span>
+            <div className={styles.dueDateSection}>
+              {/* Auto-calculated date display (readonly) */}
+              <div className={`${styles.dueDateDisplay} ${formData.targetDate ? styles.hasValue : ''}`}>
+                <CalendarIcon />
+                <span>
+                  {formData.targetDate
+                    ? new Date(formData.targetDate + 'T00:00:00').toLocaleDateString('en-US', {
+                        weekday: 'short',
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric'
+                      })
+                    : 'Select project type first'}
+                </span>
+                {formData.projectType && !wantsSpecificDate && (
+                  <span style={{ marginLeft: 'auto', fontSize: '10px', color: '#888' }}>
+                    Auto-calculated
+                  </span>
+                )}
+              </div>
+
+              {/* Toggle for specific date */}
+              {formData.projectType && (
+                <label
+                  className={`${styles.specificDateToggle} ${wantsSpecificDate ? styles.active : ''}`}
+                >
+                  <input
+                    type="checkbox"
+                    className={styles.checkbox}
+                    checked={wantsSpecificDate}
+                    onChange={handleToggleSpecificDate}
+                  />
+                  <span className={styles.toggleLabel}>I want a specific date</span>
+                  <span className={styles.toggleHint}>Requires approval</span>
+                </label>
+              )}
+
+              {/* Editable date input when toggle is on */}
+              {wantsSpecificDate && (
+                <>
+                  <input
+                    type="date"
+                    className={styles.specificDateInput}
+                    value={formData.targetDate}
+                    onChange={(e) => handleSpecificDateChange(e.target.value)}
+                    min={new Date().toISOString().split('T')[0]}
+                  />
+                  {hasCustomDate && (
+                    <div className={styles.approvalWarning}>
+                      <WarningIcon />
+                      <span>This custom date will need admin approval before the deadline is confirmed</span>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
           </div>
 
           <div className={styles.field}>

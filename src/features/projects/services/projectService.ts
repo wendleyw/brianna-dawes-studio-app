@@ -227,6 +227,7 @@ class ProjectService {
         miro_board_url: projectData.miroBoardUrl,
         briefing: projectData.briefing || {},
         google_drive_url: projectData.googleDriveUrl,
+        due_date_approved: projectData.dueDateApproved ?? true,
       })
       .select()
       .single();

@@ -350,3 +350,107 @@
 .actionButtons button {
   flex: 1;
 }
+
+/* Due Date Section */
+.dueDateSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.dueDateDisplay {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background-color: #f0f0f0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  color: #666;
+}
+
+.dueDateDisplay.hasValue {
+  color: var(--color-text-primary);
+  font-weight: var(--font-medium);
+}
+
+.dueDateIcon {
+  width: 16px;
+  height: 16px;
+  color: #888;
+}
+
+.specificDateToggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  background-color: var(--color-bg-primary);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.specificDateToggle:hover {
+  border-color: #050038;
+  background-color: #f8f8ff;
+}
+
+.specificDateToggle.active {
+  border-color: #050038;
+  border-style: solid;
+  background-color: #f0f0ff;
+}
+
+.checkbox {
+  width: 18px;
+  height: 18px;
+  accent-color: #050038;
+  cursor: pointer;
+}
+
+.toggleLabel {
+  font-size: var(--text-sm);
+  color: var(--color-text-primary);
+  font-weight: var(--font-medium);
+}
+
+.toggleHint {
+  font-size: 10px;
+  color: var(--color-text-muted);
+  margin-left: auto;
+}
+
+.specificDateInput {
+  padding: var(--space-2);
+  background-color: var(--color-bg-primary);
+  border: 2px solid #050038;
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  color: var(--color-text-primary);
+}
+
+.specificDateInput:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(5, 0, 56, 0.1);
+}
+
+.approvalWarning {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background-color: #FFF3CD;
+  border: 1px solid #FFC107;
+  border-radius: var(--radius-md);
+  font-size: 11px;
+  color: #856404;
+}
+
+.approvalWarning svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
