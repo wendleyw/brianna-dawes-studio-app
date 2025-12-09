@@ -1652,7 +1652,7 @@
   color: var(--color-text-primary);
 }
 
-/* Due Date Pending Approval (Em análise) */
+/* Due Date Pending Approval */
 .stat.isPending {
   background-color: #FFF3CD;
   border: 1px solid #FFC107;
@@ -1661,6 +1661,26 @@
 .stat.isPending .statValue {
   color: #856404;
   font-weight: 600;
+}
+
+.pendingDateInfo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+
+.pendingLabel {
+  font-size: 9px;
+  font-weight: 600;
+  color: #856404;
+  letter-spacing: 0.5px;
+}
+
+.pendingDate {
+  font-size: 11px;
+  font-weight: 700;
+  color: #664d03;
 }
 
 .dueDateApprovalButtons {

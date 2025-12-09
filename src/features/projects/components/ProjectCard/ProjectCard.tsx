@@ -868,7 +868,12 @@ export const ProjectCard = memo(function ProjectCard({
           ) : daysInfo?.isPending ? (
             <>
               <CalendarIcon />
-              <span className={styles.statValue} style={{ fontSize: '11px' }}>EM ANÁLISE</span>
+              <div className={styles.pendingDateInfo}>
+                <span className={styles.pendingLabel}>PENDING</span>
+                <span className={styles.pendingDate}>
+                  {project.dueDate ? new Date(project.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}
+                </span>
+              </div>
               {isAdmin && (
                 <div className={styles.dueDateApprovalButtons}>
                   <button
