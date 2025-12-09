@@ -258,12 +258,9 @@ export const ProjectCard = memo(function ProjectCard({
   const [showArchiveModal, setShowArchiveModal] = useState(false);
   const [showClientApproveModal, setShowClientApproveModal] = useState(false);
   const [showClientCriticalModal, setShowClientCriticalModal] = useState(false);
-  const [showDueDateRequestModal, setShowDueDateRequestModal] = useState(false);
-
   // Form states
   const [driveUrl, setDriveUrl] = useState(project.googleDriveUrl || '');
   const [archiveReason, setArchiveReason] = useState('');
-  const [requestedDate, setRequestedDate] = useState('');
   const [selectedDesigners, setSelectedDesigners] = useState<string[]>(
     project.designers.map(d => d.id)
   );
@@ -648,47 +645,6 @@ export const ProjectCard = memo(function ProjectCard({
     setShowClientCriticalModal(false);
   };
 
-  // DUE DATE REQUEST ACTIONS
-  const handleRequestDueDateClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setRequestedDate(project.dueDate?.split('T')[0] || '');
-    setShowDueDateRequestModal(true);
-  };
-
-  const handleSubmitDueDateRequest = () => {
-    if (!requestedDate || !user?.id) return;
-    onUpdate?.(project.id, {
-      requestedDueDate: new Date(requestedDate).toISOString(),
-      dueDateRequestedAt: new Date().toISOString(),
-      dueDateRequestedBy: user.id,
-    });
-    setShowDueDateRequestModal(false);
-    setRequestedDate('');
-  };
-
-  const handleApproveDueDateRequest = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!project.requestedDueDate) return;
-    onUpdate?.(project.id, {
-      dueDate: project.requestedDueDate,
-      requestedDueDate: null,
-      dueDateRequestedAt: null,
-      dueDateRequestedBy: null,
-    });
-  };
-
-  const handleRejectDueDateRequest = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    onUpdate?.(project.id, {
-      requestedDueDate: null,
-      dueDateRequestedAt: null,
-      dueDateRequestedBy: null,
-    });
-  };
-
-  // Check if there's a pending due date request
-  const hasPendingDueDateRequest = !!project.requestedDueDate;
-
   // Admin: Approve pending due date (when project is created with a due date)
   const handleApproveDueDate = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -903,36 +859,7 @@ export const ProjectCard = memo(function ProjectCard({
         </div>
       </div>
 
-      {/* Due Date Request Banner */}
-      {hasPendingDueDateRequest && (
-        <div className={styles.dueDateRequestBanner}>
-          <div className={styles.dueDateRequestInfo}>
-            <span className={styles.dueDateRequestIcon}>📅</span>
-            <span className={styles.dueDateRequestText}>
-              New date requested: <strong>{new Date(project.requestedDueDate!).toLocaleDateString()}</strong>
-            </span>
-          </div>
-          {(isAdmin || !isClient) && (
-            <div className={styles.dueDateRequestActions}>
-              <button
-                className={styles.dueDateApprove}
-                onClick={handleApproveDueDateRequest}
-                title="Approve new date"
-              >
-                ✓
-              </button>
-              <button
-                className={styles.dueDateReject}
-                onClick={handleRejectDueDateRequest}
-                title="Reject request"
-              >
-                ✕
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-
+      
       {/* Expandable deliverables list */}
       {showDeliverables && deliverables.length > 0 && (
         <div className={styles.deliverablesExpanded}>
@@ -1021,17 +948,7 @@ export const ProjectCard = memo(function ProjectCard({
             <DriveIcon hasLink={!!project.googleDriveUrl} />
           </button>
         )}
-        {/* Request Date Change - Only for clients when not done */}
-        {isClient && project.status !== 'done' && !hasPendingDueDateRequest && (
-          <button
-            className={styles.actionBtnIcon}
-            onClick={handleRequestDueDateClick}
-            title="Request due date change"
-          >
-            <CalendarIcon />
-          </button>
-        )}
-      </div>
+              </div>
 
       {/* Expanded Section */}
       {isExpanded && (
@@ -1758,43 +1675,6 @@ export const ProjectCard = memo(function ProjectCard({
         </div>
       </Dialog>
 
-      {/* Request Due Date Change Modal */}
-      <Dialog
-        open={showDueDateRequestModal}
-        onClose={() => setShowDueDateRequestModal(false)}
-        title="Request Due Date Change"
-        description="Request a new due date for this project. The agency will review your request."
-        size="sm"
-      >
-        <div className={styles.modalContent}>
-          <div className={styles.dueDateRequestForm}>
-            <div className={styles.currentDateInfo}>
-              <span className={styles.currentDateLabel}>Current due date:</span>
-              <span className={styles.currentDateValue}>
-                {project.dueDate ? new Date(project.dueDate).toLocaleDateString() : 'Not set'}
-              </span>
-            </div>
-            <div className={styles.field}>
-              <label className={styles.label}>Requested new date</label>
-              <input
-                type="date"
-                className={styles.dateInput}
-                value={requestedDate}
-                onChange={(e) => setRequestedDate(e.target.value)}
-                min={new Date().toISOString().split('T')[0]}
-              />
-            </div>
-          </div>
-          <div className={styles.modalActions}>
-            <Button variant="ghost" onClick={() => setShowDueDateRequestModal(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleSubmitDueDateRequest} disabled={!requestedDate}>
-              Submit Request
-            </Button>
-          </div>
-        </div>
-      </Dialog>
-    </article>
+          </article>
   );
 });

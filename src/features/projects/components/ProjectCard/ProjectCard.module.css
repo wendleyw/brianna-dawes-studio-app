@@ -1654,8 +1654,10 @@
 
 /* Due Date Pending Approval */
 .stat.isPending {
-  background-color: #FFF3CD;
-  border: 1px solid #FFC107;
+  background: linear-gradient(135deg, #FFF8E1 0%, #FFE082 100%);
+  border: 1px solid #FFB300;
+  padding: var(--space-2) var(--space-3);
+  min-width: 90px;
 }
 
 .stat.isPending .statValue {
@@ -1667,26 +1669,29 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1px;
+  gap: 2px;
+  flex: 1;
 }
 
 .pendingLabel {
-  font-size: 9px;
-  font-weight: 600;
-  color: #856404;
-  letter-spacing: 0.5px;
+  font-size: 8px;
+  font-weight: 700;
+  color: #B8860B;
+  letter-spacing: 1px;
+  text-transform: uppercase;
 }
 
 .pendingDate {
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
   color: #664d03;
 }
 
 .dueDateApprovalButtons {
   display: flex;
-  gap: 4px;
-  margin-left: 4px;
+  flex-direction: column;
+  gap: 3px;
+  margin-left: 6px;
 }
 
 .approveSmall,
@@ -1694,32 +1699,33 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   border: none;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 600;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 700;
   cursor: pointer;
   transition: all 0.15s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
 }
 
 .approveSmall {
-  background-color: #10B981;
+  background: linear-gradient(135deg, #10B981 0%, #059669 100%);
   color: #fff;
 }
 
 .approveSmall:hover {
-  background-color: #059669;
-  transform: scale(1.1);
+  transform: scale(1.15);
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.4);
 }
 
 .rejectSmall {
-  background-color: #EF4444;
+  background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
   color: #fff;
 }
 
 .rejectSmall:hover {
-  background-color: #DC2626;
-  transform: scale(1.1);
+  transform: scale(1.15);
+  box-shadow: 0 2px 6px rgba(239, 68, 68, 0.4);
 }
