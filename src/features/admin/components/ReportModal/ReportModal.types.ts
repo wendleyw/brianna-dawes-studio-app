@@ -5,8 +5,8 @@ export interface ReportModalProps {
 
 export interface ReportFilters {
   clientId: string;
-  year: number;
-  month: number | null; // null = all months
+  startDate: string; // YYYY-MM-DD format
+  endDate: string;   // YYYY-MM-DD format
   statusFilter: string[];
 }
 

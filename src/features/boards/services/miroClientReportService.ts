@@ -141,22 +141,24 @@ function getWeeksInRange(startDate: string, endDate: string): { start: Date; end
 
 /**
  * Calculate report metrics with weekly breakdown
- * Uses createdAt to distribute deliverables across weeks
+ * Uses dueDate to distribute deliverables across weeks (if no dueDate, uses createdAt)
  */
 function calculateClientMetrics(data: ClientReportData): ClientReportMetrics {
   const weeks = getWeeksInRange(data.startDate, data.endDate);
 
-  // For weekly data, distribute deliverables across weeks based on createdAt
+  // For weekly data, distribute deliverables across weeks based on dueDate (or createdAt as fallback)
   const weeklyData: WeeklyData[] = weeks.map((week, index) => {
-    // Filter deliverables created during this week
+    // Filter deliverables by dueDate (if available) or createdAt
     const weekDeliverables = data.deliverables.filter(d => {
-      const createdAt = new Date(d.createdAt);
-      return createdAt >= week.start && createdAt <= week.end;
+      // Use dueDate if available, otherwise createdAt
+      const dateToUse = d.dueDate ? new Date(d.dueDate) : new Date(d.createdAt);
+      return dateToUse >= week.start && dateToUse <= week.end;
     });
 
     const weekProjects = data.projects.filter(p => {
-      const createdAt = new Date(p.createdAt);
-      return createdAt >= week.start && createdAt <= week.end;
+      // Use dueDate if available, otherwise createdAt
+      const dateToUse = p.dueDate ? new Date(p.dueDate) : new Date(p.createdAt);
+      return dateToUse >= week.start && dateToUse <= week.end;
     });
 
     return {
@@ -319,20 +321,22 @@ class MiroClientReportService {
     await this.createSummaryCards(metrics, frameX, currentY);
     currentY += REPORT.CARD_HEIGHT + REPORT.SECTION_GAP + 20;
 
-    // === WEEKLY BAR CHART ===
+    // === 1. WEEKLY PERFORMANCE BAR CHART ===
     await this.createWeeklyBarChart(metrics.weeklyData, frameLeft + REPORT.PADDING, currentY, REPORT.FRAME_WIDTH - REPORT.PADDING * 2);
     currentY += 300 + REPORT.SECTION_GAP;
 
-    // === PROJECT TYPE BREAKDOWN ===
+    // === 2. WEEKLY BREAKDOWN TABLE ===
+    const tableWeekCount = Math.min(metrics.weeklyData.length, 12);
+    const tableHeight = 30 + (tableWeekCount + 2) * 35; // header + rows + total
+    await this.createWeeklyBreakdownTable(metrics.weeklyData, frameLeft + REPORT.PADDING, currentY, REPORT.FRAME_WIDTH - REPORT.PADDING * 2);
+    currentY += tableHeight + REPORT.SECTION_GAP;
+
+    // === 3. PROJECT TYPE BREAKDOWN ===
     await this.createProjectTypeBreakdown(metrics.deliverablesByProjectType, frameX, currentY);
     currentY += 280 + REPORT.SECTION_GAP;
 
-    // === CLIENT SATISFACTION (Interactive faces for client to choose) ===
+    // === 4. CLIENT SATISFACTION (Interactive faces for client to choose) ===
     await this.createSatisfactionFaces(frameX, currentY);
-    currentY += 140 + REPORT.SECTION_GAP;
-
-    // === WEEKLY BREAKDOWN TABLE ===
-    await this.createWeeklyBreakdownTable(metrics.weeklyData, frameLeft + REPORT.PADDING, currentY, REPORT.FRAME_WIDTH - REPORT.PADDING * 2);
 
     // Zoom to report
     await miro.board.viewport.zoomTo([reportFrame]);

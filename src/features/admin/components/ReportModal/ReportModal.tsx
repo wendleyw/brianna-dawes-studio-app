@@ -13,26 +13,57 @@ import styles from './ReportModal.module.css';
 
 const logger = createLogger('ReportModal');
 
-const MONTHS = [
-  { value: 0, label: 'All Months' },
-  { value: 1, label: 'January' },
-  { value: 2, label: 'February' },
-  { value: 3, label: 'March' },
-  { value: 4, label: 'April' },
-  { value: 5, label: 'May' },
-  { value: 6, label: 'June' },
-  { value: 7, label: 'July' },
-  { value: 8, label: 'August' },
-  { value: 9, label: 'September' },
-  { value: 10, label: 'October' },
-  { value: 11, label: 'November' },
-  { value: 12, label: 'December' },
+// Quick period presets
+const PERIOD_PRESETS = [
+  { label: 'This Month', getValue: () => {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth(), 1);
+    const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    return { start, end };
+  }},
+  { label: 'Last Month', getValue: () => {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const end = new Date(now.getFullYear(), now.getMonth(), 0);
+    return { start, end };
+  }},
+  { label: 'Last 3 Months', getValue: () => {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth() - 2, 1);
+    const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    return { start, end };
+  }},
+  { label: 'This Year', getValue: () => {
+    const now = new Date();
+    return {
+      start: new Date(now.getFullYear(), 0, 1),
+      end: new Date(now.getFullYear(), 11, 31),
+    };
+  }},
+  { label: 'Last Year', getValue: () => {
+    const now = new Date();
+    return {
+      start: new Date(now.getFullYear() - 1, 0, 1),
+      end: new Date(now.getFullYear() - 1, 11, 31),
+    };
+  }},
 ];
 
-// Generate year options (current year - 2 to current year + 1)
-function getYearOptions(): number[] {
-  const currentYear = new Date().getFullYear();
-  return [currentYear - 2, currentYear - 1, currentYear, currentYear + 1];
+// Format date to YYYY-MM-DD for input
+function formatDateForInput(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+// Get default date range (current year)
+function getDefaultDateRange(): { startDate: string; endDate: string } {
+  const now = new Date();
+  return {
+    startDate: formatDateForInput(new Date(now.getFullYear(), 0, 1)),
+    endDate: formatDateForInput(new Date(now.getFullYear(), 11, 31)),
+  };
 }
 
 export function ReportModal({ open, onClose }: ReportModalProps) {
@@ -40,12 +71,23 @@ export function ReportModal({ open, onClose }: ReportModalProps) {
   const { user } = useAuth();
 
   // Filter state
+  const defaultRange = getDefaultDateRange();
   const [filters, setFilters] = useState<ReportFilters>({
     clientId: 'all',
-    year: new Date().getFullYear(),
-    month: null,
+    startDate: defaultRange.startDate,
+    endDate: defaultRange.endDate,
     statusFilter: [],
   });
+
+  // Handle preset selection
+  const handlePresetClick = (preset: typeof PERIOD_PRESETS[0]) => {
+    const { start, end } = preset.getValue();
+    setFilters(prev => ({
+      ...prev,
+      startDate: formatDateForInput(start),
+      endDate: formatDateForInput(end),
+    }));
+  };
 
   // UI state
   const [clients, setClients] = useState<ClientOption[]>([]);
@@ -122,22 +164,14 @@ export function ReportModal({ open, onClose }: ReportModalProps) {
 
       addProgress('Starting enhanced client report generation...');
 
-      // Build date range filter
-      let startDate: string;
-      let endDate: string;
+      // Use date range from filters
+      const startDate = filters.startDate;
+      const endDate = filters.endDate;
 
-      if (filters.month !== null && filters.month > 0) {
-        // Specific month
-        startDate = `${filters.year}-${String(filters.month).padStart(2, '0')}-01`;
-        const lastDay = new Date(filters.year, filters.month, 0).getDate();
-        endDate = `${filters.year}-${String(filters.month).padStart(2, '0')}-${lastDay}`;
-        addProgress(`Filtering: ${MONTHS.find(m => m.value === filters.month)?.label} ${filters.year}`);
-      } else {
-        // Full year
-        startDate = `${filters.year}-01-01`;
-        endDate = `${filters.year}-12-31`;
-        addProgress(`Filtering: Full year ${filters.year}`);
-      }
+      // Format date range for display
+      const startDisplay = new Date(startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      const endDisplay = new Date(endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      addProgress(`Date range: ${startDisplay} - ${endDisplay}`);
 
       // Fetch projects with filters
       addProgress('Fetching projects...');
@@ -216,9 +250,7 @@ export function ReportModal({ open, onClose }: ReportModalProps) {
       addProgress(`Found ${deliverables.length} deliverables (${totalAssets} assets, ${totalBonus} bonus)`);
 
       // Build report title
-      const periodLabel = filters.month !== null && filters.month > 0
-        ? `${MONTHS.find(m => m.value === filters.month)?.label} ${filters.year}`
-        : `${filters.year}`;
+      const periodLabel = `${startDisplay} - ${endDisplay}`;
 
       const clientLabel = filters.clientId === 'all'
         ? 'All Clients'
@@ -305,47 +337,52 @@ export function ReportModal({ open, onClose }: ReportModalProps) {
             </select>
           </div>
 
-          {/* Date Filters */}
+          {/* Period Presets */}
+          <div className={styles.formGroup}>
+            <label className={styles.label}>Quick Select</label>
+            <div className={styles.presetChips}>
+              {PERIOD_PRESETS.map((preset) => (
+                <button
+                  key={preset.label}
+                  type="button"
+                  className={styles.presetChip}
+                  onClick={() => handlePresetClick(preset)}
+                  disabled={isGenerating}
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Date Range */}
           <div className={styles.dateFilters}>
             <div className={styles.formGroup}>
-              <label htmlFor="yearFilter" className={styles.label}>
-                Year
+              <label htmlFor="startDate" className={styles.label}>
+                Start Date
               </label>
-              <select
-                id="yearFilter"
-                value={filters.year}
-                onChange={(e) => setFilters((prev) => ({ ...prev, year: parseInt(e.target.value) }))}
-                className={styles.select}
+              <input
+                type="date"
+                id="startDate"
+                value={filters.startDate}
+                onChange={(e) => setFilters((prev) => ({ ...prev, startDate: e.target.value }))}
+                className={styles.dateInput}
                 disabled={isGenerating}
-              >
-                {getYearOptions().map((year) => (
-                  <option key={year} value={year}>
-                    {year}
-                  </option>
-                ))}
-              </select>
+              />
             </div>
 
             <div className={styles.formGroup}>
-              <label htmlFor="monthFilter" className={styles.label}>
-                Month
+              <label htmlFor="endDate" className={styles.label}>
+                End Date
               </label>
-              <select
-                id="monthFilter"
-                value={filters.month ?? 0}
-                onChange={(e) => {
-                  const val = parseInt(e.target.value);
-                  setFilters((prev) => ({ ...prev, month: val === 0 ? null : val }));
-                }}
-                className={styles.select}
+              <input
+                type="date"
+                id="endDate"
+                value={filters.endDate}
+                onChange={(e) => setFilters((prev) => ({ ...prev, endDate: e.target.value }))}
+                className={styles.dateInput}
                 disabled={isGenerating}
-              >
-                {MONTHS.map((month) => (
-                  <option key={month.value} value={month.value}>
-                    {month.label}
-                  </option>
-                ))}
-              </select>
+              />
             </div>
           </div>
 
