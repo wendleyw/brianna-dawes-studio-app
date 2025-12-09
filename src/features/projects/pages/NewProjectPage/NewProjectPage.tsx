@@ -68,6 +68,7 @@ const PROJECT_TYPES = [
   { value: 'gif-design', label: 'GIF Design (Standalone)', days: 5 },
   { value: 'website-assets', label: 'Website Assets (Individual Sections)', days: 5 },
   { value: 'website-ui-design', label: 'Website UI Design (Full Page)', days: 11 },
+  { value: 'other', label: 'Other', days: 15 },
 ] as const;
 
 // PRIORITY_OPTIONS imported from @shared/lib/priorityConfig

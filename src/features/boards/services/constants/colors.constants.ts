@@ -43,6 +43,7 @@ export const PROJECT_TYPE_CONFIG: Record<string, { label: string; color: string;
   'gif-design': { label: 'GIF', color: '#009688', icon: '✨' },
   'website-assets': { label: 'Web Assets', color: '#4CAF50', icon: '🧩' },
   'website-ui-design': { label: 'Website UI', color: '#FF9800', icon: '🌐' },
+  'other': { label: 'Other', color: '#607D8B', icon: '📋' },
 } as const;
 
 // ==================== UI COLORS ====================

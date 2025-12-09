@@ -40,7 +40,8 @@ export type ProjectType =
   | 'video-production'
   | 'gif-design'
   | 'website-assets'
-  | 'website-ui-design';
+  | 'website-ui-design'
+  | 'other';
 
 // Project Briefing
 export interface ProjectBriefing {
