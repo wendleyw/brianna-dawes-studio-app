@@ -103,4 +103,4 @@ export interface UpdateAppSettingInput {
   value: unknown;
 }
 
-export type AdminTab = 'boards' | 'sync' | 'report' | 'settings';
+export type AdminTab = 'team' | 'boards' | 'sync' | 'developer';
