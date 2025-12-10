@@ -1280,6 +1280,11 @@ class MiroProjectRowService {
 
     this.rows.set(project.id, row);
 
+    // If project is done, add the green completion overlay
+    if (project.status === 'done') {
+      await this.handleDoneOverlay(project.id, 'done', briefingFrame);
+    }
+
     // Zoom to show both the Timeline and the new project frames
     const timelineFrameId = miroTimelineService.getState()?.frameId;
     const itemsToZoom = [briefingFrame, version1Frame];
