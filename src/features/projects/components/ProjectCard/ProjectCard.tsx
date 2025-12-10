@@ -24,7 +24,8 @@ import { DELIVERABLE_TYPES, DELIVERABLE_STATUSES, DEFAULT_DELIVERABLE_FORM } fro
 import { useUsers } from '@features/admin/hooks/useUsers';
 import { useProjects } from '../../hooks/useProjects';
 import { createLogger } from '@shared/lib/logger';
-import { getStatusColumn, getStatusProgress } from '@shared/lib/timelineStatus';
+import { getStatusColumn, getStatusProgress, STATUS_COLUMNS } from '@shared/lib/timelineStatus';
+import { PRIORITY_OPTIONS } from '@shared/lib/priorityConfig';
 import { PRIORITY_CONFIG, BADGE_COLORS } from '@features/boards/services/constants/colors.constants';
 import { getProjectType } from '@features/boards/services/miroHelpers';
 import type { ProjectCardProps } from './ProjectCard.types';
@@ -51,7 +52,6 @@ const DriveIconImg = ({ hasLink }: { hasLink?: boolean }) => (
  */
 export const ProjectCard = memo(function ProjectCard({
   project,
-  onEdit,
   onViewBoard,
   onCardClick,
   onUpdateGoogleDrive,
@@ -83,12 +83,23 @@ export const ProjectCard = memo(function ProjectCard({
   const [showClientRequestChangesModal, setShowClientRequestChangesModal] = useState(false);
   const [showClientApproveModal, setShowClientApproveModal] = useState(false);
   const [showClientCriticalModal, setShowClientCriticalModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   // Form states
   const [driveUrl, setDriveUrl] = useState(project.googleDriveUrl || '');
   const [archiveReason, setArchiveReason] = useState('');
   const [selectedDesigners, setSelectedDesigners] = useState<string[]>(
     project.designers.map(d => d.id)
   );
+  // Edit project form state
+  const [editForm, setEditForm] = useState({
+    name: project.name,
+    description: project.description || '',
+    status: project.status,
+    priority: project.priority,
+    startDate: project.startDate?.split('T')[0] || '',
+    dueDate: project.dueDate?.split('T')[0] || '',
+  });
+  const [isEditLoading, setIsEditLoading] = useState(false);
 
   // Deliverable form state
   const [deliverableForm, setDeliverableForm] = useState(DEFAULT_DELIVERABLE_FORM);
@@ -342,7 +353,35 @@ export const ProjectCard = memo(function ProjectCard({
 
   const handleEditClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    onEdit?.(project);
+    // Reset form to current project values
+    setEditForm({
+      name: project.name,
+      description: project.description || '',
+      status: project.status,
+      priority: project.priority,
+      startDate: project.startDate?.split('T')[0] || '',
+      dueDate: project.dueDate?.split('T')[0] || '',
+    });
+    setShowEditModal(true);
+  };
+
+  const handleEditSubmit = async () => {
+    setIsEditLoading(true);
+    try {
+      await onUpdate?.(project.id, {
+        name: editForm.name,
+        description: editForm.description || null,
+        status: editForm.status as 'overdue' | 'urgent' | 'in_progress' | 'review' | 'done',
+        priority: editForm.priority as 'low' | 'medium' | 'high' | 'urgent',
+        startDate: editForm.startDate ? new Date(editForm.startDate).toISOString() : null,
+        dueDate: editForm.dueDate ? new Date(editForm.dueDate).toISOString() : null,
+      });
+      setShowEditModal(false);
+    } catch (error) {
+      logger.error('Failed to update project', error);
+    } finally {
+      setIsEditLoading(false);
+    }
   };
 
   // ACTION: Review - Send for client validation
@@ -1091,6 +1130,112 @@ export const ProjectCard = memo(function ProjectCard({
             </Button>
             <Button onClick={handleSaveDriveUrl}>
               Save
+            </Button>
+          </div>
+        </div>
+      </Dialog>
+
+      {/* Edit Project Modal */}
+      <Dialog
+        open={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        title="Edit Project"
+        size="sm"
+      >
+        <div className={styles.editProjectModal}>
+          {/* Project Name */}
+          <div className={styles.editField}>
+            <input
+              type="text"
+              className={styles.editInputName}
+              placeholder="Project name"
+              value={editForm.name}
+              onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
+              disabled={isEditLoading}
+            />
+          </div>
+
+          {/* Status Selection */}
+          <div className={styles.editChipGroup}>
+            <span className={styles.editChipLabel}>Status</span>
+            <div className={styles.editChips}>
+              {STATUS_COLUMNS.map((option) => (
+                <button
+                  key={option.id}
+                  type="button"
+                  className={`${styles.editChip} ${editForm.status === option.id ? styles.editChipActive : ''}`}
+                  onClick={() => setEditForm(prev => ({ ...prev, status: option.id }))}
+                  disabled={isEditLoading}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Priority Selection */}
+          <div className={styles.editChipGroup}>
+            <span className={styles.editChipLabel}>Priority</span>
+            <div className={styles.editChips}>
+              {PRIORITY_OPTIONS.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  className={`${styles.editChip} ${styles.editChipPriority} ${editForm.priority === option.value ? styles.editChipActive : ''}`}
+                  onClick={() => setEditForm(prev => ({ ...prev, priority: option.value }))}
+                  disabled={isEditLoading}
+                  data-priority={option.value}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Dates Row */}
+          <div className={styles.editDatesRow}>
+            <div className={styles.editDateField}>
+              <span className={styles.editDateLabel}>Start</span>
+              <input
+                type="date"
+                className={styles.editDateInput}
+                value={editForm.startDate}
+                onChange={(e) => setEditForm(prev => ({ ...prev, startDate: e.target.value }))}
+                disabled={isEditLoading}
+              />
+            </div>
+            <div className={styles.editDateSeparator}>→</div>
+            <div className={styles.editDateField}>
+              <span className={styles.editDateLabel}>Due</span>
+              <input
+                type="date"
+                className={styles.editDateInput}
+                value={editForm.dueDate}
+                onChange={(e) => setEditForm(prev => ({ ...prev, dueDate: e.target.value }))}
+                disabled={isEditLoading}
+              />
+            </div>
+          </div>
+
+          {/* Description */}
+          <div className={styles.editField}>
+            <textarea
+              className={styles.editTextarea}
+              placeholder="Description (optional)"
+              value={editForm.description}
+              onChange={(e) => setEditForm(prev => ({ ...prev, description: e.target.value }))}
+              disabled={isEditLoading}
+              rows={3}
+            />
+          </div>
+
+          {/* Actions */}
+          <div className={styles.editActions}>
+            <Button variant="ghost" size="sm" onClick={() => setShowEditModal(false)} disabled={isEditLoading}>
+              Cancel
+            </Button>
+            <Button variant="primary" size="sm" onClick={handleEditSubmit} disabled={isEditLoading || !editForm.name.trim()}>
+              {isEditLoading ? 'Saving...' : 'Save'}
             </Button>
           </div>
         </div>
