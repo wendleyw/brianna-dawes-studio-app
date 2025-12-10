@@ -30,6 +30,20 @@ interface BoardClientInfo {
 
 const logger = createLogger('ProjectsPage');
 
+// Project types for filtering (matching NewProjectPage)
+const PROJECT_TYPES = [
+  { value: 'social-post-design', label: 'Social Post Design' },
+  { value: 'hero-section', label: 'Hero Section' },
+  { value: 'ad-design', label: 'Ad Design' },
+  { value: 'gif-design', label: 'GIF Design' },
+  { value: 'website-assets', label: 'Website Assets' },
+  { value: 'email-design', label: 'Email Design' },
+  { value: 'video-production', label: 'Video Production' },
+  { value: 'website-ui-design', label: 'Website UI Design' },
+  { value: 'marketing-campaign', label: 'Marketing Campaign' },
+  { value: 'other', label: 'Other' },
+];
+
 // Icons
 const BackIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -74,6 +88,7 @@ export function ProjectsPage() {
   const { syncProject } = useMiroBoardSync();
   const [searchQuery, setSearchQuery] = useState('');
   const [timelineFilter, setTimelineFilter] = useState<TimelineStatus | ''>('');
+  const [projectTypeFilter, setProjectTypeFilter] = useState<string>('');
   const [boardClient, setBoardClient] = useState<BoardClientInfo | null>(null);
   const [currentBoardId, setCurrentBoardId] = useState<string | null>(null);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
@@ -303,14 +318,22 @@ export function ProjectsPage() {
   // Fetch ALL projects (pageSize: 1000 to avoid pagination limits)
   const { data: projectsData, isLoading, refetch } = useProjects({ filters, pageSize: 1000 });
 
-  // Filter projects by timeline status (client-side)
+  // Filter projects by timeline status and project type (client-side)
   // Sort priority: REVIEW first (client action needed), then active, DONE last
   const allProjects = projectsData?.data || [];
   const projects = useMemo(() => {
     let filtered = allProjects;
+
+    // Filter by timeline status
     if (timelineFilter) {
-      filtered = allProjects.filter(p => getTimelineStatus(p) === timelineFilter);
+      filtered = filtered.filter(p => getTimelineStatus(p) === timelineFilter);
     }
+
+    // Filter by project type
+    if (projectTypeFilter) {
+      filtered = filtered.filter(p => p.briefing?.projectType === projectTypeFilter);
+    }
+
     // Sort order: review > overdue > urgent > in_progress > done
     // This helps clients see what needs their attention first
     const statusPriority: Record<string, number> = {
@@ -330,7 +353,7 @@ export function ProjectsPage() {
       // Same priority: sort by updatedAt (most recent first)
       return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
     });
-  }, [allProjects, timelineFilter]);
+  }, [allProjects, timelineFilter, projectTypeFilter]);
 
   const totalProjects = projects.length;
 
@@ -789,6 +812,16 @@ export function ProjectsPage() {
           <option value="">All Status</option>
           {TIMELINE_COLUMNS.map(col => (
             <option key={col.id} value={col.id}>{col.label}</option>
+          ))}
+        </select>
+        <select
+          className={styles.statusSelect}
+          value={projectTypeFilter}
+          onChange={(e) => setProjectTypeFilter(e.target.value)}
+        >
+          <option value="">All Types</option>
+          {PROJECT_TYPES.map(type => (
+            <option key={type.value} value={type.value}>{type.label}</option>
           ))}
         </select>
       </div>
