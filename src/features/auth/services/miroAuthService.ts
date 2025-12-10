@@ -1,6 +1,7 @@
 import { supabase } from '@shared/lib/supabase';
 import { env, isMainAdmin } from '@shared/config/env';
 import { createLogger } from '@shared/lib/logger';
+import { supabaseAuthBridge } from './supabaseAuthBridge';
 
 const logger = createLogger('MiroAuth');
 
@@ -151,6 +152,18 @@ export const miroAuthService = {
         .single();
 
       if (adminUser) {
+        // Sign in to Supabase Auth for proper RLS
+        const authResult = await supabaseAuthBridge.signInAfterMiroAuth(
+          adminUser.id,
+          adminUser.email,
+          adminUser.miro_user_id || miroUserId
+        );
+
+        if (!authResult.success) {
+          logger.warn('Supabase Auth sign-in failed for admin', { error: authResult.error });
+          // Continue anyway - app will work with anon policies as fallback
+        }
+
         return {
           success: true,
           user: {
@@ -239,6 +252,23 @@ export const miroAuthService = {
       }
     }
 
+    // Sign in to Supabase Auth for proper RLS
+    const effectiveMiroUserId = user.miro_user_id || miroUserId;
+    if (effectiveMiroUserId) {
+      const authResult = await supabaseAuthBridge.signInAfterMiroAuth(
+        user.id,
+        user.email,
+        effectiveMiroUserId
+      );
+
+      if (!authResult.success) {
+        logger.warn('Supabase Auth sign-in failed', { error: authResult.error, role: user.role });
+        // Continue anyway - app will work with anon policies as fallback
+      } else {
+        logger.info('Supabase Auth sign-in successful', { userId: user.id, role: user.role });
+      }
+    }
+
     // Determine redirect based on role
     let redirectTo = '/dashboard';
 
@@ -312,6 +342,9 @@ export const miroAuthService = {
    * Note: Main auth storage (bd_auth_user) is cleared by AuthProvider
    */
   async signOut(): Promise<void> {
+    // Sign out of Supabase Auth
+    await supabaseAuthBridge.signOut();
+
     // Clear legacy localStorage keys (for backwards compatibility cleanup)
     localStorage.removeItem('auth_user');
     localStorage.removeItem('auth_token');

@@ -39,6 +39,7 @@ export interface UserRow {
   role: UserRole;
   avatar_url: string | null;
   miro_user_id: string | null;
+  auth_user_id: string | null; // Links to auth.users(id) for Supabase Auth integration
   primary_board_id: string | null;
   is_super_admin: boolean;
   company_name: string | null;
@@ -54,6 +55,7 @@ export interface UserInsert {
   role?: UserRole;
   avatar_url?: string | null;
   miro_user_id?: string | null;
+  auth_user_id?: string | null;
   primary_board_id?: string | null;
   is_super_admin?: boolean;
   company_name?: string | null;
@@ -69,6 +71,7 @@ export interface UserUpdate {
   role?: UserRole;
   avatar_url?: string | null;
   miro_user_id?: string | null;
+  auth_user_id?: string | null;
   primary_board_id?: string | null;
   is_super_admin?: boolean;
   company_name?: string | null;
