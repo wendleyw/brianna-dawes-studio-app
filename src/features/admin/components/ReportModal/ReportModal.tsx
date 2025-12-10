@@ -37,7 +37,7 @@ const PERIOD_PRESETS = [
     const now = new Date();
     return {
       start: new Date(now.getFullYear(), 0, 1),
-      end: now, // Up to today instead of Dec 31
+      end: new Date(now.getFullYear(), 11, 31), // Full year including future due dates
     };
   }},
   { label: 'Last Year', getValue: () => {
