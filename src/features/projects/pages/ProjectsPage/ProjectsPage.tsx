@@ -643,7 +643,6 @@ export function ProjectsPage() {
             >
               <BackIcon />
             </button>
-            <span className={styles.adminLabel}>Admin</span>
           </div>
           <div className={styles.adminBarRight}>
             <button
