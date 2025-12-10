@@ -243,6 +243,48 @@ export function AuthProvider({ children }: AuthProviderProps) {
       } else if (event === 'TOKEN_REFRESHED') {
         const session = await authService.getSession();
         if (session) {
+          // SECURITY: Re-validate user role on token refresh
+          // This ensures that if an admin removes a user's role, they lose access
+          const currentUser = state.user;
+          if (currentUser) {
+            const userCheck = await verifyUserExists(currentUser.id);
+
+            if (!userCheck.exists) {
+              // User no longer exists in database - force logout
+              logger.warn('User no longer exists on token refresh, forcing logout', { userId: currentUser.id });
+              localStorage.removeItem(AUTH_STORAGE_KEY);
+              setState({ ...initialState, isLoading: false });
+              queryClient.clear();
+              return;
+            }
+
+            // Check if role changed
+            if (userCheck.role !== currentUser.role) {
+              logger.warn('User role changed on token refresh', {
+                userId: currentUser.id,
+                oldRole: currentUser.role,
+                newRole: userCheck.role
+              });
+
+              // Update user with new role and clear any stale permissions
+              const updatedUser: AuthUser = {
+                ...currentUser,
+                role: userCheck.role as AuthUser['role'],
+                primaryBoardId: userCheck.primaryBoardId ?? null,
+                isSuperAdmin: userCheck.isSuperAdmin ?? false,
+                companyName: userCheck.companyName ?? null,
+                companyLogoUrl: userCheck.companyLogoUrl ?? null,
+              };
+
+              localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(updatedUser));
+              setState((prev) => ({ ...prev, session, user: updatedUser }));
+
+              // Invalidate all queries to force re-fetch with new permissions
+              queryClient.invalidateQueries();
+              return;
+            }
+          }
+
           setState((prev) => ({ ...prev, session }));
         }
       }
