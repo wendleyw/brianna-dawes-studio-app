@@ -648,10 +648,10 @@ export function ProjectsPage() {
             <button
               className={styles.adminButton}
               onClick={handleOpenBoardModal}
-              title="Open Project Board"
+              title="Open Project Status Board"
             >
               <GridIcon />
-              <span>Board</span>
+              <span>Status</span>
             </button>
             <button
               className={styles.adminButton}
