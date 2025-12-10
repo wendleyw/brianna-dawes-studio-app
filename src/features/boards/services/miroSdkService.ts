@@ -1992,7 +1992,7 @@ class MiroProjectRowService {
       const frameWidth = briefingFrame.width || FRAME.WIDTH;
       const frameHeight = briefingFrame.height || FRAME.HEIGHT;
 
-      projectLogger.debug('[handleDoneOverlay] Creating semi-transparent green overlay', { frameTitle: briefingFrame.title });
+      projectLogger.debug('[handleDoneOverlay] Creating semi-transparent gray overlay', { frameTitle: briefingFrame.title });
 
       // Using fillOpacity for real transparency so content is still visible
       // Note: fillOpacity is supported by Miro SDK but not in the TypeScript types
@@ -2003,8 +2003,8 @@ class MiroProjectRowService {
         width: frameWidth - 20, // Slightly smaller than frame
         height: frameHeight - 20,
         style: {
-          fillColor: '#22C55E', // Green color
-          fillOpacity: 0.25, // 25% opacity - visible but content still readable
+          fillColor: '#9CA3AF', // Gray color (same as completed cards in panel)
+          fillOpacity: 0.3, // 30% opacity - visible but content still readable
           borderWidth: 0,
         } as { fillColor: string; fillOpacity: number; borderWidth: number },
       });
