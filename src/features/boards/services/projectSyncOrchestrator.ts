@@ -272,6 +272,16 @@ class ProjectSyncOrchestrator {
     let cardId: string | undefined;
     let frameId: string | undefined;
 
+    // Ensure timeline is initialized before syncing
+    if (!miroTimelineService.isInitialized()) {
+      logger.debug('Timeline not initialized, initializing now...');
+      await this.withTimeout(
+        miroTimelineService.initializeTimeline(),
+        SYNC_CONFIG.SYNC_TIMEOUT_MS,
+        'Timeline initialization'
+      );
+    }
+
     // Create/update timeline card with timeout
     try {
       await this.withTimeout(
