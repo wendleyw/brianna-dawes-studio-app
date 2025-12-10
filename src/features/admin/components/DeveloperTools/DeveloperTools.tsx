@@ -1029,9 +1029,20 @@ export function DeveloperTools() {
             addProgress(`  ✓ Status flags updated${testData.completedAt ? ' (completed)' : ''}`);
           }
 
-          // Create deliverables for this project
+          // Create deliverables for this project with proper dates
+          // For completed projects, deliverables should have deliveredAt dates
+          // For active projects, deliverables should have dueDate based on project due date
           for (const delData of testData.deliverables) {
             try {
+              // Calculate deliverable dates based on project timeline
+              let deliverableDueDate: string | null = projectDueDate;
+              let deliveredAt: string | null = null;
+
+              // For completed projects, set deliveredAt to project completion date
+              if (testData.completedAt && (delData.status === 'delivered' || delData.status === 'approved')) {
+                deliveredAt = testData.completedAt;
+              }
+
               await deliverableService.createDeliverable({
                 projectId: project.id,
                 name: delData.name,
@@ -1041,6 +1052,8 @@ export function DeveloperTools() {
                 bonusCount: delData.bonusCount,
                 externalUrl: delData.externalUrl || null,
                 miroUrl: null,
+                dueDate: deliverableDueDate,
+                deliveredAt: deliveredAt,
               });
               deliverableCount++;
             } catch (delErr) {

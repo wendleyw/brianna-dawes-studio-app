@@ -76,6 +76,7 @@ export interface CreateDeliverableInput {
   miroUrl?: string | null;
   miroFrameId?: string | null;
   dueDate?: string | null;
+  deliveredAt?: string | null;
 }
 
 export interface UpdateDeliverableInput {

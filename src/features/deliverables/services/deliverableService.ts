@@ -149,6 +149,8 @@ class DeliverableService {
       count: input.count || 1,
       // bonus_count will be set after migration 017 is applied
       ...(input.bonusCount ? { bonus_count: input.bonusCount } : {}),
+      // delivered_at for completed deliverables (for reports)
+      ...(input.deliveredAt ? { delivered_at: input.deliveredAt } : {}),
     };
 
     const { data, error } = await supabase
