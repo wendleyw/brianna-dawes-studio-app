@@ -251,7 +251,22 @@ class MiroMasterTimelineService {
       },
     });
 
+    // Create warning message below the title
+    await miro.board.createText({
+      content: '<i>⚠️ Atualizado automaticamente - Não editar manualmente</i>',
+      x: frameLeft + 220,
+      y: titleY + 25,
+      width: 400,
+      style: {
+        fontSize: 12,
+        textAlign: 'left',
+        color: '#6B7280', // Gray color
+      },
+    });
+
     // Create timeline frame with white background (no title in frame itself)
+    // Note: Miro SDK doesn't support locking frames programmatically,
+    // but users can manually lock via right-click > Lock
     const frame = await miro.board.createFrame({
       title: '',
       x: this.frameCenterX,
