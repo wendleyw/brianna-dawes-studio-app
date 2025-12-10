@@ -229,11 +229,11 @@
   display: flex;
   gap: var(--space-2);
   align-items: center;
+  width: 100%;
 }
 
 .searchInput {
   flex: 1;
-  min-width: 80px;
   padding: var(--space-2) var(--space-3);
   font-size: var(--text-sm);
   color: var(--color-text-primary);
@@ -253,17 +253,15 @@
 }
 
 .statusSelect {
-  padding: var(--space-2) var(--space-2);
-  font-size: var(--text-xs);
+  padding: 6px 8px;
+  font-size: 11px;
   color: var(--color-text-primary);
   background-color: var(--color-bg-primary);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   cursor: pointer;
   flex-shrink: 0;
-  width: auto;
-  min-width: 0;
-  max-width: none;
+  white-space: nowrap;
 }
 
 .statusSelect:focus {
