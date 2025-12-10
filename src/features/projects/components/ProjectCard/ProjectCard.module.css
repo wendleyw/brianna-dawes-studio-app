@@ -17,10 +17,11 @@
   box-shadow: 0 0 0 2px var(--color-accent), var(--shadow-md);
 }
 
-/* Completed/Done card - light green background */
+/* Completed/Done card - light gray background with reduced opacity */
 .card.done {
-  background-color: rgba(34, 197, 94, 0.05);
-  border-color: rgba(34, 197, 94, 0.3);
+  background-color: rgba(156, 163, 175, 0.08);
+  border-color: rgba(156, 163, 175, 0.3);
+  opacity: 0.7;
 }
 
 /* Header */
@@ -1523,6 +1524,15 @@
 .deliverableCompactField select:focus {
   outline: none;
   border-color: #D4A574;
+}
+
+/* Disabled input style (for auto version) */
+.deliverableCompactField input:disabled,
+.disabledInput {
+  background: var(--color-bg-secondary);
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+  opacity: 0.8;
 }
 
 /* Links Row */

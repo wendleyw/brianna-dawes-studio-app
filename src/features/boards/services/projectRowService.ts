@@ -6,9 +6,9 @@ import type { Project } from '@features/projects/domain/project.types';
 const PROJECT_ROWS_START_X = 100;
 const PROJECT_ROWS_START_Y = 1000; // Below the Master Timeline
 const BRIEFING_FRAME_WIDTH = 700;
-const BRIEFING_FRAME_HEIGHT = 900;
+const BRIEFING_FRAME_HEIGHT = 1200; // Increased to fit FILE ASSETS section
 const PROCESS_FRAME_WIDTH = 700;
-const PROCESS_FRAME_HEIGHT = 900;
+const PROCESS_FRAME_HEIGHT = 1200; // Match briefing frame height
 const FRAME_GAP = 50;
 const ROW_GAP = 100;
 
@@ -227,7 +227,7 @@ class ProjectRowService {
       const valueItem = await miroClient.createShape(this.boardId, {
         shape: 'rectangle',
         x: cellX,
-        y: cellY + 60,
+        y: cellY + 25,
         width: CELL_WIDTH,
         height: CELL_HEIGHT - 30,
         content: displayValue,
@@ -268,26 +268,69 @@ class ProjectRowService {
       y: sectionY,
       width: BRIEFING_FRAME_WIDTH - 40,
       height: 30,
-      content: '🎨 CREATIVE DIRECTION & VISUAL PREFERENCES',
+      content: 'CREATIVE DIRECTION',
       style: {
-        fillColor: '#FEF3C7',
-        fontColor: '#92400E',
+        fillColor: '#E5E7EB',
+        fontColor: '#374151',
         fontSize: '11',
       },
     });
 
-    // Drop zone area
+    // Drop zone area for creative direction
     await miroClient.createShape(this.boardId, {
       shape: 'rectangle',
       x: sectionX,
-      y: sectionY + 150,
+      y: sectionY + 130,
       width: BRIEFING_FRAME_WIDTH - 60,
-      height: 200,
-      content: 'Drop images, mood boards, style references, and creative here 👆\nThis area is for visual inspiration and creative direction',
+      height: 180,
+      content: 'Drop images, mood boards, style references here',
       style: {
-        fillColor: '#FFFBEB',
-        borderColor: '#FCD34D',
-        fontColor: '#92400E',
+        fillColor: '#FFFFFF',
+        borderColor: '#E5E7EB',
+        fontColor: '#9CA3AF',
+        fontSize: '10',
+      },
+    });
+
+    // FILE ASSETS section
+    await this.createFileAssetsSection(sectionY + 280);
+  }
+
+  /**
+   * Create the FILE ASSETS section
+   */
+  private async createFileAssetsSection(sectionY: number): Promise<void> {
+    if (!this.boardId) return;
+
+    const sectionX = PROJECT_ROWS_START_X + BRIEFING_FRAME_WIDTH / 2;
+
+    // Section header
+    await miroClient.createShape(this.boardId, {
+      shape: 'rectangle',
+      x: sectionX,
+      y: sectionY,
+      width: BRIEFING_FRAME_WIDTH - 40,
+      height: 30,
+      content: 'FILE ASSETS',
+      style: {
+        fillColor: '#E5E7EB',
+        fontColor: '#374151',
+        fontSize: '11',
+      },
+    });
+
+    // Drop zone area for file assets
+    await miroClient.createShape(this.boardId, {
+      shape: 'rectangle',
+      x: sectionX,
+      y: sectionY + 130,
+      width: BRIEFING_FRAME_WIDTH - 60,
+      height: 180,
+      content: 'Drop product images, kits, logos, and other assets here',
+      style: {
+        fillColor: '#FFFFFF',
+        borderColor: '#E5E7EB',
+        fontColor: '#9CA3AF',
         fontSize: '10',
       },
     });
@@ -364,20 +407,151 @@ class ProjectRowService {
       currentY += 220;
     }
 
-    // Footer note
-    await miroClient.createText(this.boardId, {
-      content: 'Drag deliverables here. Add attachments here. Images + attachments',
-      x: versionX,
-      y: rowY + PROCESS_FRAME_HEIGHT - 50,
-      width: PROCESS_FRAME_WIDTH - 40,
+    // Create "How Was Your Experience?" section
+    await this.createExperienceFeedbackSection(rowY + PROCESS_FRAME_HEIGHT - 180);
+
+    return versions;
+  }
+
+  /**
+   * Create the "How Was Your Experience?" feedback section
+   */
+  private async createExperienceFeedbackSection(sectionY: number): Promise<void> {
+    if (!this.boardId) return;
+
+    const sectionX = PROJECT_ROWS_START_X + BRIEFING_FRAME_WIDTH + FRAME_GAP + PROCESS_FRAME_WIDTH / 2;
+    const sectionWidth = PROCESS_FRAME_WIDTH - 40;
+
+    // Dark header bar
+    await miroClient.createShape(this.boardId, {
+      shape: 'rectangle',
+      x: sectionX,
+      y: sectionY,
+      width: sectionWidth,
+      height: 35,
+      content: '',
       style: {
-        fontSize: '9',
-        color: '#9CA3AF',
+        fillColor: '#374151',
+        borderColor: 'transparent',
+        borderWidth: 0,
+      },
+    });
+
+    // Left side - Circle for drag and drop feedback
+    const circleX = sectionX - sectionWidth / 2 + 60;
+    await miroClient.createShape(this.boardId, {
+      shape: 'circle',
+      x: circleX,
+      y: sectionY + 70,
+      width: 70,
+      height: 70,
+      content: '',
+      style: {
+        fillColor: '#FFFFFF',
+        borderColor: '#9CA3AF',
+        borderWidth: 2,
+      },
+    });
+
+    // Label for circle
+    await miroClient.createText(this.boardId, {
+      content: 'Drag Circle over for your feedback',
+      x: circleX,
+      y: sectionY + 120,
+      width: 100,
+      style: {
+        fontSize: '8',
+        color: '#6B7280',
         textAlign: 'center',
       },
     });
 
-    return versions;
+    // Center - Title and subtitle
+    await miroClient.createText(this.boardId, {
+      content: '<b>HOW WAS YOUR EXPERIENCE?</b>',
+      x: sectionX,
+      y: sectionY + 45,
+      width: 300,
+      style: {
+        fontSize: '14',
+        color: '#111827',
+        textAlign: 'center',
+      },
+    });
+
+    await miroClient.createText(this.boardId, {
+      content: 'Select a face to share your feedback',
+      x: sectionX,
+      y: sectionY + 65,
+      width: 300,
+      style: {
+        fontSize: '10',
+        color: '#6B7280',
+        textAlign: 'center',
+      },
+    });
+
+    // Emoji faces - 5 options centered
+    const emojis = [
+      { emoji: '😢', label: 'Very Unhappy', color: '#EF4444' },
+      { emoji: '😟', label: 'Unhappy', color: '#F97316' },
+      { emoji: '😐', label: 'Neutral', color: '#EAB308' },
+      { emoji: '🙂', label: 'Happy', color: '#84CC16' },
+      { emoji: '😄', label: 'Very Happy', color: '#22C55E' },
+    ];
+
+    const emojiStartX = sectionX - 120;
+    const emojiY = sectionY + 95;
+    const emojiGap = 60;
+
+    for (let i = 0; i < emojis.length; i++) {
+      const emojiData = emojis[i];
+      if (!emojiData) continue;
+      const emojiX = emojiStartX + i * emojiGap;
+
+      // Emoji circle background
+      await miroClient.createShape(this.boardId, {
+        shape: 'circle',
+        x: emojiX,
+        y: emojiY,
+        width: 40,
+        height: 40,
+        content: emojiData.emoji,
+        style: {
+          fillColor: emojiData.color,
+          borderColor: 'transparent',
+          borderWidth: 0,
+          fontSize: '18',
+        },
+      });
+
+      // Emoji label
+      await miroClient.createText(this.boardId, {
+        content: emojiData.label,
+        x: emojiX,
+        y: emojiY + 35,
+        width: 60,
+        style: {
+          fontSize: '7',
+          color: emojiData.color,
+          textAlign: 'center',
+        },
+      });
+    }
+
+    // Right side - Feedback text area
+    const feedbackX = sectionX + sectionWidth / 2 - 80;
+    await miroClient.createText(this.boardId, {
+      content: 'Add specific notes of feedback - whether good or critical we always want to work to improve your experience.',
+      x: feedbackX,
+      y: sectionY + 70,
+      width: 140,
+      style: {
+        fontSize: '8',
+        color: '#6B7280',
+        textAlign: 'left',
+      },
+    });
   }
 
   /**

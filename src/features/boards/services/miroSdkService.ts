@@ -253,7 +253,7 @@ class MiroMasterTimelineService {
 
     // Create warning message below the title
     await miro.board.createText({
-      content: '<i>⚠️ Atualizado automaticamente - Não editar manualmente</i>',
+      content: '<i>⚠️ Auto-updated - Do not edit manually</i>',
       x: frameLeft + 220,
       y: titleY + 25,
       width: 400,
@@ -459,36 +459,28 @@ class MiroMasterTimelineService {
     const wasReviewed = options?.markAsReviewed || project.wasReviewed || false;
     log('MiroTimeline', `Review status: wasReviewed=${wasReviewed} (from DB/options)`)
 
-    // Format due date (simple date only)
-    const formatDueDate = (dateStr: string | null): string => {
-      if (!dateStr) return '';
-      const date = new Date(dateStr);
-      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    };
-
     // Build priority indicator with colored circles
     const priorityIcon = project.priority === 'urgent' ? '🔴' :
                          project.priority === 'high' ? '🟠' :
                          project.priority === 'medium' ? '🟡' :
                          '🟢'; // low/standard
 
-    // Build clean card title - multi-line format
-    // Line 1: [ARCHIVED] or [Changes Requested] [icon] Project Title
-    // Line 2: Due Date
-    // Line 3: Author
+    // Build clean card title - single line format
+    // Format: [ARCHIVED] or [Changes Requested] or [Approved] Project Title [priority icon]
     const isArchived = project.archivedAt !== null;
+    const isApproved = project.wasApproved === true;
     // Show [Changes Requested] only when wasReviewed=true AND status is in_progress (client requested changes)
     // When admin sends back to review or moves to done, show normal title (no prefix)
     const hasChangesRequested = wasReviewed && status === 'in_progress';
-    const statusTag = isArchived ? '[ARCHIVED] ' : (hasChangesRequested ? '[Changes Requested] 🔄 ' : '');
-    const datePart = formatDueDate(project.dueDate);
-    const authorPart = project.client?.name || '';
 
-    // Build title with line breaks - Miro cards support plain text with \n for multi-line
+    // Status prefix: Archived > Approved > Changes Requested > none
+    const statusTag = isArchived ? '[ARCHIVED] 📦 ' :
+                      isApproved ? '✓ ' :
+                      hasChangesRequested ? '🔄 ' : '';
+
+    // Build title - project name with priority icon at the end
     const titleLines = [
-      `${statusTag}${isArchived ? '📦' : priorityIcon} ${project.name}`,
-      datePart ? `› ${datePart}` : '',
-      authorPart ? `› ${authorPart}` : '',
+      `${statusTag}${project.name} ${isArchived ? '' : priorityIcon}`.trim(),
     ].filter(Boolean);
 
     const title = titleLines.join('\n');

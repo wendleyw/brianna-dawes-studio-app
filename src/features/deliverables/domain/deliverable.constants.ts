@@ -10,17 +10,13 @@ import type { DeliverableType, DeliverableStatus } from './deliverable.types';
 /** Deliverable type options for forms and filters */
 export const DELIVERABLE_TYPES = [
   { value: 'concept' as DeliverableType, label: 'Concept', description: 'Initial ideas' },
-  { value: 'design' as DeliverableType, label: 'Design', description: 'Main design work' },
   { value: 'revision' as DeliverableType, label: 'Revision', description: 'Updates & changes' },
   { value: 'final' as DeliverableType, label: 'Final', description: 'Ready to deliver' },
 ] as const;
 
 /** Deliverable status options for forms and filters */
 export const DELIVERABLE_STATUSES = [
-  { value: 'draft' as DeliverableStatus, label: 'Draft' },
-  { value: 'in_progress' as DeliverableStatus, label: 'In Progress' },
-  { value: 'in_review' as DeliverableStatus, label: 'In Review' },
-  { value: 'approved' as DeliverableStatus, label: 'Approved' },
+  { value: 'in_review' as DeliverableStatus, label: 'Review' },
   { value: 'delivered' as DeliverableStatus, label: 'Delivered' },
 ] as const;
 
@@ -53,12 +49,12 @@ export const DEFAULT_DELIVERABLE_FORM: {
   miroUrl: string;
 } = {
   name: '',
-  type: 'design',
-  version: '1.0',
+  type: 'concept',
+  version: '1',
   count: 1,
   bonusCount: 0,
   hoursSpent: 0,
-  status: 'in_progress',
+  status: 'in_review',
   notes: '',
   externalUrl: '',
   miroUrl: '',

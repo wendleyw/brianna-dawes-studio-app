@@ -372,8 +372,9 @@ export const ProjectCard = memo(function ProjectCard({
   // ACTION: Deliverable - Show deliverables
   const handleDeliverableClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    // Initialize form with project name
-    setDeliverableForm(prev => ({ ...prev, name: project.name }));
+    // Initialize form with project name and auto-calculated version
+    const nextVersion = String(deliverables.length + 1);
+    setDeliverableForm(prev => ({ ...prev, name: project.name, version: nextVersion }));
     setShowDeliverableModal(true);
   };
 
@@ -508,10 +509,16 @@ export const ProjectCard = memo(function ProjectCard({
 
   // Deliverable CRUD handlers
   const handleEditDeliverable = (d: Deliverable) => {
+    // Extract version from name (e.g., "Project Name v2" -> "2")
+    const versionMatch = d.name.match(/\sv(\d+)$/);
+    const version = versionMatch ? versionMatch[1] : '1';
+    // Extract base name without version
+    const baseName = d.name.replace(/\sv\d+$/, '');
+
     setDeliverableForm({
-      name: d.name,
+      name: baseName,
       type: d.type as DeliverableType,
-      version: '1.0',
+      version: version || '1',
       count: d.count || 1,
       bonusCount: d.bonusCount || 0,
       hoursSpent: d.hoursSpent || 0,
@@ -527,10 +534,15 @@ export const ProjectCard = memo(function ProjectCard({
     if (!editingDeliverable) return;
 
     try {
+      // Build name with version (e.g., "Project Name v1")
+      const nameWithVersion = deliverableForm.version
+        ? `${deliverableForm.name} v${deliverableForm.version}`
+        : deliverableForm.name;
+
       await updateDeliverable.mutateAsync({
         id: editingDeliverable.id,
         input: {
-          name: deliverableForm.name,
+          name: nameWithVersion,
           type: deliverableForm.type,
           count: deliverableForm.count,
           bonusCount: deliverableForm.bonusCount,
@@ -779,9 +791,6 @@ export const ProjectCard = memo(function ProjectCard({
               <div className={styles.deliverableDetails}>
                 <span className={styles.deliverableDetail}>
                   {d.count}x{d.bonusCount > 0 && <span className={styles.bonusSmall}> +{d.bonusCount}</span>}
-                </span>
-                <span className={`${styles.deliverableStatus} ${styles[`status_${d.status}`]}`}>
-                  {d.status?.replace('_', ' ')}
                 </span>
               </div>
               <div className={styles.deliverableActions}>
@@ -1150,15 +1159,15 @@ export const ProjectCard = memo(function ProjectCard({
             ))}
           </div>
 
-          {/* Version, Count, Bonus & Status Row */}
+          {/* Version (auto), Assets, Bonus & Status Row */}
           <div className={styles.deliverableCompactRow4}>
             <div className={styles.deliverableCompactField}>
               <label>Version</label>
               <input
                 type="text"
-                placeholder="1.0"
-                value={deliverableForm.version}
-                onChange={(e) => handleDeliverableFieldChange('version', e.target.value)}
+                value={`v${deliverableForm.version}`}
+                disabled
+                className={styles.disabledInput}
               />
             </div>
             <div className={styles.deliverableCompactField}>
@@ -1242,12 +1251,6 @@ export const ProjectCard = memo(function ProjectCard({
                       </button>
                     )}
                   </div>
-                  <Badge
-                    variant={d.status === 'approved' ? 'success' : d.status === 'in_review' ? 'warning' : d.status === 'in_progress' ? 'info' : 'neutral'}
-                    size="sm"
-                  >
-                    {d.status.replace('_', ' ').toUpperCase()}
-                  </Badge>
                 </div>
               ))}
               {deliverables.length > 3 && (
@@ -1438,78 +1441,105 @@ export const ProjectCard = memo(function ProjectCard({
         </div>
       </Dialog>
 
-      {/* Edit Deliverable Modal */}
+      {/* Edit Deliverable Modal - Same layout as create */}
       <Dialog
         open={!!editingDeliverable}
         onClose={() => { setEditingDeliverable(null); setDeliverableForm(DEFAULT_DELIVERABLE_FORM); }}
-        title="Edit Deliverable"
-        size="md"
+        title={`Edit: ${editingDeliverable?.name || 'Deliverable'}`}
+        size="sm"
       >
-        <div className={styles.modalContent}>
-          <div className={styles.formGrid}>
-            <Input
-              label="Name"
-              value={deliverableForm.name}
-              onChange={(e) => setDeliverableForm(prev => ({ ...prev, name: e.target.value }))}
-            />
-            <div className={styles.formRow}>
-              <div className={styles.formField}>
-                <label className={styles.formLabel}>Type</label>
-                <select
-                  className={styles.formSelect}
-                  value={deliverableForm.type}
-                  onChange={(e) => setDeliverableForm(prev => ({ ...prev, type: e.target.value as DeliverableType }))}
-                >
-                  {DELIVERABLE_TYPES.map(t => (
-                    <option key={t.value} value={t.value}>{t.label}</option>
-                  ))}
-                </select>
-              </div>
-              <div className={styles.formField}>
-                <label className={styles.formLabel}>Status</label>
-                <select
-                  className={styles.formSelect}
-                  value={deliverableForm.status}
-                  onChange={(e) => setDeliverableForm(prev => ({ ...prev, status: e.target.value as DeliverableStatus }))}
-                >
-                  {DELIVERABLE_STATUSES.map(s => (
-                    <option key={s.value} value={s.value}>{s.label}</option>
-                  ))}
-                </select>
-              </div>
+        <div className={styles.deliverableModalCompact}>
+          {/* Type Selection - Grid */}
+          <div className={styles.deliverableTypeGridCompact}>
+            {DELIVERABLE_TYPES.map((type) => (
+              <button
+                key={type.value}
+                type="button"
+                className={`${styles.deliverableTypeBtn} ${deliverableForm.type === type.value ? styles.deliverableTypeBtnActive : ''}`}
+                onClick={() => setDeliverableForm(prev => ({ ...prev, type: type.value }))}
+              >
+                {type.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Version (auto), Assets, Bonus & Status Row */}
+          <div className={styles.deliverableCompactRow4}>
+            <div className={styles.deliverableCompactField}>
+              <label>Version</label>
+              <input
+                type="text"
+                value={`v${deliverableForm.version}`}
+                disabled
+                className={styles.disabledInput}
+              />
             </div>
-            <div className={styles.formRow}>
-              <Input
-                label="Count"
+            <div className={styles.deliverableCompactField}>
+              <label>Assets</label>
+              <input
                 type="number"
-                value={String(deliverableForm.count)}
+                min="1"
+                value={deliverableForm.count}
                 onChange={(e) => setDeliverableForm(prev => ({ ...prev, count: parseInt(e.target.value) || 1 }))}
               />
-              <Input
-                label="Bonus"
+            </div>
+            <div className={styles.deliverableCompactField}>
+              <label>Bonus</label>
+              <input
                 type="number"
-                value={String(deliverableForm.bonusCount)}
+                min="0"
+                value={deliverableForm.bonusCount}
                 onChange={(e) => setDeliverableForm(prev => ({ ...prev, bonusCount: parseInt(e.target.value) || 0 }))}
               />
             </div>
-            <Input
-              label="External URL"
-              value={deliverableForm.externalUrl}
-              onChange={(e) => setDeliverableForm(prev => ({ ...prev, externalUrl: e.target.value }))}
-              placeholder="https://..."
-            />
-            <Input
-              label="Miro URL"
-              value={deliverableForm.miroUrl}
-              onChange={(e) => setDeliverableForm(prev => ({ ...prev, miroUrl: e.target.value }))}
-              placeholder="https://miro.com/..."
-            />
+            <div className={styles.deliverableCompactField}>
+              <label>Status</label>
+              <select
+                value={deliverableForm.status}
+                onChange={(e) => setDeliverableForm(prev => ({ ...prev, status: e.target.value as DeliverableStatus }))}
+              >
+                {DELIVERABLE_STATUSES.map((status) => (
+                  <option key={status.value} value={status.value}>
+                    {status.label}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
-          <div className={styles.modalActions}>
-            <Button variant="ghost" onClick={() => { setEditingDeliverable(null); setDeliverableForm(DEFAULT_DELIVERABLE_FORM); }}>
+
+          {/* Links Row */}
+          <div className={styles.deliverableLinksRow}>
+            <div className={styles.deliverableLinkField}>
+              <ExternalLinkIcon />
+              <input
+                type="url"
+                placeholder="External link (Drive, Figma...)"
+                value={deliverableForm.externalUrl}
+                onChange={(e) => setDeliverableForm(prev => ({ ...prev, externalUrl: e.target.value }))}
+              />
+            </div>
+            <div className={styles.deliverableLinkField}>
+              <BoardIcon />
+              <input
+                type="text"
+                placeholder="Miro frame URL"
+                value={deliverableForm.miroUrl}
+                onChange={(e) => setDeliverableForm(prev => ({ ...prev, miroUrl: e.target.value }))}
+              />
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className={styles.deliverableActionsCompact}>
+            <Button variant="ghost" size="sm" onClick={() => { setEditingDeliverable(null); setDeliverableForm(DEFAULT_DELIVERABLE_FORM); }}>
               Cancel
             </Button>
-            <Button onClick={handleSaveDeliverable} disabled={updateDeliverable.isPending}>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={handleSaveDeliverable}
+              disabled={updateDeliverable.isPending}
+            >
               {updateDeliverable.isPending ? 'Saving...' : 'Save'}
             </Button>
           </div>
