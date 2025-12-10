@@ -585,8 +585,17 @@ export function DeveloperTools() {
       const designerIds = designers?.map(d => d.id) || [];
       addProgress(`✓ Found ${designerIds.length} designers`);
 
-      // Step 4: Initialize Miro timeline if in Miro
+      // Step 4: Get current board ID and initialize Miro timeline if in Miro
+      let currentBoardId: string | null = null;
       if (isInMiro && miro) {
+        try {
+          const boardInfo = await miro.board.getInfo();
+          currentBoardId = boardInfo.id;
+          addProgress(`✓ Current board: ${currentBoardId}`);
+        } catch (err) {
+          addProgress('⚠ Could not get board ID');
+        }
+
         addProgress('Initializing Master Timeline...');
         await miroTimelineService.initializeTimeline();
         addProgress('✓ Master Timeline ready');
@@ -623,7 +632,7 @@ export function DeveloperTools() {
             timeline: `${projectTypeConfig?.label || testData.projectType} (${projectTypeConfig?.days || 15} days) - ${testData.briefing.timeline || ''}`,
           };
 
-          // Create project input
+          // Create project input - include miroBoardId if we're in Miro
           const projectInput: CreateProjectInput = {
             name: testData.name,
             description: testData.description,
@@ -636,6 +645,8 @@ export function DeveloperTools() {
             briefing: fullBriefing,
             dueDateApproved: true,
             googleDriveUrl: `https://drive.google.com/drive/folders/${testData.name.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}`,
+            // IMPORTANT: Associate with current board so projects appear in the list
+            miroBoardId: currentBoardId,
           };
 
           // Create project in database
