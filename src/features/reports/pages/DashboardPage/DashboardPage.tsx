@@ -109,7 +109,8 @@ export function DashboardPage() {
     return f;
   }, [isInMiro, currentBoardId]);
 
-  const { data: projectsData, isLoading: projectsLoading, refetch } = useProjects({ filters });
+  // Fetch ALL projects (pageSize: 1000 to avoid pagination limits for dashboard stats)
+  const { data: projectsData, isLoading: projectsLoading, refetch } = useProjects({ filters, pageSize: 1000 });
 
   // Realtime subscription for project updates
   useRealtimeSubscription<{ id: string; status: string }>({
