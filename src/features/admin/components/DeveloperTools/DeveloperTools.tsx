@@ -1,9 +1,11 @@
 import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@shared/ui';
 import { useMiro } from '@features/boards';
 import { useAuth } from '@features/auth';
 import { miroTimelineService, miroProjectRowService } from '@features/boards/services/miroSdkService';
 import { projectService } from '@features/projects/services/projectService';
+import { projectKeys } from '@features/projects/services/projectKeys';
 import { deliverableService } from '@features/deliverables/services/deliverableService';
 import { supabase } from '@shared/lib/supabase';
 import { createLogger } from '@shared/lib/logger';
@@ -333,6 +335,7 @@ const TEST_PROJECTS: TestProjectData[] = [
 export function DeveloperTools() {
   const { isInMiro, miro } = useMiro();
   const { user: authUser } = useAuth();
+  const queryClient = useQueryClient();
   const [isCreating, setIsCreating] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
   const [isRenaming, setIsRenaming] = useState(false);
@@ -506,9 +509,14 @@ export function DeveloperTools() {
         }
       }
 
+      // Invalidate React Query cache to refresh the UI
+      addProgress('Refreshing UI...');
+      await queryClient.invalidateQueries({ queryKey: projectKeys.all });
+      addProgress('✓ UI refreshed');
+
       addProgress('');
       addProgress('🧹 SYSTEM CLEARED!');
-      addProgress('Refresh the page to start fresh.');
+      addProgress('✅ The projects list is now empty.');
 
     } catch (err) {
       logger.error('Clear failed', err);
@@ -688,6 +696,11 @@ export function DeveloperTools() {
         }
       }
 
+      // Invalidate React Query cache to refresh the projects list
+      addProgress('Refreshing projects list...');
+      await queryClient.invalidateQueries({ queryKey: projectKeys.lists() });
+      addProgress('✓ Projects list refreshed');
+
       // Summary
       addProgress('═══════════════════════════════════════');
       addProgress('');
@@ -703,7 +716,7 @@ export function DeveloperTools() {
         addProgress(`   • ${status}: ${count} projects`);
       });
       addProgress('');
-      addProgress('🔄 Refresh the page to see the new projects!');
+      addProgress('✅ Projects should now appear in the list!');
       addProgress('📈 Go to Reports to generate analytics!');
 
     } catch (err) {
