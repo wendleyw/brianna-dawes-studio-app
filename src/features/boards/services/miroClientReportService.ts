@@ -946,74 +946,115 @@ class MiroClientReportService {
   /**
    * Create client satisfaction section with clickable face options
    * Client can select one of 5 faces to indicate satisfaction
+   * Includes: drag circle on left, faces in center, feedback area on right
    */
   private async createSatisfactionFaces(centerX: number, topY: number): Promise<void> {
     const miro = getMiroSDK();
     const contentWidth = REPORT.FRAME_WIDTH - REPORT.PADDING * 2;
 
-    // Section title
-    await miro.board.createText({
-      content: '<b>HOW WAS YOUR EXPERIENCE?</b>',
+    // Dark header bar
+    await miro.board.createShape({
+      shape: 'rectangle',
+      content: '',
       x: centerX,
       y: topY,
       width: contentWidth,
+      height: 35,
       style: {
-        fontSize: 14,
-        textAlign: 'center',
-        color: '#000000',
+        fillColor: '#374151',
+        borderWidth: 0,
       },
     });
 
-    // Subtitle
-    await miro.board.createText({
-      content: 'Select a face to share your feedback',
-      x: centerX,
-      y: topY + 22,
-      width: contentWidth,
+    // Left side - Circle for drag and drop feedback
+    const circleX = centerX - contentWidth / 2 + 80;
+    await miro.board.createShape({
+      shape: 'circle',
+      content: '',
+      x: circleX,
+      y: topY + 60,
+      width: 60,
+      height: 60,
       style: {
-        fontSize: 11,
+        fillColor: '#FFFFFF',
+        borderColor: '#9CA3AF',
+        borderWidth: 2,
+      },
+    });
+
+    // Label for circle
+    await miro.board.createText({
+      content: 'Drag Circle over for your\nfeedback',
+      x: circleX,
+      y: topY + 105,
+      width: 100,
+      style: {
+        fontSize: 8,
         textAlign: 'center',
         color: '#6B7280',
       },
     });
 
-    const facesTop = topY + 50;
-    const faceSize = 60;
-    const faceGap = 20;
-    const totalWidth = SATISFACTION_FACES.length * faceSize + (SATISFACTION_FACES.length - 1) * faceGap;
-    const startX = centerX - totalWidth / 2 + faceSize / 2;
+    // Center - Title and subtitle
+    await miro.board.createText({
+      content: '<b>HOW WAS YOUR EXPERIENCE?</b>',
+      x: centerX,
+      y: topY + 30,
+      width: 300,
+      style: {
+        fontSize: 14,
+        textAlign: 'center',
+        color: '#111827',
+      },
+    });
 
-    // Create face options
+    await miro.board.createText({
+      content: 'Select a face to share your feedback',
+      x: centerX,
+      y: topY + 48,
+      width: 300,
+      style: {
+        fontSize: 10,
+        textAlign: 'center',
+        color: '#6B7280',
+      },
+    });
+
+    // Emoji faces - 5 options centered
+    const faceSize = 45;
+    const faceGap = 15;
+    const totalFacesWidth = SATISFACTION_FACES.length * faceSize + (SATISFACTION_FACES.length - 1) * faceGap;
+    const facesStartX = centerX - totalFacesWidth / 2 + faceSize / 2;
+    const facesY = topY + 80;
+
     for (let i = 0; i < SATISFACTION_FACES.length; i++) {
       const face = SATISFACTION_FACES[i];
       if (!face) continue;
 
-      const faceX = startX + i * (faceSize + faceGap);
-      const faceY = facesTop + faceSize / 2;
+      const faceX = facesStartX + i * (faceSize + faceGap);
 
-      // Face circle background
+      // Face circle background with color
       await miro.board.createShape({
         shape: 'circle',
         content: '',
         x: faceX,
-        y: faceY,
+        y: facesY,
         width: faceSize,
         height: faceSize,
         style: {
-          fillColor: face.bgColor,
-          borderColor: face.color,
-          borderWidth: 2,
+          fillColor: face.color,
+          borderWidth: 0,
         },
       });
 
-      // Face emoji - centered with the circle background
+      // Face emoji
       await miro.board.createText({
         content: face.face,
         x: faceX,
-        y: faceY,
+        y: facesY,
         width: faceSize,
         style: {
-          fontSize: 28,
+          fontSize: 22,
           textAlign: 'center',
         },
       });
@@ -1022,15 +1063,29 @@ class MiroClientReportService {
       await miro.board.createText({
         content: face.label,
         x: faceX,
-        y: faceY + faceSize / 2 + 12,
+        y: facesY + faceSize / 2 + 10,
         width: faceSize + 20,
         style: {
-          fontSize: 9,
+          fontSize: 8,
           textAlign: 'center',
           color: face.color,
         },
       });
     }
+
+    // Right side - Feedback text area
+    const feedbackX = centerX + contentWidth / 2 - 100;
+    await miro.board.createText({
+      content: 'Add specific notes of feedback - whether good or critical we always want to work to improve your experience.',
+      x: feedbackX,
+      y: topY + 70,
+      width: 160,
+      style: {
+        fontSize: 9,
+        textAlign: 'left',
+        color: '#6B7280',
+      },
+    });
   }
 
   /**
