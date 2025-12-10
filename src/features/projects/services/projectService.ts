@@ -218,109 +218,86 @@ class ProjectService {
     return this.mapProjectFromDB(data);
   }
 
+  /**
+   * Create a project with optional designer assignments
+   * Uses a transactional RPC function to ensure atomicity:
+   * - If designer assignment fails, the project is NOT created
+   * - All-or-nothing behavior prevents orphaned data
+   */
   async createProject(input: CreateProjectInput): Promise<Project> {
     const { designerIds, ...projectData } = input;
 
     // Determine sync status: if no miroBoardId, set 'not_required'
-    // Otherwise use provided status or let DB default to 'pending'
     const syncStatus = projectData.syncStatus ||
-      (projectData.miroBoardId ? undefined : 'not_required');
+      (projectData.miroBoardId ? null : 'not_required');
 
-    const { data: project, error: projectError } = await supabase
-      .from('projects')
-      .insert({
-        name: projectData.name,
-        description: projectData.description,
-        status: projectData.status || 'in_progress',
-        priority: projectData.priority || 'medium',
-        start_date: projectData.startDate,
-        due_date: projectData.dueDate,
-        client_id: projectData.clientId,
-        miro_board_id: projectData.miroBoardId,
-        miro_board_url: projectData.miroBoardUrl,
-        briefing: projectData.briefing || {},
-        google_drive_url: projectData.googleDriveUrl,
-        due_date_approved: projectData.dueDateApproved ?? true,
-        ...(syncStatus && { sync_status: syncStatus }),
-      })
-      .select()
-      .single();
+    // Use transactional RPC function for atomic operation
+    const { data: projectId, error } = await supabase.rpc('create_project_with_designers', {
+      p_name: projectData.name,
+      p_client_id: projectData.clientId,
+      p_description: projectData.description || null,
+      p_status: projectData.status || 'in_progress',
+      p_priority: projectData.priority || 'medium',
+      p_start_date: projectData.startDate || null,
+      p_due_date: projectData.dueDate || null,
+      p_miro_board_id: projectData.miroBoardId || null,
+      p_miro_board_url: projectData.miroBoardUrl || null,
+      p_briefing: projectData.briefing || {},
+      p_google_drive_url: projectData.googleDriveUrl || null,
+      p_due_date_approved: projectData.dueDateApproved ?? true,
+      p_sync_status: syncStatus,
+      p_designer_ids: designerIds || [],
+    });
 
-    if (projectError) throw projectError;
-
-    // Add designers if provided
-    if (designerIds && designerIds.length > 0) {
-      const designerInserts = designerIds.map((userId) => ({
-        project_id: project.id,
-        user_id: userId,
-      }));
-
-      const { error: designerError } = await supabase
-        .from('project_designers')
-        .insert(designerInserts);
-
-      if (designerError) throw designerError;
+    if (error) {
+      logger.error('Failed to create project (transactional)', error);
+      throw error;
     }
 
-    return this.getProject(project.id);
+    logger.info('Project created successfully (transactional)', { projectId });
+    return this.getProject(projectId);
   }
 
+  /**
+   * Update a project with optional designer changes
+   * Uses a transactional RPC function to ensure atomicity:
+   * - If designer update fails, project changes are rolled back
+   * - All-or-nothing behavior prevents inconsistent state
+   */
   async updateProject(id: string, input: UpdateProjectInput): Promise<Project> {
     const { designerIds, ...projectData } = input;
 
-    const updateData: Record<string, unknown> = {};
-    if (projectData.name !== undefined) updateData.name = projectData.name;
-    if (projectData.description !== undefined) updateData.description = projectData.description;
-    if (projectData.status !== undefined) updateData.status = projectData.status;
-    if (projectData.priority !== undefined) updateData.priority = projectData.priority;
-    if (projectData.startDate !== undefined) updateData.start_date = projectData.startDate;
-    if (projectData.dueDate !== undefined) updateData.due_date = projectData.dueDate;
-    if (projectData.clientId !== undefined) updateData.client_id = projectData.clientId;
-    if (projectData.miroBoardId !== undefined) updateData.miro_board_id = projectData.miroBoardId;
-    if (projectData.miroBoardUrl !== undefined) updateData.miro_board_url = projectData.miroBoardUrl;
-    if (projectData.thumbnailUrl !== undefined) updateData.thumbnail_url = projectData.thumbnailUrl;
-    if (projectData.briefing !== undefined) updateData.briefing = projectData.briefing;
-    if (projectData.googleDriveUrl !== undefined) updateData.google_drive_url = projectData.googleDriveUrl;
-    if (projectData.wasReviewed !== undefined) updateData.was_reviewed = projectData.wasReviewed;
-    if (projectData.wasApproved !== undefined) updateData.was_approved = projectData.wasApproved;
-    // Due date request fields
-    if (projectData.requestedDueDate !== undefined) updateData.requested_due_date = projectData.requestedDueDate;
-    if (projectData.dueDateRequestedAt !== undefined) updateData.due_date_requested_at = projectData.dueDateRequestedAt;
-    if (projectData.dueDateRequestedBy !== undefined) updateData.due_date_requested_by = projectData.dueDateRequestedBy;
-    if (projectData.dueDateApproved !== undefined) updateData.due_date_approved = projectData.dueDateApproved;
+    // Use transactional RPC function for atomic operation
+    const { error } = await supabase.rpc('update_project_with_designers', {
+      p_project_id: id,
+      p_update_designers: designerIds !== undefined,
+      p_name: projectData.name ?? null,
+      p_description: projectData.description ?? null,
+      p_status: projectData.status ?? null,
+      p_priority: projectData.priority ?? null,
+      p_start_date: projectData.startDate ?? null,
+      p_due_date: projectData.dueDate ?? null,
+      p_client_id: projectData.clientId ?? null,
+      p_miro_board_id: projectData.miroBoardId ?? null,
+      p_miro_board_url: projectData.miroBoardUrl ?? null,
+      p_briefing: projectData.briefing ?? null,
+      p_google_drive_url: projectData.googleDriveUrl ?? null,
+      p_was_reviewed: projectData.wasReviewed ?? null,
+      p_was_approved: projectData.wasApproved ?? null,
+      p_requested_due_date: projectData.requestedDueDate ?? null,
+      p_due_date_requested_at: projectData.dueDateRequestedAt ?? null,
+      p_due_date_requested_by: projectData.dueDateRequestedBy ?? null,
+      p_due_date_approved: projectData.dueDateApproved ?? null,
+      p_thumbnail_url: projectData.thumbnailUrl ?? null,
+      p_designer_ids: designerIds ?? null,
+    });
 
-    if (Object.keys(updateData).length > 0) {
-      updateData.updated_at = new Date().toISOString();
-
-      const { error } = await supabase
-        .from('projects')
-        .update(updateData)
-        .eq('id', id)
-        .select();
-
-      if (error) throw error;
+    if (error) {
+      logger.error('Failed to update project (transactional)', error);
+      throw error;
     }
 
-    // Update designers if provided
-    if (designerIds !== undefined) {
-      // Remove existing designers
-      await supabase.from('project_designers').delete().eq('project_id', id);
-
-      // Add new designers
-      if (designerIds.length > 0) {
-        const designerInserts = designerIds.map((userId) => ({
-          project_id: id,
-          user_id: userId,
-        }));
-
-        const { error: designerError } = await supabase
-          .from('project_designers')
-          .insert(designerInserts);
-
-        if (designerError) throw designerError;
-      }
-    }
-
+    logger.info('Project updated successfully (transactional)', { projectId: id });
     return this.getProject(id);
   }
 
