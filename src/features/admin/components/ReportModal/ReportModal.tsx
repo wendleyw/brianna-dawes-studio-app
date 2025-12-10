@@ -67,7 +67,7 @@ function getDefaultDateRange(): { startDate: string; endDate: string } {
 }
 
 export function ReportModal({ open, onClose }: ReportModalProps) {
-  const { isInMiro } = useMiro();
+  const { isInMiro, miro } = useMiro();
   const { user } = useAuth();
 
   // Filter state
@@ -96,6 +96,23 @@ export function ReportModal({ open, onClose }: ReportModalProps) {
   const [progress, setProgress] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [currentBoardId, setCurrentBoardId] = useState<string | null>(null);
+
+  // Get current board ID when modal opens in Miro
+  useEffect(() => {
+    if (!open || !isInMiro || !miro) return;
+
+    const getBoardId = async () => {
+      try {
+        const boardInfo = await miro.board.getInfo();
+        setCurrentBoardId(boardInfo.id);
+      } catch (err) {
+        logger.warn('Could not get board ID', err);
+      }
+    };
+
+    getBoardId();
+  }, [open, isInMiro, miro]);
 
   // Fetch clients on mount
   useEffect(() => {
@@ -174,14 +191,20 @@ export function ReportModal({ open, onClose }: ReportModalProps) {
       addProgress(`Date range: ${startDisplay} - ${endDisplay}`);
 
       // Fetch projects with filters
+      // Filter by miro_board_id to only get projects from current board
       // Filter by due_date to get projects that were due/completed in the selected period
-      // This is more useful for reports than created_at
       addProgress('Fetching projects...');
       let projectsQuery = supabase
         .from('projects')
         .select('*')
         .gte('due_date', startDate)
         .lte('due_date', endDate);
+
+      // IMPORTANT: Filter by current board to match dashboard data
+      if (currentBoardId) {
+        projectsQuery = projectsQuery.eq('miro_board_id', currentBoardId);
+        addProgress(`  Filtering by board: ${currentBoardId}`);
+      }
 
       if (filters.clientId !== 'all' && selectedClient) {
         projectsQuery = projectsQuery.eq('client_id', selectedClient.id);
