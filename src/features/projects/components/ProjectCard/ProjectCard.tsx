@@ -65,7 +65,7 @@ export const ProjectCard = memo(function ProjectCard({
   isSelected = false,
 }: ProjectCardProps) {
   const { user } = useAuth();
-  const [isExpanded, setIsExpanded] = useState(isSelected);
+  const [isExpanded, setIsExpanded] = useState(true); // Always start expanded
   const [showDeliverables, setShowDeliverables] = useState(false);
 
   // Click handling for single vs double click
