@@ -227,15 +227,17 @@
 /* Search Bar */
 .searchBar {
   display: flex;
-  gap: var(--space-2);
+  gap: 6px;
   align-items: center;
   width: 100%;
+  box-sizing: border-box;
 }
 
 .searchInput {
   flex: 1;
-  padding: var(--space-2) var(--space-3);
-  font-size: var(--text-sm);
+  min-width: 0;
+  padding: 8px 10px;
+  font-size: 13px;
   color: var(--color-text-primary);
   background-color: var(--color-bg-primary);
   border: 1px solid var(--color-border);
@@ -253,7 +255,7 @@
 }
 
 .statusSelect {
-  padding: 6px 8px;
+  padding: 8px 6px;
   font-size: 11px;
   color: var(--color-text-primary);
   background-color: var(--color-bg-primary);
@@ -262,6 +264,9 @@
   cursor: pointer;
   flex-shrink: 0;
   white-space: nowrap;
+  max-width: 85px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .statusSelect:focus {
