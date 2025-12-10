@@ -300,7 +300,8 @@ export function ProjectsPage() {
     return f;
   }, [searchQuery, isInMiro, currentBoardId]);
 
-  const { data: projectsData, isLoading, refetch } = useProjects({ filters });
+  // Fetch ALL projects (pageSize: 1000 to avoid pagination limits)
+  const { data: projectsData, isLoading, refetch } = useProjects({ filters, pageSize: 1000 });
 
   // Filter projects by timeline status (client-side)
   // Sort priority: REVIEW first (client action needed), then active, DONE last

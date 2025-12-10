@@ -43,7 +43,8 @@ export function BoardModalApp() {
     return f;
   }, [isInMiro, currentBoardId]);
 
-  const { data: projectsData, isLoading, refetch } = useProjects({ filters });
+  // Fetch ALL projects (pageSize: 1000 to avoid pagination limits)
+  const { data: projectsData, isLoading, refetch } = useProjects({ filters, pageSize: 1000 });
   const { updateProject } = useProjectMutations();
   const { initializeBoard, syncProject, syncAllProjects, isInitialized, isSyncing } = useMiroBoardSync();
 
