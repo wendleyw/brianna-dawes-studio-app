@@ -39,9 +39,6 @@ export interface UserRow {
   role: UserRole;
   avatar_url: string | null;
   miro_user_id: string | null;
-  miro_access_token: string | null;
-  miro_refresh_token: string | null;
-  miro_token_expires_at: string | null;
   primary_board_id: string | null;
   is_super_admin: boolean;
   company_name: string | null;
@@ -57,9 +54,6 @@ export interface UserInsert {
   role?: UserRole;
   avatar_url?: string | null;
   miro_user_id?: string | null;
-  miro_access_token?: string | null;
-  miro_refresh_token?: string | null;
-  miro_token_expires_at?: string | null;
   primary_board_id?: string | null;
   is_super_admin?: boolean;
   company_name?: string | null;
@@ -75,9 +69,6 @@ export interface UserUpdate {
   role?: UserRole;
   avatar_url?: string | null;
   miro_user_id?: string | null;
-  miro_access_token?: string | null;
-  miro_refresh_token?: string | null;
-  miro_token_expires_at?: string | null;
   primary_board_id?: string | null;
   is_super_admin?: boolean;
   company_name?: string | null;
