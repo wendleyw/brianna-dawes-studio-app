@@ -27,6 +27,9 @@ const EditProjectPage = lazy(() =>
 const AdminSettingsPage = lazy(() =>
   import('@features/admin').then((module) => ({ default: module.AdminSettingsPage }))
 );
+const AdminDashboardPage = lazy(() =>
+  import('@features/admin').then((module) => ({ default: module.AdminDashboardPage }))
+);
 
 // Loading fallback component
 function PageLoader() {
@@ -144,9 +147,27 @@ export function Router() {
             }
           />
 
+          {/* Admin Dashboard - Admin only */}
+          <Route
+            path="/admin/dashboard"
+            element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <AdminDashboardPage />
+              </ProtectedRoute>
+            }
+          />
+
           {/* Admin Settings - Admin only */}
           <Route
             path="/admin"
+            element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <AdminSettingsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/settings"
             element={
               <ProtectedRoute allowedRoles={['admin']}>
                 <AdminSettingsPage />

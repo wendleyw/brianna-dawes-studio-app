@@ -8,10 +8,20 @@ export type {
   AssignBoardInput,
   UpdateAppSettingInput,
   AdminTab,
+  OverviewMetrics,
+  ProjectsByStatus,
+  ClientAnalytics,
+  DesignerAnalytics,
+  TimelineDataPoint,
+  MonthlyMetrics,
+  AdminDashboardData,
+  RecentProject,
+  RecentActivityItem,
+  AnalyticsFilters,
 } from './domain';
 
 // Services
-export { adminService, adminKeys } from './services';
+export { adminService, adminKeys, analyticsService, analyticsKeys } from './services';
 
 // Hooks
 export {
@@ -24,6 +34,12 @@ export {
   useAppSettings,
   useSetting,
   useAppSettingsMutations,
+  useDashboardAnalytics,
+  useOverviewMetrics,
+  useClientAnalytics,
+  useDesignerAnalytics,
+  useTimelineData,
+  useMonthlyMetrics,
 } from './hooks';
 
 // Components
@@ -31,4 +47,4 @@ export { UserManagement, BoardManagement, ReportModal } from './components';
 export type { ReportModalProps } from './components';
 
 // Pages
-export { AdminSettingsPage } from './pages';
+export { AdminSettingsPage, AdminDashboardPage } from './pages';

@@ -7,3 +7,11 @@ export {
   useClientPlanStatsByBoard,
   useSubscriptionPlanMutations
 } from './useSubscriptionPlans';
+export {
+  useDashboardAnalytics,
+  useOverviewMetrics,
+  useClientAnalytics,
+  useDesignerAnalytics,
+  useTimelineData,
+  useMonthlyMetrics,
+} from './useAnalytics';
