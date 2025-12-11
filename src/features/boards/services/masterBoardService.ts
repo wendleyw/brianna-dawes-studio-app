@@ -66,20 +66,25 @@ function getColumnForStatus(status: string): string {
   }
 }
 
-// Get card color based on status
+// Get card color based on status (hex colors matching STATUS_COLUMNS)
 function getCardTheme(status: string): string {
   switch (status) {
     case 'critical':
     case 'overdue':
-      return 'red';
+      return '#F97316'; // Orange - OVERDUE
     case 'urgent':
-      return 'orange';
+      return '#DC2626'; // Red - URGENT
+    case 'in_progress':
+    case 'on_track':
+    case 'draft':
+      return '#3B82F6'; // Blue - IN PROGRESS
     case 'review':
-      return 'violet';
+      return '#6366F1'; // Indigo - REVIEW
     case 'done':
-      return 'green';
+    case 'archived':
+      return '#22C55E'; // Green - DONE
     default:
-      return 'blue';
+      return '#3B82F6'; // Blue - default
   }
 }
 
@@ -646,6 +651,60 @@ class MasterBoardService {
   }
 
   /**
+   * Clear all existing content from the Master Board (SDK version)
+   * Removes all frames, shapes, cards, and texts except the title
+   */
+  private async clearMasterBoardContentWithSdk(miro: typeof window.miro): Promise<void> {
+    try {
+      // Get all items on the board
+      const [frames, shapes, cards, texts] = await Promise.all([
+        miro.board.get({ type: 'frame' }),
+        miro.board.get({ type: 'shape' }),
+        miro.board.get({ type: 'card' }),
+        miro.board.get({ type: 'text' }),
+      ]);
+
+      // Remove all frames (this will remove content inside them too)
+      for (const frame of frames) {
+        try {
+          await miro.board.remove(frame);
+        } catch {
+          // Ignore errors
+        }
+      }
+
+      // Remove remaining shapes
+      for (const shape of shapes) {
+        try {
+          await miro.board.remove(shape);
+        } catch {
+          // Ignore errors
+        }
+      }
+
+      // Remove remaining cards
+      for (const card of cards) {
+        try {
+          await miro.board.remove(card);
+        } catch {
+          // Ignore errors
+        }
+      }
+
+      // Remove remaining texts
+      for (const text of texts) {
+        try {
+          await miro.board.remove(text);
+        } catch {
+          // Ignore errors
+        }
+      }
+    } catch {
+      // Ignore errors during cleanup
+    }
+  }
+
+  /**
    * Sync all clients using Miro SDK
    * Must be called from within the Master Board context
    */
@@ -659,6 +718,34 @@ class MasterBoardService {
     let clientsProcessed = 0;
 
     try {
+      // Clear existing content before syncing
+      await this.clearMasterBoardContentWithSdk(miro);
+
+      // Recreate the title
+      await miro.board.createText({
+        content: '<b>MASTER OVERVIEW</b>',
+        x: MASTER_BOARD.FRAME_WIDTH / 2,
+        y: MASTER_BOARD.TITLE_Y - 30,
+        width: 400,
+        style: {
+          fontSize: 24,
+          textAlign: 'center',
+          color: '#050038',
+        },
+      });
+
+      await miro.board.createText({
+        content: '<i>⚠️ Auto-updated - Do not edit manually</i>',
+        x: MASTER_BOARD.FRAME_WIDTH / 2,
+        y: MASTER_BOARD.TITLE_Y + 10,
+        width: 400,
+        style: {
+          fontSize: 12,
+          textAlign: 'center',
+          color: '#6B7280',
+        },
+      });
+
       // Get all clients with their projects
       const clients = await this.getClientsWithProjects();
 
@@ -676,7 +763,7 @@ class MasterBoardService {
 
       // Starting position for first client frame
       const startX = MASTER_BOARD.FRAME_WIDTH / 2;
-      let currentY = 50; // Start below the title
+      let currentY = 80; // Start below the title (increased from 50)
 
       for (const client of clientsWithProjects) {
         try {

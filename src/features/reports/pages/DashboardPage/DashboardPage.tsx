@@ -1,11 +1,12 @@
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Skeleton, Logo } from '@shared/ui';
 import { useAuth } from '@features/auth';
 import { useProjects } from '@features/projects';
 import { projectKeys } from '@features/projects/services/projectKeys';
 import { zoomToProject, useMiro } from '@features/boards';
+import { useMasterBoardSettings } from '@features/boards/hooks/useMasterBoard';
 import { supabase } from '@shared/lib/supabase';
 import type { ProjectFilters as ProjectFiltersType } from '@features/projects/domain/project.types';
 import { STATUS_COLUMNS, getStatusColumn } from '@shared/lib/timelineStatus';
@@ -99,18 +100,43 @@ export function DashboardPage() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const { isInMiro, boardId: currentBoardId } = useMiro();
+  const { boardId: masterBoardId } = useMasterBoardSettings();
+  const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
+
+  // Check if we're on the Master Board
+  const isMasterBoard = !!(isInMiro && currentBoardId && masterBoardId && currentBoardId === masterBoardId);
 
   // IMPORTANT: Filter projects by current board for data isolation
+  // Exception: On Master Board, load ALL projects (no board filter)
   const filters: ProjectFiltersType = useMemo(() => {
     const f: ProjectFiltersType = {};
-    if (isInMiro && currentBoardId) {
+    if (isInMiro && currentBoardId && !isMasterBoard) {
       f.miroBoardId = currentBoardId;
     }
+    // Filter by selected client if on Master Board
+    if (isMasterBoard && selectedClientId) {
+      f.clientId = selectedClientId;
+    }
     return f;
-  }, [isInMiro, currentBoardId]);
+  }, [isInMiro, currentBoardId, isMasterBoard, selectedClientId]);
 
   // Fetch ALL projects (pageSize: 1000 to avoid pagination limits for dashboard stats)
   const { data: projectsData, isLoading: projectsLoading, refetch } = useProjects({ filters, pageSize: 1000 });
+
+  // Fetch clients list for filter dropdown (only when on Master Board)
+  const { data: clientsData } = useQuery<Array<{ id: string; name: string; company_name: string | null }>>({
+    queryKey: ['clients-for-filter'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('users')
+        .select('id, name, company_name')
+        .eq('role', 'client')
+        .order('name');
+      if (error) throw error;
+      return (data || []) as Array<{ id: string; name: string; company_name: string | null }>;
+    },
+    enabled: isMasterBoard,
+  });
 
   // Realtime subscription for project updates
   useRealtimeSubscription<{ id: string; status: string }>({
@@ -215,10 +241,37 @@ export function DashboardPage() {
           <Logo size="lg" animated />
         </div>
         <p className={styles.brandName}>BRIANNA DAWES STUDIOS</p>
-        <h1 className={styles.welcome}>
-          Welcome, <span className={styles.userName}>{user?.name?.split(' ')[0] || 'User'}</span>
-        </h1>
+        {isMasterBoard ? (
+          <h1 className={styles.welcome}>
+            <span className={styles.masterBoardBadge}>📊 Master Overview</span>
+          </h1>
+        ) : (
+          <h1 className={styles.welcome}>
+            Welcome, <span className={styles.userName}>{user?.name?.split(' ')[0] || 'User'}</span>
+          </h1>
+        )}
       </header>
+
+      {/* Client Filter - Only on Master Board */}
+      {isMasterBoard && clientsData && (
+        <section className={styles.section}>
+          <div className={styles.clientFilterRow}>
+            <label className={styles.filterLabel}>Filter by Client:</label>
+            <select
+              className={styles.clientSelect}
+              value={selectedClientId || ''}
+              onChange={(e) => setSelectedClientId(e.target.value || null)}
+            >
+              <option value="">All Clients ({clientsData.length})</option>
+              {clientsData.map((client) => (
+                <option key={client.id} value={client.id}>
+                  {client.company_name || client.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </section>
+      )}
 
       {/* Quick Actions */}
       <section className={styles.section}>
