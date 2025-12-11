@@ -312,7 +312,7 @@ export function ProjectsPage() {
   // Check if we're currently inside the Master Board
   const isMasterBoard = !!(isInMiro && currentBoardId && masterBoardId && currentBoardId === masterBoardId);
 
-  // Query clients for filter dropdown (only when on Master Board)
+  // Query clients for filter dropdown (when on Master Board OR when we have clientId from URL)
   const { data: clientsForFilter } = useQuery<Array<{ id: string; name: string; company_name: string | null }>>({
     queryKey: ['clients-for-filter'],
     queryFn: async () => {
@@ -324,7 +324,7 @@ export function ProjectsPage() {
       if (error) throw error;
       return (data || []) as Array<{ id: string; name: string; company_name: string | null }>;
     },
-    enabled: isMasterBoard,
+    enabled: isMasterBoard || !!selectedClientId,
   });
 
   // Fetch projects filtered by current board (for data isolation)
@@ -334,14 +334,14 @@ export function ProjectsPage() {
     const f: ProjectFiltersType = {};
     if (searchQuery) f.search = searchQuery;
 
-    // If on Master Board, don't filter by board ID - show all projects
-    if (isMasterBoard) {
-      // Optionally filter by selected client
-      if (selectedClientId) {
-        f.clientId = selectedClientId;
-      }
+    // If we have a selectedClientId (from dropdown or URL), filter by it
+    // This takes precedence over board filter
+    if (selectedClientId) {
+      f.clientId = selectedClientId;
+    } else if (isMasterBoard) {
+      // On Master Board without client selected - show all projects (no filter)
     } else if (isInMiro && currentBoardId) {
-      // IMPORTANT: Filter by current board to ensure data isolation
+      // On regular board - filter by board ID for data isolation
       f.miroBoardId = currentBoardId;
     }
     return f;
@@ -827,15 +827,18 @@ export function ProjectsPage() {
         </div>
       )}
 
-      {/* Master Board Badge */}
-      {isMasterBoard && (
+      {/* Master Board Badge - show when on Master Board OR when filtering by client */}
+      {(isMasterBoard || selectedClientId) && (
         <div className={styles.masterBoardBadge}>
-          Master Board - All Clients
+          {selectedClientId
+            ? `Viewing: ${clientsForFilter?.find(c => c.id === selectedClientId)?.company_name || clientsForFilter?.find(c => c.id === selectedClientId)?.name || 'Client'}`
+            : 'Master Board - All Clients'
+          }
         </div>
       )}
 
-      {/* Client Filter (only on Master Board) */}
-      {isMasterBoard && clientsForFilter && clientsForFilter.length > 0 && (
+      {/* Client Filter (on Master Board OR when filtering by client) */}
+      {(isMasterBoard || selectedClientId) && clientsForFilter && clientsForFilter.length > 0 && (
         <div className={styles.clientFilterRow}>
           <select
             className={styles.clientSelect}
