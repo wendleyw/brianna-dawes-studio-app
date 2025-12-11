@@ -214,7 +214,7 @@
   overflow: hidden;
 }
 
-/* Loading state */
+/* Loading state - use explicit padding for Miro SDK compatibility */
 .loadingWrapper {
-  padding: var(--space-8);
+  padding: 32px;
 }
