@@ -525,3 +525,40 @@
   font-size: var(--text-xs);
 }
 
+/* Master Board Badge */
+.masterBoardBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  background: linear-gradient(135deg, #3B82F6, #6366F1);
+  color: white;
+  font-size: 11px;
+  font-weight: var(--font-semibold);
+  letter-spacing: 0.03em;
+  border-radius: var(--radius-md);
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+}
+
+/* Client Filter Row */
+.clientFilterRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.clientSelect {
+  flex: 1;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.clientSelect:focus {
+  outline: none;
+  border-color: var(--color-accent);
+}
+

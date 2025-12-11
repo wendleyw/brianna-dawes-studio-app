@@ -1,10 +1,11 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { Logo, SplashScreen, CreditBar } from '@shared/ui';
 import { useAuth } from '@features/auth';
 import logoImage from '../../../../assets/brand/logo-brianna.png';
 import { useMiro, zoomToProject, addVersionToProject } from '@features/boards';
-import { useMiroBoardSync } from '@features/boards/hooks';
+import { useMiroBoardSync, useMasterBoardSettings } from '@features/boards/hooks';
 import { miroProjectRowService } from '@features/boards/services/miroSdkService';
 import { useProjects, useUpdateProject, useArchiveProject } from '../../hooks';
 import { ProjectCard } from '../../components/ProjectCard';
@@ -86,9 +87,14 @@ export function ProjectsPage() {
   const { user } = useAuth();
   const { miro, isInMiro } = useMiro();
   const { syncProject } = useMiroBoardSync();
+  const { boardId: masterBoardId } = useMasterBoardSettings();
   const [searchQuery, setSearchQuery] = useState('');
   const [timelineFilter, setTimelineFilter] = useState<TimelineStatus | ''>('');
   const [projectTypeFilter, setProjectTypeFilter] = useState<string>('');
+  // Initialize selectedClientId from URL param (passed from Dashboard)
+  const [selectedClientId, setSelectedClientId] = useState<string | null>(() => {
+    return searchParams.get('clientId');
+  });
   const [boardClient, setBoardClient] = useState<BoardClientInfo | null>(null);
   const [currentBoardId, setCurrentBoardId] = useState<string | null>(null);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
@@ -303,17 +309,43 @@ export function ProjectsPage() {
   // Get selected project from URL
   const selectedProjectId = searchParams.get('selected');
 
+  // Check if we're currently inside the Master Board
+  const isMasterBoard = !!(isInMiro && currentBoardId && masterBoardId && currentBoardId === masterBoardId);
+
+  // Query clients for filter dropdown (only when on Master Board)
+  const { data: clientsForFilter } = useQuery<Array<{ id: string; name: string; company_name: string | null }>>({
+    queryKey: ['clients-for-filter'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('users')
+        .select('id, name, company_name')
+        .eq('role', 'client')
+        .order('name');
+      if (error) throw error;
+      return (data || []) as Array<{ id: string; name: string; company_name: string | null }>;
+    },
+    enabled: isMasterBoard,
+  });
+
   // Fetch projects filtered by current board (for data isolation)
-  // Only filter by board if we're inside Miro and have a board ID
+  // On Master Board: show all projects (optionally filtered by selected client)
+  // On regular boards: filter by board ID
   const filters: ProjectFiltersType = useMemo(() => {
     const f: ProjectFiltersType = {};
     if (searchQuery) f.search = searchQuery;
-    // IMPORTANT: Filter by current board to ensure data isolation
-    if (isInMiro && currentBoardId) {
+
+    // If on Master Board, don't filter by board ID - show all projects
+    if (isMasterBoard) {
+      // Optionally filter by selected client
+      if (selectedClientId) {
+        f.clientId = selectedClientId;
+      }
+    } else if (isInMiro && currentBoardId) {
+      // IMPORTANT: Filter by current board to ensure data isolation
       f.miroBoardId = currentBoardId;
     }
     return f;
-  }, [searchQuery, isInMiro, currentBoardId]);
+  }, [searchQuery, isInMiro, currentBoardId, isMasterBoard, selectedClientId]);
 
   // Fetch ALL projects (pageSize: 1000 to avoid pagination limits)
   const { data: projectsData, isLoading, refetch } = useProjects({ filters, pageSize: 1000 });
@@ -792,6 +824,31 @@ export function ProjectsPage() {
             showLabels
             animate
           />
+        </div>
+      )}
+
+      {/* Master Board Badge */}
+      {isMasterBoard && (
+        <div className={styles.masterBoardBadge}>
+          Master Board - All Clients
+        </div>
+      )}
+
+      {/* Client Filter (only on Master Board) */}
+      {isMasterBoard && clientsForFilter && clientsForFilter.length > 0 && (
+        <div className={styles.clientFilterRow}>
+          <select
+            className={styles.clientSelect}
+            value={selectedClientId || ''}
+            onChange={(e) => setSelectedClientId(e.target.value || null)}
+          >
+            <option value="">All Clients</option>
+            {clientsForFilter.map(client => (
+              <option key={client.id} value={client.id}>
+                {client.company_name || client.name}
+              </option>
+            ))}
+          </select>
         </div>
       )}
 

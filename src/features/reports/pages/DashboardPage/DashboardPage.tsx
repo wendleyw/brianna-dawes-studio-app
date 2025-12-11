@@ -292,7 +292,14 @@ export function DashboardPage() {
 
           <button
             className={styles.actionCard}
-            onClick={() => navigate('/projects')}
+            onClick={() => {
+              // Pass selected client ID to projects page if on Master Board
+              if (isMasterBoard && selectedClientId) {
+                navigate(`/projects?clientId=${selectedClientId}`);
+              } else {
+                navigate('/projects');
+              }
+            }}
           >
             <div className={styles.actionIconSecondary}>
               <GridIcon />
