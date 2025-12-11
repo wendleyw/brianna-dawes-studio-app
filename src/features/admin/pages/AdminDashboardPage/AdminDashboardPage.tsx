@@ -182,11 +182,13 @@ function OverviewTab({ overview, projectsByStatus, monthlyMetrics, recentProject
 
       {/* Status Distribution */}
       <div className={styles.statusGrid}>
-        <StatusCard status="draft" count={projectsByStatus.draft} />
+        <StatusCard status="on_track" count={projectsByStatus.on_track} />
         <StatusCard status="in_progress" count={projectsByStatus.in_progress} />
         <StatusCard status="review" count={projectsByStatus.review} />
+        <StatusCard status="urgent" count={projectsByStatus.urgent} />
+        <StatusCard status="critical" count={projectsByStatus.critical} />
+        <StatusCard status="overdue" count={projectsByStatus.overdue} />
         <StatusCard status="done" count={projectsByStatus.done} />
-        <StatusCard status="archived" count={projectsByStatus.archived} />
       </div>
 
       {/* Charts and Recent */}
@@ -437,11 +439,13 @@ function KPICard({ label, value, subtext }: KPICardProps) {
 // Status Card Component
 function StatusCard({ status, count }: { status: string; count: number }) {
   const statusClassMap: Record<string, string | undefined> = {
-    draft: styles.draft,
+    on_track: styles.onTrack,
     in_progress: styles.inProgress,
     review: styles.review,
+    urgent: styles.urgent,
+    critical: styles.critical,
+    overdue: styles.overdue,
     done: styles.done,
-    archived: styles.archived,
   };
 
   return (
@@ -495,11 +499,13 @@ function formatStatus(status: string): string {
 
 function getStatusClass(status: string): string {
   const classMap: Record<string, string | undefined> = {
-    draft: styles.draft,
+    on_track: styles.onTrack,
     in_progress: styles.inProgress,
     review: styles.review,
+    urgent: styles.urgent,
+    critical: styles.critical,
+    overdue: styles.overdue,
     done: styles.done,
-    archived: styles.archived,
   };
   return classMap[status] ?? '';
 }

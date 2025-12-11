@@ -19,11 +19,13 @@ export interface OverviewMetrics {
 }
 
 export interface ProjectsByStatus {
-  draft: number;
+  critical: number;
+  overdue: number;
+  urgent: number;
+  on_track: number;
   in_progress: number;
   review: number;
   done: number;
-  archived: number;
 }
 
 export interface ClientAnalytics {

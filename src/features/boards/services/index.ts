@@ -19,5 +19,9 @@ export { miroClientReportService } from './miroClientReportService';
 // Project Sync Orchestrator - manages Miro ↔ Supabase synchronization
 export { projectSyncOrchestrator } from './projectSyncOrchestrator';
 
+// Master Board Service - consolidated view of all clients
+export { masterBoardService } from './masterBoardService';
+export type { MasterBoardSyncResult } from './masterBoardService';
+
 // Centralized constants
 export * from './constants';

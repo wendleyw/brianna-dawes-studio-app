@@ -319,6 +319,28 @@ export const adminService = {
     return mapAppSettingFromDb(data);
   },
 
+  /**
+   * Upsert a setting (create if not exists, update if exists)
+   */
+  async upsertSetting(input: UpdateAppSettingInput & { description?: string }): Promise<AppSetting> {
+    const { data, error } = await supabase
+      .from('app_settings')
+      .upsert(
+        {
+          key: input.key,
+          value: input.value,
+          description: input.description || null,
+        },
+        { onConflict: 'key' }
+      )
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return mapAppSettingFromDb(data);
+  },
+
   // ============ SUBSCRIPTION PLANS ============
 
   /**

@@ -170,7 +170,7 @@
 /* Status Cards */
 .statusGrid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
   gap: 12px;
   margin-bottom: 24px;
 }
@@ -178,13 +178,13 @@
 .statusCard {
   background: white;
   border-radius: 8px;
-  padding: 16px;
+  padding: 12px;
   text-align: center;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
-.statusCard.draft {
-  border-top: 3px solid #9ca3af;
+.statusCard.onTrack {
+  border-top: 3px solid #10b981;
 }
 
 .statusCard.inProgress {
@@ -192,14 +192,22 @@
 }
 
 .statusCard.review {
+  border-top: 3px solid #8b5cf6;
+}
+
+.statusCard.urgent {
   border-top: 3px solid #f59e0b;
 }
 
-.statusCard.done {
-  border-top: 3px solid #10b981;
+.statusCard.critical {
+  border-top: 3px solid #ef4444;
 }
 
-.statusCard.archived {
+.statusCard.overdue {
+  border-top: 3px solid #dc2626;
+}
+
+.statusCard.done {
   border-top: 3px solid #6b7280;
 }
 

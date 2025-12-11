@@ -68,11 +68,12 @@ class AnalyticsService {
       .from('projects')
       .select('id, status');
 
+    // Status values: critical, overdue, urgent, on_track, in_progress, review, done
+    const activeStatuses = ['in_progress', 'review', 'on_track', 'urgent', 'critical', 'overdue'];
     const projectCounts = {
       total: projects?.length || 0,
-      active: projects?.filter((p) => p.status === 'in_progress').length || 0,
+      active: projects?.filter((p) => activeStatuses.includes(p.status)).length || 0,
       completed: projects?.filter((p) => p.status === 'done').length || 0,
-      archived: projects?.filter((p) => p.status === 'archived').length || 0,
     };
 
     // Get user counts
@@ -87,7 +88,7 @@ class AnalyticsService {
     const { data: activeClientProjects } = await supabase
       .from('projects')
       .select('client_id')
-      .in('status', ['draft', 'in_progress', 'review']);
+      .in('status', ['in_progress', 'review', 'on_track', 'urgent', 'critical']);
 
     const activeClientIds = new Set(activeClientProjects?.map((p) => p.client_id) || []);
 
@@ -123,7 +124,7 @@ class AnalyticsService {
       totalProjects: projectCounts.total,
       activeProjects: projectCounts.active,
       completedProjects: projectCounts.completed,
-      archivedProjects: projectCounts.archived,
+      archivedProjects: 0, // No archived status in current enum
       totalClients: userCounts.clients,
       activeClients: activeClientIds.size,
       totalDesigners: userCounts.designers,
@@ -138,16 +139,19 @@ class AnalyticsService {
 
   /**
    * Get projects grouped by status
+   * Status enum: critical, overdue, urgent, on_track, in_progress, review, done
    */
   async getProjectsByStatus(): Promise<ProjectsByStatus> {
     const { data: projects } = await supabase.from('projects').select('status');
 
     const counts: ProjectsByStatus = {
-      draft: 0,
+      critical: 0,
+      overdue: 0,
+      urgent: 0,
+      on_track: 0,
       in_progress: 0,
       review: 0,
       done: 0,
-      archived: 0,
     };
 
     projects?.forEach((p) => {
@@ -208,7 +212,7 @@ class AnalyticsService {
         avatarUrl: client.avatar_url as string | null,
         totalProjects: clientProjects.length,
         activeProjects: clientProjects.filter((p) =>
-          ['draft', 'in_progress', 'review'].includes(p.status)
+          ['in_progress', 'review', 'on_track', 'urgent', 'critical', 'overdue'].includes(p.status)
         ).length,
         completedProjects: clientProjects.filter((p) => p.status === 'done').length,
         totalDeliverables: clientDeliverables.length,
@@ -273,7 +277,7 @@ class AnalyticsService {
         avatarUrl: designer.avatar_url as string | null,
         totalProjects: designerProjects.length,
         activeProjects: designerProjects.filter((p) =>
-          ['draft', 'in_progress', 'review'].includes(p.status)
+          ['in_progress', 'review', 'on_track', 'urgent', 'critical', 'overdue'].includes(p.status)
         ).length,
         completedProjects: designerProjects.filter((p) => p.status === 'done').length,
         totalDeliverables: designerDeliverables.length,

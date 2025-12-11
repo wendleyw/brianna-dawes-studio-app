@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { TeamManagement } from '../../components/TeamManagement';
 import { BoardManagement } from '../../components/BoardManagement';
+import { MasterBoardSettings } from '../../components/MasterBoardSettings';
 import { DeveloperTools } from '../../components/DeveloperTools';
 import { SyncHealthDashboard } from '../../components/SyncHealthDashboard';
 import type { AdminTab } from '../../domain';
@@ -58,9 +59,18 @@ const SyncIcon = () => (
   </svg>
 );
 
+const MasterIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+    <line x1="8" y1="21" x2="16" y2="21"/>
+    <line x1="12" y1="17" x2="12" y2="21"/>
+  </svg>
+);
+
 const TABS: { id: AdminTab; label: string; icon: React.ReactNode }[] = [
   { id: 'team', label: 'Team', icon: <TeamIcon /> },
   { id: 'boards', label: 'Boards', icon: <BoardsIcon /> },
+  { id: 'master', label: 'Master', icon: <MasterIcon /> },
   { id: 'sync', label: 'Sync Health', icon: <SyncIcon /> },
   { id: 'developer', label: 'Developer', icon: <DeveloperIcon /> },
 ];
@@ -113,6 +123,7 @@ export function AdminSettingsPage() {
       <div className={styles.content}>
         {activeTab === 'team' && <TeamManagement />}
         {activeTab === 'boards' && <BoardManagement />}
+        {activeTab === 'master' && <MasterBoardSettings />}
         {activeTab === 'sync' && <SyncHealthDashboard />}
         {activeTab === 'developer' && <DeveloperTools />}
       </div>
