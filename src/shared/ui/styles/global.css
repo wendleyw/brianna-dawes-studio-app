@@ -19,11 +19,12 @@ html {
 }
 
 body {
-  font-family: var(--font-ui);
-  font-size: var(--text-base);
-  line-height: var(--leading-normal);
-  color: var(--color-text-primary);
-  background-color: var(--color-bg-primary);
+  /* Use explicit values for Miro SDK iframe compatibility */
+  font-family: Inter, system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #111827;
+  background-color: #ffffff;
   height: 100%;
   overflow: hidden;
 }
@@ -34,40 +35,41 @@ body {
 }
 
 /* Typography - Inter Bold for all headings */
+/* Use explicit values for Miro SDK iframe compatibility */
 h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-ui);
-  font-weight: var(--font-bold);
-  line-height: var(--leading-tight);
-  color: var(--color-text-primary);
-  letter-spacing: var(--tracking-tight);
+  font-family: Inter, system-ui, -apple-system, sans-serif;
+  font-weight: 700;
+  line-height: 1.25;
+  color: #111827;
+  letter-spacing: -0.025em;
 }
 
 /* Miro Panel Optimized Sizes */
-h1 { font-size: var(--text-2xl); }  /* 20px - Page titles */
-h2 { font-size: var(--text-lg); }   /* 16px - Section headers */
-h3 { font-size: var(--text-base); } /* 14px - Card titles */
-h4 { font-size: var(--text-sm); }   /* 13px - Subsections */
-h5 { font-size: var(--text-xs); }   /* 12px - Labels */
-h6 { font-size: var(--text-2xs); }  /* 10px - Micro labels */
+h1 { font-size: 20px; }  /* Page titles */
+h2 { font-size: 16px; }  /* Section headers */
+h3 { font-size: 14px; }  /* Card titles */
+h4 { font-size: 13px; }  /* Subsections */
+h5 { font-size: 12px; }  /* Labels */
+h6 { font-size: 10px; }  /* Micro labels */
 
 p {
-  margin-bottom: var(--space-4);
+  margin-bottom: 16px;
 }
 
 a {
-  color: var(--color-accent);
+  color: #2563eb;
   text-decoration: none;
-  transition: color var(--transition-fast);
+  transition: color 0.15s ease;
 }
 
 a:hover {
-  color: var(--color-accent-dark);
+  color: #1d4ed8;
   text-decoration: underline;
 }
 
 /* Focus styles */
 :focus-visible {
-  outline: 2px solid var(--color-border-focus);
+  outline: 2px solid #2563eb;
   outline-offset: 2px;
 }
 
@@ -78,16 +80,16 @@ a:hover {
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--color-gray-100);
+  background: #f3f4f6;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--color-gray-300);
-  border-radius: var(--radius-full);
+  background: #d1d5db;
+  border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-gray-400);
+  background: #9ca3af;
 }
 
 /* App container */
