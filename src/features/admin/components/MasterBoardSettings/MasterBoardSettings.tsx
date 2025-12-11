@@ -16,6 +16,7 @@ import {
   useMasterBoardSyncStatus,
   useMasterBoardInitialize,
   useMasterBoardSync,
+  useMasterBoardArchitectureDiagram,
 } from '@features/boards/hooks/useMasterBoard';
 import { miroAdapter } from '@shared/lib/miroAdapter';
 import styles from './MasterBoardSettings.module.css';
@@ -30,6 +31,7 @@ export const MasterBoardSettings = memo(function MasterBoardSettings() {
   const { data: syncStatus, isLoading: loadingSyncStatus } = useMasterBoardSyncStatus();
   const initializeMutation = useMasterBoardInitialize();
   const syncMutation = useMasterBoardSync();
+  const diagramMutation = useMasterBoardArchitectureDiagram();
 
   // Initialize input with saved board ID
   useEffect(() => {
@@ -123,6 +125,24 @@ export const MasterBoardSettings = memo(function MasterBoardSettings() {
     }
   };
 
+  const handleGenerateDiagram = async () => {
+    if (!isMiroContext) {
+      setError('You must be inside a Miro board to generate the diagram');
+      return;
+    }
+
+    setError(null);
+    setSuccessMessage(null);
+
+    try {
+      await diagramMutation.mutateAsync();
+      setSuccessMessage('Architecture diagram generated successfully!');
+      setTimeout(() => setSuccessMessage(null), 5000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to generate diagram');
+    }
+  };
+
   // Check if we're currently inside the Master Board
   const isCurrentBoardMaster = currentBoardId && boardId && currentBoardId === boardId;
   const isMiroContext = miroAdapter.isAvailable();
@@ -139,6 +159,7 @@ export const MasterBoardSettings = memo(function MasterBoardSettings() {
 
   const isSyncing = syncMutation.isPending;
   const isInitializing = initializeMutation.isPending;
+  const isGeneratingDiagram = diagramMutation.isPending;
 
   return (
     <div className={styles.container}>
@@ -278,6 +299,29 @@ export const MasterBoardSettings = memo(function MasterBoardSettings() {
           <li>Click &quot;Initialize Board&quot; to create the title and structure</li>
           <li>Click &quot;Sync All Clients&quot; to populate with client data</li>
         </ol>
+      </div>
+
+      {/* Architecture Diagram Section */}
+      <div className={styles.section}>
+        <div className={styles.diagramSection}>
+          <h4 className={styles.diagramTitle}>🏗️ Architecture Diagram</h4>
+          <p className={styles.diagramDescription}>
+            Generate a visual diagram showing the app&apos;s architecture, data flow, and all system components.
+          </p>
+          <Button
+            onClick={handleGenerateDiagram}
+            disabled={isGeneratingDiagram || !isMiroContext}
+            variant="secondary"
+            title={!isMiroContext ? 'Open this app inside Miro to generate diagram' : undefined}
+          >
+            {isGeneratingDiagram ? 'Generating...' : '📊 Generate Architecture Diagram'}
+          </Button>
+          {!isMiroContext && (
+            <p className={styles.hint}>
+              Open this app inside any Miro board to generate the diagram.
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );

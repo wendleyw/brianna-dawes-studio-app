@@ -955,6 +955,315 @@ class MasterBoardService {
       }
     }
   }
+
+  // =====================================================
+  // Architecture Diagram Generation
+  // =====================================================
+
+  /**
+   * Generate an architecture diagram of the entire app
+   * Shows data flow between frontend, backend, and external services
+   */
+  async generateArchitectureDiagramWithSdk(): Promise<void> {
+    if (typeof window.miro === 'undefined') {
+      throw new Error('Miro SDK not available. This must be run inside Miro.');
+    }
+
+    const miro = window.miro;
+
+    // Layout constants for the diagram
+    const DIAGRAM = {
+      START_X: 1500, // Start to the right of any existing content
+      START_Y: 0,
+      BOX_WIDTH: 180,
+      BOX_HEIGHT: 60,
+      SMALL_BOX_WIDTH: 140,
+      SMALL_BOX_HEIGHT: 40,
+      GAP_X: 50,
+      GAP_Y: 30,
+      SECTION_GAP: 100,
+    };
+
+    // Colors for different layers
+    const COLORS = {
+      frontend: '#3B82F6',    // Blue
+      features: '#8B5CF6',    // Purple
+      shared: '#6366F1',      // Indigo
+      supabase: '#22C55E',    // Green
+      miro: '#F59E0B',        // Amber
+      external: '#EF4444',    // Red
+      bg: '#F3F4F6',          // Light gray
+    };
+
+    const startX = DIAGRAM.START_X;
+    let currentY = DIAGRAM.START_Y;
+
+    // ============ TITLE ============
+    await miro.board.createText({
+      content: '<b>🏗️ APP ARCHITECTURE DIAGRAM</b>',
+      x: startX + 300,
+      y: currentY,
+      width: 600,
+      style: { fontSize: 28, textAlign: 'center', color: '#050038' },
+    });
+
+    await miro.board.createText({
+      content: '<i>Brianna Dawes Studios - Miro Project Management App</i>',
+      x: startX + 300,
+      y: currentY + 40,
+      width: 600,
+      style: { fontSize: 14, textAlign: 'center', color: '#6B7280' },
+    });
+
+    currentY += 120;
+
+    // ============ FRONTEND LAYER ============
+    // Section title
+    await miro.board.createShape({
+      shape: 'round_rectangle',
+      x: startX + 300,
+      y: currentY,
+      width: 650,
+      height: 40,
+      content: '<b>🖥️ FRONTEND (React 19 + Vite + TypeScript)</b>',
+      style: { fillColor: COLORS.frontend, color: '#FFFFFF', fontSize: 14, textAlign: 'center', textAlignVertical: 'middle' },
+    });
+
+    currentY += 60;
+
+    // App entry points
+    const entryPoints = ['index.html (Panel)', 'app.html (Full App)', 'board-modal.html'];
+    for (let i = 0; i < entryPoints.length; i++) {
+      await miro.board.createShape({
+        shape: 'rectangle',
+        x: startX + 100 + i * (DIAGRAM.BOX_WIDTH + 20),
+        y: currentY,
+        width: DIAGRAM.BOX_WIDTH,
+        height: DIAGRAM.SMALL_BOX_HEIGHT,
+        content: entryPoints[i] || '',
+        style: { fillColor: '#DBEAFE', borderColor: COLORS.frontend, fontSize: 10, textAlign: 'center', textAlignVertical: 'middle' },
+      });
+    }
+
+    currentY += 80;
+
+    // ============ FEATURES LAYER ============
+    await miro.board.createShape({
+      shape: 'round_rectangle',
+      x: startX + 300,
+      y: currentY,
+      width: 650,
+      height: 40,
+      content: '<b>📦 FEATURES (Feature-Based Modules)</b>',
+      style: { fillColor: COLORS.features, color: '#FFFFFF', fontSize: 14, textAlign: 'center', textAlignVertical: 'middle' },
+    });
+
+    currentY += 60;
+
+    const features = [
+      { name: 'auth', desc: 'Login, Roles' },
+      { name: 'projects', desc: 'CRUD, Filters' },
+      { name: 'deliverables', desc: 'Assets' },
+      { name: 'reports', desc: 'Dashboard' },
+      { name: 'boards', desc: 'Miro Sync' },
+      { name: 'admin', desc: 'Settings' },
+    ];
+
+    for (let i = 0; i < features.length; i++) {
+      const feature = features[i];
+      if (!feature) continue;
+      const col = i % 3;
+      const row = Math.floor(i / 3);
+      await miro.board.createShape({
+        shape: 'rectangle',
+        x: startX + 100 + col * (DIAGRAM.BOX_WIDTH + 20),
+        y: currentY + row * (DIAGRAM.BOX_HEIGHT + 15),
+        width: DIAGRAM.BOX_WIDTH,
+        height: DIAGRAM.BOX_HEIGHT,
+        content: `<b>${feature.name}</b>\n${feature.desc}`,
+        style: { fillColor: '#EDE9FE', borderColor: COLORS.features, fontSize: 11, textAlign: 'center', textAlignVertical: 'middle' },
+      });
+    }
+
+    currentY += 180;
+
+    // ============ SHARED LAYER ============
+    await miro.board.createShape({
+      shape: 'round_rectangle',
+      x: startX + 300,
+      y: currentY,
+      width: 650,
+      height: 40,
+      content: '<b>🔧 SHARED (Cross-Cutting Concerns)</b>',
+      style: { fillColor: COLORS.shared, color: '#FFFFFF', fontSize: 14, textAlign: 'center', textAlignVertical: 'middle' },
+    });
+
+    currentY += 60;
+
+    const shared = [
+      { name: 'ui/', desc: 'Design System' },
+      { name: 'hooks/', desc: 'React Hooks' },
+      { name: 'lib/', desc: 'Utilities' },
+      { name: 'config/', desc: 'Env, Roles' },
+    ];
+
+    for (let i = 0; i < shared.length; i++) {
+      const item = shared[i];
+      if (!item) continue;
+      await miro.board.createShape({
+        shape: 'rectangle',
+        x: startX + 50 + i * (DIAGRAM.SMALL_BOX_WIDTH + 20),
+        y: currentY,
+        width: DIAGRAM.SMALL_BOX_WIDTH,
+        height: DIAGRAM.SMALL_BOX_HEIGHT,
+        content: `<b>${item.name}</b> ${item.desc}`,
+        style: { fillColor: '#E0E7FF', borderColor: COLORS.shared, fontSize: 10, textAlign: 'center', textAlignVertical: 'middle' },
+      });
+    }
+
+    currentY += 100;
+
+    // ============ BACKEND SECTION ============
+    // Supabase
+    await miro.board.createShape({
+      shape: 'round_rectangle',
+      x: startX + 150,
+      y: currentY,
+      width: 280,
+      height: 40,
+      content: '<b>🗄️ SUPABASE (Backend)</b>',
+      style: { fillColor: COLORS.supabase, color: '#FFFFFF', fontSize: 14, textAlign: 'center', textAlignVertical: 'middle' },
+    });
+
+    // Miro SDK
+    await miro.board.createShape({
+      shape: 'round_rectangle',
+      x: startX + 450,
+      y: currentY,
+      width: 280,
+      height: 40,
+      content: '<b>🎨 MIRO SDK (Board API)</b>',
+      style: { fillColor: COLORS.miro, color: '#FFFFFF', fontSize: 14, textAlign: 'center', textAlignVertical: 'middle' },
+    });
+
+    currentY += 60;
+
+    // Supabase tables
+    const tables = ['users', 'projects', 'deliverables', 'app_settings', 'audit_logs'];
+    for (let i = 0; i < tables.length; i++) {
+      const table = tables[i];
+      const col = i % 3;
+      const row = Math.floor(i / 3);
+      await miro.board.createShape({
+        shape: 'rectangle',
+        x: startX + 50 + col * 100,
+        y: currentY + row * 35,
+        width: 90,
+        height: 30,
+        content: table || '',
+        style: { fillColor: '#D1FAE5', borderColor: COLORS.supabase, fontSize: 9, textAlign: 'center', textAlignVertical: 'middle' },
+      });
+    }
+
+    // Miro features
+    const miroFeatures = ['Timeline Kanban', 'Project Frames', 'Master Board', 'Board Sync'];
+    for (let i = 0; i < miroFeatures.length; i++) {
+      const feature = miroFeatures[i];
+      const col = i % 2;
+      const row = Math.floor(i / 2);
+      await miro.board.createShape({
+        shape: 'rectangle',
+        x: startX + 400 + col * 130,
+        y: currentY + row * 35,
+        width: 120,
+        height: 30,
+        content: feature || '',
+        style: { fillColor: '#FEF3C7', borderColor: COLORS.miro, fontSize: 9, textAlign: 'center', textAlignVertical: 'middle' },
+      });
+    }
+
+    currentY += 120;
+
+    // ============ EXTERNAL SERVICES ============
+    await miro.board.createShape({
+      shape: 'round_rectangle',
+      x: startX + 300,
+      y: currentY,
+      width: 650,
+      height: 40,
+      content: '<b>🌐 EXTERNAL SERVICES</b>',
+      style: { fillColor: COLORS.external, color: '#FFFFFF', fontSize: 14, textAlign: 'center', textAlignVertical: 'middle' },
+    });
+
+    currentY += 60;
+
+    const external = [
+      { name: 'Postmark', desc: 'Email' },
+      { name: 'Sentry', desc: 'Errors' },
+      { name: 'Vercel', desc: 'Hosting' },
+      { name: 'GitHub', desc: 'Code' },
+    ];
+
+    for (let i = 0; i < external.length; i++) {
+      const item = external[i];
+      if (!item) continue;
+      await miro.board.createShape({
+        shape: 'rectangle',
+        x: startX + 60 + i * (DIAGRAM.SMALL_BOX_WIDTH + 20),
+        y: currentY,
+        width: DIAGRAM.SMALL_BOX_WIDTH,
+        height: DIAGRAM.SMALL_BOX_HEIGHT,
+        content: `<b>${item.name}</b>\n${item.desc}`,
+        style: { fillColor: '#FEE2E2', borderColor: COLORS.external, fontSize: 10, textAlign: 'center', textAlignVertical: 'middle' },
+      });
+    }
+
+    currentY += 100;
+
+    // ============ DATA FLOW LEGEND ============
+    await miro.board.createShape({
+      shape: 'round_rectangle',
+      x: startX + 300,
+      y: currentY,
+      width: 650,
+      height: 120,
+      content: '',
+      style: { fillColor: '#F9FAFB', borderColor: '#E5E7EB', borderWidth: 1 },
+    });
+
+    await miro.board.createText({
+      content: '<b>📊 DATA FLOW</b>',
+      x: startX + 300,
+      y: currentY - 30,
+      width: 200,
+      style: { fontSize: 14, textAlign: 'center', color: '#374151' },
+    });
+
+    const flows = [
+      '1. User → React App → TanStack Query → Supabase (CRUD)',
+      '2. React App → Miro SDK → Miro Board (Create/Update items)',
+      '3. Supabase Realtime → React App (Live updates)',
+      '4. Admin → Master Board Service → Sync all clients to Miro',
+    ];
+
+    for (let i = 0; i < flows.length; i++) {
+      await miro.board.createText({
+        content: flows[i] || '',
+        x: startX + 300,
+        y: currentY + 10 + i * 22,
+        width: 600,
+        style: { fontSize: 11, textAlign: 'left', color: '#4B5563' },
+      });
+    }
+
+    // Zoom to the diagram
+    await miro.board.viewport.set({
+      x: startX - 100,
+      y: DIAGRAM.START_Y - 100,
+      width: 800,
+      height: 900,
+    });
+  }
 }
 
 export const masterBoardService = new MasterBoardService();

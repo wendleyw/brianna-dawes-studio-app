@@ -4,5 +4,6 @@ export {
   useMasterBoardSyncStatus,
   useMasterBoardInitialize,
   useMasterBoardSync,
+  useMasterBoardArchitectureDiagram,
   masterBoardKeys,
 } from './useMasterBoard';

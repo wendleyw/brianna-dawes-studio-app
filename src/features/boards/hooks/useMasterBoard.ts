@@ -97,3 +97,15 @@ export function useMasterBoardSync() {
     },
   });
 }
+
+/**
+ * Hook to generate architecture diagram on the master board
+ * Must be called from within a Miro board context
+ */
+export function useMasterBoardArchitectureDiagram() {
+  return useMutation({
+    mutationFn: async () => {
+      await masterBoardService.generateArchitectureDiagramWithSdk();
+    },
+  });
+}

@@ -196,6 +196,31 @@
   margin-bottom: 4px;
 }
 
+/* Architecture Diagram Section */
+.diagramSection {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  background: linear-gradient(135deg, #f0f4ff 0%, #e8f4f8 100%);
+  border-radius: 8px;
+  border: 1px solid #c7d2fe;
+}
+
+.diagramTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: #050038;
+  margin: 0;
+}
+
+.diagramDescription {
+  font-size: 13px;
+  color: #555;
+  margin: 0;
+  line-height: 1.5;
+}
+
 /* Responsive */
 @media (max-width: 480px) {
   .inputRow {
