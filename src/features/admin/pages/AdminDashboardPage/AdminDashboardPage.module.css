@@ -1,9 +1,12 @@
 .container {
   width: 100%;
-  min-height: 100vh;
+  height: 100%;
   background: #f8f9fa;
-  padding: 24px;
+  padding: 16px;
   overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  box-sizing: border-box;
 }
 
 .header {
@@ -96,71 +99,27 @@
 .kpiCard {
   background: white;
   border-radius: 12px;
-  padding: 20px;
+  padding: 16px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
-.kpiHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 12px;
-}
-
 .kpiLabel {
-  font-size: 13px;
+  font-size: 12px;
   color: #666;
   font-weight: 500;
-}
-
-.kpiIcon {
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.kpiIcon.projects {
-  background: #ede9fe;
-  color: #7c3aed;
-}
-
-.kpiIcon.clients {
-  background: #dbeafe;
-  color: #2563eb;
-}
-
-.kpiIcon.designers {
-  background: #fce7f3;
-  color: #db2777;
-}
-
-.kpiIcon.deliverables {
-  background: #d1fae5;
-  color: #059669;
-}
-
-.kpiIcon.assets {
-  background: #fef3c7;
-  color: #d97706;
-}
-
-.kpiIcon.rate {
-  background: #e0e7ff;
-  color: #4f46e5;
+  display: block;
+  margin-bottom: 8px;
 }
 
 .kpiValue {
-  font-size: 32px;
+  font-size: 28px;
   font-weight: 700;
   color: #050038;
   line-height: 1.2;
 }
 
 .kpiSubtext {
-  font-size: 12px;
+  font-size: 11px;
   color: #888;
   margin-top: 4px;
 }

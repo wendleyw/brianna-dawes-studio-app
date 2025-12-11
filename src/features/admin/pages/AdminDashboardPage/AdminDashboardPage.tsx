@@ -152,37 +152,31 @@ function OverviewTab({ overview, projectsByStatus, monthlyMetrics, recentProject
           label="Total Projects"
           value={overview.totalProjects}
           subtext={`${overview.activeProjects} active`}
-          icon="projects"
         />
         <KPICard
           label="Total Clients"
           value={overview.totalClients}
           subtext={`${overview.activeClients} with active projects`}
-          icon="clients"
         />
         <KPICard
           label="Designers"
           value={overview.totalDesigners}
           subtext="Team members"
-          icon="designers"
         />
         <KPICard
           label="Deliverables"
           value={overview.totalDeliverables}
           subtext={`${overview.approvedDeliverables} approved`}
-          icon="deliverables"
         />
         <KPICard
           label="Total Assets"
           value={overview.totalAssets}
           subtext="Created to date"
-          icon="assets"
         />
         <KPICard
           label="Completion Rate"
           value={`${overview.completionRate}%`}
           subtext={`${overview.pendingDeliverables} pending`}
-          icon="rate"
         />
       </div>
 
@@ -428,16 +422,12 @@ interface KPICardProps {
   label: string;
   value: string | number;
   subtext: string;
-  icon: 'projects' | 'clients' | 'designers' | 'deliverables' | 'assets' | 'rate';
 }
 
-function KPICard({ label, value, subtext, icon }: KPICardProps) {
+function KPICard({ label, value, subtext }: KPICardProps) {
   return (
     <div className={styles.kpiCard}>
-      <div className={styles.kpiHeader}>
-        <span className={styles.kpiLabel}>{label}</span>
-        <div className={`${styles.kpiIcon} ${styles[icon]}`}>{getKPIIcon(icon)}</div>
-      </div>
+      <span className={styles.kpiLabel}>{label}</span>
       <div className={styles.kpiValue}>{value}</div>
       <div className={styles.kpiSubtext}>{subtext}</div>
     </div>
@@ -540,18 +530,6 @@ function getActivityIcon(type: string): string {
     feedback_added: '\u2709',
   };
   return iconMap[type] || '\u25CF';
-}
-
-function getKPIIcon(icon: string): string {
-  const iconMap: Record<string, string> = {
-    projects: '\uD83D\uDCC1',
-    clients: '\uD83D\uDC65',
-    designers: '\uD83C\uDFA8',
-    deliverables: '\uD83D\uDCE6',
-    assets: '\u2B50',
-    rate: '\uD83D\uDCC8',
-  };
-  return iconMap[icon] || '\u25CF';
 }
 
 function formatMonth(month: string): string {
