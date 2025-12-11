@@ -141,14 +141,22 @@ export const miroAuthService = {
 
     // Check if this is the main admin from env (only if email is available)
     if (email && isMainAdmin(email)) {
-      // Ensure main admin exists in database
-      await this.ensureMainAdminExists(email, name || 'Admin', miroUserId);
+      // Ensure main admin exists in database (uses SECURITY DEFINER to bypass RLS)
+      const superAdminId = await this.ensureMainAdminExists(email, name || 'Admin', miroUserId);
 
-      // Fetch the actual admin user from database to get the real UUID
+      if (!superAdminId) {
+        logger.error('Failed to create/find super admin');
+        return {
+          success: false,
+          error: 'Failed to initialize admin account. Please check server logs.',
+        };
+      }
+
+      // Fetch the actual admin user from database to get all fields
       const { data: adminUser } = await supabase
         .from('users')
         .select('id, name, email, role, primary_board_id, is_super_admin, miro_user_id, company_name, company_logo_url')
-        .eq('email', email.toLowerCase())
+        .eq('id', superAdminId)
         .single();
 
       if (adminUser) {
@@ -318,29 +326,27 @@ export const miroAuthService = {
 
   /**
    * Ensure main admin exists in database
+   * Uses a SECURITY DEFINER function to bypass RLS for initial creation
    */
-  async ensureMainAdminExists(email: string, name: string, miroUserId?: string): Promise<void> {
-    const { data: existing } = await supabase
-      .from('users')
-      .select('id, miro_user_id')
-      .eq('email', email.toLowerCase())
-      .maybeSingle();
-
-    if (!existing) {
-      // Create main admin user
-      await supabase.from('users').insert({
-        email: email.toLowerCase(),
-        name,
-        role: 'admin',
-        is_super_admin: true,
-        miro_user_id: miroUserId || null,
+  async ensureMainAdminExists(email: string, name: string, miroUserId?: string): Promise<string | null> {
+    try {
+      // Use the ensure_super_admin function which bypasses RLS
+      const { data, error } = await supabase.rpc('ensure_super_admin', {
+        p_email: email.toLowerCase(),
+        p_name: name,
+        p_miro_user_id: miroUserId || null,
       });
-    } else if (miroUserId && !existing.miro_user_id) {
-      // Update existing admin with miro_user_id
-      await supabase
-        .from('users')
-        .update({ miro_user_id: miroUserId })
-        .eq('id', existing.id);
+
+      if (error) {
+        logger.error('Failed to ensure super admin exists', { error, email });
+        return null;
+      }
+
+      logger.info('Super admin ensured', { userId: data, email });
+      return data as string;
+    } catch (error) {
+      logger.error('Error ensuring super admin', error);
+      return null;
     }
   },
 
