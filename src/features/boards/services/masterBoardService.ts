@@ -524,11 +524,12 @@ class MasterBoardService {
     lastSyncAt: string | null;
     lastSyncResult: MasterBoardSyncResult | null;
   }> {
+    // Use maybeSingle() instead of single() to avoid 406 error when row doesn't exist
     const { data } = await supabase
       .from('app_settings')
       .select('value')
       .eq('key', 'master_board_sync_status')
-      .single();
+      .maybeSingle();
 
     if (data?.value) {
       const value = data.value as { lastSyncAt?: string; lastSyncResult?: MasterBoardSyncResult };
