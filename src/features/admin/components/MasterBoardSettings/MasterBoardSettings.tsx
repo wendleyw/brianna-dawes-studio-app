@@ -3,6 +3,9 @@
  *
  * Allows admin to configure and sync the Master Board
  * which displays all clients with their projects in a consolidated view.
+ *
+ * Note: Sync only works when running inside the Master Board in Miro.
+ * The SDK can only manipulate the current board.
  */
 
 import { useState, useEffect, memo } from 'react';
@@ -10,7 +13,6 @@ import { Button, Input, Skeleton } from '@shared/ui';
 import { RefreshIcon, CheckIcon, ExternalLinkIcon } from '@shared/ui/Icons';
 import {
   useMasterBoardSettings,
-  useMasterBoardValidation,
   useMasterBoardSyncStatus,
   useMasterBoardInitialize,
   useMasterBoardSync,
@@ -20,12 +22,11 @@ import styles from './MasterBoardSettings.module.css';
 
 export const MasterBoardSettings = memo(function MasterBoardSettings() {
   const [inputBoardId, setInputBoardId] = useState('');
-  const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [currentBoardId, setCurrentBoardId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const { boardId, isLoading, saveBoardId, isSaving } = useMasterBoardSettings();
-  const { data: validation, isLoading: validating } = useMasterBoardValidation(boardId, accessToken);
   const { data: syncStatus, isLoading: loadingSyncStatus } = useMasterBoardSyncStatus();
   const initializeMutation = useMasterBoardInitialize();
   const syncMutation = useMasterBoardSync();
@@ -37,19 +38,21 @@ export const MasterBoardSettings = memo(function MasterBoardSettings() {
     }
   }, [boardId]);
 
-  // Get access token from Miro SDK
+  // Get current board ID from Miro SDK
   useEffect(() => {
-    const getToken = async () => {
+    const getCurrentBoard = async () => {
       try {
         if (miroAdapter.isAvailable()) {
-          const token = await miroAdapter.getSDK().board.getIdToken();
-          setAccessToken(token);
+          const boardInfo = await miroAdapter.getBoardInfo();
+          if (boardInfo?.id) {
+            setCurrentBoardId(boardInfo.id);
+          }
         }
       } catch {
-        // Token not available outside Miro context
+        // Board info not available outside Miro context
       }
     };
-    getToken();
+    getCurrentBoard();
   }, []);
 
   const handleSaveBoardId = async () => {
@@ -71,8 +74,13 @@ export const MasterBoardSettings = memo(function MasterBoardSettings() {
   };
 
   const handleInitialize = async () => {
-    if (!boardId || !accessToken) {
-      setError('Board ID and access token required');
+    if (!boardId) {
+      setError('Board ID required');
+      return;
+    }
+
+    if (!isCurrentBoardMaster) {
+      setError('You must be inside the Master Board to initialize');
       return;
     }
 
@@ -80,7 +88,7 @@ export const MasterBoardSettings = memo(function MasterBoardSettings() {
     setSuccessMessage(null);
 
     try {
-      await initializeMutation.mutateAsync({ boardId, accessToken });
+      await initializeMutation.mutateAsync({ boardId });
       setSuccessMessage('Master Board initialized successfully');
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err) {
@@ -89,8 +97,13 @@ export const MasterBoardSettings = memo(function MasterBoardSettings() {
   };
 
   const handleSync = async () => {
-    if (!boardId || !accessToken) {
-      setError('Board ID and access token required');
+    if (!boardId) {
+      setError('Board ID required');
+      return;
+    }
+
+    if (!isCurrentBoardMaster) {
+      setError('You must be inside the Master Board to sync');
       return;
     }
 
@@ -98,7 +111,7 @@ export const MasterBoardSettings = memo(function MasterBoardSettings() {
     setSuccessMessage(null);
 
     try {
-      const result = await syncMutation.mutateAsync({ boardId, accessToken });
+      const result = await syncMutation.mutateAsync({ boardId });
       if (result.success) {
         setSuccessMessage(`Synced ${result.clientsProcessed} clients successfully`);
       } else {
@@ -110,6 +123,10 @@ export const MasterBoardSettings = memo(function MasterBoardSettings() {
     }
   };
 
+  // Check if we're currently inside the Master Board
+  const isCurrentBoardMaster = currentBoardId && boardId && currentBoardId === boardId;
+  const isMiroContext = miroAdapter.isAvailable();
+
   const openBoardInMiro = () => {
     if (boardId) {
       window.open(`https://miro.com/app/board/${boardId}/`, '_blank');
@@ -120,7 +137,6 @@ export const MasterBoardSettings = memo(function MasterBoardSettings() {
     return <Skeleton height={200} />;
   }
 
-  const isValidBoard = validation?.valid === true;
   const isSyncing = syncMutation.isPending;
   const isInitializing = initializeMutation.isPending;
 
@@ -156,20 +172,22 @@ export const MasterBoardSettings = memo(function MasterBoardSettings() {
         </p>
       </div>
 
-      {/* Validation Status */}
+      {/* Board Status */}
       {boardId && (
         <div className={styles.section}>
           <div className={styles.statusRow}>
-            <span className={styles.statusLabel}>Board Status:</span>
-            {validating ? (
-              <span className={styles.statusPending}>Validating...</span>
-            ) : isValidBoard ? (
+            <span className={styles.statusLabel}>Status:</span>
+            {isCurrentBoardMaster ? (
               <span className={styles.statusValid}>
-                <CheckIcon size={14} /> Valid - {validation?.name}
+                <CheckIcon size={14} /> You are inside the Master Board - Ready to sync
+              </span>
+            ) : isMiroContext ? (
+              <span className={styles.statusPending}>
+                Board ID saved. Open the Master Board to sync.
               </span>
             ) : (
-              <span className={styles.statusInvalid}>
-                Invalid - {validation?.error || 'Unable to access board'}
+              <span className={styles.statusPending}>
+                Board ID saved. Open the app inside the Master Board to sync.
               </span>
             )}
           </div>
@@ -177,20 +195,22 @@ export const MasterBoardSettings = memo(function MasterBoardSettings() {
       )}
 
       {/* Action Buttons */}
-      {boardId && isValidBoard && (
+      {boardId && (
         <div className={styles.section}>
           <div className={styles.actions}>
             <Button
               onClick={handleInitialize}
-              disabled={isInitializing || !accessToken}
+              disabled={isInitializing || !isCurrentBoardMaster}
               variant="secondary"
+              title={!isCurrentBoardMaster ? 'Open this app inside the Master Board to initialize' : undefined}
             >
               {isInitializing ? 'Initializing...' : 'Initialize Board'}
             </Button>
             <Button
               onClick={handleSync}
-              disabled={isSyncing || !accessToken}
+              disabled={isSyncing || !isCurrentBoardMaster}
               variant="primary"
+              title={!isCurrentBoardMaster ? 'Open this app inside the Master Board to sync' : undefined}
             >
               {isSyncing ? (
                 <>
@@ -235,11 +255,11 @@ export const MasterBoardSettings = memo(function MasterBoardSettings() {
         </div>
       )}
 
-      {/* No Token Warning */}
-      {!accessToken && (
+      {/* Context Warning */}
+      {boardId && !isCurrentBoardMaster && (
         <div className={styles.warning}>
-          <strong>Note:</strong> Sync and initialization require running inside Miro.
-          Open this app from within a Miro board to enable these features.
+          <strong>Note:</strong> To sync or initialize, you must open this app from <em>inside the Master Board</em>.
+          Click &quot;Open in Miro&quot; above, then open the app panel.
         </div>
       )}
 
@@ -252,10 +272,11 @@ export const MasterBoardSettings = memo(function MasterBoardSettings() {
         <h4>How it works</h4>
         <ol>
           <li>Create a new board in Miro for the Master Overview</li>
-          <li>Copy the board ID from the URL and paste it above</li>
+          <li>Copy the board ID from the URL and paste it above, then click Save</li>
+          <li>Click &quot;Open in Miro&quot; to go to the Master Board</li>
+          <li>Open this app panel from inside the Master Board</li>
           <li>Click &quot;Initialize Board&quot; to create the title and structure</li>
           <li>Click &quot;Sync All Clients&quot; to populate with client data</li>
-          <li>Each client will have their own frame with a mini-kanban of projects</li>
         </ol>
       </div>
     </div>

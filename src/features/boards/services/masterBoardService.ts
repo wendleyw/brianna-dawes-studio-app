@@ -557,6 +557,254 @@ class MasterBoardService {
       { onConflict: 'key' }
     );
   }
+
+  // =====================================================
+  // SDK-based methods (use when running inside the board)
+  // =====================================================
+
+  /**
+   * Initialize the master board using Miro SDK
+   * Must be called from within the Master Board context
+   */
+  async initializeMasterBoardWithSdk(_boardId: string): Promise<void> {
+    if (typeof window.miro === 'undefined') {
+      throw new Error('Miro SDK not available. This must be run inside Miro.');
+    }
+
+    const miro = window.miro;
+
+    // Create main title
+    await miro.board.createText({
+      content: '<b>MASTER OVERVIEW - BRIANNA DAWES STUDIOS</b>',
+      x: MASTER_BOARD.TITLE_X + MASTER_BOARD.CLIENT_FRAME_WIDTH / 2,
+      y: MASTER_BOARD.TITLE_Y,
+      width: 800,
+      style: {
+        fontSize: 36,
+        textAlign: 'center',
+        color: '#050038',
+      },
+    });
+
+    // Create warning message
+    await miro.board.createText({
+      content: 'Sync manually from Admin Settings - Do not edit manually',
+      x: MASTER_BOARD.TITLE_X + MASTER_BOARD.CLIENT_FRAME_WIDTH / 2,
+      y: MASTER_BOARD.TITLE_Y + 50,
+      width: 600,
+      style: {
+        fontSize: 14,
+        textAlign: 'center',
+        color: '#666666',
+      },
+    });
+  }
+
+  /**
+   * Sync all clients using Miro SDK
+   * Must be called from within the Master Board context
+   */
+  async syncAllClientsWithSdk(_boardId: string): Promise<MasterBoardSyncResult> {
+    if (typeof window.miro === 'undefined') {
+      throw new Error('Miro SDK not available. This must be run inside Miro.');
+    }
+
+    const miro = window.miro;
+    const errors: string[] = [];
+    let clientsProcessed = 0;
+
+    try {
+      // Get all clients with their projects
+      const clients = await this.getClientsWithProjects();
+
+      // Filter clients that have at least one project
+      const clientsWithProjects = clients.filter((c) => c.projects.length > 0);
+
+      if (clientsWithProjects.length === 0) {
+        return {
+          success: true,
+          clientsProcessed: 0,
+          errors: ['No clients with projects found'],
+          lastSyncAt: new Date().toISOString(),
+        };
+      }
+
+      // Calculate positions and create/update frames
+      let currentY = MASTER_BOARD.CONTENT_START_Y;
+
+      for (const client of clientsWithProjects) {
+        try {
+          const frameHeight = this.calculateFrameHeight(client.projects.length);
+          const frameTitle = `${client.companyName || client.name} [${client.id}]`;
+
+          // Create frame for client
+          const frame = await miro.board.createFrame({
+            title: frameTitle,
+            x: MASTER_BOARD.CONTENT_START_X,
+            y: currentY,
+            width: MASTER_BOARD.CLIENT_FRAME_WIDTH,
+            height: frameHeight,
+            style: {
+              fillColor: '#FFFFFF',
+            },
+          });
+
+          // Create header content
+          await this.createClientHeaderWithSdk(miro, client, currentY);
+
+          // Create mini-kanban
+          await this.createMiniKanbanWithSdk(miro, client.projects, currentY, frame);
+
+          currentY += frameHeight + MASTER_BOARD.CLIENT_FRAME_GAP;
+          clientsProcessed++;
+        } catch (error) {
+          const errorMsg = `Failed to sync client ${client.name}: ${error instanceof Error ? error.message : 'Unknown error'}`;
+          errors.push(errorMsg);
+        }
+      }
+
+      return {
+        success: errors.length === 0,
+        clientsProcessed,
+        errors,
+        lastSyncAt: new Date().toISOString(),
+      };
+    } catch (error) {
+      return {
+        success: false,
+        clientsProcessed,
+        errors: [error instanceof Error ? error.message : 'Unknown sync error'],
+        lastSyncAt: new Date().toISOString(),
+      };
+    }
+  }
+
+  /**
+   * Create client header using SDK
+   */
+  private async createClientHeaderWithSdk(
+    miro: typeof window.miro,
+    client: ClientWithProjects,
+    frameY: number
+  ): Promise<void> {
+    const headerY = frameY + MASTER_BOARD.CLIENT_FRAME_PADDING + MASTER_BOARD.HEADER_HEIGHT / 2;
+    const startX = MASTER_BOARD.CONTENT_START_X + MASTER_BOARD.CLIENT_FRAME_PADDING;
+
+    // Client name (large, bold)
+    const displayName = client.companyName || client.name;
+    await miro.board.createText({
+      content: `<b>${displayName}</b>`,
+      x: startX + 150,
+      y: headerY - 10,
+      width: 300,
+      style: {
+        fontSize: 18,
+        textAlign: 'left',
+        color: '#050038',
+      },
+    });
+
+    // Stats line
+    const statsText = `${client.email}  |  ${client.totalProjects} Projects  |  ${client.activeProjects} Active  |  ${client.totalDeliverables} Deliverables`;
+    await miro.board.createText({
+      content: statsText,
+      x: startX + 350,
+      y: headerY + 15,
+      width: 600,
+      style: {
+        fontSize: 12,
+        textAlign: 'left',
+        color: '#666666',
+      },
+    });
+  }
+
+  /**
+   * Create mini-kanban using SDK
+   */
+  private async createMiniKanbanWithSdk(
+    miro: typeof window.miro,
+    projects: ProjectInfo[],
+    frameY: number,
+    _frame: { id: string }
+  ): Promise<void> {
+    const kanbanStartY =
+      frameY + MASTER_BOARD.CLIENT_FRAME_PADDING + MASTER_BOARD.HEADER_HEIGHT + 20;
+    const kanbanStartX = MASTER_BOARD.CONTENT_START_X + MASTER_BOARD.CLIENT_FRAME_PADDING + 30;
+
+    // Group projects by column
+    const projectsByColumn: Record<string, ProjectInfo[]> = {
+      in_progress: [],
+      review: [],
+      done: [],
+      overdue: [],
+    };
+
+    projects.forEach((project) => {
+      const column = getColumnForStatus(project.status);
+      projectsByColumn[column]?.push(project);
+    });
+
+    // Create columns and cards
+    for (let i = 0; i < STATUS_COLUMNS.length; i++) {
+      const column = STATUS_COLUMNS[i];
+      if (!column) continue;
+
+      const columnX = kanbanStartX + i * (MASTER_BOARD.COLUMN_WIDTH + MASTER_BOARD.COLUMN_GAP);
+      const columnProjects = projectsByColumn[column.id] || [];
+
+      // Column header (shape)
+      await miro.board.createShape({
+        shape: 'round_rectangle',
+        x: columnX + MASTER_BOARD.COLUMN_WIDTH / 2,
+        y: kanbanStartY,
+        width: MASTER_BOARD.COLUMN_WIDTH - 10,
+        height: MASTER_BOARD.COLUMN_HEADER_HEIGHT,
+        content: `${column.label} (${columnProjects.length})`,
+        style: {
+          fillColor: column.color,
+          color: '#FFFFFF',
+          fontSize: 12,
+        },
+      });
+
+      // Project cards in this column
+      for (let j = 0; j < columnProjects.length; j++) {
+        const project = columnProjects[j];
+        if (!project) continue;
+
+        const cardY =
+          kanbanStartY +
+          MASTER_BOARD.COLUMN_HEADER_HEIGHT +
+          15 +
+          j * (MASTER_BOARD.CARD_HEIGHT + MASTER_BOARD.CARD_GAP);
+
+        // Build card data, only include dueDate if not null
+        const cardData: {
+          title: string;
+          description: string;
+          x: number;
+          y: number;
+          dueDate?: string;
+          style: { cardTheme: string };
+        } = {
+          title: project.name,
+          description: `projectId:${project.id}`,
+          x: columnX + MASTER_BOARD.COLUMN_WIDTH / 2,
+          y: cardY,
+          style: {
+            cardTheme: getCardTheme(project.status),
+          },
+        };
+
+        if (project.dueDate) {
+          cardData.dueDate = project.dueDate;
+        }
+
+        await miro.board.createCard(cardData);
+      }
+    }
+  }
 }
 
 export const masterBoardService = new MasterBoardService();

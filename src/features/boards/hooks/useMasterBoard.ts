@@ -1,5 +1,8 @@
 /**
  * React Query hooks for Master Board functionality
+ *
+ * Note: Sync operations use the Miro SDK (client-side) and only work
+ * when the app is running inside the Master Board.
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -11,7 +14,6 @@ export const masterBoardKeys = {
   all: ['masterBoard'] as const,
   settings: () => [...masterBoardKeys.all, 'settings'] as const,
   syncStatus: () => [...masterBoardKeys.all, 'syncStatus'] as const,
-  validation: (boardId: string) => [...masterBoardKeys.all, 'validation', boardId] as const,
 };
 
 /**
@@ -50,24 +52,6 @@ export function useMasterBoardSettings() {
 }
 
 /**
- * Hook to validate a board ID
- */
-export function useMasterBoardValidation(boardId: string | null, accessToken: string | null) {
-  return useQuery({
-    queryKey: masterBoardKeys.validation(boardId || ''),
-    queryFn: async () => {
-      if (!boardId || !accessToken) {
-        return { valid: false, error: 'Board ID or access token missing' };
-      }
-      masterBoardService.setAccessToken(accessToken);
-      return masterBoardService.validateBoard(boardId);
-    },
-    enabled: !!boardId && !!accessToken,
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
-  });
-}
-
-/**
  * Hook to get sync status
  */
 export function useMasterBoardSyncStatus() {
@@ -79,15 +63,15 @@ export function useMasterBoardSyncStatus() {
 }
 
 /**
- * Hook to initialize the master board
+ * Hook to initialize the master board using SDK
+ * Must be called from within the Master Board context
  */
 export function useMasterBoardInitialize() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ boardId, accessToken }: { boardId: string; accessToken: string }) => {
-      masterBoardService.setAccessToken(accessToken);
-      await masterBoardService.initializeMasterBoard(boardId);
+    mutationFn: async ({ boardId }: { boardId: string }) => {
+      await masterBoardService.initializeMasterBoardWithSdk(boardId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: masterBoardKeys.syncStatus() });
@@ -96,15 +80,15 @@ export function useMasterBoardInitialize() {
 }
 
 /**
- * Hook to sync all clients to the master board
+ * Hook to sync all clients to the master board using SDK
+ * Must be called from within the Master Board context
  */
 export function useMasterBoardSync() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ boardId, accessToken }: { boardId: string; accessToken: string }) => {
-      masterBoardService.setAccessToken(accessToken);
-      const result = await masterBoardService.syncAllClients(boardId);
+    mutationFn: async ({ boardId }: { boardId: string }) => {
+      const result = await masterBoardService.syncAllClientsWithSdk(boardId);
       await masterBoardService.saveSyncStatus(result);
       return result;
     },
