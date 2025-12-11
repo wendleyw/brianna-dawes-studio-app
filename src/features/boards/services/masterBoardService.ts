@@ -7,7 +7,11 @@
 
 import { miroClient } from './miroClient';
 import { supabase } from '@shared/lib/supabase';
+import { miroAdapter } from '@shared/lib/miroAdapter';
+import { createLogger } from '@shared/lib/logger';
 import type { ClientAnalytics } from '@features/admin/domain/analytics.types';
+
+const logger = createLogger('MasterBoard');
 
 // Layout constants for the Master Board - matching main timeline style
 const MASTER_BOARD = {
@@ -617,11 +621,12 @@ class MasterBoardService {
    * Must be called from within the Master Board context
    */
   async initializeMasterBoardWithSdk(_boardId: string): Promise<void> {
-    if (typeof window.miro === 'undefined') {
+    if (!miroAdapter.isAvailable()) {
       throw new Error('Miro SDK not available. This must be run inside Miro.');
     }
 
-    const miro = window.miro;
+    const miro = miroAdapter.getSDK();
+    logger.info('Initializing master board');
 
     // Create main title (above frames)
     await miro.board.createText({
@@ -654,7 +659,7 @@ class MasterBoardService {
    * Clear all existing content from the Master Board (SDK version)
    * Removes all frames, shapes, cards, and texts except the title
    */
-  private async clearMasterBoardContentWithSdk(miro: typeof window.miro): Promise<void> {
+  private async clearMasterBoardContentWithSdk(miro: ReturnType<typeof miroAdapter.getSDK>): Promise<void> {
     try {
       // Get all items on the board
       const [frames, shapes, cards, texts] = await Promise.all([
@@ -709,11 +714,12 @@ class MasterBoardService {
    * Must be called from within the Master Board context
    */
   async syncAllClientsWithSdk(_boardId: string): Promise<MasterBoardSyncResult> {
-    if (typeof window.miro === 'undefined') {
+    if (!miroAdapter.isAvailable()) {
       throw new Error('Miro SDK not available. This must be run inside Miro.');
     }
 
-    const miro = window.miro;
+    const miro = miroAdapter.getSDK();
+    logger.info('Starting sync all clients with SDK');
     const errors: string[] = [];
     let clientsProcessed = 0;
 
@@ -998,7 +1004,7 @@ class MasterBoardService {
       flow: '#0EA5E9',        // Sky - Flow arrows
     };
 
-    let startX = DIAGRAM.START_X;
+    const startX = DIAGRAM.START_X;
     let currentY = DIAGRAM.START_Y;
 
     // ============================================

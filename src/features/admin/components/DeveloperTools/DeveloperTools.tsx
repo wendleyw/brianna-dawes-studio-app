@@ -944,7 +944,7 @@ export function DeveloperTools() {
           const boardInfo = await miro.board.getInfo();
           currentBoardId = boardInfo.id;
           addProgress(`✓ Current board: ${currentBoardId}`);
-        } catch (err) {
+        } catch {
           addProgress('⚠ Could not get board ID');
         }
 
@@ -1035,7 +1035,7 @@ export function DeveloperTools() {
           for (const delData of testData.deliverables) {
             try {
               // Calculate deliverable dates based on project timeline
-              let deliverableDueDate: string | null = projectDueDate;
+              const deliverableDueDate: string | null = projectDueDate;
               let deliveredAt: string | null = null;
 
               // For completed projects, set deliveredAt to project completion date

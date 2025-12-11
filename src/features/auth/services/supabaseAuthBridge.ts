@@ -20,18 +20,68 @@ import { createLogger } from '@shared/lib/logger';
 
 const logger = createLogger('SupabaseAuthBridge');
 
-// Secret used to derive passwords - should be in env vars in production
-const AUTH_SECRET = import.meta.env.VITE_AUTH_SECRET || 'bd-studio-miro-auth-2024';
+// Secret used to derive passwords - MUST be set in environment variables
+// CRITICAL: Never use a default value in production!
+const AUTH_SECRET = import.meta.env.VITE_AUTH_SECRET;
+
+// Validate AUTH_SECRET is set on module load
+if (!AUTH_SECRET) {
+  const errorMsg = 'CRITICAL: VITE_AUTH_SECRET environment variable is not set. ' +
+    'This is required for secure password derivation. ' +
+    'Please set VITE_AUTH_SECRET in your .env file.';
+  logger.error(errorMsg);
+  // In development, throw to make the issue obvious
+  if (import.meta.env.DEV) {
+    throw new Error(errorMsg);
+  }
+}
+
+// Minimum secret length for security
+const MIN_SECRET_LENGTH = 32;
+if (AUTH_SECRET && AUTH_SECRET.length < MIN_SECRET_LENGTH) {
+  logger.warn(`VITE_AUTH_SECRET should be at least ${MIN_SECRET_LENGTH} characters for security`);
+}
 
 /**
- * Derive a deterministic password from miro_user_id
+ * Derive a deterministic password from miro_user_id using PBKDF2
  * This allows us to sign in the same user consistently
+ *
+ * Security improvements:
+ * - Uses PBKDF2 instead of simple SHA-256 for key derivation
+ * - 100,000 iterations for brute-force resistance
+ * - Validates AUTH_SECRET is set before proceeding
  */
 async function derivePassword(miroUserId: string): Promise<string> {
-  // Create a hash of miro_user_id + secret
-  const data = new TextEncoder().encode(`${miroUserId}:${AUTH_SECRET}`);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  // Validate secret is available
+  if (!AUTH_SECRET) {
+    throw new Error('AUTH_SECRET is not configured. Cannot derive password securely.');
+  }
+
+  // Use PBKDF2 for proper key derivation
+  const encoder = new TextEncoder();
+  const keyMaterial = await crypto.subtle.importKey(
+    'raw',
+    encoder.encode(AUTH_SECRET),
+    'PBKDF2',
+    false,
+    ['deriveBits']
+  );
+
+  // Derive key using PBKDF2 with 100,000 iterations
+  const salt = encoder.encode(`miro-auth-salt:${miroUserId}`);
+  const derivedBits = await crypto.subtle.deriveBits(
+    {
+      name: 'PBKDF2',
+      salt: salt,
+      iterations: 100000,
+      hash: 'SHA-256',
+    },
+    keyMaterial,
+    256 // 256 bits = 32 bytes
+  );
+
+  // Convert to hex string
+  const hashArray = Array.from(new Uint8Array(derivedBits));
   const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 
   // Return first 32 chars as password (128 bits of entropy)

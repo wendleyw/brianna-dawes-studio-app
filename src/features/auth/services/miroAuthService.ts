@@ -160,8 +160,12 @@ export const miroAuthService = {
         );
 
         if (!authResult.success) {
-          logger.warn('Supabase Auth sign-in failed for admin', { error: authResult.error });
-          // Continue anyway - app will work with anon policies as fallback
+          logger.error('Supabase Auth sign-in failed for admin', { error: authResult.error });
+          // CRITICAL: Do NOT continue without auth - this would bypass security
+          return {
+            success: false,
+            error: 'Authentication failed. Please try again or contact support.',
+          };
         }
 
         return {
@@ -222,8 +226,7 @@ export const miroAuthService = {
       logger.warn('User not found, authentication failed', { miroUserId, name });
       return {
         success: false,
-        error: `User not found. Your Miro ID is: ${miroUserId}. Please contact an administrator to link your account.`,
-        // Include miroUserId so it can be used for account linking
+        error: 'User not found. Please contact an administrator to set up your account.',
       };
     }
 
@@ -247,7 +250,7 @@ export const miroAuthService = {
         logger.warn('Client has no board assignment', { userId: user.id, email: user.email });
         return {
           success: false,
-          error: `PENDING_BOARD_ASSIGNMENT:${miroUserId}:Your account is registered but no board has been assigned yet. Please wait for an administrator to assign your workspace.`,
+          error: 'PENDING_BOARD_ASSIGNMENT:Your account is registered but no board has been assigned yet. Please wait for an administrator to assign your workspace.',
         };
       }
     }
@@ -262,11 +265,15 @@ export const miroAuthService = {
       );
 
       if (!authResult.success) {
-        logger.warn('Supabase Auth sign-in failed', { error: authResult.error, role: user.role });
-        // Continue anyway - app will work with anon policies as fallback
-      } else {
-        logger.info('Supabase Auth sign-in successful', { userId: user.id, role: user.role });
+        logger.error('Supabase Auth sign-in failed', { error: authResult.error, role: user.role });
+        // CRITICAL: Do NOT continue without auth - this would bypass security
+        return {
+          success: false,
+          error: 'Authentication failed. Please try again or contact support.',
+        };
       }
+
+      logger.info('Supabase Auth sign-in successful', { userId: user.id, role: user.role });
     }
 
     // Determine redirect based on role

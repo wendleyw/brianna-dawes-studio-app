@@ -493,7 +493,7 @@ class MiroMasterTimelineService {
 
     // STEP 2: Find existing card BY PROJECTID IN DESCRIPTION (works across iframe contexts)
     // This is the source of truth - search on the actual board, not memory
-    let existingCardOnBoard: MiroCard | undefined = existingCard;
+    const existingCardOnBoard: MiroCard | undefined = existingCard;
     if (existingCardOnBoard) {
       log('MiroTimeline', `Found existing card on board: ${existingCardOnBoard.id} (by projectId in description)`);
     }
@@ -1174,7 +1174,7 @@ class MiroProjectRowService {
         this.projectsHeaderCreated = true;
         log('MiroProject', 'Found existing "Projects Overview" header');
       }
-    } catch (e) {
+    } catch {
       // Ignore errors scanning for text
     }
 
@@ -2115,12 +2115,19 @@ export async function zoomToProject(projectId: string): Promise<boolean> {
     const ids = [row.briefingFrameId, ...row.versions.map(s => s.frameId)].filter((id): id is string => id !== null);
     const items = [];
     for (const id of ids) {
-      try { const item = await miro.board.getById(id); if (item) items.push(item); } catch {}
+      try {
+        const item = await miro.board.getById(id);
+        if (item) items.push(item);
+      } catch {
+        // Item may have been deleted - continue with remaining items
+      }
     }
     if (items.length) {
       await miro.board.viewport.zoomTo(items);
       return true;
     }
-  } catch {}
+  } catch {
+    // Silently fail if zoom fails
+  }
   return false;
 }

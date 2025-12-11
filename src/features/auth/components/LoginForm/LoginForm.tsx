@@ -20,7 +20,6 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [accessDenied, setAccessDenied] = useState(false);
   const [pendingBoardAssignment, setPendingBoardAssignment] = useState(false);
-  const [miroUserId, setMiroUserId] = useState<string | null>(null);
   const [wrongBoard, setWrongBoard] = useState<WrongBoardInfo | null>(null);
 
   // Use ref to track if auth has been attempted (prevents infinite loop)
@@ -68,23 +67,13 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
       // Check if this is a "pending board assignment" error
       if (errorMessage.startsWith('PENDING_BOARD_ASSIGNMENT:')) {
         setPendingBoardAssignment(true);
-        // Extract Miro ID from error message (format: PENDING_BOARD_ASSIGNMENT:miroId:message)
-        const parts = errorMessage.split(':');
-        if (parts[1]) {
-          setMiroUserId(parts[1]);
-        }
         setIsAuthenticating(false);
         return;
       }
 
-      // Check if this is a "user not found" error and extract Miro ID
-      if (errorMessage.includes('Your Miro ID is:')) {
+      // Check if this is a "user not found" error
+      if (errorMessage.includes('User not found')) {
         setAccessDenied(true);
-        // Extract Miro ID from error message
-        const match = errorMessage.match(/Your Miro ID is: (\d+)/);
-        if (match && match[1]) {
-          setMiroUserId(match[1]);
-        }
       }
 
       setAuthError(errorMessage);
@@ -108,7 +97,6 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
     setAccessDenied(false);
     setPendingBoardAssignment(false);
     setAuthError(null);
-    setMiroUserId(null);
     setWrongBoard(null);
     handleMiroAuth();
   };
@@ -151,18 +139,9 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
           </p>
         </div>
 
-        {miroUserId && (
-          <div className={styles.miroIdBox}>
-            <p className={styles.miroIdLabel}>
-              Share this ID with an administrator to get access:
-            </p>
-            <code className={styles.miroIdValue}>{miroUserId}</code>
-          </div>
-        )}
-
         <div className={styles.helpBox}>
           <p className={styles.helpText}>
-            Please contact an administrator and provide your Miro ID above to request access.
+            Please contact an administrator to set up your account.
           </p>
         </div>
 
@@ -197,12 +176,6 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
           </p>
         </div>
 
-        {miroUserId && (
-          <div className={styles.miroIdBoxSmall}>
-            <p className={styles.miroIdLabelSmall}>Your Miro ID (for reference):</p>
-            <code className={styles.miroIdValueSmall}>{miroUserId}</code>
-          </div>
-        )}
 
         <div className={styles.helpBox}>
           <p className={styles.helpText}>
