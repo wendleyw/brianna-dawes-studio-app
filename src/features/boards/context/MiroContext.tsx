@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { logger } from '@shared/lib/logger';
+// Logger removed - using console.log for debug visibility in Miro panel
 
 // Miro SDK v2 types
 export interface MiroItem {
@@ -148,29 +148,31 @@ export function MiroProvider({ children }: MiroProviderProps) {
 
   useEffect(() => {
     async function initMiro() {
+      console.log('[MiroContext] Starting initialization...');
       try {
         // Check if we're running inside Miro iframe
-        const inMiro = typeof window !== 'undefined' &&
-                       typeof window.miro !== 'undefined' &&
-                       window.self !== window.top;
+        const hasMiroSDK = typeof window !== 'undefined' && typeof window.miro !== 'undefined';
+        const isInIframe = typeof window !== 'undefined' && window.self !== window.top;
+        const inMiro = hasMiroSDK && isInIframe;
 
+        console.log('[MiroContext] Detection:', { hasMiroSDK, isInIframe, inMiro });
         setIsInMiro(inMiro);
 
         if (inMiro) {
-          logger.debug('[MiroContext] Running inside Miro, initializing SDK...');
+          console.log('[MiroContext] Running inside Miro, initializing SDK...');
 
           // Get board info to verify SDK is working
           const boardInfo = await window.miro.board.getInfo();
           setBoardId(boardInfo.id);
 
-          logger.debug('[MiroContext] Miro SDK initialized, board ID:', boardInfo.id);
+          console.log('[MiroContext] Miro SDK initialized, board ID:', boardInfo.id);
           setIsReady(true);
         } else {
-          logger.debug('[MiroContext] Running standalone (not in Miro iframe)');
+          console.log('[MiroContext] Running standalone (not in Miro iframe)');
           setIsReady(true);
         }
       } catch (err) {
-        logger.error('[MiroContext] Error initializing Miro SDK:', err);
+        console.error('[MiroContext] Error initializing Miro SDK:', err);
         setError(err instanceof Error ? err.message : 'Failed to initialize Miro SDK');
         setIsReady(true); // Still mark as ready so app can render
       }

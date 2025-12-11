@@ -117,10 +117,22 @@ export function ProtectedRoute({
   redirectTo = '/login',
 }: ProtectedRouteProps) {
   const { user, isLoading, isAuthenticated } = useAuth();
-  const { boardId: currentBoardId, isReady: miroReady } = useMiro();
+  const { boardId: currentBoardId, isReady: miroReady, error: miroError } = useMiro();
   const location = useLocation();
 
+  // Debug logging
+  console.log('[ProtectedRoute] State:', {
+    isLoading,
+    isAuthenticated,
+    miroReady,
+    miroError,
+    hasUser: !!user,
+    userRole: user?.role,
+    path: location.pathname
+  });
+
   if (isLoading || !miroReady) {
+    console.log('[ProtectedRoute] Showing loading - isLoading:', isLoading, 'miroReady:', miroReady);
     return (
       <div className={styles.loadingWrapper}>
         <Skeleton width="100%" height={400} />
