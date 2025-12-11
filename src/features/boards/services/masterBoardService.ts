@@ -193,33 +193,78 @@ class MasterBoardService {
   }
 
   /**
-   * Get all clients with their projects
+   * Get all clients with their projects (with pagination support)
+   *
+   * @param options.page - Page number (1-indexed)
+   * @param options.pageSize - Number of clients per page
+   * @param options.onlyWithProjects - Only return clients with projects
    */
-  private async getClientsWithProjects(): Promise<ClientWithProjects[]> {
-    // Get all clients
-    const { data: clients } = await supabase
+  private async getClientsWithProjects(options?: {
+    page?: number;
+    pageSize?: number;
+    onlyWithProjects?: boolean;
+  }): Promise<ClientWithProjects[]> {
+    const { page = 1, pageSize = 50, onlyWithProjects = false } = options || {};
+    const offset = (page - 1) * pageSize;
+
+    // Get clients with pagination
+    let clientsQuery = supabase
       .from('users')
-      .select('*')
+      .select('*', { count: 'exact' })
       .eq('role', 'client')
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .range(offset, offset + pageSize - 1);
+
+    const { data: clients, error: clientsError, count: totalClients } = await clientsQuery;
+
+    if (clientsError) {
+      logger.error('Failed to fetch clients', { error: clientsError });
+      return [];
+    }
 
     if (!clients || clients.length === 0) return [];
 
-    // Get all projects grouped by client
-    const { data: projects } = await supabase
-      .from('projects')
-      .select('id, name, status, due_date, client_id');
+    logger.debug('Fetched clients', {
+      page,
+      pageSize,
+      fetched: clients.length,
+      total: totalClients
+    });
 
-    // Get deliverable counts per project
-    const { data: deliverables } = await supabase
-      .from('deliverables')
-      .select('project_id, status');
+    // Get client IDs for filtering
+    const clientIds = clients.map(c => c.id);
+
+    // Fetch projects and deliverables in parallel using Promise.allSettled
+    const [projectsResult, deliverablesResult] = await Promise.allSettled([
+      supabase
+        .from('projects')
+        .select('id, name, status, due_date, client_id')
+        .in('client_id', clientIds),
+      supabase
+        .from('deliverables')
+        .select('project_id, status'),
+    ]);
+
+    // Extract data with error handling
+    const projects = projectsResult.status === 'fulfilled'
+      ? projectsResult.value.data || []
+      : [];
+    const deliverables = deliverablesResult.status === 'fulfilled'
+      ? deliverablesResult.value.data || []
+      : [];
+
+    if (projectsResult.status === 'rejected') {
+      logger.warn('Failed to fetch projects', { error: projectsResult.reason });
+    }
+    if (deliverablesResult.status === 'rejected') {
+      logger.warn('Failed to fetch deliverables', { error: deliverablesResult.reason });
+    }
 
     // Build client analytics with projects
-    return clients.map((client) => {
-      const clientProjects = projects?.filter((p) => p.client_id === client.id) || [];
+    const results = clients.map((client) => {
+      const clientProjects = projects.filter((p) => p.client_id === client.id);
       const projectIds = clientProjects.map((p) => p.id);
-      const clientDeliverables = deliverables?.filter((d) => projectIds.includes(d.project_id)) || [];
+      const clientDeliverables = deliverables.filter((d) => projectIds.includes(d.project_id));
 
       const activeStatuses = ['in_progress', 'review', 'on_track', 'urgent', 'critical', 'overdue'];
 
@@ -249,6 +294,64 @@ class MasterBoardService {
         })),
       };
     });
+
+    // Filter to only clients with projects if requested
+    if (onlyWithProjects) {
+      return results.filter(c => c.projects.length > 0);
+    }
+
+    return results;
+  }
+
+  /**
+   * Get total count of clients
+   */
+  async getClientCount(): Promise<number> {
+    const { count, error } = await supabase
+      .from('users')
+      .select('*', { count: 'exact', head: true })
+      .eq('role', 'client');
+
+    if (error) {
+      logger.error('Failed to get client count', { error });
+      return 0;
+    }
+
+    return count || 0;
+  }
+
+  /**
+   * Get all clients with projects using batch processing
+   * For large datasets, this fetches clients in batches to avoid memory issues
+   * @public - Exposed for testing and direct use
+   */
+  async getAllClientsWithProjectsBatched(batchSize = 50): Promise<ClientWithProjects[]> {
+    const totalClients = await this.getClientCount();
+    const totalPages = Math.ceil(totalClients / batchSize);
+
+    logger.info('Fetching all clients in batches', {
+      totalClients,
+      batchSize,
+      totalPages
+    });
+
+    const allClients: ClientWithProjects[] = [];
+
+    for (let page = 1; page <= totalPages; page++) {
+      const clients = await this.getClientsWithProjects({
+        page,
+        pageSize: batchSize,
+        onlyWithProjects: true
+      });
+      allClients.push(...clients);
+
+      logger.debug(`Processed batch ${page}/${totalPages}`, {
+        batchSize: clients.length,
+        total: allClients.length
+      });
+    }
+
+    return allClients;
   }
 
   /**
@@ -661,51 +764,81 @@ class MasterBoardService {
    */
   private async clearMasterBoardContentWithSdk(miro: ReturnType<typeof miroAdapter.getSDK>): Promise<void> {
     try {
-      // Get all items on the board
-      const [frames, shapes, cards, texts] = await Promise.all([
+      // Get all items on the board using Promise.allSettled to handle partial failures
+      const fetchResults = await Promise.allSettled([
         miro.board.get({ type: 'frame' }),
         miro.board.get({ type: 'shape' }),
         miro.board.get({ type: 'card' }),
         miro.board.get({ type: 'text' }),
       ]);
 
-      // Remove all frames (this will remove content inside them too)
-      for (const frame of frames) {
-        try {
-          await miro.board.remove(frame);
-        } catch {
-          // Ignore errors
+      // Extract successful results, use empty arrays for failed fetches
+      const frames = fetchResults[0].status === 'fulfilled' ? fetchResults[0].value : [];
+      const shapes = fetchResults[1].status === 'fulfilled' ? fetchResults[1].value : [];
+      const cards = fetchResults[2].status === 'fulfilled' ? fetchResults[2].value : [];
+      const texts = fetchResults[3].status === 'fulfilled' ? fetchResults[3].value : [];
+
+      // Log any fetch failures
+      fetchResults.forEach((result, index) => {
+        if (result.status === 'rejected') {
+          const types = ['frames', 'shapes', 'cards', 'texts'];
+          logger.warn(`Failed to fetch ${types[index]}`, { error: result.reason });
+        }
+      });
+
+      // Remove frames first (removes content inside them too)
+      // Use Promise.allSettled for parallel removal with error tolerance
+      if (frames.length > 0) {
+        const frameResults = await Promise.allSettled(
+          frames.map(frame => miro.board.remove(frame))
+        );
+        const failedFrames = frameResults.filter(r => r.status === 'rejected').length;
+        if (failedFrames > 0) {
+          logger.debug(`Failed to remove ${failedFrames} of ${frames.length} frames`);
         }
       }
 
-      // Remove remaining shapes
-      for (const shape of shapes) {
-        try {
-          await miro.board.remove(shape);
-        } catch {
-          // Ignore errors
+      // Remove remaining shapes in parallel
+      if (shapes.length > 0) {
+        const shapeResults = await Promise.allSettled(
+          shapes.map(shape => miro.board.remove(shape))
+        );
+        const failedShapes = shapeResults.filter(r => r.status === 'rejected').length;
+        if (failedShapes > 0) {
+          logger.debug(`Failed to remove ${failedShapes} of ${shapes.length} shapes`);
         }
       }
 
-      // Remove remaining cards
-      for (const card of cards) {
-        try {
-          await miro.board.remove(card);
-        } catch {
-          // Ignore errors
+      // Remove remaining cards in parallel
+      if (cards.length > 0) {
+        const cardResults = await Promise.allSettled(
+          cards.map(card => miro.board.remove(card))
+        );
+        const failedCards = cardResults.filter(r => r.status === 'rejected').length;
+        if (failedCards > 0) {
+          logger.debug(`Failed to remove ${failedCards} of ${cards.length} cards`);
         }
       }
 
-      // Remove remaining texts
-      for (const text of texts) {
-        try {
-          await miro.board.remove(text);
-        } catch {
-          // Ignore errors
+      // Remove remaining texts in parallel
+      if (texts.length > 0) {
+        const textResults = await Promise.allSettled(
+          texts.map(text => miro.board.remove(text))
+        );
+        const failedTexts = textResults.filter(r => r.status === 'rejected').length;
+        if (failedTexts > 0) {
+          logger.debug(`Failed to remove ${failedTexts} of ${texts.length} texts`);
         }
       }
-    } catch {
-      // Ignore errors during cleanup
+
+      logger.info('Board content cleared', {
+        frames: frames.length,
+        shapes: shapes.length,
+        cards: cards.length,
+        texts: texts.length,
+      });
+    } catch (error) {
+      logger.warn('Error during board cleanup', { error });
     }
   }
 

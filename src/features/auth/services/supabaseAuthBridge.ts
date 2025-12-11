@@ -17,12 +17,13 @@
 
 import { supabase } from '@shared/lib/supabase';
 import { createLogger } from '@shared/lib/logger';
+import { env } from '@shared/config/env';
 
 const logger = createLogger('SupabaseAuthBridge');
 
 // Secret used to derive passwords - MUST be set in environment variables
 // CRITICAL: Never use a default value in production!
-const AUTH_SECRET = import.meta.env.VITE_AUTH_SECRET;
+const AUTH_SECRET = env.auth.secret;
 
 // Validate AUTH_SECRET is set on module load
 if (!AUTH_SECRET) {
@@ -31,7 +32,7 @@ if (!AUTH_SECRET) {
     'Please set VITE_AUTH_SECRET in your .env file.';
   logger.error(errorMsg);
   // In development, throw to make the issue obvious
-  if (import.meta.env.DEV) {
+  if (env.app.isDev) {
     throw new Error(errorMsg);
   }
 }
