@@ -142,9 +142,10 @@ export const miroAuthService = {
     // Check if this is the main admin from env (only if email is available)
     if (email && isMainAdmin(email)) {
       // Ensure main admin exists in database (uses SECURITY DEFINER to bypass RLS)
-      const superAdminId = await this.ensureMainAdminExists(email, name || 'Admin', miroUserId);
+      // This function returns full user data, avoiding the need for a separate SELECT
+      const adminUser = await this.ensureMainAdminExists(email, name || 'Admin', miroUserId);
 
-      if (!superAdminId) {
+      if (!adminUser) {
         logger.error('Failed to create/find super admin');
         return {
           success: false,
@@ -152,49 +153,37 @@ export const miroAuthService = {
         };
       }
 
-      // Fetch the actual admin user from database to get all fields
-      const { data: adminUser } = await supabase
-        .from('users')
-        .select('id, name, email, role, primary_board_id, is_super_admin, miro_user_id, company_name, company_logo_url')
-        .eq('id', superAdminId)
-        .single();
+      // Sign in to Supabase Auth for proper RLS
+      const authResult = await supabaseAuthBridge.signInAfterMiroAuth(
+        adminUser.id,
+        adminUser.email,
+        adminUser.miro_user_id || miroUserId
+      );
 
-      if (adminUser) {
-        // Sign in to Supabase Auth for proper RLS
-        const authResult = await supabaseAuthBridge.signInAfterMiroAuth(
-          adminUser.id,
-          adminUser.email,
-          adminUser.miro_user_id || miroUserId
-        );
-
-        if (!authResult.success) {
-          logger.error('Supabase Auth sign-in failed for admin', { error: authResult.error });
-          // CRITICAL: Do NOT continue without auth - this would bypass security
-          return {
-            success: false,
-            error: 'Authentication failed. Please try again or contact support.',
-          };
-        }
-
+      if (!authResult.success) {
+        logger.error('Supabase Auth sign-in failed for admin', { error: authResult.error });
+        // CRITICAL: Do NOT continue without auth - this would bypass security
         return {
-          success: true,
-          user: {
-            id: adminUser.id,
-            email: adminUser.email,
-            name: adminUser.name || name || 'Admin',
-            role: adminUser.role as 'admin',
-            primaryBoardId: adminUser.primary_board_id,
-            isSuperAdmin: true,
-            miroUserId: adminUser.miro_user_id || miroUserId,
-            companyName: adminUser.company_name,
-            companyLogoUrl: adminUser.company_logo_url,
-          },
-          redirectTo: '/admin',
+          success: false,
+          error: 'Authentication failed. Please try again or contact support.',
         };
       }
 
-      // Fallback if user fetch fails (shouldn't happen)
-      logger.warn('Failed to fetch admin user after creation');
+      return {
+        success: true,
+        user: {
+          id: adminUser.id,
+          email: adminUser.email,
+          name: adminUser.name || name || 'Admin',
+          role: adminUser.role as 'admin',
+          primaryBoardId: adminUser.primary_board_id,
+          isSuperAdmin: true,
+          miroUserId: adminUser.miro_user_id || miroUserId,
+          companyName: adminUser.company_name,
+          companyLogoUrl: adminUser.company_logo_url,
+        },
+        redirectTo: '/admin',
+      };
     }
 
     // First, try to find user by Miro user ID
@@ -327,10 +316,21 @@ export const miroAuthService = {
   /**
    * Ensure main admin exists in database
    * Uses a SECURITY DEFINER function to bypass RLS for initial creation
+   * Returns full user data to avoid subsequent SELECT that would fail without auth
    */
-  async ensureMainAdminExists(email: string, name: string, miroUserId?: string): Promise<string | null> {
+  async ensureMainAdminExists(email: string, name: string, miroUserId?: string): Promise<{
+    id: string;
+    email: string;
+    name: string;
+    role: string;
+    primary_board_id: string | null;
+    is_super_admin: boolean;
+    miro_user_id: string | null;
+    company_name: string | null;
+    company_logo_url: string | null;
+  } | null> {
     try {
-      // Use the ensure_super_admin function which bypasses RLS
+      // Use the ensure_super_admin function which bypasses RLS and returns full user data
       const { data, error } = await supabase.rpc('ensure_super_admin', {
         p_email: email.toLowerCase(),
         p_name: name,
@@ -342,8 +342,23 @@ export const miroAuthService = {
         return null;
       }
 
-      logger.info('Super admin ensured', { userId: data, email });
-      return data as string;
+      if (!data) {
+        logger.error('No data returned from ensure_super_admin');
+        return null;
+      }
+
+      logger.info('Super admin ensured', { userId: data.id, email });
+      return data as {
+        id: string;
+        email: string;
+        name: string;
+        role: string;
+        primary_board_id: string | null;
+        is_super_admin: boolean;
+        miro_user_id: string | null;
+        company_name: string | null;
+        company_logo_url: string | null;
+      };
     } catch (error) {
       logger.error('Error ensuring super admin', error);
       return null;
