@@ -9,49 +9,61 @@ import { miroClient } from './miroClient';
 import { supabase } from '@shared/lib/supabase';
 import type { ClientAnalytics } from '@features/admin/domain/analytics.types';
 
-// Layout constants for the Master Board
+// Layout constants for the Master Board - matching main timeline style
 const MASTER_BOARD = {
-  // Title area
-  TITLE_X: 0,
-  TITLE_Y: 0,
+  // Title area (above frame)
+  TITLE_Y: -50,
 
-  // Where client frames start
-  CONTENT_START_X: 0,
-  CONTENT_START_Y: 150,
+  // Frame dimensions (similar to main timeline)
+  FRAME_WIDTH: 900,
+  FRAME_HEIGHT: 500,
+  FRAME_GAP: 80, // Gap between client frames vertically
 
-  // Client Frame dimensions
-  CLIENT_FRAME_WIDTH: 1200,
-  CLIENT_FRAME_MIN_HEIGHT: 280,
-  CLIENT_FRAME_GAP: 60, // Gap between frames vertically
-  CLIENT_FRAME_PADDING: 20,
+  // Internal layout
+  PADDING: 20,
+  HEADER_HEIGHT: 60, // Client info header
 
-  // Header inside client frame
-  HEADER_HEIGHT: 50,
+  // Kanban columns (matching main timeline style)
+  COLUMN_WIDTH: 160,
+  COLUMN_GAP: 10,
+  COLUMN_HEADER_HEIGHT: 32,
+  COLUMN_HEIGHT: 350,
 
-  // Mini-Kanban columns
-  COLUMN_WIDTH: 200,
-  COLUMN_GAP: 15,
-  COLUMN_HEADER_HEIGHT: 35,
-  CARD_WIDTH: 180,
-  CARD_HEIGHT: 45,
+  // Cards
+  CARD_WIDTH: 150,
+  CARD_HEIGHT: 36,
   CARD_GAP: 10,
 };
 
-// Simplified status columns for mini-kanban
+// Status columns matching main timeline (5 columns)
 const STATUS_COLUMNS = [
+  { id: 'overdue', label: 'OVERDUE', color: '#F97316' },
+  { id: 'urgent', label: 'URGENT', color: '#DC2626' },
   { id: 'in_progress', label: 'IN PROGRESS', color: '#3B82F6' },
-  { id: 'review', label: 'REVIEW', color: '#8B5CF6' },
+  { id: 'review', label: 'REVIEW', color: '#6366F1' },
   { id: 'done', label: 'DONE', color: '#22C55E' },
-  { id: 'overdue', label: 'OVERDUE', color: '#EF4444' },
 ] as const;
 
-// Map project status to kanban column
+// Map project status to kanban column (matching main timeline)
 function getColumnForStatus(status: string): string {
-  if (['critical', 'overdue'].includes(status)) return 'overdue';
-  if (['urgent', 'on_track', 'in_progress'].includes(status)) return 'in_progress';
-  if (status === 'review') return 'review';
-  if (status === 'done') return 'done';
-  return 'in_progress';
+  switch (status) {
+    case 'overdue':
+    case 'critical':
+      return 'overdue';
+    case 'urgent':
+      return 'urgent';
+    case 'in_progress':
+    case 'on_track':
+    case 'draft':
+      return 'in_progress';
+    case 'review':
+      return 'review';
+    case 'done':
+    case 'archived':
+      return 'done';
+    default:
+      return 'in_progress';
+  }
 }
 
 // Get card color based on status
@@ -141,16 +153,17 @@ class MasterBoardService {
 
   /**
    * Initialize the master board with title and warning message
+   * NOTE: This REST API method requires OAuth token. Use initializeMasterBoardWithSdk instead.
    */
   async initializeMasterBoard(boardId: string): Promise<void> {
     // Create main title
     await miroClient.createText(boardId, {
-      content: '<b>MASTER OVERVIEW - BRIANNA DAWES STUDIOS</b>',
-      x: MASTER_BOARD.TITLE_X + MASTER_BOARD.CLIENT_FRAME_WIDTH / 2,
-      y: MASTER_BOARD.TITLE_Y,
-      width: 800,
+      content: '<b>MASTER OVERVIEW</b>',
+      x: MASTER_BOARD.FRAME_WIDTH / 2,
+      y: MASTER_BOARD.TITLE_Y - 30,
+      width: 400,
       style: {
-        fontSize: '36',
+        fontSize: '24',
         textAlign: 'center',
         color: '#050038',
       },
@@ -158,12 +171,12 @@ class MasterBoardService {
 
     // Create warning message
     await miroClient.createText(boardId, {
-      content: 'Sync manually from Admin Settings - Do not edit manually',
-      x: MASTER_BOARD.TITLE_X + MASTER_BOARD.CLIENT_FRAME_WIDTH / 2,
-      y: MASTER_BOARD.TITLE_Y + 50,
-      width: 600,
+      content: '⚠️ Auto-updated - Do not edit manually',
+      x: MASTER_BOARD.FRAME_WIDTH / 2,
+      y: MASTER_BOARD.TITLE_Y + 10,
+      width: 400,
       style: {
-        fontSize: '14',
+        fontSize: '12',
         textAlign: 'center',
         color: '#666666',
       },
@@ -253,13 +266,13 @@ class MasterBoardService {
     const maxProjectsInColumn = Math.ceil(projectCount / STATUS_COLUMNS.length);
     const projectsHeight = maxProjectsInColumn * (MASTER_BOARD.CARD_HEIGHT + MASTER_BOARD.CARD_GAP);
     const totalHeight =
-      MASTER_BOARD.CLIENT_FRAME_PADDING * 2 +
+      MASTER_BOARD.PADDING * 2 +
       MASTER_BOARD.HEADER_HEIGHT +
       MASTER_BOARD.COLUMN_HEADER_HEIGHT +
       projectsHeight +
       20; // Extra padding
 
-    return Math.max(totalHeight, MASTER_BOARD.CLIENT_FRAME_MIN_HEIGHT);
+    return Math.max(totalHeight, MASTER_BOARD.FRAME_HEIGHT);
   }
 
   /**
@@ -293,9 +306,9 @@ class MasterBoardService {
       // Create new frame
       const frame = await miroClient.createFrame(boardId, {
         title: frameTitle,
-        x: MASTER_BOARD.CONTENT_START_X,
+        x: MASTER_BOARD.FRAME_WIDTH / 2,
         y: yPosition,
-        width: MASTER_BOARD.CLIENT_FRAME_WIDTH,
+        width: MASTER_BOARD.FRAME_WIDTH,
         height: frameHeight,
         fillColor: '#FFFFFF',
       });
@@ -340,14 +353,15 @@ class MasterBoardService {
 
   /**
    * Create client header with info and stats
+   * NOTE: This REST API method requires OAuth token. Use SDK methods instead.
    */
   private async createClientHeader(
     boardId: string,
     client: ClientWithProjects,
     frameY: number
   ): Promise<void> {
-    const headerY = frameY + MASTER_BOARD.CLIENT_FRAME_PADDING + MASTER_BOARD.HEADER_HEIGHT / 2;
-    const startX = MASTER_BOARD.CONTENT_START_X + MASTER_BOARD.CLIENT_FRAME_PADDING;
+    const headerY = frameY + MASTER_BOARD.PADDING + MASTER_BOARD.HEADER_HEIGHT / 2;
+    const startX = MASTER_BOARD.PADDING;
 
     // Client name (large, bold)
     const displayName = client.companyName || client.name;
@@ -380,6 +394,7 @@ class MasterBoardService {
 
   /**
    * Create mini-kanban with status columns and project cards
+   * NOTE: This REST API method requires OAuth token. Use SDK methods instead.
    */
   private async createMiniKanban(
     boardId: string,
@@ -387,15 +402,16 @@ class MasterBoardService {
     frameY: number
   ): Promise<void> {
     const kanbanStartY =
-      frameY + MASTER_BOARD.CLIENT_FRAME_PADDING + MASTER_BOARD.HEADER_HEIGHT + 20;
-    const kanbanStartX = MASTER_BOARD.CONTENT_START_X + MASTER_BOARD.CLIENT_FRAME_PADDING + 30;
+      frameY + MASTER_BOARD.PADDING + MASTER_BOARD.HEADER_HEIGHT + 20;
+    const kanbanStartX = MASTER_BOARD.PADDING + 30;
 
     // Group projects by column
     const projectsByColumn: Record<string, ProjectInfo[]> = {
+      overdue: [],
+      urgent: [],
       in_progress: [],
       review: [],
       done: [],
-      overdue: [],
     };
 
     projects.forEach((project) => {
@@ -488,12 +504,12 @@ class MasterBoardService {
       }
 
       // Calculate positions and create/update frames
-      let currentY = MASTER_BOARD.CONTENT_START_Y;
+      let currentY = 50; // Start below the title
 
       for (const client of clientsWithProjects) {
         try {
           const { height } = await this.syncClientFrame(boardId, client, currentY);
-          currentY += height + MASTER_BOARD.CLIENT_FRAME_GAP;
+          currentY += height + MASTER_BOARD.FRAME_GAP;
           clientsProcessed++;
         } catch (error) {
           const errorMsg = `Failed to sync client ${client.name}: ${error instanceof Error ? error.message : 'Unknown error'}`;
@@ -602,29 +618,29 @@ class MasterBoardService {
 
     const miro = window.miro;
 
-    // Create main title
+    // Create main title (above frames)
     await miro.board.createText({
-      content: '<b>MASTER OVERVIEW - BRIANNA DAWES STUDIOS</b>',
-      x: MASTER_BOARD.TITLE_X + MASTER_BOARD.CLIENT_FRAME_WIDTH / 2,
-      y: MASTER_BOARD.TITLE_Y,
-      width: 800,
+      content: '<b>MASTER OVERVIEW</b>',
+      x: MASTER_BOARD.FRAME_WIDTH / 2,
+      y: MASTER_BOARD.TITLE_Y - 30,
+      width: 400,
       style: {
-        fontSize: 36,
+        fontSize: 24,
         textAlign: 'center',
         color: '#050038',
       },
     });
 
-    // Create warning message
+    // Create subtitle
     await miro.board.createText({
-      content: 'Sync manually from Admin Settings - Do not edit manually',
-      x: MASTER_BOARD.TITLE_X + MASTER_BOARD.CLIENT_FRAME_WIDTH / 2,
-      y: MASTER_BOARD.TITLE_Y + 50,
-      width: 600,
+      content: '<i>⚠️ Auto-updated - Do not edit manually</i>',
+      x: MASTER_BOARD.FRAME_WIDTH / 2,
+      y: MASTER_BOARD.TITLE_Y + 10,
+      width: 400,
       style: {
-        fontSize: 14,
+        fontSize: 12,
         textAlign: 'center',
-        color: '#666666',
+        color: '#6B7280',
       },
     });
   }
@@ -658,36 +674,64 @@ class MasterBoardService {
         };
       }
 
-      // Calculate positions and create/update frames
-      let currentY = MASTER_BOARD.CONTENT_START_Y;
+      // Starting position for first client frame
+      const startX = MASTER_BOARD.FRAME_WIDTH / 2;
+      let currentY = 50; // Start below the title
 
       for (const client of clientsWithProjects) {
         try {
-          const frameHeight = this.calculateFrameHeight(client.projects.length);
-          const frameTitle = `${client.companyName || client.name} [${client.id}]`;
+          // Create client title (above frame, not inside)
+          const displayName = client.companyName || client.name;
+          const titleY = currentY - 25;
 
-          // Create frame for client
+          await miro.board.createText({
+            content: `<b>${displayName}</b>`,
+            x: MASTER_BOARD.PADDING + 150,
+            y: titleY,
+            width: 400,
+            style: {
+              fontSize: 18,
+              textAlign: 'left',
+              color: '#050038',
+            },
+          });
+
+          // Stats text (next to title)
+          const statsText = `📧 ${client.email} | 📁 ${client.totalProjects} Projects | ✅ ${client.activeProjects} Active | 📦 ${client.totalDeliverables} Deliverables`;
+          await miro.board.createText({
+            content: statsText,
+            x: startX + 100,
+            y: titleY,
+            width: 500,
+            style: {
+              fontSize: 11,
+              textAlign: 'left',
+              color: '#6B7280',
+            },
+          });
+
+          // Create frame (no title in frame itself - cleaner look)
           const frame = await miro.board.createFrame({
-            title: frameTitle,
-            x: MASTER_BOARD.CONTENT_START_X,
-            y: currentY,
-            width: MASTER_BOARD.CLIENT_FRAME_WIDTH,
-            height: frameHeight,
+            title: '', // Empty title - info is in text above
+            x: startX,
+            y: currentY + MASTER_BOARD.FRAME_HEIGHT / 2,
+            width: MASTER_BOARD.FRAME_WIDTH,
+            height: MASTER_BOARD.FRAME_HEIGHT,
             style: {
               fillColor: '#FFFFFF',
             },
           });
 
-          // Create header content
-          await this.createClientHeaderWithSdk(miro, client, currentY);
+          // Store client ID in frame metadata via description (for future sync)
+          // We'll use a shape with the ID hidden inside the frame
 
-          // Create mini-kanban
-          await this.createMiniKanbanWithSdk(miro, client.projects, currentY, frame);
+          // Create kanban columns inside the frame
+          await this.createKanbanColumnsWithSdk(miro, client.projects, startX, currentY, frame);
 
-          currentY += frameHeight + MASTER_BOARD.CLIENT_FRAME_GAP;
+          currentY += MASTER_BOARD.FRAME_HEIGHT + MASTER_BOARD.FRAME_GAP;
           clientsProcessed++;
         } catch (error) {
-          const errorMsg = `Failed to sync client ${client.name}: ${error instanceof Error ? error.message : 'Unknown error'}`;
+          const errorMsg = `Failed to sync client ${client.companyName || client.name}: ${error instanceof Error ? error.message : 'Unknown error'}`;
           errors.push(errorMsg);
         }
       }
@@ -709,64 +753,34 @@ class MasterBoardService {
   }
 
   /**
-   * Create client header using SDK
+   * Create kanban columns with cards inside a client frame (SDK version)
+   * Layout matches the main timeline style
    */
-  private async createClientHeaderWithSdk(
-    miro: typeof window.miro,
-    client: ClientWithProjects,
-    frameY: number
-  ): Promise<void> {
-    const headerY = frameY + MASTER_BOARD.CLIENT_FRAME_PADDING + MASTER_BOARD.HEADER_HEIGHT / 2;
-    const startX = MASTER_BOARD.CONTENT_START_X + MASTER_BOARD.CLIENT_FRAME_PADDING;
-
-    // Client name (large, bold)
-    const displayName = client.companyName || client.name;
-    await miro.board.createText({
-      content: `<b>${displayName}</b>`,
-      x: startX + 150,
-      y: headerY - 10,
-      width: 300,
-      style: {
-        fontSize: 18,
-        textAlign: 'left',
-        color: '#050038',
-      },
-    });
-
-    // Stats line
-    const statsText = `${client.email}  |  ${client.totalProjects} Projects  |  ${client.activeProjects} Active  |  ${client.totalDeliverables} Deliverables`;
-    await miro.board.createText({
-      content: statsText,
-      x: startX + 350,
-      y: headerY + 15,
-      width: 600,
-      style: {
-        fontSize: 12,
-        textAlign: 'left',
-        color: '#666666',
-      },
-    });
-  }
-
-  /**
-   * Create mini-kanban using SDK
-   */
-  private async createMiniKanbanWithSdk(
+  private async createKanbanColumnsWithSdk(
     miro: typeof window.miro,
     projects: ProjectInfo[],
-    frameY: number,
+    frameCenterX: number,
+    frameTopY: number,
     _frame: { id: string }
   ): Promise<void> {
-    const kanbanStartY =
-      frameY + MASTER_BOARD.CLIENT_FRAME_PADDING + MASTER_BOARD.HEADER_HEIGHT + 20;
-    const kanbanStartX = MASTER_BOARD.CONTENT_START_X + MASTER_BOARD.CLIENT_FRAME_PADDING + 30;
+    // Calculate frame bounds
+    const frameLeft = frameCenterX - MASTER_BOARD.FRAME_WIDTH / 2;
+    const frameTop = frameTopY;
+
+    // Column positioning
+    const totalColumnsWidth = STATUS_COLUMNS.length * MASTER_BOARD.COLUMN_WIDTH +
+      (STATUS_COLUMNS.length - 1) * MASTER_BOARD.COLUMN_GAP;
+    const columnsStartX = frameLeft + (MASTER_BOARD.FRAME_WIDTH - totalColumnsWidth) / 2;
+    const headerY = frameTop + MASTER_BOARD.PADDING + MASTER_BOARD.COLUMN_HEADER_HEIGHT / 2;
+    const dropZoneY = headerY + MASTER_BOARD.COLUMN_HEADER_HEIGHT / 2 + 10 + MASTER_BOARD.COLUMN_HEIGHT / 2;
 
     // Group projects by column
     const projectsByColumn: Record<string, ProjectInfo[]> = {
+      overdue: [],
+      urgent: [],
       in_progress: [],
       review: [],
       done: [],
-      overdue: [],
     };
 
     projects.forEach((project) => {
@@ -779,48 +793,67 @@ class MasterBoardService {
       const column = STATUS_COLUMNS[i];
       if (!column) continue;
 
-      const columnX = kanbanStartX + i * (MASTER_BOARD.COLUMN_WIDTH + MASTER_BOARD.COLUMN_GAP);
+      const columnX = columnsStartX + MASTER_BOARD.COLUMN_WIDTH / 2 + i * (MASTER_BOARD.COLUMN_WIDTH + MASTER_BOARD.COLUMN_GAP);
       const columnProjects = projectsByColumn[column.id] || [];
 
-      // Column header (shape)
+      // Column header (colored rounded rectangle)
       await miro.board.createShape({
         shape: 'round_rectangle',
-        x: columnX + MASTER_BOARD.COLUMN_WIDTH / 2,
-        y: kanbanStartY,
-        width: MASTER_BOARD.COLUMN_WIDTH - 10,
+        x: columnX,
+        y: headerY,
+        width: MASTER_BOARD.COLUMN_WIDTH,
         height: MASTER_BOARD.COLUMN_HEADER_HEIGHT,
-        content: `${column.label} (${columnProjects.length})`,
+        content: `<p><b>${column.label}</b></p>`,
         style: {
           fillColor: column.color,
+          borderColor: 'transparent',
+          borderWidth: 0,
           color: '#FFFFFF',
-          fontSize: 12,
+          fontSize: 10,
+          textAlign: 'center',
+          textAlignVertical: 'middle',
+        },
+      });
+
+      // Column drop zone (white rectangle with border)
+      await miro.board.createShape({
+        shape: 'rectangle',
+        x: columnX,
+        y: dropZoneY,
+        width: MASTER_BOARD.COLUMN_WIDTH,
+        height: MASTER_BOARD.COLUMN_HEIGHT,
+        content: '',
+        style: {
+          fillColor: '#FFFFFF',
+          borderColor: '#E5E7EB',
+          borderWidth: 1,
         },
       });
 
       // Project cards in this column
+      const cardsStartY = headerY + MASTER_BOARD.COLUMN_HEADER_HEIGHT / 2 + 20 + MASTER_BOARD.CARD_HEIGHT / 2;
+
       for (let j = 0; j < columnProjects.length; j++) {
         const project = columnProjects[j];
         if (!project) continue;
 
-        const cardY =
-          kanbanStartY +
-          MASTER_BOARD.COLUMN_HEADER_HEIGHT +
-          15 +
-          j * (MASTER_BOARD.CARD_HEIGHT + MASTER_BOARD.CARD_GAP);
+        const cardY = cardsStartY + j * (MASTER_BOARD.CARD_HEIGHT + MASTER_BOARD.CARD_GAP);
 
-        // Build card data, only include dueDate if not null
+        // Build card data
         const cardData: {
           title: string;
           description: string;
           x: number;
           y: number;
+          width: number;
           dueDate?: string;
           style: { cardTheme: string };
         } = {
           title: project.name,
           description: `projectId:${project.id}`,
-          x: columnX + MASTER_BOARD.COLUMN_WIDTH / 2,
+          x: columnX,
           y: cardY,
+          width: MASTER_BOARD.CARD_WIDTH,
           style: {
             cardTheme: getCardTheme(project.status),
           },
