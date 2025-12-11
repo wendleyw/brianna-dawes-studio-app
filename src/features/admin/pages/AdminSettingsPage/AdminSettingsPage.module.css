@@ -1,25 +1,28 @@
+/* Use explicit values for Miro SDK iframe compatibility */
+/* CSS variables don't resolve in Miro iframe context */
 .container {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
-  padding: var(--space-3);
+  gap: 12px;
+  padding: 12px;
   width: 100%;
   height: 100%;
   box-sizing: border-box;
   overflow: hidden;
+  background: #ffffff;
 }
 
 .header {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: 4px;
   flex-shrink: 0;
 }
 
 .headerRow {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: 8px;
 }
 
 .headerText {
@@ -78,36 +81,36 @@
   height: 32px;
   border: none;
   border-radius: 6px;
-  background: var(--color-bg-secondary);
-  color: var(--color-text-secondary);
+  background: #f3f4f6;
+  color: #6b7280;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: all 0.15s ease;
   flex-shrink: 0;
 }
 
 .backButton:hover {
-  background: var(--color-bg-tertiary);
-  color: var(--color-text-primary);
+  background: #e5e7eb;
+  color: #111827;
 }
 
 .title {
-  font-family: var(--font-ui);
-  font-size: var(--text-lg);
-  font-weight: var(--font-bold);
-  color: var(--color-text-primary);
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
   margin: 0;
 }
 
 .subtitle {
-  font-size: var(--text-xs);
-  color: var(--color-text-secondary);
+  font-size: 12px;
+  color: #6b7280;
   margin: 0;
 }
 
 .tabs {
   display: flex;
   gap: 0;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid #e5e7eb;
   padding-bottom: 0;
   flex-shrink: 0;
 }
@@ -117,27 +120,27 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--space-1);
-  padding: var(--space-2) var(--space-1);
+  gap: 4px;
+  padding: 8px 4px;
   background: none;
   border: none;
   border-bottom: 2px solid transparent;
-  color: var(--color-text-secondary);
-  font-size: var(--text-xs);
-  font-weight: var(--font-medium);
+  color: #6b7280;
+  font-size: 12px;
+  font-weight: 500;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: all 0.15s ease;
   margin-bottom: -1px;
   min-width: 0;
 }
 
 .tab:hover {
-  color: var(--color-text-primary);
+  color: #111827;
 }
 
 .tabActive {
-  color: var(--color-accent);
-  border-bottom-color: var(--color-accent);
+  color: #2563eb;
+  border-bottom-color: #2563eb;
 }
 
 .tabIcon {
@@ -160,7 +163,7 @@
   }
 
   .tab {
-    padding: var(--space-2);
+    padding: 8px;
   }
 }
 
