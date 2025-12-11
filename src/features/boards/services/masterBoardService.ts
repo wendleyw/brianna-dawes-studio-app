@@ -71,6 +71,33 @@ function getCardTheme(status: string): string {
   }
 }
 
+/**
+ * Normalize date to YYYY-MM-DD format required by Miro SDK
+ * Handles ISO 8601 dates, timestamps, and various formats
+ */
+function normalizeDateToYYYYMMDD(dateStr: string | null): string | null {
+  if (!dateStr) return null;
+
+  try {
+    // Try to parse the date
+    const date = new Date(dateStr);
+
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+      return null;
+    }
+
+    // Format as YYYY-MM-DD
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+
+    return `${year}-${month}-${day}`;
+  } catch {
+    return null;
+  }
+}
+
 interface ProjectInfo {
   id: string;
   name: string;
@@ -427,8 +454,9 @@ class MasterBoardService {
           },
         };
 
-        if (project.dueDate) {
-          cardData.dueDate = project.dueDate;
+        const normalizedDueDate = normalizeDateToYYYYMMDD(project.dueDate);
+        if (normalizedDueDate) {
+          cardData.dueDate = normalizedDueDate;
         }
 
         await miroClient.createCard(boardId, cardData);
@@ -798,8 +826,9 @@ class MasterBoardService {
           },
         };
 
-        if (project.dueDate) {
-          cardData.dueDate = project.dueDate;
+        const normalizedDueDate = normalizeDateToYYYYMMDD(project.dueDate);
+        if (normalizedDueDate) {
+          cardData.dueDate = normalizedDueDate;
         }
 
         await miro.board.createCard(cardData);
