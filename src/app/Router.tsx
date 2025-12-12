@@ -64,6 +64,16 @@ export function Router() {
   const location = useLocation();
   const { miro, isInMiro } = useMiro();
 
+  // Check for route query parameter (used when opening modals)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const targetRoute = params.get('route');
+    if (targetRoute && location.pathname !== targetRoute) {
+      console.log('[Router] Redirecting to route from query param:', targetRoute);
+      navigate(targetRoute, { replace: true });
+    }
+  }, [navigate, location.pathname]);
+
   // Register icon:click handler to navigate to home when clicked
   useEffect(() => {
     if (!isInMiro || !miro) return;

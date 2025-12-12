@@ -114,7 +114,7 @@ export function DashboardPage() {
     if (miro && isInMiro) {
       try {
         await miro.board.ui.openModal({
-          url: 'app.html#/admin/dashboard',
+          url: 'app.html?route=/admin/dashboard',
           width: 900,
           height: 700,
           fullscreen: false,
