@@ -47,6 +47,7 @@ class ProjectService {
    * @returns Paginated project list with total count
    */
   async getProjects(params: ProjectsQueryParams = {}): Promise<ProjectsResponse> {
+    console.log('[ProjectService] getProjects called with params:', params);
     const { filters = {}, sort = { field: 'createdAt', direction: 'desc' }, page = 1, pageSize = 10 } = params;
 
     let query = supabase
@@ -117,13 +118,16 @@ class ProjectService {
     const to = from + pageSize - 1;
     query = query.range(from, to);
 
+    console.log('[ProjectService] Executing query...');
     const { data, error, count } = await query;
+    console.log('[ProjectService] Query complete:', { dataCount: data?.length, error: error?.message, count });
 
     if (error) throw error;
 
     const projects = (data || []).map(this.mapProjectFromDB);
     const total = count || 0;
 
+    console.log('[ProjectService] Returning', projects.length, 'projects');
     return {
       data: projects,
       total,
