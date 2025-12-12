@@ -1,4 +1,4 @@
-import { Outlet, useNavigate } from 'react-router-dom';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useState, useCallback } from 'react';
 import { NotificationBell } from '@features/notifications';
 import { ReportModal } from '@features/admin/components/ReportModal';
@@ -7,6 +7,12 @@ import { useMiro } from '@features/boards';
 import styles from './AppShell.module.css';
 
 // Icons
+const BackIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M19 12H5M12 19l-7-7 7-7"/>
+  </svg>
+);
+
 const GridIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
     <rect x="3" y="3" width="7" height="7"/>
@@ -33,12 +39,14 @@ const SettingsIcon = () => (
 );
 
 export function AppShell() {
+  const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
   const { miro, isInMiro } = useMiro();
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
 
   const isAdmin = user?.role === 'admin';
+  const showBackToDashboard = location.pathname.startsWith('/projects');
 
   // Handler to open project board modal
   const handleOpenBoardModal = useCallback(async () => {
@@ -90,6 +98,28 @@ export function AppShell() {
             </>
           )}
           <NotificationBell />
+          {showBackToDashboard && (
+            <button
+              className={styles.backToDashboard}
+              onClick={() => navigate('/dashboard')}
+              title="Back to Dashboard"
+              type="button"
+            >
+              <BackIcon />
+              <span>Dashboard</span>
+            </button>
+          )}
+          {user?.avatarUrl ? (
+            <img
+              className={styles.avatar}
+              src={user.avatarUrl}
+              alt={user.name || 'User'}
+            />
+          ) : (
+            <div className={styles.avatarFallback} aria-hidden>
+              {(user?.companyName || user?.name || 'U').charAt(0).toUpperCase()}
+            </div>
+          )}
         </div>
       </header>
 

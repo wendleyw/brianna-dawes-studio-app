@@ -19,24 +19,24 @@ const MASTER_BOARD = {
   TITLE_Y: -50,
 
   // Frame dimensions (similar to main timeline)
-  FRAME_WIDTH: 900,
-  FRAME_HEIGHT: 500,
-  FRAME_GAP: 80, // Gap between client frames vertically
+  FRAME_WIDTH: 1000,
+  FRAME_HEIGHT: 600,
+  FRAME_GAP: 100, // Gap between client frames vertically
 
   // Internal layout
   PADDING: 20,
   HEADER_HEIGHT: 60, // Client info header
 
   // Kanban columns (matching main timeline style)
-  COLUMN_WIDTH: 160,
-  COLUMN_GAP: 10,
+  COLUMN_WIDTH: 180,
+  COLUMN_GAP: 12,
   COLUMN_HEADER_HEIGHT: 32,
-  COLUMN_HEIGHT: 350,
+  COLUMN_HEIGHT: 450,
 
-  // Cards
-  CARD_WIDTH: 150,
-  CARD_HEIGHT: 36,
-  CARD_GAP: 10,
+  // Cards - larger to fit detailed info
+  CARD_WIDTH: 170,
+  CARD_HEIGHT: 90,  // Taller cards for more info
+  CARD_GAP: 12,
 };
 
 // Status columns matching main timeline (5 columns)
@@ -124,6 +124,10 @@ interface ProjectInfo {
   name: string;
   status: string;
   dueDate: string | null;
+  priority: string | null;
+  clientName: string | null;
+  designerNames: string[];
+  projectType: string | null;
 }
 
 interface ClientWithProjects extends ClientAnalytics {
@@ -234,15 +238,18 @@ class MasterBoardService {
     // Get client IDs for filtering
     const clientIds = clients.map(c => c.id);
 
-    // Fetch projects and deliverables in parallel using Promise.allSettled
-    const [projectsResult, deliverablesResult] = await Promise.allSettled([
+    // Fetch projects (with briefing), deliverables, and project designers in parallel
+    const [projectsResult, deliverablesResult, projectDesignersResult] = await Promise.allSettled([
       supabase
         .from('projects')
-        .select('id, name, status, due_date, client_id')
+        .select('id, name, status, due_date, client_id, priority, briefing')
         .in('client_id', clientIds),
       supabase
         .from('deliverables')
         .select('project_id, status'),
+      supabase
+        .from('project_designers')
+        .select('project_id, users!inner(name)'),
     ]);
 
     // Extract data with error handling
@@ -252,12 +259,18 @@ class MasterBoardService {
     const deliverables = deliverablesResult.status === 'fulfilled'
       ? deliverablesResult.value.data || []
       : [];
+    const projectDesigners = projectDesignersResult.status === 'fulfilled'
+      ? projectDesignersResult.value.data || []
+      : [];
 
     if (projectsResult.status === 'rejected') {
       logger.warn('Failed to fetch projects', { error: projectsResult.reason });
     }
     if (deliverablesResult.status === 'rejected') {
       logger.warn('Failed to fetch deliverables', { error: deliverablesResult.reason });
+    }
+    if (projectDesignersResult.status === 'rejected') {
+      logger.warn('Failed to fetch project designers', { error: projectDesignersResult.reason });
     }
 
     // Build client analytics with projects
@@ -286,12 +299,32 @@ class MasterBoardService {
         usagePercentage: 0,
         joinedAt: client.created_at as string,
         lastProjectAt: clientProjects[0]?.id ? clientProjects[0].id : null,
-        projects: clientProjects.map((p) => ({
-          id: p.id,
-          name: p.name,
-          status: p.status,
-          dueDate: p.due_date,
-        })),
+        projects: clientProjects.map((p) => {
+          // Get designer names for this project
+          // Note: Supabase joins return users as an object (not array) with inner join
+          const designers = projectDesigners
+            .filter((pd: { project_id: string }) => pd.project_id === p.id)
+            .map((pd: { users: { name: string } | { name: string }[] }) => {
+              // Handle both object and array formats from Supabase
+              const user = Array.isArray(pd.users) ? pd.users[0] : pd.users;
+              return user?.name;
+            })
+            .filter(Boolean) as string[];
+
+          // Extract project type from briefing JSONB
+          const briefing = p.briefing as { projectType?: string } | null;
+
+          return {
+            id: p.id,
+            name: p.name,
+            status: p.status,
+            dueDate: p.due_date,
+            priority: p.priority || null,
+            clientName: client.company_name || client.name,
+            designerNames: designers,
+            projectType: briefing?.projectType || null,
+          };
+        }),
       };
     });
 
@@ -1065,6 +1098,45 @@ class MasterBoardService {
 
         const cardY = cardsStartY + j * (MASTER_BOARD.CARD_HEIGHT + MASTER_BOARD.CARD_GAP);
 
+        // Build detailed card title with all project info
+        const priorityIcon = project.priority === 'urgent' ? '🔴' :
+                             project.priority === 'high' ? '🟠' :
+                             project.priority === 'medium' ? '🟡' : '🟢';
+
+        // Format due date if present
+        const formattedDueDate = project.dueDate
+          ? new Date(project.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+          : null;
+
+        // Build multi-line title with all details
+        const titleLines: string[] = [];
+
+        // Line 1: Priority + Project Name
+        titleLines.push(`${priorityIcon} ${project.name}`);
+
+        // Line 2: Client (if different from frame client - always show for clarity)
+        if (project.clientName) {
+          titleLines.push(`👤 ${project.clientName}`);
+        }
+
+        // Line 3: Designers (first names only to save space)
+        if (project.designerNames.length > 0) {
+          const designerFirstNames = project.designerNames.map(n => n.split(' ')[0]).join(', ');
+          titleLines.push(`👩‍🎨 ${designerFirstNames}`);
+        }
+
+        // Line 4: Due date + Type (combined to save space)
+        const dueLine = [
+          formattedDueDate ? `📅 ${formattedDueDate}` : null,
+          project.projectType ? project.projectType.replace(/-/g, ' ') : null,
+        ].filter(Boolean).join(' | ');
+
+        if (dueLine) {
+          titleLines.push(dueLine);
+        }
+
+        const cardTitle = titleLines.join('\n');
+
         // Build card data
         const cardData: {
           title: string;
@@ -1075,7 +1147,7 @@ class MasterBoardService {
           dueDate?: string;
           style: { cardTheme: string };
         } = {
-          title: project.name,
+          title: cardTitle,
           description: `projectId:${project.id}`,
           x: columnX,
           y: cardY,

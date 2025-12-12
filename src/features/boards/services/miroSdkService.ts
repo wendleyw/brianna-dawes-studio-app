@@ -465,28 +465,58 @@ class MiroMasterTimelineService {
                          project.priority === 'medium' ? '🟡' :
                          '🟢'; // low/standard
 
-    // Build clean card title - single line format
-    // Format: [ARCHIVED] or [Changes Requested] or [Approved] Project Title [priority icon]
+    // Build detailed card title with ALL project info (no expansion needed)
     const isArchived = project.archivedAt !== null;
     const isApproved = project.wasApproved === true;
-    // Show [Changes Requested] only when wasReviewed=true AND status is in_progress (client requested changes)
-    // When admin sends back to review or moves to done, show normal title (no prefix)
+    // Show changes requested indicator when wasReviewed=true AND status is in_progress
     const hasChangesRequested = wasReviewed && status === 'in_progress';
 
     // Status prefix: Archived > Approved > Changes Requested > none
-    const statusTag = isArchived ? '[ARCHIVED] 📦 ' :
+    const statusTag = isArchived ? '📦 ' :
                       isApproved ? '✓ ' :
                       hasChangesRequested ? '🔄 ' : '';
 
-    // Build title - project name with priority icon at the end
-    const titleLines = [
-      `${statusTag}${project.name} ${isArchived ? '' : priorityIcon}`.trim(),
-    ].filter(Boolean);
+    // Build multi-line title with all project details
+    const titleLines: string[] = [];
 
-    const title = titleLines.join('\n');
+    // Line 1: Priority + Project Name + Status Tag
+    titleLines.push(`${priorityIcon} ${statusTag}${project.name}`.trim());
+
+    // Line 2: Client name
+    if (project.client?.name) {
+      titleLines.push(`👤 ${project.client.name}`);
+    }
+
+    // Line 3: Designers (first names only to save space)
+    if (project.designers && project.designers.length > 0) {
+      const designerFirstNames = project.designers
+        .map(d => d.name?.split(' ')[0])
+        .filter(Boolean)
+        .join(', ');
+      if (designerFirstNames) {
+        titleLines.push(`👩‍🎨 ${designerFirstNames}`);
+      }
+    }
+
+    // Line 4: Due date + Type (combined to save space)
+    const formattedDueDate = project.dueDate
+      ? new Date(project.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      : null;
+    const projectType = project.briefing?.projectType
+      ? project.briefing.projectType.replace(/-/g, ' ')
+      : null;
+
+    const dueLine = [
+      formattedDueDate ? `📅 ${formattedDueDate}` : null,
+      projectType,
+    ].filter(Boolean).join(' | ');
+
+    if (dueLine) {
+      titleLines.push(dueLine);
+    }
 
     // Use plain text with newlines for card title (Miro SDK v2 supports \n in title)
-    const cardTitle = title;
+    const cardTitle = titleLines.join('\n');
 
     // Build description with changes requested flag
     const description = `projectId:${project.id}${hasChangesRequested ? '|changes_requested:true' : ''}`;
@@ -778,7 +808,7 @@ class MiroMasterTimelineService {
         const finalCheckInCorrectColumn = Math.abs(existingCardFinalCheck.x - cardX) < columnWidth / 2;
 
         // Update the existing card - only move if in different column
-        existingCardFinalCheck.title = title;
+        existingCardFinalCheck.title = cardTitle;
         existingCardFinalCheck.description = description;
         existingCardFinalCheck.style = { cardTheme: isArchived ? '#000000' : column.color };
 

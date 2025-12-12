@@ -19,18 +19,18 @@ export const FRAME = {
 
 /** Master Timeline frame and column configuration */
 export const TIMELINE = {
-  FRAME_WIDTH: 800,      // Increased to fit all 7 columns
-  FRAME_HEIGHT: 500,
-  COLUMN_WIDTH: 95,      // Wider columns for better readability
-  COLUMN_HEIGHT: 380,
-  COLUMN_GAP: 8,         // Slightly larger gap
+  FRAME_WIDTH: 1000,     // Wider to fit detailed cards
+  FRAME_HEIGHT: 600,     // Taller for more cards
+  COLUMN_WIDTH: 130,     // Wider columns for detailed cards
+  COLUMN_HEIGHT: 480,    // Taller columns
+  COLUMN_GAP: 10,        // Slightly larger gap
   HEADER_HEIGHT: 28,
   TITLE_HEIGHT: 35,
-  CARD_WIDTH: 88,        // Wider cards
-  CARD_HEIGHT: 32,
-  CARD_GAP: 12,          // Increased gap between cards for better spacing
+  CARD_WIDTH: 120,       // Wider cards for multi-line text
+  CARD_HEIGHT: 80,       // Taller cards for 4 lines of info
+  CARD_GAP: 15,          // Increased gap between cards for better spacing
   PADDING: 15,
-  GAP_TO_PROJECTS: 50,  // Gap between timeline and projects
+  GAP_TO_PROJECTS: 50,   // Gap between timeline and projects
 } as const;
 
 // ==================== BRIEFING LAYOUT ====================
