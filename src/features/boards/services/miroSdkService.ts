@@ -65,6 +65,24 @@ function getMiroSDK() {
 }
 
 /**
+ * Normalize date to YYYY-MM-DD format required by Miro SDK.
+ * Accepts ISO strings, timestamps, and various formats.
+ */
+function normalizeDateToYYYYMMDD(dateStr: string | null | undefined): string | undefined {
+  if (!dateStr) return undefined;
+  try {
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return undefined;
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
  * Find timeline frame on the board by:
  * 1. Looking for "Timeline Master" text nearby (title is created as separate text)
  * 2. Finding frame with empty title at fixed position (0, 0)
@@ -464,8 +482,11 @@ class MiroMasterTimelineService {
                          project.priority === 'high' ? '🟠' :
                          project.priority === 'medium' ? '🟡' :
                          '🟢'; // low/standard
+    const normalizedDueDate = normalizeDateToYYYYMMDD(project.dueDate);
 
-    // Build detailed card title with ALL project info (no expansion needed)
+    // Build compact card title:
+    // - Line 1: Project title (plus status tag)
+    // - Line 2: Priority icon
     const isArchived = project.archivedAt !== null;
     const isApproved = project.wasApproved === true;
     // Show changes requested indicator when wasReviewed=true AND status is in_progress
@@ -479,41 +500,8 @@ class MiroMasterTimelineService {
     // Build multi-line title with all project details
     const titleLines: string[] = [];
 
-    // Line 1: Priority + Project Name + Status Tag
-    titleLines.push(`${priorityIcon} ${statusTag}${project.name}`.trim());
-
-    // Line 2: Client name
-    if (project.client?.name) {
-      titleLines.push(`👤 ${project.client.name}`);
-    }
-
-    // Line 3: Designers (first names only to save space)
-    if (project.designers && project.designers.length > 0) {
-      const designerFirstNames = project.designers
-        .map(d => d.name?.split(' ')[0])
-        .filter(Boolean)
-        .join(', ');
-      if (designerFirstNames) {
-        titleLines.push(`👩‍🎨 ${designerFirstNames}`);
-      }
-    }
-
-    // Line 4: Due date + Type (combined to save space)
-    const formattedDueDate = project.dueDate
-      ? new Date(project.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-      : null;
-    const projectType = project.briefing?.projectType
-      ? project.briefing.projectType.replace(/-/g, ' ')
-      : null;
-
-    const dueLine = [
-      formattedDueDate ? `📅 ${formattedDueDate}` : null,
-      projectType,
-    ].filter(Boolean).join(' | ');
-
-    if (dueLine) {
-      titleLines.push(dueLine);
-    }
+    titleLines.push(`${statusTag}${project.name}`.trim());
+    titleLines.push(priorityIcon);
 
     // Use plain text with newlines for card title (Miro SDK v2 supports \n in title)
     const cardTitle = titleLines.join('\n');
@@ -746,8 +734,13 @@ class MiroMasterTimelineService {
           // Do NOT change the position - this prevents drift on re-syncs
           const itemInCorrectColumn = Math.abs(item.x - cardX) < columnWidth / 2;
 
-          item.title = cardTitle; // Use HTML title for proper multi-line display
+          item.title = cardTitle;
           item.description = description; // Ensure projectId is stored
+          if (normalizedDueDate) {
+            item.dueDate = normalizedDueDate;
+          } else {
+            delete (item as Partial<MiroCard>).dueDate;
+          }
           item.style = { cardTheme: isArchived ? '#000000' : column.color };
 
           if (itemInCorrectColumn) {
@@ -810,6 +803,11 @@ class MiroMasterTimelineService {
         // Update the existing card - only move if in different column
         existingCardFinalCheck.title = cardTitle;
         existingCardFinalCheck.description = description;
+        if (normalizedDueDate) {
+          existingCardFinalCheck.dueDate = normalizedDueDate;
+        } else {
+          delete (existingCardFinalCheck as Partial<MiroCard>).dueDate;
+        }
         existingCardFinalCheck.style = { cardTheme: isArchived ? '#000000' : column.color };
 
         if (!finalCheckInCorrectColumn) {
@@ -857,6 +855,7 @@ class MiroMasterTimelineService {
       x: cardX,
       y: cardY,
       width: TIMELINE.CARD_WIDTH,
+      ...(normalizedDueDate ? { dueDate: normalizedDueDate } : {}),
       style: { cardTheme: cardColor },
     });
 
