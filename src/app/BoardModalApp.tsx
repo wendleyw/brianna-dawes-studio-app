@@ -292,17 +292,48 @@ export function BoardModalApp() {
                     await zoomToProject(project.id);
                   }}
                 >
-                  <h4 className={styles.cardTitle}>{project.name}</h4>
-                  {project.dueDate && (
-                    <span className={styles.cardDue}>{formatDateShort(project.dueDate)}</span>
-                  )}
+                  {/* Header: Priority badge + Name */}
+                  <div className={styles.cardHeader}>
+                    {project.priority && (
+                      <span className={`${styles.cardPriority} ${styles[`priority${project.priority.charAt(0).toUpperCase() + project.priority.slice(1)}`]}`}>
+                        {project.priority.toUpperCase()}
+                      </span>
+                    )}
+                    <h4 className={styles.cardTitle}>{project.name}</h4>
+                  </div>
+
+                  {/* Client */}
                   {project.client?.name && (
-                    <span className={styles.cardClient}>{project.client.name}</span>
+                    <div className={styles.cardRow}>
+                      <span className={styles.cardLabel}>Client</span>
+                      <span className={styles.cardClient}>{project.client.name}</span>
+                    </div>
                   )}
-                  {project.priority && (
-                    <span className={`${styles.cardPriority} ${styles[`priority${project.priority.charAt(0).toUpperCase() + project.priority.slice(1)}`]}`}>
-                      {project.priority.toUpperCase()}
-                    </span>
+
+                  {/* Designers */}
+                  {project.designers && project.designers.length > 0 && (
+                    <div className={styles.cardRow}>
+                      <span className={styles.cardLabel}>Team</span>
+                      <span className={styles.cardDesigners}>
+                        {project.designers.map(d => d.name?.split(' ')[0]).join(', ')}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Due Date */}
+                  {project.dueDate && (
+                    <div className={styles.cardRow}>
+                      <span className={styles.cardLabel}>Due</span>
+                      <span className={styles.cardDue}>{formatDateShort(project.dueDate)}</span>
+                    </div>
+                  )}
+
+                  {/* Project Type */}
+                  {project.briefing?.projectType && (
+                    <div className={styles.cardRow}>
+                      <span className={styles.cardLabel}>Type</span>
+                      <span className={styles.cardType}>{project.briefing.projectType.replace(/-/g, ' ')}</span>
+                    </div>
                   )}
                 </div>
               ))}
