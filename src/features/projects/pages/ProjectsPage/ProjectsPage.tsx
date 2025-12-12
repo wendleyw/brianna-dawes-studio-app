@@ -9,7 +9,6 @@ import { useMiroBoardSync, useMasterBoardSettings } from '@features/boards/hooks
 import { miroProjectRowService } from '@features/boards/services/miroSdkService';
 import { useProjects, useUpdateProject, useArchiveProject } from '../../hooks';
 import { ProjectCard } from '../../components/ProjectCard';
-import { ReportModal } from '@features/admin/components/ReportModal';
 import { createLogger } from '@shared/lib/logger';
 import { TIMELINE_COLUMNS, getTimelineStatus, type TimelineStatus } from '@shared/lib/timelineStatus';
 import { onProjectChange, broadcastProjectChange } from '@shared/lib/projectBroadcast';
@@ -44,32 +43,6 @@ const PROJECT_TYPES = [
   { value: 'other', label: 'Other' },
 ];
 
-const GridIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <rect x="3" y="3" width="7" height="7"/>
-    <rect x="14" y="3" width="7" height="7"/>
-    <rect x="14" y="14" width="7" height="7"/>
-    <rect x="3" y="14" width="7" height="7"/>
-  </svg>
-);
-
-const SettingsIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <circle cx="12" cy="12" r="3"/>
-    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-  </svg>
-);
-
-const ReportIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-    <polyline points="14 2 14 8 20 8"/>
-    <line x1="16" y1="13" x2="8" y2="13"/>
-    <line x1="16" y1="17" x2="8" y2="17"/>
-    <polyline points="10 9 9 9 8 9"/>
-  </svg>
-);
-
 // Session storage key to track if splash was shown this session
 const SPLASH_SHOWN_KEY = 'brianna_splash_shown';
 
@@ -89,7 +62,6 @@ export function ProjectsPage() {
   });
   const [boardClient, setBoardClient] = useState<BoardClientInfo | null>(null);
   const [currentBoardId, setCurrentBoardId] = useState<string | null>(null);
-  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
 
   // Splash screen state - only show once per session
   const [showSplash, setShowSplash] = useState(() => {
@@ -381,24 +353,6 @@ export function ProjectsPage() {
 
   // ===== ACTION HANDLERS =====
 
-  // Open board modal (Status action)
-  const handleOpenBoardModal = useCallback(async () => {
-    if (miro && isInMiro) {
-      try {
-        await miro.board.ui.openModal({
-          url: 'board-modal.html',
-          width: 800,  // Wider for 7 columns
-          height: 500,
-        });
-      } catch (error) {
-        logger.error('Failed to open board modal', error);
-      }
-    } else {
-      // Fallback for non-Miro environment (development)
-      window.open('/board-modal.html', '_blank', 'width=800,height=500');
-    }
-  }, [miro, isInMiro]);
-
   // View Board - Zoom to project frames
   const handleViewBoard = useCallback(async (project: Project) => {
     const success = await zoomToProject(project.id);
@@ -674,45 +628,6 @@ export function ProjectsPage() {
         />
       )}
 
-      {/* Admin Quick Actions Bar - Only for admin users */}
-      {user?.role === 'admin' && (
-        <div className={styles.adminBar}>
-          <div className={styles.adminBarRight}>
-            <button
-              className={styles.adminButton}
-              onClick={handleOpenBoardModal}
-              title="Open Project Status Board"
-            >
-              <GridIcon />
-              <span>Status</span>
-            </button>
-            <button
-              className={styles.adminButton}
-              onClick={() => setIsReportModalOpen(true)}
-              title="Generate Report"
-            >
-              <ReportIcon />
-              <span>Report</span>
-            </button>
-            <button
-              className={styles.adminButton}
-              onClick={() => navigate('/admin')}
-              title="Admin Settings"
-            >
-              <SettingsIcon />
-              <span>Settings</span>
-            </button>
-            {user?.avatarUrl && (
-              <img
-                src={user.avatarUrl}
-                alt={user.name || 'User'}
-                className={styles.adminAvatar}
-              />
-            )}
-          </div>
-        </div>
-      )}
-
       {/* Header */}
       <header className={styles.header}>
         {hasClientBranding ? (
@@ -853,11 +768,6 @@ export function ProjectsPage() {
         )}
       </div>
 
-      {/* Report Modal */}
-      <ReportModal
-        open={isReportModalOpen}
-        onClose={() => setIsReportModalOpen(false)}
-      />
     </div>
   );
 }
