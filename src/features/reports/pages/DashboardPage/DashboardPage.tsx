@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useMemo, useState } from 'react';
-import { Skeleton } from '@shared/ui';
+import { Skeleton, Logo } from '@shared/ui';
 import { useAuth } from '@features/auth';
 import { useProjects } from '@features/projects';
 import { projectKeys } from '@features/projects/services/projectKeys';
@@ -299,7 +299,12 @@ export function DashboardPage() {
 
   return (
     <div className={styles.container}>
+      {/* Branding Header */}
       <header className={styles.header}>
+        <div className={styles.logo}>
+          <Logo size="lg" animated />
+        </div>
+        <p className={styles.brandName}>BRIANNA DAWES STUDIOS</p>
         {isMasterBoard ? (
           <h1 className={styles.welcome}>
             <span className={styles.masterBoardBadge}>📊 Master Overview</span>
