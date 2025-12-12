@@ -617,6 +617,25 @@ export const ProjectCard = memo(function ProjectCard({
     >
       {/* Header */}
       <div className={styles.header}>
+        {/* Completed banner - shown when project is done (avoid gray card styling) */}
+        {isDone && !isArchived && (
+          <div className={styles.completedBanner}>
+            <Badge
+              variant="neutral"
+              size="sm"
+              style={{
+                backgroundColor: 'transparent',
+                color: '#fff',
+                border: 'none',
+                fontWeight: 700,
+                letterSpacing: '0.5px',
+                padding: '4px 12px',
+              }}
+            >
+              ✓ PROJECT COMPLETED
+            </Badge>
+          </div>
+        )}
         {/* Review Ready banner - shown to client when project is in review status (hide if already approved) */}
         {isInReview && isClient && !project.wasApproved && (
           <div className={styles.reviewReadyBanner}>
