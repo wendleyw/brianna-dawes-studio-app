@@ -8,7 +8,7 @@
 .topbar {
   flex-shrink: 0;
   height: 44px;
-  padding: 0 12px;
+  padding: 0 52px 0 12px;
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -90,7 +90,7 @@
 .right {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   flex-shrink: 0;
 }
 

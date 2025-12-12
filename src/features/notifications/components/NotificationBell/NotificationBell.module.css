@@ -6,31 +6,31 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
   padding: 0;
-  background: none;
-  border: none;
-  border-radius: var(--radius-full);
-  color: var(--color-text-secondary);
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  color: #111827;
   cursor: pointer;
   transition: background-color var(--transition-fast), color var(--transition-fast);
 }
 
 .button:hover {
-  background-color: var(--color-bg-secondary);
-  color: var(--color-text-primary);
+  background-color: #e5e7eb;
+  color: #111827;
 }
 
 .icon {
-  width: 24px;
-  height: 24px;
+  width: 14px;
+  height: 14px;
 }
 
 .badge {
   position: absolute;
-  top: 2px;
-  right: 2px;
+  top: -4px;
+  right: -4px;
   display: flex;
   align-items: center;
   justify-content: center;

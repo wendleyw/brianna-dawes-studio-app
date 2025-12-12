@@ -166,17 +166,6 @@ export function AppShell() {
               <BackIcon />
             </button>
           )}
-          {user?.avatarUrl ? (
-            <img
-              className={styles.avatar}
-              src={user.avatarUrl}
-              alt={user.name || 'User'}
-            />
-          ) : (
-            <div className={styles.avatarFallback} aria-hidden>
-              {(user?.companyName || user?.name || 'U').charAt(0).toUpperCase()}
-            </div>
-          )}
         </div>
       </header>
 
