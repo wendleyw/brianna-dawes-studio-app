@@ -121,8 +121,10 @@
 .backToDashboard {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 6px 10px;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
   background: #f3f4f6;
   color: #111827;
   border: 1px solid #e5e7eb;

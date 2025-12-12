@@ -103,10 +103,10 @@ export function AppShell() {
               className={styles.backToDashboard}
               onClick={() => navigate('/dashboard')}
               title="Back to Dashboard"
+              aria-label="Back to Dashboard"
               type="button"
             >
               <BackIcon />
-              <span>Dashboard</span>
             </button>
           )}
           {user?.avatarUrl ? (
