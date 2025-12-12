@@ -25,22 +25,28 @@ async function verifyUserExists(userId: string): Promise<{
   companyName?: string | null;
   companyLogoUrl?: string | null;
 }> {
+  console.log('[verifyUserExists] Starting for userId:', userId);
   try {
+    console.log('[verifyUserExists] Querying Supabase...');
     const { data, error } = await supabase
       .from('users')
       .select('id, role, primary_board_id, name, email, is_super_admin, company_name, company_logo_url')
       .eq('id', userId)
       .maybeSingle();
 
+    console.log('[verifyUserExists] Query complete. Error:', error, 'Data:', data);
+
     if (error) {
-      logger.error('Error verifying user existence', error);
+      console.error('[verifyUserExists] Error verifying user existence', error);
       return { exists: false };
     }
 
     if (!data) {
+      console.log('[verifyUserExists] No data returned');
       return { exists: false };
     }
 
+    console.log('[verifyUserExists] User found:', data.email);
     return {
       exists: true,
       role: data.role as string,
@@ -52,7 +58,7 @@ async function verifyUserExists(userId: string): Promise<{
       companyLogoUrl: data.company_logo_url as string | null,
     };
   } catch (err) {
-    logger.error('Failed to verify user existence', err);
+    console.error('[verifyUserExists] Exception:', err);
     return { exists: false };
   }
 }
@@ -122,18 +128,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
           // IMPORTANT: Verify the stored user matches the current Miro user
           // If miroUserId doesn't match, we need to re-authenticate
           if (currentMiroUser && currentMiroUser.id && user.miroUserId && currentMiroUser.id !== user.miroUserId) {
-            logger.info('Miro user changed, re-authenticating', { stored: user.miroUserId, current: currentMiroUser.id });
+            console.log('[AuthProvider] Miro user changed, re-authenticating');
             localStorage.removeItem(AUTH_STORAGE_KEY);
             // Don't return - fall through to check Supabase session or trigger re-auth
           } else if (currentMiroUser && currentMiroUser.id && !user.miroUserId) {
             // Stored user doesn't have miroUserId - force re-auth to get it
-            logger.info('Stored user missing miroUserId, forcing re-auth');
+            console.log('[AuthProvider] Stored user missing miroUserId, forcing re-auth');
             localStorage.removeItem(AUTH_STORAGE_KEY);
             // Don't return - fall through to trigger re-auth
           } else {
             // Verify user still exists in database before using cached data
-            logger.debug('Verifying stored user exists in database', { id: user.id });
+            console.log('[AuthProvider] Verifying stored user exists in database...');
             const userCheck = await verifyUserExists(user.id);
+            console.log('[AuthProvider] User verification result:', userCheck);
 
             if (!userCheck.exists) {
               logger.info('Stored user no longer exists in database, clearing cache', { id: user.id });
