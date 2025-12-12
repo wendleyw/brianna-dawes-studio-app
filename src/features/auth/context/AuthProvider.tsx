@@ -63,36 +63,6 @@ async function verifyUserExists(userId: string): Promise<{
   }
 }
 
-/**
- * Verify if a client has a board assignment
- * Returns true if client has primary_board_id or any entry in user_boards
- */
-async function verifyClientHasBoardAssignment(userId: string, primaryBoardId: string | null): Promise<boolean> {
-  // If user has primary board, they have access
-  if (primaryBoardId) {
-    return true;
-  }
-
-  try {
-    // Check user_boards table
-    const { data, error } = await supabase
-      .from('user_boards')
-      .select('id')
-      .eq('user_id', userId)
-      .limit(1);
-
-    if (error) {
-      logger.error('Error checking board assignment', error);
-      return false;
-    }
-
-    return !!(data && data.length > 0);
-  } catch (err) {
-    logger.error('Failed to check board assignment', err);
-    return false;
-  }
-}
-
 const initialState: AuthState = {
   user: null,
   session: null,
@@ -137,74 +107,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
             localStorage.removeItem(AUTH_STORAGE_KEY);
             // Don't return - fall through to trigger re-auth
           } else {
-            // Verify user still exists in database before using cached data
-            console.log('[AuthProvider] Verifying stored user exists in database...');
-            const userCheck = await verifyUserExists(user.id);
-            console.log('[AuthProvider] User verification result:', userCheck);
-
-            if (!userCheck.exists) {
-              logger.info('Stored user no longer exists in database, clearing cache', { id: user.id });
-              localStorage.removeItem(AUTH_STORAGE_KEY);
-              // Fall through to trigger re-auth
-            } else {
-              // IMPORTANT: Sync user data from database (role may have changed)
-              const updatedUser: AuthUser = {
-                ...user,
-                role: userCheck.role as AuthUser['role'],
-                name: userCheck.name || user.name,
-                email: userCheck.email || user.email,
-                primaryBoardId: userCheck.primaryBoardId ?? null,
-                isSuperAdmin: userCheck.isSuperAdmin ?? false,
-                companyName: userCheck.companyName ?? null,
-                companyLogoUrl: userCheck.companyLogoUrl ?? null,
-              };
-
-              // Check if user data changed and update localStorage
-              if (user.role !== updatedUser.role ||
-                  user.primaryBoardId !== updatedUser.primaryBoardId ||
-                  user.isSuperAdmin !== updatedUser.isSuperAdmin ||
-                  user.companyName !== updatedUser.companyName ||
-                  user.companyLogoUrl !== updatedUser.companyLogoUrl) {
-                logger.info('User data changed in database, updating cache', {
-                  oldRole: user.role,
-                  newRole: updatedUser.role,
-                  isSuperAdmin: updatedUser.isSuperAdmin,
-                  companyName: updatedUser.companyName,
-                });
-                localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(updatedUser));
-              }
-
-              // For clients, verify they have a board assignment
-              if (updatedUser.role === 'client') {
-                const hasBoardAssignment = await verifyClientHasBoardAssignment(user.id, userCheck.primaryBoardId ?? null);
-                if (!hasBoardAssignment) {
-                  logger.info('Client has no board assignment, clearing cache to trigger re-auth', { id: user.id });
-                  localStorage.removeItem(AUTH_STORAGE_KEY);
-                  // Fall through to trigger re-auth (will show "Pending Board Assignment" screen)
-                } else {
-                  logger.debug('Using updated client user with board assignment', { name: updatedUser.name, role: updatedUser.role });
-                  setState({
-                    user: updatedUser,
-                    session: null,
-                    isLoading: false,
-                    isAuthenticated: true,
-                    error: null,
-                  });
-                  return;
-                }
-              } else {
-                // Non-client users (admin, designer) don't need board assignment
-                logger.debug('Using updated user', { name: updatedUser.name, role: updatedUser.role });
-                setState({
-                  user: updatedUser,
-                  session: null,
-                  isLoading: false,
-                  isAuthenticated: true,
-                  error: null,
-                });
-                return;
-              }
-            }
+            // Miro user ID matches stored user - trust the cached data
+            // Skip database verification on init to avoid RLS issues when not authenticated
+            // The verification will happen after Supabase Auth session is established
+            console.log('[AuthProvider] Miro user matches stored user, using cached data');
+            console.log('[AuthProvider] Setting authenticated state from localStorage');
+            setState({
+              user,
+              session: null,
+              isLoading: false,
+              isAuthenticated: true,
+              error: null,
+            });
+            return;
           }
         }
 
