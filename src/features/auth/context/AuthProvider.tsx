@@ -109,22 +109,31 @@ export function AuthProvider({ children }: AuthProviderProps) {
             // Don't return - fall through to trigger re-auth
           } else {
             // Miro user ID matches stored user - trust the cached data
-            // BUT we need to re-establish the Supabase session for RLS to work
-            console.log('[AuthProvider] Miro user matches stored user, re-establishing Supabase session...');
+            // Try to re-establish Supabase session with a timeout
+            console.log('[AuthProvider] Miro user matches stored user, attempting Supabase session...');
 
-            // Re-establish Supabase Auth session for RLS
+            // Re-establish Supabase Auth session for RLS (with timeout)
             if (user.miroUserId) {
-              const authResult = await supabaseAuthBridge.signInAfterMiroAuth(
-                user.id,
-                user.email,
-                user.miroUserId
-              );
+              try {
+                // Add a 5-second timeout to prevent hanging
+                const authPromise = supabaseAuthBridge.signInAfterMiroAuth(
+                  user.id,
+                  user.email,
+                  user.miroUserId
+                );
+                const timeoutPromise = new Promise<{ success: false; error: string }>((resolve) =>
+                  setTimeout(() => resolve({ success: false, error: 'Timeout' }), 5000)
+                );
 
-              if (!authResult.success) {
-                console.warn('[AuthProvider] Failed to re-establish Supabase session:', authResult.error);
-                // Still allow access with cached data - RLS may fail but app will still work for basic features
-              } else {
-                console.log('[AuthProvider] Supabase session re-established successfully');
+                const authResult = await Promise.race([authPromise, timeoutPromise]);
+
+                if (!authResult.success) {
+                  console.warn('[AuthProvider] Supabase session failed (will use anon):', authResult.error);
+                } else {
+                  console.log('[AuthProvider] Supabase session re-established successfully');
+                }
+              } catch (err) {
+                console.warn('[AuthProvider] Supabase session error (will use anon):', err);
               }
             }
 
