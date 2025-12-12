@@ -35,23 +35,6 @@
   justify-content: flex-end;
 }
 
-.filterChip {
-  border: 1px solid #e5e7eb;
-  background: #fff;
-  color: #374151;
-  padding: 6px 10px;
-  border-radius: 9999px;
-  font-size: 12px;
-  cursor: pointer;
-}
-
-.filterChipActive {
-  background: #eef2ff;
-  border-color: #c7d2fe;
-  color: #050038;
-  font-weight: 600;
-}
-
 .list {
   border: 1px solid #e5e7eb;
   border-radius: 12px;
@@ -192,4 +175,3 @@
     align-items: center;
   }
 }
-

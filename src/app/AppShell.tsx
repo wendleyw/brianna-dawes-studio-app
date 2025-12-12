@@ -54,7 +54,9 @@ export function AppShell() {
   const adminMenuRef = useRef<HTMLDivElement | null>(null);
 
   const isAdmin = user?.role === 'admin';
-  const showBackToDashboard = location.pathname.startsWith('/projects');
+  const isProjectsRoute = location.pathname.startsWith('/projects');
+  const isNotificationsRoute = location.pathname.startsWith('/notifications');
+  const showBackButton = isProjectsRoute || isNotificationsRoute;
 
   useEffect(() => {
     if (!isAdminMenuOpen) return;
@@ -99,12 +101,15 @@ export function AppShell() {
     <div className={styles.shell}>
       <header className={styles.topbar}>
         <div className={styles.left}>
-          {showBackToDashboard && (
+          {showBackButton && (
             <button
               className={styles.backToDashboard}
-              onClick={() => navigate('/dashboard')}
-              title="Back to Dashboard"
-              aria-label="Back to Dashboard"
+              onClick={() => {
+                if (isProjectsRoute) navigate('/dashboard');
+                else navigate(-1);
+              }}
+              title={isProjectsRoute ? 'Back to Dashboard' : 'Back'}
+              aria-label={isProjectsRoute ? 'Back to Dashboard' : 'Back'}
               type="button"
             >
               <BackIcon />

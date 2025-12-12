@@ -40,8 +40,6 @@ export type {
   DeliverableRow,
   DeliverableInsert,
   DeliverableUpdate,
-  DeliverableVersionRow,
-  DeliverableFeedbackRow,
   NotificationRow,
   UserBoardRow,
   AppSettingRow,
@@ -50,5 +48,4 @@ export type {
   ProjectPriority,
   DeliverableStatus,
   DeliverableType,
-  FeedbackStatus,
 } from './database.types';

@@ -54,13 +54,13 @@ export function NotificationsPage() {
         </div>
 
         <div className={styles.actions}>
-          <button
-            type="button"
-            className={`${styles.filterChip} ${unreadOnly ? styles.filterChipActive : ''}`}
+          <Button
+            size="sm"
+            variant={unreadOnly ? 'secondary' : 'ghost'}
             onClick={() => setUnreadOnly((v) => !v)}
           >
             Unread only
-          </button>
+          </Button>
           <Button size="sm" variant="ghost" onClick={refresh}>
             Refresh
           </Button>
@@ -120,4 +120,3 @@ export function NotificationsPage() {
     </div>
   );
 }
-
