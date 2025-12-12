@@ -119,7 +119,25 @@ class ProjectService {
     query = query.range(from, to);
 
     console.log('[ProjectService] Executing query...');
-    const { data, error, count } = await query;
+
+    // Add timeout to prevent infinite hang
+    const timeoutMs = 10000;
+    const queryPromise = query;
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error(`Query timeout after ${timeoutMs}ms`)), timeoutMs)
+    );
+
+    let data, error, count;
+    try {
+      const result = await Promise.race([queryPromise, timeoutPromise]);
+      data = result.data;
+      error = result.error;
+      count = result.count;
+    } catch (timeoutError) {
+      console.error('[ProjectService] Query timed out:', timeoutError);
+      throw timeoutError;
+    }
+
     console.log('[ProjectService] Query complete:', { dataCount: data?.length, error: error?.message, count });
 
     if (error) throw error;
