@@ -33,8 +33,13 @@ const GridIcon = () => (
   </svg>
 );
 
-const SettingsIcon = () => (
-  <img src="/setting-icon.png" alt="Settings" width="24" height="24" style={{ objectFit: 'contain' }} />
+const DashboardIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <rect x="3" y="3" width="8" height="8" rx="1"/>
+    <rect x="13" y="3" width="8" height="4" rx="1"/>
+    <rect x="13" y="9" width="8" height="12" rx="1"/>
+    <rect x="3" y="13" width="8" height="8" rx="1"/>
+  </svg>
 );
 
 // STATUS_COLORS replaced by STATUS_COLUMNS from @shared/lib/timelineStatus
@@ -100,9 +105,29 @@ export function DashboardPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const { isInMiro, boardId: currentBoardId } = useMiro();
+  const { isInMiro, boardId: currentBoardId, miro } = useMiro();
   const { boardId: masterBoardId } = useMasterBoardSettings();
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
+
+  // Handler to open Admin Dashboard in modal
+  const handleOpenAdminDashboard = useCallback(async () => {
+    if (miro && isInMiro) {
+      try {
+        await miro.board.ui.openModal({
+          url: 'app.html#/admin',
+          width: 900,
+          height: 700,
+          fullscreen: false,
+        });
+      } catch (error) {
+        console.error('Failed to open admin modal', error);
+        // Fallback to navigation
+        navigate('/admin');
+      }
+    } else {
+      navigate('/admin');
+    }
+  }, [miro, isInMiro, navigate]);
 
   // Debug log
   console.log('[DashboardPage] Render:', {
@@ -350,13 +375,13 @@ export function DashboardPage() {
           {isAdmin && (
             <button
               className={styles.actionCard}
-              onClick={() => navigate('/admin')}
+              onClick={handleOpenAdminDashboard}
             >
-              <div className={styles.actionIconDark}>
-                <SettingsIcon />
+              <div className={styles.actionIconBlue}>
+                <DashboardIcon />
               </div>
-              <span className={styles.actionLabel}>Settings</span>
-              <span className={styles.actionSub}>Admin panel</span>
+              <span className={styles.actionLabel}>Admin</span>
+              <span className={styles.actionSub}>Dashboard</span>
             </button>
           )}
         </div>
