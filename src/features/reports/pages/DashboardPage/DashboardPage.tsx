@@ -8,6 +8,7 @@ import { projectKeys } from '@features/projects/services/projectKeys';
 import { zoomToProject, useMiro } from '@features/boards';
 import { useMasterBoardSettings } from '@features/boards/hooks/useMasterBoard';
 import { supabase } from '@shared/lib/supabase';
+import { supabaseRestQuery, isInMiroIframe } from '@shared/lib/supabaseRest';
 import type { ProjectFilters as ProjectFiltersType } from '@features/projects/domain/project.types';
 import { STATUS_COLUMNS, getStatusColumn } from '@shared/lib/timelineStatus';
 import { formatDateShort, formatDateMonthYear } from '@shared/lib/dateFormat';
@@ -183,7 +184,26 @@ export function DashboardPage() {
         return [];
       }
 
-      // Try to get count and bonus_count for deliverables of current board's projects
+      // Use REST API in Miro iframe context to avoid Supabase client hanging
+      if (isInMiroIframe()) {
+        console.log('[DashboardPage] Using REST API for deliverables (Miro iframe context)');
+        const result = await supabaseRestQuery<Array<{ count: number; bonus_count: number }>>('deliverables', {
+          select: 'count,bonus_count',
+          in: { project_id: projectIds },
+        });
+        if (result.error) {
+          // Fallback without bonus_count
+          const fallbackResult = await supabaseRestQuery<Array<{ count: number }>>('deliverables', {
+            select: 'count',
+            in: { project_id: projectIds },
+          });
+          if (fallbackResult.error) throw new Error(fallbackResult.error.message);
+          return (fallbackResult.data || []).map(d => ({ count: d.count, bonus_count: 0 }));
+        }
+        return result.data || [];
+      }
+
+      // Standard Supabase client for non-iframe context
       const { data, error } = await supabase
         .from('deliverables')
         .select('count, bonus_count')
