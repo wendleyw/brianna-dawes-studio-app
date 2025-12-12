@@ -5,23 +5,24 @@
   overflow: hidden;
 }
 
+/* Use explicit padding for Miro SDK iframe compatibility */
 .pageLoader {
-  padding: var(--space-6);
+  padding: 24px;
 }
 
 .pageLoaderSkeleton1 {
-  margin-bottom: var(--space-4);
+  margin-bottom: 16px;
 }
 
 .pageLoaderSkeleton2 {
-  margin-bottom: var(--space-3);
+  margin-bottom: 12px;
 }
 
 .pageLoaderSkeleton3 {
-  margin-bottom: var(--space-2);
+  margin-bottom: 8px;
 }
 
 .boardRedirect {
-  padding: var(--space-6);
+  padding: 24px;
   text-align: center;
 }
