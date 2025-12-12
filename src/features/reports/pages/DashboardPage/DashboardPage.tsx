@@ -114,7 +114,7 @@ export function DashboardPage() {
     if (miro && isInMiro) {
       try {
         await miro.board.ui.openModal({
-          url: 'app.html#/admin',
+          url: 'app.html#/admin/dashboard',
           width: 900,
           height: 700,
           fullscreen: false,
@@ -122,10 +122,10 @@ export function DashboardPage() {
       } catch (error) {
         console.error('Failed to open admin modal', error);
         // Fallback to navigation
-        navigate('/admin');
+        navigate('/admin/dashboard');
       }
     } else {
-      navigate('/admin');
+      navigate('/admin/dashboard');
     }
   }, [miro, isInMiro, navigate]);
 
