@@ -45,7 +45,25 @@ export function getStatusColumn(status: ProjectStatus): StatusColumn {
 }
 
 // Get status directly from project (no derivation needed anymore!)
-export function getTimelineStatus(project: { status: ProjectStatus }): ProjectStatus {
+export function getTimelineStatus(project: {
+  status: ProjectStatus;
+  dueDate?: string | null;
+  dueDateApproved?: boolean;
+}): ProjectStatus {
+  if (project.status === 'done') return 'done';
+
+  // Overdue takes precedence when due date is approved and in the past
+  if (project.dueDate && project.dueDateApproved !== false) {
+    const due = new Date(project.dueDate);
+    if (!Number.isNaN(due.getTime())) {
+      // If date-only, treat as end-of-day local time
+      if (/^\d{4}-\d{2}-\d{2}$/.test(project.dueDate)) {
+        due.setHours(23, 59, 59, 999);
+      }
+      if (due.getTime() < Date.now()) return 'overdue';
+    }
+  }
+
   return project.status;
 }
 

@@ -167,8 +167,20 @@ async function safeRemove(id: string): Promise<boolean> {
   return miroAdapter.removeItem(id);
 }
 
-// Map project status to timeline status - direct since DB now has 7 statuses
-function getTimelineStatus(project: { status: ProjectStatus }): ProjectStatus {
+// Map project status to timeline status (overdue derived from dueDate when applicable)
+function getTimelineStatus(project: { status: ProjectStatus; dueDate?: string | null; dueDateApproved?: boolean }): ProjectStatus {
+  if (project.status === 'done') return 'done';
+
+  if (project.dueDate && project.dueDateApproved !== false) {
+    const due = new Date(project.dueDate);
+    if (!Number.isNaN(due.getTime())) {
+      if (/^\d{4}-\d{2}-\d{2}$/.test(project.dueDate)) {
+        due.setHours(23, 59, 59, 999);
+      }
+      if (due.getTime() < Date.now()) return 'overdue';
+    }
+  }
+
   return project.status;
 }
 
