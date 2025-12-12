@@ -7,8 +7,8 @@
 
 .topbar {
   flex-shrink: 0;
-  height: 44px;
-  padding: 0 52px 0 12px;
+  height: 52px;
+  padding: 0 calc(var(--space-4) + 44px) 0 var(--space-4);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -104,8 +104,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
   padding: 0;
   background: #111827;
   color: #ffffff;
@@ -120,8 +120,8 @@
 }
 
 .adminToggle svg {
-  width: 14px;
-  height: 14px;
+  width: 18px;
+  height: 18px;
 }
 
 .adminMenu {
@@ -189,8 +189,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
   padding: 0;
   background: #f3f4f6;
   color: #111827;
@@ -208,8 +208,8 @@
 }
 
 .backToDashboard svg {
-  width: 14px;
-  height: 14px;
+  width: 18px;
+  height: 18px;
 }
 
 .user {
@@ -220,8 +220,8 @@
 
 .avatar,
 .avatarFallback {
-  width: 28px;
-  height: 28px;
+  width: 40px;
+  height: 40px;
   border-radius: 9999px;
 }
 
