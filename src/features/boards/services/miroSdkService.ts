@@ -1636,18 +1636,51 @@ class MiroProjectRowService {
       items.push({ id: crypto.randomUUID(), miroItemId: shape.id, fieldKey: field.key });
     }
 
-    // === CREATIVE DIRECTION (bottom ~50%) ===
+    // === CREATIVE DIRECTION & FILE ASSETS (bottom ~50%, split evenly) ===
     const formBottom = formStartY + ROWS * CELL_HEIGHT + (ROWS - 1) * CELL_GAP + 15;
-    const creativeHeight = (top + FRAME.HEIGHT - BRIEFING.PADDING) - formBottom - 25;
+    const totalBottomHeight = (top + FRAME.HEIGHT - BRIEFING.PADDING) - formBottom - 25;
+    const sectionHeight = (totalBottomHeight - 30) / 2; // Split between 2 sections with gap
+    const headerHeight = 24;
 
-    // Creative header (clean gray)
+    // Helper to send shape to back
+    const sendToBack = async (shape: { id: string }) => {
+      try {
+        await (shape as unknown as { sendToBack: () => Promise<void> }).sendToBack();
+      } catch {
+        try {
+          await (miro.board as unknown as { sendToBack: (item: unknown) => Promise<void> }).sendToBack(shape);
+        } catch {
+          // If sendToBack isn't available, content may overlap
+        }
+      }
+    };
+
+    // === CREATIVE DIRECTION ===
+    // Creative Direction drop zone FIRST (so it's behind)
+    const creativeDropZoneY = formBottom + headerHeight + 5 + (sectionHeight - headerHeight) / 2;
+    const creativeDropZone = await miro.board.createShape({
+      shape: 'rectangle',
+      content: '',
+      x: frameX,
+      y: creativeDropZoneY,
+      width: contentWidth - 10,
+      height: sectionHeight - headerHeight - 10,
+      style: {
+        fillColor: '#FFFFFF',
+        borderColor: '#E5E7EB',
+        borderWidth: 1,
+      },
+    });
+    await sendToBack(creativeDropZone);
+
+    // Creative header (clean gray) - created after so it's on top
     await miro.board.createShape({
       shape: 'rectangle',
       content: '<p><b>CREATIVE DIRECTION</b></p>',
       x: frameX,
       y: formBottom + 12,
       width: contentWidth,
-      height: 24,
+      height: headerHeight,
       style: {
         fillColor: '#F3F4F6',
         borderColor: '#E5E7EB',
@@ -1659,19 +1692,42 @@ class MiroProjectRowService {
       },
     });
 
-    // Large image drop zone (clean white with gray border)
-    const dropZoneY = formBottom + 25 + creativeHeight / 2;
-    await miro.board.createShape({
+    // === FILE ASSETS ===
+    const fileAssetsStartY = formBottom + sectionHeight + 15;
+
+    // File Assets drop zone FIRST (so it's behind)
+    const fileAssetsDropZoneY = fileAssetsStartY + headerHeight + 5 + (sectionHeight - headerHeight) / 2;
+    const fileAssetsDropZone = await miro.board.createShape({
       shape: 'rectangle',
       content: '',
       x: frameX,
-      y: dropZoneY,
+      y: fileAssetsDropZoneY,
       width: contentWidth - 10,
-      height: creativeHeight - 15,
+      height: sectionHeight - headerHeight - 10,
       style: {
         fillColor: '#FFFFFF',
         borderColor: '#E5E7EB',
         borderWidth: 1,
+      },
+    });
+    await sendToBack(fileAssetsDropZone);
+
+    // File Assets header (clean gray) - created after so it's on top
+    await miro.board.createShape({
+      shape: 'rectangle',
+      content: '<p><b>FILE ASSETS</b></p>',
+      x: frameX,
+      y: fileAssetsStartY + 12,
+      width: contentWidth,
+      height: headerHeight,
+      style: {
+        fillColor: '#F3F4F6',
+        borderColor: '#E5E7EB',
+        borderWidth: 1,
+        color: '#374151',
+        fontSize: 10,
+        textAlign: 'center',
+        textAlignVertical: 'middle',
       },
     });
 
@@ -1681,37 +1737,62 @@ class MiroProjectRowService {
   private async createVersionContent(x: number, y: number, num: number): Promise<void> {
     const miro = getMiroSDK();
     const top = y - FRAME.HEIGHT / 2;
+    const bottom = y + FRAME.HEIGHT / 2;
     const contentWidth = FRAME.WIDTH - 40;
+    const headerHeight = 24;
+    const padding = BRIEFING.PADDING;
 
-    // Header (minimalist)
-    await miro.board.createShape({
-      shape: 'rectangle',
-      content: `<p><b>VERSION ${num}</b></p>`,
-      x,
-      y: top + 30,
-      width: contentWidth,
-      height: 36,
-      style: {
-        fillColor: '#000000',
-        color: '#FFFFFF',
-        fontSize: 13,
-        textAlign: 'center',
-        textAlignVertical: 'middle',
-      },
-    });
+    // Work area FIRST (clean, minimalist - fills remaining space matching briefing bottom sections)
+    // Created first so it's behind everything else
+    const workAreaTop = top + padding + headerHeight + 10;
+    const workAreaBottom = bottom - padding;
+    const workAreaHeight = workAreaBottom - workAreaTop;
+    const workAreaY = workAreaTop + workAreaHeight / 2;
 
-    // Work area (clean, minimalist)
-    await miro.board.createShape({
+    const workArea = await miro.board.createShape({
       shape: 'rectangle',
       content: '',
       x,
-      y: y + 15,
-      width: contentWidth,
-      height: FRAME.HEIGHT - 100,
+      y: workAreaY,
+      width: contentWidth - 10,
+      height: workAreaHeight,
       style: {
         fillColor: '#FFFFFF',
         borderColor: '#E5E7EB',
         borderWidth: 1,
+      },
+    });
+
+    // Send work area to back so any content added later appears in front
+    try {
+      await (workArea as unknown as { sendToBack: () => Promise<void> }).sendToBack();
+    } catch {
+      // Fallback: try board method if item method fails
+      try {
+        await (miro.board as unknown as { sendToBack: (item: unknown) => Promise<void> }).sendToBack(workArea);
+      } catch {
+        // If sendToBack isn't available, the item will still work but may need manual layering
+        log('MiroProject', 'sendToBack not available, work area may overlap content');
+      }
+    }
+
+    // Header SECOND (clean gray, matching briefing section headers)
+    // Created after work area so it appears on top
+    await miro.board.createShape({
+      shape: 'rectangle',
+      content: `<p><b>VERSION ${num}</b></p>`,
+      x,
+      y: top + padding + headerHeight / 2,
+      width: contentWidth,
+      height: headerHeight,
+      style: {
+        fillColor: '#F3F4F6',
+        borderColor: '#E5E7EB',
+        borderWidth: 1,
+        color: '#374151',
+        fontSize: 10,
+        textAlign: 'center',
+        textAlignVertical: 'middle',
       },
     });
   }
@@ -1959,8 +2040,8 @@ class MiroProjectRowService {
   }
 
   /**
-   * Handle the green "done" overlay on the briefing frame
-   * Creates a semi-transparent green overlay when status is "done", removes it otherwise
+   * Handle the gray "done" overlay on the briefing frame
+   * Creates a semi-transparent gray overlay when status is "done", removes it otherwise
    */
   private async handleDoneOverlay(
     projectId: string,
@@ -2041,13 +2122,15 @@ class MiroProjectRowService {
           const frameWidth = briefingFrame.width || FRAME.WIDTH;
           const frameHeight = briefingFrame.height || FRAME.HEIGHT;
 
-          // Find large green rectangles at the frame position (checking for both old solid and new transparent)
+          // Find large overlay rectangles at the frame position (checking for both old green and new gray)
           const overlayShape = allShapes.find(s => {
             const isAtFrameCenter = Math.abs(s.x - briefingFrame.x) < 50 && Math.abs(s.y - briefingFrame.y) < 50;
             const isLarge = (s.width || 0) > frameWidth * 0.8 && (s.height || 0) > frameHeight * 0.8;
             const fillColor = s.style?.fillColor?.toUpperCase();
+            // Check for both legacy green overlays and current gray overlay
             const isGreen = fillColor === '#22C55E' || fillColor === '#DCFCE7' || fillColor === '#BBF7D0';
-            return isAtFrameCenter && isLarge && isGreen;
+            const isGray = fillColor === '#9CA3AF';
+            return isAtFrameCenter && isLarge && (isGreen || isGray);
           });
 
           if (overlayShape) {
