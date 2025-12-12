@@ -1108,7 +1108,7 @@ export const ProjectCard = memo(function ProjectCard({
                 )}
 
                 {/* Urgent - available for assigned client, hidden when Done */}
-                {!isDone && project.status !== 'urgent' && project.status !== 'overdue' && (
+                {!isDone && !isInReview && project.status !== 'urgent' && project.status !== 'overdue' && (
                   <button className={`${styles.adminBtn} ${styles.danger}`} onClick={handleClientCriticalClick}>
                     <div className={styles.adminBtnIcon}><StarIcon /></div>
                     <span>Urgent</span>
