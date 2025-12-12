@@ -7,12 +7,11 @@
 
 .topbar {
   flex-shrink: 0;
-  height: 52px;
+  height: 44px;
   padding: 0 12px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  border-bottom: 1px solid #e5e7eb;
+  justify-content: flex-end;
   background: #fff;
   position: sticky;
   top: 0;
