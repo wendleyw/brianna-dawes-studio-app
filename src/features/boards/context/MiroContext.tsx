@@ -188,28 +188,37 @@ export function MiroProvider({ children }: MiroProviderProps) {
             console.error('[MiroContext] Raw fetch FAILED after', rawElapsed, 'ms:', rawErr);
           }
 
-          // Test Supabase client connectivity
-          console.log('[MiroContext] Testing Supabase client connectivity...');
+          // Mark as ready IMMEDIATELY - don't wait for Supabase client test
+          // The raw fetch already confirmed connectivity
+          console.log('[MiroContext] Setting isReady=true (raw fetch confirmed connectivity)');
+          setIsReady(true);
+
+          // Test Supabase client connectivity in background (non-blocking)
+          console.log('[MiroContext] Testing Supabase client connectivity (background)...');
           const connectivityStart = Date.now();
-          try {
-            // Simple health check - just try to reach Supabase
-            const { data, error: testError } = await supabase
-              .from('users')
-              .select('id')
-              .limit(1)
-              .maybeSingle();
+
+          // Add timeout to prevent hanging
+          const testPromise = supabase
+            .from('users')
+            .select('id')
+            .limit(1)
+            .maybeSingle();
+
+          const timeoutPromise = new Promise<{ data: null; error: { message: string } }>((resolve) =>
+            setTimeout(() => resolve({ data: null, error: { message: 'Test timeout after 5s' } }), 5000)
+          );
+
+          Promise.race([testPromise, timeoutPromise]).then(({ data, error: testError }) => {
             const elapsed = Date.now() - connectivityStart;
             if (testError) {
-              console.warn('[MiroContext] Supabase client returned error:', testError.message, 'in', elapsed, 'ms');
+              console.warn('[MiroContext] Supabase client test:', testError.message, 'in', elapsed, 'ms');
             } else {
               console.log('[MiroContext] Supabase client OK in', elapsed, 'ms, test data:', !!data);
             }
-          } catch (connErr) {
+          }).catch((connErr) => {
             const elapsed = Date.now() - connectivityStart;
             console.error('[MiroContext] Supabase client FAILED after', elapsed, 'ms:', connErr);
-          }
-
-          setIsReady(true);
+          });
         } else {
           console.log('[MiroContext] Running standalone (not in Miro iframe)');
           setIsReady(true);

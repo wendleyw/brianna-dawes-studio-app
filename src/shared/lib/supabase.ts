@@ -47,12 +47,14 @@ const debugFetch: typeof fetch = async (input, init) => {
  */
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    persistSession: true,
-    autoRefreshToken: true,
-    // Use localStorage for session persistence
-    storage: typeof window !== 'undefined' ? window.localStorage : undefined,
-    // Detect session from URL (for OAuth callbacks)
-    detectSessionInUrl: false, // Disable to prevent hanging on URL parsing in iframe
+    // Disable session persistence in Miro iframe to prevent auth lock issues
+    persistSession: !isInMiroIframe,
+    // Disable auto-refresh in Miro iframe - we handle auth manually via miroAuthService
+    autoRefreshToken: !isInMiroIframe,
+    // Use localStorage for session persistence (only when not in Miro)
+    storage: (!isInMiroIframe && typeof window !== 'undefined') ? window.localStorage : undefined,
+    // Detect session from URL (for OAuth callbacks) - disable in iframe
+    detectSessionInUrl: false,
     // Flow type for PKCE
     flowType: 'pkce',
   },
