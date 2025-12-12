@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { AuthContext } from './AuthContext';
 import { authService } from '../services/authService';
 import { miroAuthService } from '../services/miroAuthService';
+import { supabaseAuthBridge } from '../services/supabaseAuthBridge';
 import { supabase } from '@shared/lib/supabase';
 import { createLogger } from '@shared/lib/logger';
 import type { AuthState, AuthContextValue, LoginCredentials, AuthUser } from '../domain/auth.types';
@@ -108,9 +109,25 @@ export function AuthProvider({ children }: AuthProviderProps) {
             // Don't return - fall through to trigger re-auth
           } else {
             // Miro user ID matches stored user - trust the cached data
-            // Skip database verification on init to avoid RLS issues when not authenticated
-            // The verification will happen after Supabase Auth session is established
-            console.log('[AuthProvider] Miro user matches stored user, using cached data');
+            // BUT we need to re-establish the Supabase session for RLS to work
+            console.log('[AuthProvider] Miro user matches stored user, re-establishing Supabase session...');
+
+            // Re-establish Supabase Auth session for RLS
+            if (user.miroUserId) {
+              const authResult = await supabaseAuthBridge.signInAfterMiroAuth(
+                user.id,
+                user.email,
+                user.miroUserId
+              );
+
+              if (!authResult.success) {
+                console.warn('[AuthProvider] Failed to re-establish Supabase session:', authResult.error);
+                // Still allow access with cached data - RLS may fail but app will still work for basic features
+              } else {
+                console.log('[AuthProvider] Supabase session re-established successfully');
+              }
+            }
+
             console.log('[AuthProvider] Setting authenticated state from localStorage');
             setState({
               user,
