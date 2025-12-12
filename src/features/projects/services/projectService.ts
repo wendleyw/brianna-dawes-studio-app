@@ -1,4 +1,5 @@
 import { supabase } from '@shared/lib/supabase';
+import { supabaseRestQuery, isInMiroIframe } from '@shared/lib/supabaseRest';
 import { createLogger } from '@shared/lib/logger';
 import type {
   Project,
@@ -49,6 +50,12 @@ class ProjectService {
   async getProjects(params: ProjectsQueryParams = {}): Promise<ProjectsResponse> {
     console.log('[ProjectService] getProjects called with params:', params);
     const { filters = {}, sort = { field: 'createdAt', direction: 'desc' }, page = 1, pageSize = 10 } = params;
+
+    // In Miro iframe, use direct REST API to avoid Supabase client hanging
+    if (isInMiroIframe()) {
+      console.log('[ProjectService] Using REST API (Miro iframe context)');
+      return this.getProjectsViaRest(params);
+    }
 
     let query = supabase
       .from('projects')
@@ -145,6 +152,77 @@ class ProjectService {
     const total = count || 0;
 
     console.log('[ProjectService] Returning', projects.length, 'projects');
+    return {
+      data: projects,
+      total,
+      page,
+      pageSize,
+      totalPages: Math.ceil(total / pageSize),
+    };
+  }
+
+  /**
+   * Get projects using direct REST API (for Miro iframe context)
+   * This bypasses the Supabase JS client which hangs in iframe
+   */
+  private async getProjectsViaRest(params: ProjectsQueryParams = {}): Promise<ProjectsResponse> {
+    const { filters = {}, sort = { field: 'createdAt', direction: 'desc' }, page = 1, pageSize = 10 } = params;
+
+    const eq: Record<string, string | number | boolean> = {};
+    const inFilters: Record<string, (string | number)[]> = {};
+
+    // Apply filters
+    if (filters.status) {
+      if (Array.isArray(filters.status)) {
+        inFilters['status'] = filters.status;
+      } else {
+        eq['status'] = filters.status;
+      }
+    }
+
+    if (filters.priority) {
+      if (Array.isArray(filters.priority)) {
+        inFilters['priority'] = filters.priority;
+      } else {
+        eq['priority'] = filters.priority;
+      }
+    }
+
+    if (filters.clientId) {
+      eq['client_id'] = filters.clientId;
+    }
+
+    if (filters.miroBoardId) {
+      eq['miro_board_id'] = filters.miroBoardId;
+    }
+
+    const sortColumn = this.mapSortField(sort.field);
+    const from = (page - 1) * pageSize;
+    const to = from + pageSize - 1;
+
+    console.log('[ProjectService] REST query with:', { eq, inFilters, sort: sortColumn });
+
+    const result = await supabaseRestQuery<Record<string, unknown>[]>('projects', {
+      select: '*',
+      eq,
+      in: inFilters,
+      order: { column: sortColumn, ascending: sort.direction === 'asc' },
+      range: { from, to },
+      limit: pageSize,
+    });
+
+    if (result.error) {
+      console.error('[ProjectService] REST query error:', result.error);
+      throw new Error(result.error.message);
+    }
+
+    const data = result.data || [];
+    console.log('[ProjectService] REST query returned', data.length, 'projects');
+
+    // Map data - note: REST doesn't do joins, so client/designers will be null
+    const projects = data.map(this.mapProjectFromDB);
+    const total = result.count || data.length;
+
     return {
       data: projects,
       total,
