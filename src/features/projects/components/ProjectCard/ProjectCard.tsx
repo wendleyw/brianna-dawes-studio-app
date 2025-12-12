@@ -63,9 +63,19 @@ export const ProjectCard = memo(function ProjectCard({
   onCreateVersion,
   onAssignDesigner,
   isSelected = false,
+  isExpanded: controlledIsExpanded,
+  onExpandedChange,
 }: ProjectCardProps) {
   const { user } = useAuth();
-  const [isExpanded, setIsExpanded] = useState(true); // Always start expanded
+  const [uncontrolledIsExpanded, setUncontrolledIsExpanded] = useState(false);
+  const isExpanded = controlledIsExpanded ?? uncontrolledIsExpanded;
+  const setIsExpanded = useCallback((next: boolean) => {
+    if (onExpandedChange) {
+      onExpandedChange(project.id, next);
+      return;
+    }
+    setUncontrolledIsExpanded(next);
+  }, [onExpandedChange, project.id]);
   const [showDeliverables, setShowDeliverables] = useState(false);
 
   // Click handling for single vs double click
@@ -223,7 +233,7 @@ export const ProjectCard = memo(function ProjectCard({
       clickCountRef.current = 0;
       setIsExpanded(!isExpanded);
     }
-  }, [project, onCardClick, isExpanded]);
+  }, [project, onCardClick, isExpanded, setIsExpanded]);
 
   const handleViewDetails = (e: React.MouseEvent) => {
     e.stopPropagation();

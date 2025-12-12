@@ -266,6 +266,11 @@ export function ProjectsPage() {
 
   // Get selected project from URL
   const selectedProjectId = searchParams.get('selected');
+  const [expandedProjectId, setExpandedProjectId] = useState<string | null>(() => selectedProjectId);
+
+  useEffect(() => {
+    setExpandedProjectId(selectedProjectId);
+  }, [selectedProjectId]);
 
   // Check if we're currently inside the Master Board
   const isMasterBoard = !!(isInMiro && currentBoardId && masterBoardId && currentBoardId === masterBoardId);
@@ -763,6 +768,10 @@ export function ProjectsPage() {
               onCreateVersion={handleCreateVersion}
               onAssignDesigner={handleAssignDesigner}
               isSelected={project.id === selectedProjectId}
+              isExpanded={project.id === expandedProjectId}
+              onExpandedChange={(projectId, expanded) => {
+                setExpandedProjectId(expanded ? projectId : null);
+              }}
             />
           ))
         )}

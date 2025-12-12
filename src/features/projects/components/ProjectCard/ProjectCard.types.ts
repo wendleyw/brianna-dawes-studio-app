@@ -16,6 +16,8 @@ export interface ProjectCardProps {
   onCreateVersion?: (project: Project) => void;
   onAssignDesigner?: (projectId: string, designerIds: string[]) => void;
   isSelected?: boolean;
+  isExpanded?: boolean;
+  onExpandedChange?: (projectId: string, expanded: boolean) => void;
 }
 
 // Designer with workload info for assignment modal
