@@ -691,6 +691,7 @@ export function DeveloperTools() {
   const [isCreating, setIsCreating] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
   const [isRenaming, setIsRenaming] = useState(false);
+  const [isResettingDB, setIsResettingDB] = useState(false);
   const [progress, setProgress] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
 
@@ -875,6 +876,184 @@ export function DeveloperTools() {
       setError(err instanceof Error ? err.message : 'Failed to clear data');
     } finally {
       setIsClearing(false);
+    }
+  };
+
+  // RESET DATABASE - Complete database reset (keeps only current admin)
+  const handleResetDatabase = async () => {
+    if (!confirm('⚠️ RESET DATABASE\n\nThis will DELETE EVERYTHING:\n- All projects\n- All deliverables\n- All clients\n- All designers\n- All subscription plans\n- All app settings\n\nOnly YOUR admin account will be preserved.\n\nAre you sure?')) {
+      return;
+    }
+
+    if (!confirm('🚨 FINAL WARNING!\n\nThis will completely reset the database to a fresh state.\n\nType "RESET" mentally and click OK to confirm.')) {
+      return;
+    }
+
+    setIsResettingDB(true);
+    setProgress([]);
+    setError(null);
+
+    try {
+      addProgress('🔄 Starting complete database reset...');
+      addProgress('');
+
+      if (!authUser) {
+        throw new Error('Not authenticated. Please log in first.');
+      }
+
+      addProgress(`✓ Current admin: ${authUser.name || authUser.email}`);
+      addProgress(`✓ Admin ID to preserve: ${authUser.id}`);
+      addProgress('');
+
+      // Step 1: Delete all project-related data
+      addProgress('📦 Cleaning project data...');
+
+      addProgress('  Deleting project_designers...');
+      const { error: pdError } = await supabase
+        .from('project_designers')
+        .delete()
+        .neq('project_id', '00000000-0000-0000-0000-000000000000');
+      if (pdError) addProgress(`  ⚠ ${pdError.message}`);
+      else addProgress('  ✓ project_designers cleared');
+
+      addProgress('  Deleting deliverable_feedback...');
+      const { error: dfError } = await supabase
+        .from('deliverable_feedback')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000');
+      if (dfError) addProgress(`  ⚠ ${dfError.message}`);
+      else addProgress('  ✓ deliverable_feedback cleared');
+
+      addProgress('  Deleting deliverable_versions...');
+      const { error: dvError } = await supabase
+        .from('deliverable_versions')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000');
+      if (dvError) addProgress(`  ⚠ ${dvError.message}`);
+      else addProgress('  ✓ deliverable_versions cleared');
+
+      addProgress('  Deleting deliverables...');
+      const { error: delError } = await supabase
+        .from('deliverables')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000');
+      if (delError) addProgress(`  ⚠ ${delError.message}`);
+      else addProgress('  ✓ deliverables cleared');
+
+      addProgress('  Deleting files...');
+      const { error: filesError } = await supabase
+        .from('files')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000');
+      if (filesError) addProgress(`  ⚠ ${filesError.message}`);
+      else addProgress('  ✓ files cleared');
+
+      addProgress('  Deleting projects...');
+      const { error: projError } = await supabase
+        .from('projects')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000');
+      if (projError) addProgress(`  ⚠ ${projError.message}`);
+      else addProgress('  ✓ projects cleared');
+
+      addProgress('');
+
+      // Step 2: Delete users (except current admin)
+      addProgress('👥 Cleaning users...');
+
+      addProgress('  Deleting all users except current admin...');
+      const { error: usersError } = await supabase
+        .from('users')
+        .delete()
+        .neq('id', authUser.id);
+      if (usersError) addProgress(`  ⚠ ${usersError.message}`);
+      else addProgress('  ✓ All other users deleted');
+
+      addProgress('');
+
+      // Step 3: Delete app settings
+      addProgress('⚙️ Cleaning app settings...');
+      const { error: settingsError } = await supabase
+        .from('app_settings')
+        .delete()
+        .neq('key', '___never_matches___');
+      if (settingsError) addProgress(`  ⚠ ${settingsError.message}`);
+      else addProgress('  ✓ app_settings cleared');
+
+      addProgress('');
+
+      // Step 4: Delete subscription plans
+      addProgress('💳 Cleaning subscription plans...');
+      const { error: plansError } = await supabase
+        .from('subscription_plans')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000');
+      if (plansError) addProgress(`  ⚠ ${plansError.message}`);
+      else addProgress('  ✓ subscription_plans cleared');
+
+      addProgress('');
+
+      // Step 5: Reset Miro services
+      addProgress('🎨 Resetting Miro services...');
+      miroTimelineService.reset();
+      miroProjectRowService.reset();
+      addProgress('  ✓ Miro services reset');
+
+      // Step 6: Clear Miro board if in Miro
+      if (isInMiro && miro) {
+        addProgress('');
+        addProgress('🖼️ Clearing Miro board...');
+        try {
+          const frames = await miro.board.get({ type: 'frame' });
+          const shapes = await miro.board.get({ type: 'shape' });
+          const cards = await miro.board.get({ type: 'card' });
+          const stickies = await miro.board.get({ type: 'sticky_note' });
+          const texts = await miro.board.get({ type: 'text' });
+
+          const allItems = [...frames, ...shapes, ...cards, ...stickies, ...texts];
+          let removed = 0;
+          for (const item of allItems) {
+            try {
+              await miro.board.remove(item);
+              removed++;
+            } catch {
+              // Ignore individual item removal errors
+            }
+          }
+          addProgress(`  ✓ ${removed}/${allItems.length} elements removed from Miro`);
+        } catch {
+          addProgress('  ⚠ Could not clear all Miro elements');
+        }
+      }
+
+      addProgress('');
+
+      // Step 7: Invalidate all caches
+      addProgress('🔄 Refreshing application state...');
+      await queryClient.invalidateQueries();
+      addProgress('  ✓ All caches invalidated');
+
+      addProgress('');
+      addProgress('═══════════════════════════════════════');
+      addProgress('');
+      addProgress('🎉 DATABASE RESET COMPLETE!');
+      addProgress('');
+      addProgress('The system is now in a fresh state.');
+      addProgress('Only your admin account has been preserved.');
+      addProgress('');
+      addProgress('Next steps:');
+      addProgress('  1. Create new clients in Settings → Users');
+      addProgress('  2. Create new designers if needed');
+      addProgress('  3. Set up subscription plans');
+      addProgress('  4. Start creating projects!');
+      addProgress('');
+
+    } catch (err) {
+      logger.error('Database reset failed', err);
+      setError(err instanceof Error ? err.message : 'Failed to reset database');
+      addProgress(`❌ ERROR: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    } finally {
+      setIsResettingDB(false);
     }
   };
 
@@ -1163,11 +1342,42 @@ export function DeveloperTools() {
         </Button>
       </div>
 
+      {/* RESET DATABASE Section - Most destructive, at top of danger zone */}
+      <div className={styles.section}>
+        <h3 className={styles.sectionTitle}>💣 Reset Database (Fresh Start)</h3>
+        <p className={styles.sectionDescription}>
+          Complete database reset for testing the foundation. Removes ALL data including users,
+          clients, designers, subscription plans. Only your admin account is preserved.
+        </p>
+
+        <div className={styles.warningDanger}>
+          <strong>🚨 EXTREME CAUTION:</strong> This is a COMPLETE RESET. All users, projects,
+          settings, and plans will be deleted. Use this to test the app from scratch.
+        </div>
+
+        <div className={styles.featureList}>
+          <div className={styles.featureItem}>✗ Deletes all projects & deliverables</div>
+          <div className={styles.featureItem}>✗ Deletes all clients & designers</div>
+          <div className={styles.featureItem}>✗ Deletes subscription plans</div>
+          <div className={styles.featureItem}>✗ Clears Miro board</div>
+          <div className={styles.featureItem}>✓ Preserves your admin account only</div>
+        </div>
+
+        <Button
+          onClick={handleResetDatabase}
+          isLoading={isResettingDB}
+          variant="primary"
+          className={styles.dangerButton}
+        >
+          {isResettingDB ? 'Resetting Database...' : '💣 Reset Entire Database'}
+        </Button>
+      </div>
+
       {/* Clear All Data Section */}
       <div className={styles.section}>
         <h3 className={styles.sectionTitle}>🧹 Clear All System Data</h3>
         <p className={styles.sectionDescription}>
-          Remove ALL data from the system to start fresh. Use this for a clean slate.
+          Remove projects and deliverables only. Keeps users and settings intact.
         </p>
 
         <div className={styles.warningDanger}>
@@ -1180,7 +1390,7 @@ export function DeveloperTools() {
           variant="primary"
           className={styles.dangerButton}
         >
-          {isClearing ? 'Clearing...' : '🗑️ Clear Everything'}
+          {isClearing ? 'Clearing...' : '🗑️ Clear Projects Only'}
         </Button>
       </div>
 
