@@ -10,7 +10,7 @@
 /** Project frame dimensions (briefing and versions) */
 export const FRAME = {
   WIDTH: 800,
-  HEIGHT: 600,
+  HEIGHT: 720,
   GAP: 30,           // Gap between frames horizontally
   ROW_GAP: 50,       // Gap between project rows vertically
 } as const;
