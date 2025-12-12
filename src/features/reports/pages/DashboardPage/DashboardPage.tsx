@@ -103,6 +103,16 @@ export function DashboardPage() {
   const { boardId: masterBoardId } = useMasterBoardSettings();
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
 
+  // Debug log
+  console.log('[DashboardPage] Render:', {
+    hasUser: !!user,
+    userId: user?.id,
+    userRole: user?.role,
+    isInMiro,
+    currentBoardId,
+    masterBoardId
+  });
+
   // Check if we're on the Master Board
   const isMasterBoard = !!(isInMiro && currentBoardId && masterBoardId && currentBoardId === masterBoardId);
 
@@ -117,11 +127,20 @@ export function DashboardPage() {
     if (isMasterBoard && selectedClientId) {
       f.clientId = selectedClientId;
     }
+    console.log('[DashboardPage] Filters:', f);
     return f;
   }, [isInMiro, currentBoardId, isMasterBoard, selectedClientId]);
 
   // Fetch ALL projects (pageSize: 1000 to avoid pagination limits for dashboard stats)
-  const { data: projectsData, isLoading: projectsLoading, refetch } = useProjects({ filters, pageSize: 1000 });
+  const { data: projectsData, isLoading: projectsLoading, refetch, error: projectsError } = useProjects({ filters, pageSize: 1000 });
+
+  // Debug log for projects query
+  console.log('[DashboardPage] Projects query:', {
+    isLoading: projectsLoading,
+    hasData: !!projectsData,
+    dataLength: projectsData?.data?.length,
+    error: projectsError
+  });
 
   // Fetch clients list for filter dropdown (only when on Master Board)
   const { data: clientsData } = useQuery<Array<{ id: string; name: string; company_name: string | null }>>({
