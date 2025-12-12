@@ -1,5 +1,5 @@
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { NotificationBell } from '@features/notifications';
 import { ReportModal } from '@features/admin/components/ReportModal';
 import { useAuth } from '@features/auth';
@@ -38,15 +38,46 @@ const SettingsIcon = () => (
   </svg>
 );
 
+const AdminMenuIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M4 6h16M4 12h16M4 18h16" />
+  </svg>
+);
+
 export function AppShell() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
   const { miro, isInMiro } = useMiro();
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [isAdminMenuOpen, setIsAdminMenuOpen] = useState(false);
+  const adminMenuRef = useRef<HTMLDivElement | null>(null);
 
   const isAdmin = user?.role === 'admin';
   const showBackToDashboard = location.pathname.startsWith('/projects');
+
+  useEffect(() => {
+    if (!isAdminMenuOpen) return;
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsAdminMenuOpen(false);
+    };
+
+    const onPointerDown = (e: MouseEvent | PointerEvent) => {
+      const target = e.target as Node | null;
+      if (!target) return;
+      if (adminMenuRef.current && !adminMenuRef.current.contains(target)) {
+        setIsAdminMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('keydown', onKeyDown);
+    document.addEventListener('pointerdown', onPointerDown);
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      document.removeEventListener('pointerdown', onPointerDown);
+    };
+  }, [isAdminMenuOpen]);
 
   // Handler to open project board modal
   const handleOpenBoardModal = useCallback(async () => {
@@ -70,32 +101,58 @@ export function AppShell() {
         <div className={styles.right}>
           {/* Admin Quick Actions */}
           {isAdmin && (
-            <>
+            <div className={styles.adminMenuWrap} ref={adminMenuRef}>
               <button
-                className={styles.adminButton}
-                onClick={handleOpenBoardModal}
-                title="Project Status Board"
+                className={styles.adminToggle}
+                onClick={() => setIsAdminMenuOpen(v => !v)}
+                aria-label="Admin quick actions"
+                aria-expanded={isAdminMenuOpen}
+                type="button"
+                title="Admin"
               >
-                <GridIcon />
-                <span>Status</span>
+                <AdminMenuIcon />
               </button>
-              <button
-                className={styles.adminButton}
-                onClick={() => setIsReportModalOpen(true)}
-                title="Generate Report"
-              >
-                <ReportIcon />
-                <span>Report</span>
-              </button>
-              <button
-                className={styles.adminButton}
-                onClick={() => navigate('/admin')}
-                title="Admin Settings"
-              >
-                <SettingsIcon />
-                <span>Settings</span>
-              </button>
-            </>
+              {isAdminMenuOpen && (
+                <div className={styles.adminMenu} role="menu" aria-label="Admin quick actions">
+                  <button
+                    className={styles.adminMenuItem}
+                    onClick={async () => {
+                      setIsAdminMenuOpen(false);
+                      await handleOpenBoardModal();
+                    }}
+                    type="button"
+                    role="menuitem"
+                  >
+                    <GridIcon />
+                    <span>Status</span>
+                  </button>
+                  <button
+                    className={styles.adminMenuItem}
+                    onClick={() => {
+                      setIsAdminMenuOpen(false);
+                      setIsReportModalOpen(true);
+                    }}
+                    type="button"
+                    role="menuitem"
+                  >
+                    <ReportIcon />
+                    <span>Report</span>
+                  </button>
+                  <button
+                    className={styles.adminMenuItem}
+                    onClick={() => {
+                      setIsAdminMenuOpen(false);
+                      navigate('/admin');
+                    }}
+                    type="button"
+                    role="menuitem"
+                  >
+                    <SettingsIcon />
+                    <span>Settings</span>
+                  </button>
+                </div>
+              )}
+            </div>
           )}
           <NotificationBell />
           {showBackToDashboard && (

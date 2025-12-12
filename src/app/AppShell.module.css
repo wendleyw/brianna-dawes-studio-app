@@ -94,6 +94,73 @@
   flex-shrink: 0;
 }
 
+.adminMenuWrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.adminToggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: #111827;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.adminToggle:hover {
+  background: #374151;
+}
+
+.adminToggle svg {
+  width: 14px;
+  height: 14px;
+}
+
+.adminMenu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 160px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+  padding: 6px;
+  z-index: 100;
+}
+
+.adminMenuItem {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 0;
+  background: transparent;
+  color: #111827;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.adminMenuItem:hover {
+  background: #f3f4f6;
+}
+
+.adminMenuItem svg {
+  width: 14px;
+  height: 14px;
+}
+
 .adminButton {
   display: flex;
   align-items: center;
