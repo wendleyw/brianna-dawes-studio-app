@@ -379,6 +379,24 @@ export function ProjectsPage() {
   // Track recently synced projects to avoid duplicate syncs (used by realtime subscription)
   const recentlySyncedRef = useRef<Set<string>>(new Set());
 
+  const notifyProjectMembers = useCallback(async (
+    project: Project,
+    notification: { title: string; message: string; data?: Record<string, unknown> }
+  ) => {
+    try {
+      await supabase.rpc('notify_project_members', {
+        p_project_id: project.id,
+        p_type: 'status_changed',
+        p_title: notification.title,
+        p_message: notification.message,
+        p_data: notification.data ?? {},
+        p_exclude_user_id: user?.id ?? null,
+      });
+    } catch (err) {
+      logger.warn('Failed to create notification', err);
+    }
+  }, [user?.id]);
+
   // Update Status - handles all status changes and Miro sync
   const handleUpdateStatus = useCallback(async (projectId: string, status: ProjectStatus, options?: { markAsReviewed?: boolean }) => {
     logger.debug('Updating project status', { projectId, status, options });
@@ -415,6 +433,33 @@ export function ProjectsPage() {
       {
         onSuccess: (updatedProject) => {
           logger.debug('updateProject onSuccess', { name: updatedProject.name, status: updatedProject.status });
+
+          // Notifications (client + designers) for key status flows
+          if (options?.markAsReviewed) {
+            notifyProjectMembers(updatedProject, {
+              title: 'Changes requested',
+              message: `Changes requested for "${updatedProject.name}".`,
+              data: { projectId: updatedProject.id, projectName: updatedProject.name, action: 'changes_requested' },
+            });
+          } else if (status === 'review') {
+            notifyProjectMembers(updatedProject, {
+              title: 'Review ready',
+              message: `"${updatedProject.name}" is ready for your review.`,
+              data: { projectId: updatedProject.id, projectName: updatedProject.name, status: 'review' },
+            });
+          } else if (status === 'done') {
+            notifyProjectMembers(updatedProject, {
+              title: 'Project completed',
+              message: `"${updatedProject.name}" was marked as completed.`,
+              data: { projectId: updatedProject.id, projectName: updatedProject.name, status: 'done' },
+            });
+          } else if (status === 'urgent' || status === 'overdue') {
+            notifyProjectMembers(updatedProject, {
+              title: 'Status updated',
+              message: `"${updatedProject.name}" moved to ${status.replace('_', ' ')}.`,
+              data: { projectId: updatedProject.id, projectName: updatedProject.name, status },
+            });
+          }
 
           // Sync with Miro board using the response from database
           // Pass markAsReviewed option if client reviewed the project
@@ -455,7 +500,7 @@ export function ProjectsPage() {
         },
       }
     );
-  }, [updateProject, syncProject, isInMiro]);
+  }, [updateProject, syncProject, isInMiro, notifyProjectMembers]);
 
   // Review - Send for client validation (no extra sync needed, handleUpdateStatus does it)
   const handleReview = useCallback((project: Project) => {
@@ -516,6 +561,13 @@ export function ProjectsPage() {
       {
         onSuccess: (updatedProject) => {
           logger.debug('Project updated', { projectId, input });
+          if (input.wasApproved === true) {
+            notifyProjectMembers(updatedProject, {
+              title: 'Client approved',
+              message: `Client approved "${updatedProject.name}".`,
+              data: { projectId: updatedProject.id, projectName: updatedProject.name, action: 'client_approved' },
+            });
+          }
           // Sync with Miro if there was a status change
           if (input.status || input.dueDate) {
             syncProject(updatedProject).catch(err => logger.error('Sync failed', err));
@@ -523,7 +575,7 @@ export function ProjectsPage() {
         },
       }
     );
-  }, [updateProject, syncProject]);
+  }, [updateProject, syncProject, notifyProjectMembers]);
 
   // Scroll to selected project when loaded
   useEffect(() => {
