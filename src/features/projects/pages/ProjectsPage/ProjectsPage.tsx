@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Logo, SplashScreen, CreditBar } from '@shared/ui';
+import { SplashScreen } from '@shared/ui';
 import { useAuth } from '@features/auth';
 import logoImage from '../../../../assets/brand/logo-brianna.png';
 import { useMiro, zoomToProject, addVersionToProject } from '@features/boards';
@@ -17,7 +17,6 @@ import { useRealtimeSubscription } from '@shared/hooks/useRealtimeSubscription';
 import { projectService } from '../../services/projectService';
 import { supabase } from '@shared/lib/supabase';
 import { env, SYNC_TIMING, UI_TIMING } from '@shared/config';
-import { useClientPlanStatsByBoard, useClientTotalAssetsByBoard } from '@features/admin/hooks/useSubscriptionPlans';
 import type { ProjectFilters as ProjectFiltersType, Project, ProjectStatus, UpdateProjectInput } from '../../domain/project.types';
 import styles from './ProjectsPage.module.css';
 
@@ -44,13 +43,6 @@ const PROJECT_TYPES = [
   { value: 'marketing-campaign', label: 'Marketing Campaign' },
   { value: 'other', label: 'Other' },
 ];
-
-// Icons
-const BackIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M19 12H5M12 19l-7-7 7-7"/>
-  </svg>
-);
 
 const GridIcon = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -109,12 +101,6 @@ export function ProjectsPage() {
     setShowSplash(false);
     sessionStorage.setItem(SPLASH_SHOWN_KEY, 'true');
   }, []);
-
-  // Fetch client plan stats for the current board
-  const { data: clientPlanStats } = useClientPlanStatsByBoard(currentBoardId);
-
-  // Fetch total assets (sum of deliverable counts) for the client
-  const { data: totalAssets } = useClientTotalAssetsByBoard(currentBoardId);
 
   // Fetch client associated with current board
   useEffect(() => {
@@ -691,15 +677,6 @@ export function ProjectsPage() {
       {/* Admin Quick Actions Bar - Only for admin users */}
       {user?.role === 'admin' && (
         <div className={styles.adminBar}>
-          <div className={styles.adminBarLeft}>
-            <button
-              className={styles.backButton}
-              onClick={() => navigate('/')}
-              title="Back to Dashboard"
-            >
-              <BackIcon />
-            </button>
-          </div>
           <div className={styles.adminBarRight}>
             <button
               className={styles.adminButton}
@@ -742,15 +719,6 @@ export function ProjectsPage() {
           // Personalized client header: [Client Logo] [Client Name] | [Brianna Video Logo]
           <>
             <div className={styles.headerLeft}>
-              {user?.role !== 'admin' && (
-                <button
-                  className={styles.backButton}
-                  onClick={() => navigate('/')}
-                  title="Back to Dashboard"
-                >
-                  <BackIcon />
-                </button>
-              )}
               {boardClient.companyLogoUrl ? (
                 <img
                   src={boardClient.companyLogoUrl}
@@ -779,53 +747,14 @@ export function ProjectsPage() {
             </div>
           </>
         ) : (
-          // Default header for admins/designers or clients without company info
-          <>
-            <div className={styles.headerLeft}>
-              {user?.role !== 'admin' && (
-                <button
-                  className={styles.backButton}
-                  onClick={() => navigate('/')}
-                  title="Back to Dashboard"
-                >
-                  <BackIcon />
-                </button>
-              )}
-              <div className={styles.logo}>
-                <Logo size="md" />
-              </div>
-              <div className={styles.headerInfo}>
-                <h1 className={styles.brandName}>BRIANNA DAWES STUDIOS</h1>
-                <span className={styles.projectCount}>{totalProjects} projects</span>
-              </div>
+          <div className={styles.headerLeft}>
+            <div className={styles.headerInfo}>
+              <h1 className={styles.brandName}>Projects</h1>
+              <span className={styles.projectCount}>{totalProjects} projects</span>
             </div>
-            <div className={styles.headerRight}>
-              {user?.role !== 'admin' && user?.avatarUrl && (
-                <img
-                  src={user.avatarUrl}
-                  alt={user.name || 'User'}
-                  className={styles.avatar}
-                />
-              )}
-            </div>
-          </>
+          </div>
         )}
       </header>
-
-      {/* Client Plan Credit Bar */}
-      {clientPlanStats && clientPlanStats.planId && (
-        <div className={styles.creditBarContainer}>
-          <CreditBar
-            used={totalAssets ?? 0}
-            limit={clientPlanStats.deliverablesLimit}
-            planName={clientPlanStats.planName ?? undefined}
-            planColor={clientPlanStats.planColor ?? undefined}
-            size="sm"
-            showLabels
-            animate
-          />
-        </div>
-      )}
 
       {/* Master Board Badge - show when on Master Board OR when filtering by client */}
       {(isMasterBoard || selectedClientId) && (

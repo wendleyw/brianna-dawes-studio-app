@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Logo } from '@shared/ui';
+import { Button } from '@shared/ui';
 import { useAuth } from '@features/auth';
 import { useUsers } from '@features/admin/hooks';
 import { useMiro } from '@features/boards';
@@ -414,28 +414,6 @@ ${formData.additionalNotes || needsAttention}
 
   return (
     <div className={styles.container} ref={containerRef}>
-      {/* Header */}
-      <header className={styles.header}>
-        <div className={styles.headerLeft}>
-          <div className={styles.logo}>
-            <Logo size="md" />
-          </div>
-          <div className={styles.headerInfo}>
-            <h1 className={styles.brandName}>BRIANNA DAWES STUDIOS</h1>
-            <span className={styles.pageTitle}>Create Project</span>
-          </div>
-        </div>
-        <div className={styles.headerRight}>
-          {user?.avatarUrl && (
-            <img
-              src={user.avatarUrl}
-              alt={user.name || 'User'}
-              className={styles.avatar}
-            />
-          )}
-        </div>
-      </header>
-
       {error && <div className={styles.error}>{error}</div>}
 
       {/* Form */}

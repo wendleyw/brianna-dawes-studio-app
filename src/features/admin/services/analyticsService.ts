@@ -186,19 +186,10 @@ class AnalyticsService {
       .from('deliverables')
       .select('id, project_id, status');
 
-    // Get subscription plans
-    const { data: plans } = await supabase.from('subscription_plans').select('*');
-
-    const plansMap = new Map(plans?.map((p) => [p.id, p]) || []);
-
     return clients.map((client) => {
       const clientProjects = projects?.filter((p) => p.client_id === client.id) || [];
       const projectIds = clientProjects.map((p) => p.id);
       const clientDeliverables = deliverables?.filter((d) => projectIds.includes(d.project_id)) || [];
-
-      const plan = client.subscription_plan_id ? plansMap.get(client.subscription_plan_id) : null;
-      const deliverablesLimit = (plan?.deliverables_limit as number) || 0;
-      const deliverablesUsed = (client.deliverables_used as number) || 0;
 
       const lastProject = clientProjects.sort(
         (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
@@ -217,11 +208,11 @@ class AnalyticsService {
         completedProjects: clientProjects.filter((p) => p.status === 'done').length,
         totalDeliverables: clientDeliverables.length,
         approvedDeliverables: clientDeliverables.filter((d) => d.status === 'approved').length,
-        planId: client.subscription_plan_id as string | null,
-        planName: (plan?.display_name as string) || null,
-        deliverablesUsed,
-        deliverablesLimit,
-        usagePercentage: deliverablesLimit > 0 ? Math.round((deliverablesUsed / deliverablesLimit) * 100) : 0,
+        planId: null,
+        planName: null,
+        deliverablesUsed: 0,
+        deliverablesLimit: 0,
+        usagePercentage: 0,
         joinedAt: client.created_at as string,
         lastProjectAt: lastProject?.created_at || null,
       };

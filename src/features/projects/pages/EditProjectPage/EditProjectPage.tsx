@@ -1,6 +1,5 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { Button, Logo, Skeleton } from '@shared/ui';
-import { useAuth } from '@features/auth';
+import { Button, Skeleton } from '@shared/ui';
 import { useProject, useUpdateProjectWithMiro } from '../../hooks';
 import { ProjectForm } from '../../components';
 import type { UpdateProjectInput } from '../../domain/project.types';
@@ -13,7 +12,6 @@ const logger = createLogger('EditProjectPage');
 export function EditProjectPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
   const { data: project, isLoading, error } = useProject(id || '');
   const updateProject = useUpdateProjectWithMiro();
 
@@ -42,17 +40,6 @@ export function EditProjectPage() {
   if (isLoading) {
     return (
       <div className={styles.container}>
-        <header className={styles.header}>
-          <div className={styles.headerLeft}>
-            <div className={styles.logo}>
-              <Logo size="md" />
-            </div>
-            <div className={styles.headerInfo}>
-              <h1 className={styles.brandName}>BRIANNA DAWES STUDIOS</h1>
-              <span className={styles.pageTitle}>Edit Project</span>
-            </div>
-          </div>
-        </header>
         <div className={styles.loading}>
           <Skeleton width="100%" height={48} />
           <Skeleton width="100%" height={120} />
@@ -65,17 +52,6 @@ export function EditProjectPage() {
   if (error || !project) {
     return (
       <div className={styles.container}>
-        <header className={styles.header}>
-          <div className={styles.headerLeft}>
-            <div className={styles.logo}>
-              <Logo size="md" />
-            </div>
-            <div className={styles.headerInfo}>
-              <h1 className={styles.brandName}>BRIANNA DAWES STUDIOS</h1>
-              <span className={styles.pageTitle}>Edit Project</span>
-            </div>
-          </div>
-        </header>
         <div className={styles.error}>
           <p>Project not found or error loading project.</p>
           <Button variant="secondary" onClick={() => navigate('/projects')}>
@@ -88,27 +64,6 @@ export function EditProjectPage() {
 
   return (
     <div className={styles.container}>
-      <header className={styles.header}>
-        <div className={styles.headerLeft}>
-          <div className={styles.logo}>
-            <Logo size="md" />
-          </div>
-          <div className={styles.headerInfo}>
-            <h1 className={styles.brandName}>BRIANNA DAWES STUDIOS</h1>
-            <span className={styles.pageTitle}>Edit Project</span>
-          </div>
-        </div>
-        <div className={styles.headerRight}>
-          {user?.avatarUrl && (
-            <img
-              src={user.avatarUrl}
-              alt={user.name || 'User'}
-              className={styles.avatar}
-            />
-          )}
-        </div>
-      </header>
-
       <div className={styles.projectName}>
         <h2>{project.name}</h2>
       </div>

@@ -1,14 +1,13 @@
 import { useState, useMemo, memo } from 'react';
-import { Button, Input, Skeleton, CreditBar } from '@shared/ui';
+import { Button, Input, Skeleton } from '@shared/ui';
 import { PlusIcon, BoardIcon, TrashIcon, StarIcon, AdminIcon, DesignerIcon, ClientIcon } from '@shared/ui/Icons';
 import { useUsers, useUserMutations } from '../../hooks';
 import { useAllBoards, useBoards, useBoardAssignmentMutations } from '../../hooks/useBoardAssignments';
-import { useSubscriptionPlans, useSubscriptionPlanMutations } from '../../hooks/useSubscriptionPlans';
 import { isMainAdmin } from '@shared/config/env';
 import { ROLE_CONFIG } from '@shared/config';
 import type { UserRole } from '@shared/config/roles';
 import { createLogger } from '@shared/lib/logger';
-import type { User, CreateUserInput, SubscriptionPlanId } from '../../domain';
+import type { User, CreateUserInput } from '../../domain';
 import styles from './TeamManagement.module.css';
 
 const logger = createLogger('TeamManagement');
@@ -44,10 +43,8 @@ export const TeamManagement = memo(function TeamManagement() {
   const { data: allUsers, isLoading } = useUsers();
   const { data: allBoardAssignments } = useAllBoards();
   const { data: masterBoards } = useBoards();
-  const { data: subscriptionPlans } = useSubscriptionPlans();
   const { createUser, updateUser, deleteUser, isCreating, isDeleting } = useUserMutations();
   const { assignBoard, removeBoard, setPrimaryBoard, isAssigning } = useBoardAssignmentMutations();
-  const { assignPlan, isAssigning: isAssigningPlan } = useSubscriptionPlanMutations();
 
   const [roleFilter, setRoleFilter] = useState<RoleFilter>('all');
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -61,9 +58,6 @@ export const TeamManagement = memo(function TeamManagement() {
   const [newBoardId, setNewBoardId] = useState('');
   const [newBoardName, setNewBoardName] = useState('');
   const [boardAssignMode, setBoardAssignMode] = useState<'select' | 'new'>('select');
-
-  // Plan assignment state
-  const [assignPlanUserId, setAssignPlanUserId] = useState<string | null>(null);
 
   // Filter users by role
   const filteredUsers = useMemo(() => {
@@ -246,20 +240,6 @@ export const TeamManagement = memo(function TeamManagement() {
     setNewBoardName('');
   };
 
-  const handleAssignPlan = async (userId: string, planId: SubscriptionPlanId | null) => {
-    try {
-      await assignPlan.mutateAsync({ userId, planId, resetUsage: true });
-      setAssignPlanUserId(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to assign plan');
-    }
-  };
-
-  const getUserPlan = (user: User) => {
-    if (!user.subscriptionPlanId || !subscriptionPlans) return null;
-    return subscriptionPlans.find(p => p.id === user.subscriptionPlanId);
-  };
-
   const startEditing = (user: User) => {
     setEditingUser(user);
     setFormData({
@@ -298,8 +278,6 @@ export const TeamManagement = memo(function TeamManagement() {
 
   const assigningUser = assignBoardUserId ? allUsers?.find(u => u.id === assignBoardUserId) : null;
   const availableBoards = assignBoardUserId ? getAvailableBoards(assignBoardUserId) : [];
-  const assigningPlanUser = assignPlanUserId ? allUsers?.find(u => u.id === assignPlanUserId) : null;
-
   return (
     <div className={styles.container}>
       {/* Role filter tabs with integrated add button */}
@@ -595,33 +573,7 @@ export const TeamManagement = memo(function TeamManagement() {
                     )}
                   </div>
 
-                  {/* Subscription Plan (clients only) */}
-                  {member.role === 'client' && (
-                    <div className={styles.planSection}>
-                      <div className={styles.planHeader}>
-                        <span className={styles.planLabel}>Plan:</span>
-                        <button
-                          className={styles.addBoardBtn}
-                          onClick={() => setAssignPlanUserId(member.id)}
-                          title="Change plan"
-                        >
-                          {member.subscriptionPlanId ? 'Change' : <><PlusIcon /> Assign</>}
-                        </button>
-                      </div>
-                      {getUserPlan(member) ? (
-                        <CreditBar
-                          used={member.deliverablesUsed}
-                          limit={getUserPlan(member)!.deliverablesLimit}
-                          planName={getUserPlan(member)!.displayName}
-                          planColor={getUserPlan(member)!.color}
-                          size="sm"
-                          showLabels={true}
-                        />
-                      ) : (
-                        <span className={styles.noPlan}>No plan assigned</span>
-                      )}
-                    </div>
-                  )}
+                  {/* Subscription plans are temporarily disabled */}
                 </div>
                 <div className={styles.memberActions}>
                   <Button size="sm" variant="ghost" onClick={() => startEditing(member)}>
@@ -749,80 +701,6 @@ export const TeamManagement = memo(function TeamManagement() {
         </div>
       )}
 
-      {/* Assign Plan Modal */}
-      {assignPlanUserId && assigningPlanUser && (
-        <div className={styles.modal}>
-          <div className={styles.modalContent}>
-            <h3 className={styles.modalTitle}>
-              Assign Plan to {assigningPlanUser.companyName || assigningPlanUser.name}
-            </h3>
-
-            {/* Current plan info */}
-            {assigningPlanUser.subscriptionPlanId && getUserPlan(assigningPlanUser) && (
-              <div className={styles.currentPlan}>
-                <span className={styles.currentPlanLabel}>Current plan:</span>
-                <span
-                  className={styles.planBadgeLarge}
-                  style={{ backgroundColor: getUserPlan(assigningPlanUser)!.color }}
-                >
-                  {getUserPlan(assigningPlanUser)!.displayName}
-                </span>
-                <span className={styles.planUsage}>
-                  {assigningPlanUser.deliverablesUsed} / {getUserPlan(assigningPlanUser)!.deliverablesLimit} used
-                </span>
-              </div>
-            )}
-
-            {/* Plan options */}
-            <div className={styles.planOptions}>
-              {subscriptionPlans?.map(plan => (
-                <button
-                  key={plan.id}
-                  className={`${styles.planOption} ${assigningPlanUser.subscriptionPlanId === plan.id ? styles.planOptionActive : ''}`}
-                  onClick={() => handleAssignPlan(assignPlanUserId, plan.id)}
-                  disabled={isAssigningPlan}
-                >
-                  <div
-                    className={styles.planOptionBadge}
-                    style={{ backgroundColor: plan.color }}
-                  >
-                    {plan.displayName}
-                  </div>
-                  <div className={styles.planOptionDetails}>
-                    <span className={styles.planOptionLimit}>{plan.deliverablesLimit} deliverables</span>
-                    <span className={styles.planOptionDesc}>
-                      {plan.id === 'bronze' && 'Starter package for small projects'}
-                      {plan.id === 'silver' && 'Standard package for medium projects'}
-                      {plan.id === 'gold' && 'Premium package for large projects'}
-                    </span>
-                  </div>
-                  {assigningPlanUser.subscriptionPlanId === plan.id && (
-                    <span className={styles.currentPlanCheck}>Current</span>
-                  )}
-                </button>
-              ))}
-
-              {/* Remove plan option */}
-              {assigningPlanUser.subscriptionPlanId && (
-                <button
-                  className={`${styles.planOption} ${styles.planOptionRemove}`}
-                  onClick={() => handleAssignPlan(assignPlanUserId, null)}
-                  disabled={isAssigningPlan}
-                >
-                  <TrashIcon />
-                  <span>Remove Plan</span>
-                </button>
-              )}
-            </div>
-
-            <div className={styles.modalActions}>
-              <Button variant="ghost" onClick={() => setAssignPlanUserId(null)}>
-                Close
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 });

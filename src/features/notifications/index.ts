@@ -9,3 +9,6 @@ export { useNotifications } from './hooks';
 
 // Components
 export { NotificationBell } from './components';
+
+// Pages
+export { NotificationsPage } from './pages';

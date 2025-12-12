@@ -5,6 +5,7 @@
  */
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+import { BrowserRouter } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@shared/lib/queryClient';
 import { MiroProvider } from '@features/boards';
@@ -17,15 +18,17 @@ import '@shared/ui/styles/global.css';
 function AdminModalApp() {
   return (
     <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <MiroProvider>
-          <AuthProvider>
-            <ToastProvider position="bottom-right">
-              <AdminDashboardPage />
-            </ToastProvider>
-          </AuthProvider>
-        </MiroProvider>
-      </QueryClientProvider>
+      <BrowserRouter>
+        <QueryClientProvider client={queryClient}>
+          <MiroProvider>
+            <AuthProvider>
+              <ToastProvider position="bottom-right">
+                <AdminDashboardPage />
+              </ToastProvider>
+            </AuthProvider>
+          </MiroProvider>
+        </QueryClientProvider>
+      </BrowserRouter>
     </ErrorBoundary>
   );
 }

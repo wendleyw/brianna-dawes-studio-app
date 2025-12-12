@@ -10,6 +10,10 @@ interface NotificationContextValue {
   notifications: Notification[];
   unreadCount: number;
   isLoading: boolean;
+  isLoadingMore: boolean;
+  hasMore: boolean;
+  refresh: () => Promise<void>;
+  loadMore: () => Promise<void>;
   markAsRead: (id: string) => Promise<void>;
   markAllAsRead: () => Promise<void>;
   deleteNotification: (id: string) => Promise<void>;
@@ -26,39 +30,63 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
   const { user, isAuthenticated } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+
+  const PAGE_SIZE = 50;
+
+  const mapNotification = useCallback((n: Record<string, unknown>): Notification => {
+    return {
+      id: n.id as string,
+      userId: n.user_id as string,
+      type: n.type as Notification['type'],
+      title: n.title as string,
+      message: n.message as string,
+      data: (n.data as Notification['data']) || {},
+      isRead: (n.is_read as boolean) ?? false,
+      createdAt: n.created_at as string,
+    };
+  }, []);
+
+  const fetchNotificationsPage = useCallback(
+    async (beforeCreatedAt?: string) => {
+      if (!user?.id) return { mapped: [] as Notification[], hasMoreResult: false };
+
+      let query = supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(PAGE_SIZE);
+
+      if (beforeCreatedAt) {
+        query = query.lt('created_at', beforeCreatedAt);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+
+      const mapped = (data || []).map((row) => mapNotification(row as Record<string, unknown>));
+      return { mapped, hasMoreResult: mapped.length === PAGE_SIZE };
+    },
+    [PAGE_SIZE, mapNotification, user?.id]
+  );
 
   // Fetch notifications on mount
   useEffect(() => {
     if (!isAuthenticated || !user?.id) {
       setNotifications([]);
       setIsLoading(false);
+      setHasMore(false);
       return;
     }
 
     const fetchNotifications = async () => {
       setIsLoading(true);
       try {
-        const { data, error } = await supabase
-          .from('notifications')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(50);
-
-        if (error) throw error;
-
-        setNotifications(
-          (data || []).map((n) => ({
-            id: n.id,
-            userId: n.user_id,
-            type: n.type,
-            title: n.title,
-            message: n.message,
-            data: n.data || {},
-            isRead: n.is_read,
-            createdAt: n.created_at,
-          }))
-        );
+        const { mapped, hasMoreResult } = await fetchNotificationsPage();
+        setNotifications(mapped);
+        setHasMore(hasMoreResult);
       } catch (error) {
         logger.error('Failed to fetch notifications', error);
       } finally {
@@ -80,18 +108,12 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
           filter: `user_id=eq.${user.id}`,
         },
         (payload) => {
-          const n = payload.new;
-          const notification: Notification = {
-            id: n.id,
-            userId: n.user_id,
-            type: n.type,
-            title: n.title,
-            message: n.message,
-            data: n.data || {},
-            isRead: n.is_read,
-            createdAt: n.created_at,
-          };
-          setNotifications((prev) => [notification, ...prev]);
+          const n = payload.new as Record<string, unknown>;
+          const notification = mapNotification(n);
+          setNotifications((prev) => {
+            if (prev.some((p) => p.id === notification.id)) return prev;
+            return [notification, ...prev];
+          });
         }
       )
       .subscribe();
@@ -99,7 +121,44 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [isAuthenticated, user?.id]);
+  }, [fetchNotificationsPage, isAuthenticated, mapNotification, user?.id]);
+
+  const refresh = useCallback(async () => {
+    if (!isAuthenticated || !user?.id) return;
+    setIsLoading(true);
+    try {
+      const { mapped, hasMoreResult } = await fetchNotificationsPage();
+      setNotifications(mapped);
+      setHasMore(hasMoreResult);
+    } catch (error) {
+      logger.error('Failed to refresh notifications', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [fetchNotificationsPage, isAuthenticated, user?.id]);
+
+  const loadMore = useCallback(async () => {
+    if (!isAuthenticated || !user?.id) return;
+    if (isLoadingMore || !hasMore) return;
+
+    const oldest = notifications[notifications.length - 1]?.createdAt;
+    if (!oldest) return;
+
+    setIsLoadingMore(true);
+    try {
+      const { mapped, hasMoreResult } = await fetchNotificationsPage(oldest);
+      setNotifications((prev) => {
+        const seen = new Set(prev.map((p) => p.id));
+        const next = mapped.filter((n) => !seen.has(n.id));
+        return [...prev, ...next];
+      });
+      setHasMore(hasMoreResult);
+    } catch (error) {
+      logger.error('Failed to load more notifications', error);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [fetchNotificationsPage, hasMore, isAuthenticated, isLoadingMore, notifications, user?.id]);
 
   const markAsRead = useCallback(async (id: string) => {
     const { error } = await supabase
@@ -146,6 +205,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
 
     if (!error) {
       setNotifications([]);
+      setHasMore(false);
     }
   }, [user?.id]);
 
@@ -159,12 +219,28 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
       notifications,
       unreadCount,
       isLoading,
+      isLoadingMore,
+      hasMore,
+      refresh,
+      loadMore,
       markAsRead,
       markAllAsRead,
       deleteNotification,
       clearAll,
     }),
-    [notifications, unreadCount, isLoading, markAsRead, markAllAsRead, deleteNotification, clearAll]
+    [
+      notifications,
+      unreadCount,
+      isLoading,
+      isLoadingMore,
+      hasMore,
+      refresh,
+      loadMore,
+      markAsRead,
+      markAllAsRead,
+      deleteNotification,
+      clearAll,
+    ]
   );
 
   return (

@@ -3,6 +3,7 @@ import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-
 import { ProtectedRoute } from '@features/auth';
 import { useMiro } from '@features/boards';
 import { Skeleton } from '@shared/ui';
+import { AppShell } from './AppShell';
 import styles from './Router.module.css';
 
 // Lazy load pages for code splitting
@@ -29,6 +30,9 @@ const AdminSettingsPage = lazy(() =>
 );
 const AdminDashboardPage = lazy(() =>
   import('@features/admin').then((module) => ({ default: module.AdminDashboardPage }))
+);
+const NotificationsPage = lazy(() =>
+  import('@features/notifications').then((module) => ({ default: module.NotificationsPage }))
 );
 
 // Loading fallback component
@@ -85,98 +89,72 @@ export function Router() {
           {/* Public routes */}
           <Route path="/login" element={<LoginPage />} />
 
-          {/* Protected routes */}
+          {/* Protected layout */}
           <Route
-            path="/"
             element={
               <ProtectedRoute>
-                <DashboardPage />
+                <AppShell />
               </ProtectedRoute>
             }
-          />
-          <Route
-            path="/dashboard"
-            element={
-              <ProtectedRoute>
-                <DashboardPage />
-              </ProtectedRoute>
-            }
-          />
+          >
+            <Route index element={<DashboardPage />} />
+            <Route path="dashboard" element={<DashboardPage />} />
 
-          {/* Projects */}
-          <Route
-            path="/projects"
-            element={
-              <ProtectedRoute>
-                <ProjectsPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/projects/new"
-            element={
-              <ProtectedRoute allowedRoles={['admin', 'client']}>
-                <NewProjectPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/projects/:id/edit"
-            element={
-              <ProtectedRoute allowedRoles={['admin']}>
-                <EditProjectPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/projects/:id"
-            element={
-              <ProtectedRoute>
-                <ProjectDetailPage />
-              </ProtectedRoute>
-            }
-          />
+            {/* Projects */}
+            <Route path="projects" element={<ProjectsPage />} />
+            <Route
+              path="projects/new"
+              element={
+                <ProtectedRoute allowedRoles={['admin', 'client']}>
+                  <NewProjectPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="projects/:id/edit"
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <EditProjectPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route path="projects/:id" element={<ProjectDetailPage />} />
 
-          {/* Board redirect - for clients */}
-          <Route
-            path="/board/:boardId"
-            element={
-              <ProtectedRoute>
-                <BoardPage />
-              </ProtectedRoute>
-            }
-          />
+            {/* Board redirect - for clients */}
+            <Route path="board/:boardId" element={<BoardPage />} />
 
-          {/* Admin Dashboard - Admin only */}
-          <Route
-            path="/admin/dashboard"
-            element={
-              <ProtectedRoute allowedRoles={['admin']}>
-                <AdminDashboardPage />
-              </ProtectedRoute>
-            }
-          />
+            {/* Notifications */}
+            <Route path="notifications" element={<NotificationsPage />} />
 
-          {/* Admin Settings - Admin only */}
-          <Route
-            path="/admin"
-            element={
-              <ProtectedRoute allowedRoles={['admin']}>
-                <AdminSettingsPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/settings"
-            element={
-              <ProtectedRoute allowedRoles={['admin']}>
-                <AdminSettingsPage />
-              </ProtectedRoute>
-            }
-          />
+            {/* Admin */}
+            <Route
+              path="admin/dashboard"
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <AdminDashboardPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="admin"
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <AdminSettingsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="admin/settings"
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <AdminSettingsPage />
+                </ProtectedRoute>
+              }
+            />
 
-          {/* Catch all - redirect to home */}
-          <Route path="*" element={<Navigate to="/" replace />} />
+            {/* Catch all - redirect to home */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Route>
         </Routes>
       </Suspense>
     </div>

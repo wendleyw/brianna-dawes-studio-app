@@ -31,6 +31,7 @@ export default defineConfig({
                 main: resolve(__dirname, 'index.html'),
                 app: resolve(__dirname, 'app.html'),
                 'board-modal': resolve(__dirname, 'board-modal.html'),
+                'admin-modal': resolve(__dirname, 'admin-modal.html'),
             },
         },
     },

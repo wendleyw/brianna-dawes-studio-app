@@ -1,0 +1,170 @@
+.shell {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+}
+
+.topbar {
+  flex-shrink: 0;
+  height: 52px;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #e5e7eb;
+  background: #fff;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  gap: 8px;
+}
+
+.left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.backButton {
+  border: none;
+  background: transparent;
+  padding: 4px 6px;
+  cursor: pointer;
+  border-radius: 6px;
+  color: #111827;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.backButton:hover {
+  background: #f3f4f6;
+}
+
+.backChevron {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.logoLink {
+  display: flex;
+  align-items: center;
+}
+
+.title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #111827;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.navLink {
+  font-size: 12px;
+  color: #374151;
+  padding: 6px 8px;
+  border-radius: 6px;
+  line-height: 1;
+}
+
+.navLink:hover {
+  background: #f3f4f6;
+  text-decoration: none;
+}
+
+.navLinkActive {
+  background: #eef2ff;
+  color: #050038;
+  font-weight: 600;
+}
+
+.right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.user {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.avatar,
+.avatarFallback {
+  width: 28px;
+  height: 28px;
+  border-radius: 9999px;
+}
+
+.avatar {
+  object-fit: cover;
+  background: #f3f4f6;
+}
+
+.avatarFallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #e5e7eb;
+  color: #111827;
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.userMeta {
+  display: none;
+  flex-direction: column;
+  gap: 2px;
+  line-height: 1.1;
+}
+
+.userName {
+  font-size: 12px;
+  font-weight: 600;
+  color: #111827;
+  max-width: 160px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.userRole {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 9999px;
+  width: fit-content;
+}
+
+.content {
+  flex: 1;
+  overflow: auto;
+}
+
+@media (min-width: 520px) {
+  .userMeta {
+    display: flex;
+  }
+}
+
+@media (max-width: 420px) {
+  .nav {
+    display: none;
+  }
+  .title {
+    font-size: 12px;
+  }
+}
+

@@ -1,4 +1,4 @@
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Button, Badge, Skeleton } from '@shared/ui';
 import { useProject } from '../../hooks/useProject';
 import { getStatusColumn } from '@shared/lib/timelineStatus';
@@ -50,13 +50,6 @@ export function ProjectDetailPage() {
 
   return (
     <div className={styles.container}>
-      <Link to="/projects" className={styles.backButton}>
-        <svg className={styles.backIcon} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-        </svg>
-        Back to Projects
-      </Link>
-
       <header className={styles.header}>
         <div className={styles.titleSection}>
           <div className={styles.badges}>
@@ -113,11 +106,6 @@ export function ProjectDetailPage() {
                   </div>
                 )}
               </div>
-              {!project.miroBoardId && (
-                <Button variant="secondary" fullWidth>
-                  Connect Miro Board
-                </Button>
-              )}
             </div>
           </div>
         </div>
