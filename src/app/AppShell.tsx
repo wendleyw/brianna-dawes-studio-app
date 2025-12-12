@@ -98,6 +98,19 @@ export function AppShell() {
   return (
     <div className={styles.shell}>
       <header className={styles.topbar}>
+        <div className={styles.left}>
+          {showBackToDashboard && (
+            <button
+              className={styles.backToDashboard}
+              onClick={() => navigate('/dashboard')}
+              title="Back to Dashboard"
+              aria-label="Back to Dashboard"
+              type="button"
+            >
+              <BackIcon />
+            </button>
+          )}
+        </div>
         <div className={styles.right}>
           {/* Admin Quick Actions */}
           {isAdmin && (
@@ -155,17 +168,6 @@ export function AppShell() {
             </div>
           )}
           <NotificationBell />
-          {showBackToDashboard && (
-            <button
-              className={styles.backToDashboard}
-              onClick={() => navigate('/dashboard')}
-              title="Back to Dashboard"
-              aria-label="Back to Dashboard"
-              type="button"
-            >
-              <BackIcon />
-            </button>
-          )}
         </div>
       </header>
 

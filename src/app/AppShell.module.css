@@ -11,7 +11,7 @@
   padding: 0 52px 0 12px;
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: space-between;
   background: #fff;
   position: sticky;
   top: 0;
