@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { supabase } from '@shared/lib/supabase';
 // Logger removed - using console.log for debug visibility in Miro panel
 
 // Miro SDK v2 types
@@ -166,6 +167,28 @@ export function MiroProvider({ children }: MiroProviderProps) {
           setBoardId(boardInfo.id);
 
           console.log('[MiroContext] Miro SDK initialized, board ID:', boardInfo.id);
+
+          // Test Supabase connectivity from Miro iframe
+          console.log('[MiroContext] Testing Supabase connectivity...');
+          const connectivityStart = Date.now();
+          try {
+            // Simple health check - just try to reach Supabase
+            const { data, error: testError } = await supabase
+              .from('users')
+              .select('id')
+              .limit(1)
+              .maybeSingle();
+            const elapsed = Date.now() - connectivityStart;
+            if (testError) {
+              console.warn('[MiroContext] Supabase test query returned error:', testError.message, 'in', elapsed, 'ms');
+            } else {
+              console.log('[MiroContext] Supabase connectivity OK in', elapsed, 'ms, test data:', !!data);
+            }
+          } catch (connErr) {
+            const elapsed = Date.now() - connectivityStart;
+            console.error('[MiroContext] Supabase connectivity FAILED after', elapsed, 'ms:', connErr);
+          }
+
           setIsReady(true);
         } else {
           console.log('[MiroContext] Running standalone (not in Miro iframe)');

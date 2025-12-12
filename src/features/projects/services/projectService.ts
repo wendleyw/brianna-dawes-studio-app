@@ -118,24 +118,23 @@ class ProjectService {
     const to = from + pageSize - 1;
     query = query.range(from, to);
 
-    console.log('[ProjectService] Executing query...');
+    console.log('[ProjectService] Executing query...', { timestamp: new Date().toISOString() });
 
-    // Add timeout to prevent infinite hang
-    const timeoutMs = 10000;
-    const queryPromise = query;
-    const timeoutPromise = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error(`Query timeout after ${timeoutMs}ms`)), timeoutMs)
-    );
+    const startTime = Date.now();
 
     let data, error, count;
     try {
-      const result = await Promise.race([queryPromise, timeoutPromise]);
+      console.log('[ProjectService] Starting Supabase query...');
+      const result = await query;
+      const elapsed = Date.now() - startTime;
+      console.log('[ProjectService] Query returned in', elapsed, 'ms');
       data = result.data;
       error = result.error;
       count = result.count;
-    } catch (timeoutError) {
-      console.error('[ProjectService] Query timed out:', timeoutError);
-      throw timeoutError;
+    } catch (queryError) {
+      const elapsed = Date.now() - startTime;
+      console.error('[ProjectService] Query failed after', elapsed, 'ms:', queryError);
+      throw queryError;
     }
 
     console.log('[ProjectService] Query complete:', { dataCount: data?.length, error: error?.message, count });
