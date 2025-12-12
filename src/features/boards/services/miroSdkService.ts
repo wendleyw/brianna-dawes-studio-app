@@ -251,12 +251,12 @@ class MiroMasterTimelineService {
       },
     });
 
-    // Create warning message below the title
+    // Create warning message beside the title (avoid being covered by status header)
     await miro.board.createText({
       content: '<i>⚠️ Auto-updated - Do not edit manually</i>',
-      x: frameLeft + 220,
-      y: titleY + 25,
-      width: 400,
+      x: frameLeft + 560,
+      y: titleY,
+      width: 760,
       style: {
         fontSize: 12,
         textAlign: 'left',
