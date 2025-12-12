@@ -105,16 +105,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   useEffect(() => {
     const initializeAuth = async () => {
+      console.log('[AuthProvider] Starting initializeAuth...');
       try {
         // First, get the current Miro user to verify identity
+        console.log('[AuthProvider] Getting Miro user from SDK...');
         const currentMiroUser = await miroAuthService.getMiroUserFromSdk();
-        logger.debug('Current Miro user', { id: currentMiroUser?.id, email: currentMiroUser?.email });
+        console.log('[AuthProvider] Current Miro user:', { id: currentMiroUser?.id, email: currentMiroUser?.email });
 
         // Check if we have a stored user (from Miro auth)
         const storedUser = localStorage.getItem(AUTH_STORAGE_KEY);
+        console.log('[AuthProvider] Stored user exists:', !!storedUser);
         if (storedUser) {
           const user = JSON.parse(storedUser) as AuthUser;
-          logger.debug('Stored user', { id: user.id, role: user.role, miroUserId: user.miroUserId });
+          console.log('[AuthProvider] Stored user:', { id: user.id, role: user.role, miroUserId: user.miroUserId });
 
           // IMPORTANT: Verify the stored user matches the current Miro user
           // If miroUserId doesn't match, we need to re-authenticate
@@ -199,8 +202,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
         }
 
         // Then check Supabase session
+        console.log('[AuthProvider] Checking Supabase session...');
         const session = await authService.getSession();
+        console.log('[AuthProvider] Supabase session exists:', !!session);
         if (session) {
+          console.log('[AuthProvider] Setting authenticated state from session');
           setState({
             user: session.user,
             session,
@@ -209,9 +215,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
             error: null,
           });
         } else {
+          console.log('[AuthProvider] No session, setting isLoading: false');
           setState({ ...initialState, isLoading: false });
         }
       } catch (error) {
+        console.error('[AuthProvider] Error during initialization:', error);
         setState({
           ...initialState,
           isLoading: false,
