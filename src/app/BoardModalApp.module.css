@@ -197,6 +197,49 @@
   margin: 0;
   line-height: 1.4;
   flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* Badges row (client action + archived) */
+.cardBadges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  padding: 0 8px;
+  border-radius: 9999px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.badgeApproved {
+  background-color: #DCFCE7;
+  color: #166534;
+}
+
+.badgeReviewed {
+  background-color: #EDE9FE;
+  color: #5B21B6;
+}
+
+.badgeClientAction {
+  background-color: #FEF3C7;
+  color: #92400E;
+}
+
+.badgeArchived {
+  background-color: #000000;
+  color: #FFFFFF;
 }
 
 /* Card Row - Label + Value */

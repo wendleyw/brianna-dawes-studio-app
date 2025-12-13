@@ -277,21 +277,28 @@ export function BoardModalApp() {
 
             {/* Column Content */}
             <div className={styles.columnContent}>
-              {projectsByStatus[column.id]?.map((project) => (
-                <div
-                  key={project.id}
-                  className={`${styles.card} ${draggingProject?.id === project.id ? styles.cardDragging : ''}`}
-                  draggable
-                  onDragStart={(e) => handleDragStart(e, project)}
-                  onDragEnd={handleDragEnd}
-                  onClick={async () => {
-                    // Close modal and zoom to project in Miro board
-                    if (miro) {
-                      await miro.board.ui.closeModal();
-                    }
-                    await zoomToProject(project.id);
-                  }}
-                >
+              {projectsByStatus[column.id]?.map((project) => {
+                const isArchived = project.archivedAt !== null;
+                const showClientApproved = project.wasApproved;
+                const showClientReviewed = project.wasReviewed && !project.wasApproved;
+                const showDueDateRequested = !!project.dueDateRequestedAt;
+                const showClientAction = showClientApproved || showClientReviewed || showDueDateRequested;
+
+                return (
+                  <div
+                    key={project.id}
+                    className={`${styles.card} ${draggingProject?.id === project.id ? styles.cardDragging : ''}`}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, project)}
+                    onDragEnd={handleDragEnd}
+                    onClick={async () => {
+                      // Close modal and zoom to project in Miro board
+                      if (miro) {
+                        await miro.board.ui.closeModal();
+                      }
+                      await zoomToProject(project.id);
+                    }}
+                  >
                   {/* Header: Priority badge + Name */}
                   <div className={styles.cardHeader}>
                     {project.priority && (
@@ -299,8 +306,28 @@ export function BoardModalApp() {
                         {project.priority.toUpperCase()}
                       </span>
                     )}
-                    <h4 className={styles.cardTitle}>{project.name}</h4>
+                    <h4 className={styles.cardTitle} title={project.name || 'Untitled project'}>
+                      {project.name || 'Untitled project'}
+                    </h4>
                   </div>
+
+                  {/* Badges */}
+                  {(isArchived || showClientAction) && (
+                    <div className={styles.cardBadges}>
+                      {showClientApproved && (
+                        <span className={`${styles.badge} ${styles.badgeApproved}`}>CLIENT APPROVED</span>
+                      )}
+                      {showClientReviewed && (
+                        <span className={`${styles.badge} ${styles.badgeReviewed}`}>CHANGES REQUESTED</span>
+                      )}
+                      {showDueDateRequested && (
+                        <span className={`${styles.badge} ${styles.badgeClientAction}`}>DUE DATE REQUEST</span>
+                      )}
+                      {isArchived && (
+                        <span className={`${styles.badge} ${styles.badgeArchived}`}>ARCHIVED</span>
+                      )}
+                    </div>
+                  )}
 
                   {/* Client */}
                   {project.client?.name && (
@@ -335,8 +362,9 @@ export function BoardModalApp() {
                       <span className={styles.cardType}>{project.briefing.projectType.replace(/-/g, ' ')}</span>
                     </div>
                   )}
-                </div>
-              ))}
+                  </div>
+                );
+              })}
 
               {projectsByStatus[column.id]?.length === 0 && (
                 <div className={styles.emptyColumn}>
