@@ -12,6 +12,44 @@ import type {
   AnalyticsFilters,
 } from '../domain/analytics.types';
 
+type TimelineProjectStatus = 'overdue' | 'urgent' | 'in_progress' | 'review' | 'done' | 'archived';
+
+function parseDueDateForComparison(dueDate: string): number | null {
+  const due = new Date(dueDate);
+  if (Number.isNaN(due.getTime())) return null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) {
+    due.setHours(23, 59, 59, 999);
+  }
+  return due.getTime();
+}
+
+function deriveTimelineStatus(project: {
+  status: string;
+  due_date: string | null;
+  due_date_approved: boolean | null;
+  archived_at: string | null;
+}): TimelineProjectStatus {
+  if (project.archived_at) return 'archived';
+  const status = project.status as TimelineProjectStatus;
+  if (status === 'done') return 'done';
+
+  if (project.due_date && project.due_date_approved !== false) {
+    const dueTime = parseDueDateForComparison(project.due_date);
+    if (dueTime !== null && dueTime < Date.now()) return 'overdue';
+  }
+
+  // Fallback: keep stored status (or in_progress if unknown)
+  if (
+    status === 'overdue' ||
+    status === 'urgent' ||
+    status === 'in_progress' ||
+    status === 'review'
+  ) {
+    return status;
+  }
+  return 'in_progress';
+}
+
 /**
  * AnalyticsService - Comprehensive analytics for Admin Dashboard
  *
@@ -66,14 +104,31 @@ class AnalyticsService {
     // Get project counts
     const { data: projects } = await supabase
       .from('projects')
-      .select('id, status');
+      .select('id, status, client_id, due_date, due_date_approved, archived_at, was_approved, was_reviewed, due_date_requested_at');
 
-    // Status values: critical, overdue, urgent, on_track, in_progress, review, done
-    const activeStatuses = ['in_progress', 'review', 'on_track', 'urgent', 'critical', 'overdue'];
+    const allProjects = projects || [];
+    const archivedProjects = allProjects.filter((p) => p.archived_at).length;
+    const completedProjects = allProjects.filter((p) => p.status === 'done' && !p.archived_at).length;
+    const overdueProjects = allProjects.filter((p) => deriveTimelineStatus(p) === 'overdue').length;
+    const activeProjects = allProjects.filter((p) => {
+      const derived = deriveTimelineStatus(p);
+      return derived !== 'done' && derived !== 'archived';
+    }).length;
+
+    const clientApprovedProjects = allProjects.filter(
+      (p) => !p.archived_at && p.status === 'review' && p.was_approved === true
+    ).length;
+    const changesRequestedProjects = allProjects.filter(
+      (p) => !p.archived_at && p.status !== 'done' && p.was_reviewed === true && p.was_approved !== true
+    ).length;
+    const dueDateRequests = allProjects.filter(
+      (p) => !p.archived_at && p.status !== 'done' && !!p.due_date_requested_at && p.due_date_approved === false
+    ).length;
+
     const projectCounts = {
-      total: projects?.length || 0,
-      active: projects?.filter((p) => activeStatuses.includes(p.status)).length || 0,
-      completed: projects?.filter((p) => p.status === 'done').length || 0,
+      total: allProjects.length,
+      active: activeProjects,
+      completed: completedProjects,
     };
 
     // Get user counts
@@ -84,47 +139,64 @@ class AnalyticsService {
       designers: users?.filter((u) => u.role === 'designer').length || 0,
     };
 
-    // Get active clients (with at least one active project)
-    const { data: activeClientProjects } = await supabase
-      .from('projects')
-      .select('client_id')
-      .in('status', ['in_progress', 'review', 'on_track', 'urgent', 'critical']);
-
-    const activeClientIds = new Set(activeClientProjects?.map((p) => p.client_id) || []);
+    // Active clients (with at least one active project in the current 5-status workflow)
+    const activeClientIds = new Set(
+      allProjects
+        .filter((p) => {
+          const derived = deriveTimelineStatus(p);
+          return derived !== 'done' && derived !== 'archived';
+        })
+        .map((p) => p.client_id)
+        .filter(Boolean)
+    );
 
     // Get deliverable counts
     const { data: deliverables } = await supabase
       .from('deliverables')
-      .select('id, status, due_date, count');
+      .select('id, status, due_date, count, bonus_count');
 
-    const now = new Date().toISOString();
+    const now = Date.now();
     const deliverableCounts = {
       total: deliverables?.length || 0,
       approved: deliverables?.filter((d) => d.status === 'approved').length || 0,
-      pending: deliverables?.filter((d) => ['pending', 'wip', 'review'].includes(d.status)).length || 0,
+      pending:
+        deliverables?.filter((d) => !['approved', 'delivered'].includes(d.status)).length || 0,
       overdue:
         deliverables?.filter(
           (d) =>
             d.due_date &&
-            d.due_date < now &&
+            (() => {
+              const dueTime = parseDueDateForComparison(d.due_date);
+              return dueTime !== null && dueTime < now;
+            })() &&
             !['approved', 'delivered'].includes(d.status)
         ).length || 0,
     };
 
     // Total assets
-    const totalAssets = deliverables?.reduce((sum, d) => sum + ((d.count as number) || 0), 0) || 0;
+    const totalAssets = deliverables?.reduce((sum, d) => {
+      const count = (d.count as number) || 0;
+      const bonus = typeof (d as { bonus_count?: unknown }).bonus_count === 'number' ? ((d as { bonus_count: number }).bonus_count) : 0;
+      return sum + count + bonus;
+    }, 0) || 0;
 
     // Completion rate
+    const completedDeliverables =
+      deliverables?.filter((d) => ['approved', 'delivered'].includes(d.status)).length || 0;
     const completionRate =
       deliverableCounts.total > 0
-        ? Math.round((deliverableCounts.approved / deliverableCounts.total) * 100)
+        ? Math.round((completedDeliverables / deliverableCounts.total) * 100)
         : 0;
 
     return {
       totalProjects: projectCounts.total,
       activeProjects: projectCounts.active,
       completedProjects: projectCounts.completed,
-      archivedProjects: 0, // No archived status in current enum
+      archivedProjects,
+      overdueProjects,
+      clientApprovedProjects,
+      changesRequestedProjects,
+      dueDateRequests,
       totalClients: userCounts.clients,
       activeClients: activeClientIds.size,
       totalDesigners: userCounts.designers,
@@ -139,25 +211,25 @@ class AnalyticsService {
 
   /**
    * Get projects grouped by status
-   * Status enum: critical, overdue, urgent, on_track, in_progress, review, done
+   * Status enum: overdue, urgent, in_progress, review, done (+ archived derived from archived_at)
    */
   async getProjectsByStatus(): Promise<ProjectsByStatus> {
-    const { data: projects } = await supabase.from('projects').select('status');
+    const { data: projects } = await supabase
+      .from('projects')
+      .select('status, due_date, due_date_approved, archived_at');
 
     const counts: ProjectsByStatus = {
-      critical: 0,
       overdue: 0,
       urgent: 0,
-      on_track: 0,
       in_progress: 0,
       review: 0,
       done: 0,
+      archived: 0,
     };
 
     projects?.forEach((p) => {
-      if (p.status in counts) {
-        counts[p.status as keyof ProjectsByStatus]++;
-      }
+      const derived = deriveTimelineStatus(p);
+      if (derived in counts) counts[derived as keyof ProjectsByStatus]++;
     });
 
     return counts;
@@ -179,7 +251,7 @@ class AnalyticsService {
     // Get all projects with client info
     const { data: projects } = await supabase
       .from('projects')
-      .select('id, client_id, status, created_at');
+      .select('id, client_id, status, created_at, due_date, due_date_approved, archived_at');
 
     // Get all deliverables
     const { data: deliverables } = await supabase
@@ -202,10 +274,11 @@ class AnalyticsService {
         companyName: client.company_name as string | null,
         avatarUrl: client.avatar_url as string | null,
         totalProjects: clientProjects.length,
-        activeProjects: clientProjects.filter((p) =>
-          ['in_progress', 'review', 'on_track', 'urgent', 'critical', 'overdue'].includes(p.status)
-        ).length,
-        completedProjects: clientProjects.filter((p) => p.status === 'done').length,
+        activeProjects: clientProjects.filter((p) => {
+          const derived = deriveTimelineStatus(p);
+          return derived !== 'done' && derived !== 'archived';
+        }).length,
+        completedProjects: clientProjects.filter((p) => p.status === 'done' && !p.archived_at).length,
         totalDeliverables: clientDeliverables.length,
         approvedDeliverables: clientDeliverables.filter((d) => d.status === 'approved').length,
         planId: null,
@@ -236,7 +309,9 @@ class AnalyticsService {
     const { data: assignments } = await supabase.from('project_designers').select('*');
 
     // Get all projects
-    const { data: projects } = await supabase.from('projects').select('id, status');
+    const { data: projects } = await supabase
+      .from('projects')
+      .select('id, status, due_date, due_date_approved, archived_at');
 
     // Get all deliverables
     const { data: deliverables } = await supabase
@@ -267,14 +342,15 @@ class AnalyticsService {
         email: designer.email as string,
         avatarUrl: designer.avatar_url as string | null,
         totalProjects: designerProjects.length,
-        activeProjects: designerProjects.filter((p) =>
-          ['in_progress', 'review', 'on_track', 'urgent', 'critical', 'overdue'].includes(p.status)
-        ).length,
-        completedProjects: designerProjects.filter((p) => p.status === 'done').length,
+        activeProjects: designerProjects.filter((p) => {
+          const derived = deriveTimelineStatus(p);
+          return derived !== 'done' && derived !== 'archived';
+        }).length,
+        completedProjects: designerProjects.filter((p) => p.status === 'done' && !p.archived_at).length,
         totalDeliverables: designerDeliverables.length,
         approvedDeliverables: approvedDeliverables.length,
         avgApprovalTime,
-        pendingReviews: designerDeliverables.filter((d) => d.status === 'review').length,
+        pendingReviews: designerDeliverables.filter((d) => d.status === 'in_review').length,
         joinedAt: designer.created_at as string,
       };
     });

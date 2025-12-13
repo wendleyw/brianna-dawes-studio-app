@@ -111,7 +111,7 @@ export function AdminDashboardPage() {
       )}
 
       {activeTab === 'clients' && (
-        <ClientsTab clients={clients} onViewClient={(id) => navigate(`/projects?client=${id}`)} />
+        <ClientsTab clients={clients} onViewClient={(id) => navigate(`/projects?clientId=${id}`)} />
       )}
 
       {activeTab === 'team' && (
@@ -142,12 +142,32 @@ function OverviewTab({ overview, projectsByStatus, monthlyMetrics, recentProject
         <KPICard
           label="Total Projects"
           value={overview.totalProjects}
-          subtext={`${overview.activeProjects} active`}
+          subtext={`${overview.activeProjects} active • ${overview.archivedProjects} archived`}
         />
         <KPICard
-          label="Total Clients"
+          label="Overdue"
+          value={overview.overdueProjects}
+          subtext="Past approved due date"
+        />
+        <KPICard
+          label="Client Approved"
+          value={overview.clientApprovedProjects}
+          subtext="Needs admin action"
+        />
+        <KPICard
+          label="Changes Requested"
+          value={overview.changesRequestedProjects}
+          subtext="Client feedback pending"
+        />
+        <KPICard
+          label="Due Date Requests"
+          value={overview.dueDateRequests}
+          subtext="Awaiting approval"
+        />
+        <KPICard
+          label="Clients"
           value={overview.totalClients}
-          subtext={`${overview.activeClients} with active projects`}
+          subtext={`${overview.activeClients} active`}
         />
         <KPICard
           label="Designers"
@@ -157,29 +177,18 @@ function OverviewTab({ overview, projectsByStatus, monthlyMetrics, recentProject
         <KPICard
           label="Deliverables"
           value={overview.totalDeliverables}
-          subtext={`${overview.approvedDeliverables} approved`}
-        />
-        <KPICard
-          label="Total Assets"
-          value={overview.totalAssets}
-          subtext="Created to date"
-        />
-        <KPICard
-          label="Completion Rate"
-          value={`${overview.completionRate}%`}
-          subtext={`${overview.pendingDeliverables} pending`}
+          subtext={`${overview.pendingDeliverables} pending • ${overview.overdueDeliverables} overdue`}
         />
       </div>
 
       {/* Status Distribution */}
       <div className={styles.statusGrid}>
-        <StatusCard status="on_track" count={projectsByStatus.on_track} />
         <StatusCard status="in_progress" count={projectsByStatus.in_progress} />
         <StatusCard status="review" count={projectsByStatus.review} />
         <StatusCard status="urgent" count={projectsByStatus.urgent} />
-        <StatusCard status="critical" count={projectsByStatus.critical} />
         <StatusCard status="overdue" count={projectsByStatus.overdue} />
         <StatusCard status="done" count={projectsByStatus.done} />
+        <StatusCard status="archived" count={projectsByStatus.archived} />
       </div>
 
       {/* Charts and Recent */}
@@ -430,13 +439,12 @@ function KPICard({ label, value, subtext }: KPICardProps) {
 // Status Card Component
 function StatusCard({ status, count }: { status: string; count: number }) {
   const statusClassMap: Record<string, string | undefined> = {
-    on_track: styles.onTrack,
     in_progress: styles.inProgress,
     review: styles.review,
     urgent: styles.urgent,
-    critical: styles.critical,
     overdue: styles.overdue,
     done: styles.done,
+    archived: styles.archived,
   };
 
   return (
@@ -490,13 +498,12 @@ function formatStatus(status: string): string {
 
 function getStatusClass(status: string): string {
   const classMap: Record<string, string | undefined> = {
-    on_track: styles.onTrack,
     in_progress: styles.inProgress,
     review: styles.review,
     urgent: styles.urgent,
-    critical: styles.critical,
     overdue: styles.overdue,
     done: styles.done,
+    archived: styles.archived,
   };
   return classMap[status] ?? '';
 }

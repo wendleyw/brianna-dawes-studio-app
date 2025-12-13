@@ -7,6 +7,10 @@ export interface OverviewMetrics {
   activeProjects: number;
   completedProjects: number;
   archivedProjects: number;
+  overdueProjects: number;
+  clientApprovedProjects: number;
+  changesRequestedProjects: number;
+  dueDateRequests: number;
   totalClients: number;
   activeClients: number;
   totalDesigners: number;
@@ -19,13 +23,12 @@ export interface OverviewMetrics {
 }
 
 export interface ProjectsByStatus {
-  critical: number;
   overdue: number;
   urgent: number;
-  on_track: number;
   in_progress: number;
   review: number;
   done: number;
+  archived: number;
 }
 
 export interface ClientAnalytics {

@@ -192,23 +192,23 @@
 }
 
 .statusCard.review {
-  border-top: 3px solid #8b5cf6;
+  border-top: 3px solid #6366f1;
 }
 
 .statusCard.urgent {
-  border-top: 3px solid #f59e0b;
-}
-
-.statusCard.critical {
-  border-top: 3px solid #ef4444;
-}
-
-.statusCard.overdue {
   border-top: 3px solid #dc2626;
 }
 
+.statusCard.overdue {
+  border-top: 3px solid #f97316;
+}
+
 .statusCard.done {
-  border-top: 3px solid #6b7280;
+  border-top: 3px solid #22c55e;
+}
+
+.statusCard.archived {
+  border-top: 3px solid #111827;
 }
 
 .statusCount {
