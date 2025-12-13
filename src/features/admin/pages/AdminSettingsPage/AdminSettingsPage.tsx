@@ -5,6 +5,7 @@ import { MasterBoardSettings } from '../../components/MasterBoardSettings';
 import { DeveloperTools } from '../../components/DeveloperTools';
 import { SyncHealthDashboard } from '../../components/SyncHealthDashboard';
 import { ProjectTypesSettings } from '../../components/ProjectTypesSettings';
+import { AppSettings } from '../../components/AppSettings';
 import type { AdminTab } from '../../domain';
 import styles from './AdminSettingsPage.module.css';
 
@@ -57,17 +58,36 @@ const SettingsIcon = () => (
   </svg>
 );
 
-const TABS: { id: AdminTab; label: string; icon: React.ReactNode }[] = [
+type AdminGroup = 'people' | 'system' | 'app';
+
+const GROUPS: Array<{ id: AdminGroup; label: string; icon: React.ReactNode; defaultTab: AdminTab }> = [
+  { id: 'people', label: 'Team & Boards', icon: <TeamIcon />, defaultTab: 'team' },
+  { id: 'app', label: 'App Settings', icon: <SettingsIcon />, defaultTab: 'app' },
+  { id: 'system', label: 'System', icon: <SyncIcon />, defaultTab: 'master' },
+];
+
+const PEOPLE_TABS: Array<{ id: AdminTab; label: string; icon: React.ReactNode }> = [
   { id: 'team', label: 'Team', icon: <TeamIcon /> },
   { id: 'boards', label: 'Boards', icon: <BoardsIcon /> },
+];
+
+const SYSTEM_TABS: Array<{ id: AdminTab; label: string; icon: React.ReactNode }> = [
   { id: 'master', label: 'Master', icon: <MasterIcon /> },
-  { id: 'app', label: 'App Settings', icon: <SettingsIcon /> },
   { id: 'sync', label: 'Sync Health', icon: <SyncIcon /> },
   { id: 'developer', label: 'Developer', icon: <DeveloperIcon /> },
 ];
 
+function getGroupForTab(tab: AdminTab): AdminGroup {
+  if (tab === 'team' || tab === 'boards') return 'people';
+  if (tab === 'master' || tab === 'sync' || tab === 'developer') return 'system';
+  return 'app';
+}
+
 export function AdminSettingsPage() {
   const [activeTab, setActiveTab] = useState<AdminTab>('team');
+  const activeGroup = getGroupForTab(activeTab);
+
+  const subTabs = activeGroup === 'people' ? PEOPLE_TABS : activeGroup === 'system' ? SYSTEM_TABS : [];
 
   return (
     <div className={styles.container}>
@@ -82,24 +102,44 @@ export function AdminSettingsPage() {
         </div>
       </header>
 
-      <nav className={styles.tabs}>
-        {TABS.map((tab) => (
+      <nav className={styles.groupTabs}>
+        {GROUPS.map((group) => (
           <button
-            key={tab.id}
-            className={`${styles.tab} ${activeTab === tab.id ? styles.tabActive : ''}`}
-            onClick={() => setActiveTab(tab.id)}
+            key={group.id}
+            className={`${styles.tab} ${activeGroup === group.id ? styles.tabActive : ''}`}
+            onClick={() => setActiveTab(group.defaultTab)}
           >
-            <span className={styles.tabIcon}>{tab.icon}</span>
-            <span className={styles.tabLabel}>{tab.label}</span>
+            <span className={styles.tabIcon}>{group.icon}</span>
+            <span className={styles.tabLabel}>{group.label}</span>
           </button>
         ))}
       </nav>
+
+      {subTabs.length > 0 && (
+        <nav className={styles.subTabs}>
+          {subTabs.map((tab) => (
+            <button
+              key={tab.id}
+              className={`${styles.subTab} ${activeTab === tab.id ? styles.subTabActive : ''}`}
+              onClick={() => setActiveTab(tab.id)}
+            >
+              <span className={styles.tabIcon}>{tab.icon}</span>
+              <span className={styles.tabLabel}>{tab.label}</span>
+            </button>
+          ))}
+        </nav>
+      )}
 
       <div className={styles.content}>
         {activeTab === 'team' && <TeamManagement />}
         {activeTab === 'boards' && <BoardManagement />}
         {activeTab === 'master' && <MasterBoardSettings />}
-        {activeTab === 'app' && <ProjectTypesSettings />}
+        {activeTab === 'app' && (
+          <div className={styles.appStack}>
+            <ProjectTypesSettings />
+            <AppSettings />
+          </div>
+        )}
         {activeTab === 'sync' && <SyncHealthDashboard />}
         {activeTab === 'developer' && <DeveloperTools />}
       </div>

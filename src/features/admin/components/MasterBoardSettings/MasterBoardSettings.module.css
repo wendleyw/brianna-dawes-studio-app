@@ -1,45 +1,45 @@
 .container {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: var(--space-5);
 }
 
 .header {
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
 }
 
 .title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #050038;
-  margin: 0 0 8px 0;
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-2) 0;
 }
 
 .description {
-  font-size: 13px;
-  color: #666;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
   margin: 0;
   line-height: 1.5;
 }
 
 /* Sections */
 .section {
-  padding: 16px;
-  background: #f9fafb;
-  border-radius: 8px;
+  padding: var(--space-4);
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-md);
 }
 
 .label {
   display: block;
-  font-size: 13px;
-  font-weight: 500;
-  color: #050038;
-  margin-bottom: 8px;
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-2);
 }
 
 .inputRow {
   display: flex;
-  gap: 8px;
+  gap: var(--space-2);
   align-items: center;
 }
 
@@ -48,47 +48,48 @@
 }
 
 .hint {
-  font-size: 11px;
-  color: #888;
-  margin: 8px 0 0 0;
+  font-size: var(--text-2xs);
+  color: var(--color-text-tertiary);
+  margin: var(--space-2) 0 0 0;
 }
 
 /* Status */
 .statusRow {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
+  flex-wrap: wrap;
 }
 
 .statusLabel {
-  font-size: 13px;
-  font-weight: 500;
-  color: #050038;
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-text-primary);
 }
 
 .statusPending {
-  font-size: 13px;
-  color: #f59e0b;
+  font-size: var(--text-sm);
+  color: var(--color-warning);
 }
 
 .statusValid {
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 13px;
-  color: #10b981;
+  font-size: var(--text-sm);
+  color: var(--color-success);
 }
 
 .statusInvalid {
-  font-size: 13px;
-  color: #ef4444;
+  font-size: var(--text-sm);
+  color: var(--color-error);
 }
 
 /* Actions */
 .actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .spinning {
@@ -108,43 +109,43 @@
 .syncStatus {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .syncTitle {
-  font-size: 13px;
-  font-weight: 500;
-  color: #050038;
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-text-primary);
   margin: 0;
 }
 
 .syncInfo {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
-  font-size: 12px;
+  gap: var(--space-3);
+  font-size: var(--text-xs);
 }
 
 .syncTime {
-  color: #666;
+  color: var(--color-text-secondary);
 }
 
 .syncClients {
-  color: #10b981;
+  color: var(--color-success);
 }
 
 .syncErrors {
-  color: #ef4444;
+  color: var(--color-error);
 }
 
 /* Warning */
 .warning {
-  padding: 12px 16px;
-  background: #fef3c7;
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-warning-light);
   border: 1px solid #f59e0b;
-  border-radius: 8px;
-  font-size: 13px;
-  color: #92400e;
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  color: var(--color-warning-dark);
 }
 
 .warning strong {
@@ -153,42 +154,42 @@
 
 /* Messages */
 .error {
-  padding: 12px 16px;
-  background: #fef2f2;
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-error-light);
   border: 1px solid #fecaca;
-  border-radius: 8px;
-  font-size: 13px;
-  color: #dc2626;
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  color: var(--color-error-dark);
 }
 
 .success {
-  padding: 12px 16px;
-  background: #f0fdf4;
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-success-light);
   border: 1px solid #bbf7d0;
-  border-radius: 8px;
-  font-size: 13px;
-  color: #16a34a;
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  color: var(--color-success-dark);
 }
 
 /* Instructions */
 .instructions {
-  padding: 16px;
+  padding: var(--space-4);
   background: #f0f4ff;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
 }
 
 .instructions h4 {
-  font-size: 14px;
-  font-weight: 600;
-  color: #050038;
-  margin: 0 0 12px 0;
+  font-size: var(--text-md);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-3) 0;
 }
 
 .instructions ol {
   margin: 0;
   padding-left: 20px;
-  font-size: 13px;
-  color: #555;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
   line-height: 1.8;
 }
 
@@ -200,23 +201,23 @@
 .diagramSection {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 16px;
+  gap: var(--space-3);
+  padding: var(--space-4);
   background: linear-gradient(135deg, #f0f4ff 0%, #e8f4f8 100%);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   border: 1px solid #c7d2fe;
 }
 
 .diagramTitle {
-  font-size: 14px;
-  font-weight: 600;
-  color: #050038;
+  font-size: var(--text-md);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
   margin: 0;
 }
 
 .diagramDescription {
-  font-size: 13px;
-  color: #555;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
   margin: 0;
   line-height: 1.5;
 }
