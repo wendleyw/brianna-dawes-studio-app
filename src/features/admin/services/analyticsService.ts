@@ -433,11 +433,11 @@ class AnalyticsService {
       }
       dataMap.get(date)!.deliverablesCreated++;
 
-      if (d.status === 'approved') {
-        const approvedDate = d.updated_at.split('T')[0];
-        if (!dataMap.has(approvedDate)) {
-          dataMap.set(approvedDate, {
-            date: approvedDate,
+      if (d.status === 'approved' || d.status === 'delivered') {
+        const completedDate = d.updated_at.split('T')[0];
+        if (!dataMap.has(completedDate)) {
+          dataMap.set(completedDate, {
+            date: completedDate,
             projectsCreated: 0,
             projectsCompleted: 0,
             deliverablesCreated: 0,
@@ -445,7 +445,7 @@ class AnalyticsService {
             clientsJoined: 0,
           });
         }
-        dataMap.get(approvedDate)!.deliverablesApproved++;
+        dataMap.get(completedDate)!.deliverablesApproved++;
       }
     });
 
@@ -529,12 +529,12 @@ class AnalyticsService {
         monthlyMap.get(month)!.deliverablesCreated++;
       }
 
-      if (d.status === 'approved') {
-        const approvedMonth = d.updated_at.substring(0, 7);
-        if (monthlyMap.has(approvedMonth)) {
-          monthlyMap.get(approvedMonth)!.deliverablesApproved++;
+      if (d.status === 'approved' || d.status === 'delivered') {
+        const completedMonth = d.updated_at.substring(0, 7);
+        if (monthlyMap.has(completedMonth)) {
+          monthlyMap.get(completedMonth)!.deliverablesApproved++;
           // Estimate revenue based on deliverable count (you can adjust this)
-          monthlyMap.get(approvedMonth)!.revenue += ((d.count as number) || 1) * 100;
+          monthlyMap.get(completedMonth)!.revenue += ((d.count as number) || 1) * 100;
         }
       }
     });

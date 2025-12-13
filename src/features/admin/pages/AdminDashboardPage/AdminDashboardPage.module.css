@@ -531,9 +531,10 @@
 .barChart {
   display: flex;
   align-items: flex-end;
-  gap: 8px;
-  height: 200px;
-  padding-top: 20px;
+  gap: 12px;
+  height: 220px;
+  padding-top: 28px;
+  overflow: visible;
 }
 
 .barGroup {
@@ -542,26 +543,41 @@
   flex-direction: column;
   align-items: center;
   gap: 8px;
+  overflow: visible;
 }
 
-.bar {
+.barPair {
+  height: 160px;
   width: 100%;
-  max-width: 40px;
-  border-radius: 4px 4px 0 0;
-  transition: height 0.3s ease;
-  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 8px;
 }
 
-.bar::after {
-  content: attr(data-value);
+.barWrap {
+  position: relative;
+  width: 18px;
+  height: 160px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.barValue {
   position: absolute;
-  top: -16px;
   left: 50%;
   transform: translateX(-50%);
   font-size: 10px;
   font-weight: 700;
   color: #111827;
   white-space: nowrap;
+}
+
+.bar {
+  width: 18px;
+  border-radius: 4px 4px 0 0;
+  transition: height 0.3s ease;
 }
 
 .bar.projects {

@@ -464,22 +464,44 @@ function MonthlyChart({ data }: { data: MonthlyMetrics[] }) {
   const maxDeliverables = Math.max(...data.map((d) => d.deliverablesApproved), 1);
   const maxValue = Math.max(maxProjects, maxDeliverables);
 
+  const Bar = ({
+    value,
+    kind,
+    title,
+  }: {
+    value: number;
+    kind: 'projects' | 'deliverables';
+    title: string;
+  }) => {
+    const height = `${(value / maxValue) * 160}px`;
+    return (
+      <div className={styles.barWrap} title={title}>
+        <div className={`${styles.bar} ${styles[kind]}`} style={{ height }} aria-hidden="true" />
+        {value > 0 && (
+          <span className={styles.barValue} style={{ bottom: `calc(${height} + 4px)` }}>
+            {value}
+          </span>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className={styles.barChart}>
       {data.map((item) => (
         <div key={item.month} className={styles.barGroup}>
-          <div
-            className={`${styles.bar} ${styles.deliverables}`}
-            style={{ height: `${(item.deliverablesApproved / maxValue) * 160}px` }}
-            title={`${item.deliverablesApproved} deliverables`}
-            data-value={item.deliverablesApproved}
-          />
-          <div
-            className={`${styles.bar} ${styles.projects}`}
-            style={{ height: `${(item.projectsCreated / maxValue) * 160}px` }}
-            title={`${item.projectsCreated} projects`}
-            data-value={item.projectsCreated}
-          />
+          <div className={styles.barPair}>
+            <Bar
+              value={item.projectsCreated}
+              kind="projects"
+              title={`${item.projectsCreated} projects`}
+            />
+            <Bar
+              value={item.deliverablesApproved}
+              kind="deliverables"
+              title={`${item.deliverablesApproved} deliverables`}
+            />
+          </div>
           <span className={styles.barLabel}>{formatMonth(item.month)}</span>
         </div>
       ))}
