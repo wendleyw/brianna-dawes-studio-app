@@ -5,6 +5,7 @@ export {
   useUpdateProject,
   useDeleteProject,
   useArchiveProject,
+  useUnarchiveProject,
   useProjectMutations,
 } from './useProjectMutations';
 export {

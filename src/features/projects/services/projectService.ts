@@ -3,6 +3,7 @@ import { supabaseRestQuery, isInMiroIframe } from '@shared/lib/supabaseRest';
 import { createLogger } from '@shared/lib/logger';
 import type {
   Project,
+  ProjectStatus,
   CreateProjectInput,
   UpdateProjectInput,
   ProjectsQueryParams,
@@ -412,6 +413,21 @@ class ProjectService {
       .update({
         status: 'done',
         archived_at: new Date().toISOString(),
+      })
+      .eq('id', id);
+
+    if (error) throw error;
+    return this.getProject(id);
+  }
+
+  async unarchiveProject(id: string, newStatus: ProjectStatus = 'in_progress'): Promise<Project> {
+    // Unarchive: clear archived_at and set new status
+    const { error } = await supabase
+      .from('projects')
+      .update({
+        status: newStatus,
+        archived_at: null,
+        completed_at: null, // Also clear completed_at since project is being restored
       })
       .eq('id', id);
 

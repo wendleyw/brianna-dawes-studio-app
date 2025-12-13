@@ -109,6 +109,7 @@ interface ProjectCardContextValue {
   onUpdateStatus: ((projectId: string, status: string, options?: { markAsReviewed?: boolean }) => void) | undefined;
   onUpdate: ((projectId: string, updates: UpdateProjectInput) => Promise<void>) | undefined;
   onArchive: ((project: Project, reason?: string) => void) | undefined;
+  onUnarchive: ((project: Project) => void) | undefined;
   onReview: ((project: Project) => void) | undefined;
   onComplete: ((project: Project) => void) | undefined;
   onCreateVersion: ((project: Project) => void) | undefined;
@@ -136,6 +137,7 @@ interface ProjectCardProviderProps {
   onUpdateStatus?: (projectId: string, status: string, options?: { markAsReviewed?: boolean }) => void;
   onUpdate?: (projectId: string, updates: UpdateProjectInput) => Promise<void>;
   onArchive?: (project: Project, reason?: string) => void;
+  onUnarchive?: (project: Project) => void;
   onReview?: (project: Project) => void;
   onComplete?: (project: Project) => void;
   onCreateVersion?: (project: Project) => void;
@@ -151,6 +153,7 @@ export function ProjectCardProvider({
   onUpdateStatus,
   onUpdate,
   onArchive,
+  onUnarchive,
   onReview,
   onComplete,
   onCreateVersion,
@@ -262,6 +265,7 @@ export function ProjectCardProvider({
     onUpdateStatus,
     onUpdate,
     onArchive,
+    onUnarchive,
     onReview,
     onComplete,
     onCreateVersion,
@@ -294,6 +298,7 @@ export function ProjectCardProvider({
     onUpdateStatus,
     onUpdate,
     onArchive,
+    onUnarchive,
     onReview,
     onComplete,
     onCreateVersion,

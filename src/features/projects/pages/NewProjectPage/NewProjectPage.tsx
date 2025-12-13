@@ -374,6 +374,7 @@ ${formData.additionalNotes || needsAttention}
         dueDateApproved: !hasCustomDate,
         // Pass briefing data for Miro board creation
         briefing: {
+          projectType: formData.projectType || null, // Important: Save the project type in briefing
           projectOverview: formData.projectOverview || null,
           finalMessaging: formData.finalMessaging || null,
           inspirations: formData.inspirations || null,

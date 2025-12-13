@@ -58,6 +58,7 @@ export const ProjectCard = memo(function ProjectCard({
   onUpdateStatus,
   onUpdate,
   onArchive,
+  onUnarchive,
   onReview,
   onComplete,
   onCreateVersion,
@@ -504,6 +505,12 @@ export const ProjectCard = memo(function ProjectCard({
     onArchive?.(project, archiveReason);
     setShowArchiveModal(false);
     setArchiveReason('');
+  };
+
+  // ACTION: Unarchive - Restore archived project
+  const handleUnarchiveClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onUnarchive?.(project);
   };
 
   // CLIENT ACTIONS: Request Changes - sends back to in_progress for more work
@@ -1085,11 +1092,18 @@ export const ProjectCard = memo(function ProjectCard({
                   <span>Assign</span>
                 </button>
 
-                {/* 7. Archive */}
-                <button className={`${styles.adminBtn} ${styles.danger}`} onClick={handleArchiveClick}>
-                  <div className={styles.adminBtnIcon}><ArchiveIcon /></div>
-                  <span>Archive</span>
-                </button>
+                {/* 7. Archive / Unarchive */}
+                {isArchived ? (
+                  <button className={`${styles.adminBtn} ${styles.success}`} onClick={handleUnarchiveClick}>
+                    <div className={styles.adminBtnIcon}><ArchiveIcon /></div>
+                    <span>Restore</span>
+                  </button>
+                ) : (
+                  <button className={`${styles.adminBtn} ${styles.danger}`} onClick={handleArchiveClick}>
+                    <div className={styles.adminBtnIcon}><ArchiveIcon /></div>
+                    <span>Archive</span>
+                  </button>
+                )}
               </div>
             </div>
           )}

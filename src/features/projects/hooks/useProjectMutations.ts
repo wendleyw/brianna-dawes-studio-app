@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { projectService } from '../services/projectService';
 import { projectKeys } from '../services/projectKeys';
-import type { CreateProjectInput, UpdateProjectInput, Project } from '../domain/project.types';
+import type { CreateProjectInput, UpdateProjectInput, Project, ProjectStatus } from '../domain/project.types';
 
 export function useCreateProject() {
   const queryClient = useQueryClient();
@@ -51,21 +51,37 @@ export function useArchiveProject() {
   });
 }
 
+export function useUnarchiveProject() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, newStatus = 'in_progress' }: { id: string; newStatus?: ProjectStatus }) =>
+      projectService.unarchiveProject(id, newStatus),
+    onSuccess: (project: Project) => {
+      queryClient.invalidateQueries({ queryKey: projectKeys.lists() });
+      queryClient.setQueryData(projectKeys.detail(project.id), project);
+    },
+  });
+}
+
 // Composite hook for convenience
 export function useProjectMutations() {
   const createProject = useCreateProject();
   const updateProject = useUpdateProject();
   const deleteProject = useDeleteProject();
   const archiveProject = useArchiveProject();
+  const unarchiveProject = useUnarchiveProject();
 
   return {
     createProject,
     updateProject,
     deleteProject,
     archiveProject,
+    unarchiveProject,
     isCreating: createProject.isPending,
     isUpdating: updateProject.isPending,
     isDeleting: deleteProject.isPending,
     isArchiving: archiveProject.isPending,
+    isUnarchiving: unarchiveProject.isPending,
   };
 }

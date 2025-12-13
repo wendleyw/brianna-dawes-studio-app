@@ -7,7 +7,7 @@ import logoImage from '../../../../assets/brand/logo-brianna.png';
 import { useMiro, zoomToProject, addVersionToProject } from '@features/boards';
 import { useMiroBoardSync, useMasterBoardSettings } from '@features/boards/hooks';
 import { miroProjectRowService } from '@features/boards/services/miroSdkService';
-import { useProjects, useUpdateProject, useArchiveProject } from '../../hooks';
+import { useProjects, useUpdateProject, useArchiveProject, useUnarchiveProject } from '../../hooks';
 import { ProjectCard } from '../../components/ProjectCard';
 import { createLogger } from '@shared/lib/logger';
 import { TIMELINE_COLUMNS, getTimelineStatus, type TimelineStatus } from '@shared/lib/timelineStatus';
@@ -406,6 +406,7 @@ export function ProjectsPage() {
   // Mutations
   const { mutate: updateProject } = useUpdateProject();
   const { mutate: archiveProject } = useArchiveProject();
+  const { mutate: unarchiveProject } = useUnarchiveProject();
 
   // ===== ACTION HANDLERS =====
 
@@ -531,6 +532,18 @@ export function ProjectsPage() {
       },
     });
   }, [archiveProject, refetch]);
+
+  // Unarchive - Restore archived project
+  const handleUnarchive = useCallback((project: Project) => {
+    unarchiveProject({ id: project.id, newStatus: 'in_progress' }, {
+      onSuccess: (restoredProject) => {
+        logger.info('Project restored', { name: restoredProject.name });
+        refetch();
+        // Sync with Miro to remove done overlay
+        syncProject(restoredProject).catch(err => logger.error('Sync failed', err));
+      },
+    });
+  }, [unarchiveProject, refetch, syncProject]);
 
   // Create Version - Add new version to project board
   const handleCreateVersion = useCallback(async (project: Project) => {
@@ -816,6 +829,7 @@ export function ProjectsPage() {
               onReview={handleReview}
               onComplete={handleComplete}
               onArchive={handleArchive}
+              onUnarchive={handleUnarchive}
               onCreateVersion={handleCreateVersion}
               onAssignDesigner={handleAssignDesigner}
               isSelected={project.id === selectedProjectId}
