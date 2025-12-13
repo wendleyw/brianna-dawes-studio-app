@@ -219,7 +219,7 @@ export function ProjectTypesSettings() {
             />
             Show deleted
           </label>
-          <Button onClick={handleAddNew} disabled={!!editingType}>
+          <Button className={styles.addButton} onClick={handleAddNew} disabled={!!editingType}>
             <PlusIcon /> Add Type
           </Button>
         </div>

@@ -358,7 +358,8 @@
 .memberEmail {
   font-size: var(--text-xs);
   color: var(--color-text-tertiary);
-  word-break: break-all;
+  overflow-wrap: anywhere;
+  word-break: normal;
 }
 
 /* Boards Section */

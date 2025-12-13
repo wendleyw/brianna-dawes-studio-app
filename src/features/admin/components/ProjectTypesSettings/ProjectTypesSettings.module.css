@@ -1,5 +1,7 @@
 .container {
   padding: 16px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .header {
@@ -8,6 +10,7 @@
   align-items: flex-start;
   margin-bottom: 20px;
   gap: 16px;
+  flex-wrap: wrap;
 }
 
 .title {
@@ -27,6 +30,11 @@
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-wrap: wrap;
+}
+
+.addButton {
+  white-space: nowrap;
 }
 
 .checkbox {
@@ -195,6 +203,7 @@
   font-weight: 500;
   color: #111827;
   margin-bottom: 4px;
+  overflow-wrap: anywhere;
 }
 
 .typeMeta {
@@ -203,6 +212,8 @@
   gap: 12px;
   font-size: 12px;
   color: #6b7280;
+  flex-wrap: wrap;
+  row-gap: 6px;
 }
 
 .typeMeta code {
@@ -211,6 +222,7 @@
   border-radius: 4px;
   font-family: monospace;
   font-size: 11px;
+  overflow-wrap: anywhere;
 }
 
 .typeDays {
@@ -275,4 +287,31 @@
   padding: 40px;
   color: #9ca3af;
   font-size: 14px;
+}
+
+@media (max-width: 520px) {
+  .header {
+    flex-direction: column;
+    align-items: stretch;
+    margin-bottom: 16px;
+  }
+
+  .headerActions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .addButton {
+    width: 100%;
+  }
+
+  .typeItem {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .typeActions {
+    justify-content: flex-end;
+  }
 }

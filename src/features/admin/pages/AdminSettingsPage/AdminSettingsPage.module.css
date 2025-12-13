@@ -113,15 +113,23 @@
   border-bottom: 1px solid #e5e7eb;
   padding-bottom: 0;
   flex-shrink: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; /* Firefox */
+}
+
+.tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .tab {
-  flex: 1;
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 4px;
-  padding: 8px 4px;
+  padding: 8px 10px;
   background: none;
   border: none;
   border-bottom: 2px solid transparent;
@@ -131,7 +139,7 @@
   cursor: pointer;
   transition: all 0.15s ease;
   margin-bottom: -1px;
-  min-width: 0;
+  min-width: 92px;
 }
 
 .tab:hover {
@@ -154,6 +162,18 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+@media (min-width: 640px) {
+  .tabs {
+    overflow-x: visible;
+  }
+
+  .tab {
+    flex: 1;
+    min-width: 0;
+    padding: 8px 4px;
+  }
 }
 
 /* Hide label on very small screens, show only icon */

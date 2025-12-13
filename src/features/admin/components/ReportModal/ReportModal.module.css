@@ -364,3 +364,30 @@
 .notesInput::placeholder {
   color: #a1a1aa;
 }
+
+@media (max-width: 520px) {
+  .statusBar {
+    flex-wrap: wrap;
+  }
+
+  .filtersSection {
+    padding: 16px;
+  }
+
+  .dateFilters {
+    grid-template-columns: 1fr;
+  }
+
+  .actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .actions :global(button) {
+    width: 100%;
+  }
+
+  .starRating {
+    flex-wrap: wrap;
+  }
+}

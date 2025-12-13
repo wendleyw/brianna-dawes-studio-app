@@ -196,3 +196,32 @@
   color: #DC2626;
   margin-bottom: 8px;
 }
+
+@media (max-width: 420px) {
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .connectionStatus {
+    flex-wrap: wrap;
+  }
+
+  .statusBreakdown {
+    grid-template-columns: 1fr;
+  }
+
+  .retryStats {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .actions {
+    flex-wrap: wrap;
+  }
+
+  .actions :global(button) {
+    width: 100%;
+  }
+}
