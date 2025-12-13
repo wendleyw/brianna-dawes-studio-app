@@ -65,6 +65,11 @@
   gap: 12px;
 }
 
+.timelineSection {
+  flex: 1;
+  min-height: 0;
+}
+
 .sectionTitle {
   font-size: 14px;
   font-weight: 700;
@@ -218,6 +223,7 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  flex: 1;
 }
 
 .legend {

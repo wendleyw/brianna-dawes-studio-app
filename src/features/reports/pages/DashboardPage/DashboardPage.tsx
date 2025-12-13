@@ -413,7 +413,7 @@ export function DashboardPage() {
       </section>
 
       {/* Project Timeline */}
-      <section className={styles.section}>
+      <section className={`${styles.section} ${styles.timelineSection}`}>
         <h2 className={styles.sectionTitle}>Project Timeline</h2>
         <div className={styles.timelineCard}>
           {/* Legend - all 5 status in one row */}
