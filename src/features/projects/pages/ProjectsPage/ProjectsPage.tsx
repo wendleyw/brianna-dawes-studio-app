@@ -314,7 +314,9 @@ export function ProjectsPage() {
   const { data: projectsData, isLoading, refetch } = useProjects({ filters, pageSize: 1000 });
 
   // Filter projects by timeline status and project type (client-side)
-  // Sort priority: REVIEW first (client action needed), then active, DONE last
+  // Sort priority:
+  // - Admin/Creative Director: CLIENT APPROVED first (action needed), then urgency, DONE last
+  // - Client: REVIEW first (action needed), then urgency, DONE last
   const allProjects = projectsData?.data || [];
   const projects = useMemo(() => {
     let filtered = allProjects;
@@ -329,26 +331,75 @@ export function ProjectsPage() {
       filtered = filtered.filter(p => p.briefing?.projectType === projectTypeFilter);
     }
 
-    // Sort order: review > overdue > urgent > in_progress > done
-    // This helps clients see what needs their attention first
-    const statusPriority: Record<string, number> = {
-      'review': 1,      // Client action needed - FIRST
-      'overdue': 2,     // Urgent attention
-      'urgent': 3,      // High priority
-      'in_progress': 4, // Being worked on
-      'done': 5,        // Completed - LAST
+    const isAdmin = user?.role === 'admin';
+    const isClient = user?.role === 'client';
+
+    // Priority order: urgent > high > medium > low
+    const priorityRank: Record<string, number> = {
+      urgent: 1,
+      high: 2,
+      medium: 3,
+      low: 4,
+    };
+
+    // Status ordering differs by role:
+    // - Admin: prioritize "client approved" (review + wasApproved) at the very top so Creative Director sees it immediately
+    // - Client: prioritize "review" (needs their action) at the top; approved review is lower because it's already done on their side
+    const adminStatusPriority: Record<string, number> = {
+      overdue: 1,
+      urgent: 2,
+      review: 3,
+      in_progress: 4,
+      done: 5,
+    };
+    const clientStatusPriority: Record<string, number> = {
+      review: 1,
+      overdue: 2,
+      urgent: 3,
+      in_progress: 4,
+      done: 5,
     };
     return [...filtered].sort((a, b) => {
-      const aPriority = statusPriority[a.status] ?? 4;
-      const bPriority = statusPriority[b.status] ?? 4;
-      // Sort by priority first
-      if (aPriority !== bPriority) {
-        return aPriority - bPriority;
+      const aTimelineStatus = getTimelineStatus(a);
+      const bTimelineStatus = getTimelineStatus(b);
+
+      // Creative Director priority: "Client Approved" should bubble to the very top
+      // (review status + wasApproved indicates client has approved and admin should finalize)
+      if (isAdmin) {
+        const aClientApproved = aTimelineStatus === 'review' && a.wasApproved;
+        const bClientApproved = bTimelineStatus === 'review' && b.wasApproved;
+        if (aClientApproved !== bClientApproved) return aClientApproved ? -1 : 1;
       }
-      // Same priority: sort by updatedAt (most recent first)
+
+      // Client view: de-prioritize already-approved review items vs review items needing action
+      if (isClient) {
+        const aNeedsClientReview = aTimelineStatus === 'review' && !a.wasApproved;
+        const bNeedsClientReview = bTimelineStatus === 'review' && !b.wasApproved;
+        if (aNeedsClientReview !== bNeedsClientReview) return aNeedsClientReview ? -1 : 1;
+      }
+
+      const statusPriority = isClient ? clientStatusPriority : adminStatusPriority;
+      const aStatusRank = statusPriority[aTimelineStatus] ?? 4;
+      const bStatusRank = statusPriority[bTimelineStatus] ?? 4;
+      if (aStatusRank !== bStatusRank) return aStatusRank - bStatusRank;
+
+      const aPriorityRank = priorityRank[a.priority] ?? 3;
+      const bPriorityRank = priorityRank[b.priority] ?? 3;
+      if (aPriorityRank !== bPriorityRank) return aPriorityRank - bPriorityRank;
+
+      // If both have due dates, sort soonest first
+      if (a.dueDate && b.dueDate) {
+        const aDue = new Date(a.dueDate).getTime();
+        const bDue = new Date(b.dueDate).getTime();
+        if (!Number.isNaN(aDue) && !Number.isNaN(bDue) && aDue !== bDue) {
+          return aDue - bDue;
+        }
+      }
+
+      // Otherwise sort by updatedAt (most recent first)
       return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
     });
-  }, [allProjects, timelineFilter, projectTypeFilter]);
+  }, [allProjects, timelineFilter, projectTypeFilter, user?.role]);
 
   const totalProjects = projects.length;
 
