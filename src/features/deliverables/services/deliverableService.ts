@@ -18,6 +18,24 @@ import type {
 } from '../domain/deliverable.types';
 
 /**
+ * Version stored in the JSONB `versions` column of deliverables table.
+ * This replaced the old `deliverable_versions` table (removed in migration 038).
+ */
+interface VersionJsonb {
+  id: string;
+  version: number;
+  file_url: string;
+  file_name: string;
+  file_size: number;
+  mime_type: string;
+  uploaded_by_id: string;
+  uploaded_by_name: string;
+  uploaded_by_avatar: string | null;
+  comment: string | null;
+  created_at: string;
+}
+
+/**
  * DeliverableService - Handles all deliverable-related database operations
  *
  * This service provides CRUD operations for deliverables, including:
@@ -43,16 +61,7 @@ class DeliverableService {
 
     let query = supabase
       .from('deliverables')
-      .select(
-        `
-        *,
-        current_version:deliverable_versions!fk_deliverables_current_version(
-          id, version_number, file_url, file_name, file_size, mime_type, comment, created_at,
-          uploaded_by:users(id, name, avatar_url)
-        )
-      `,
-        { count: 'exact' }
-      );
+      .select('*', { count: 'exact' });
 
     // Apply filters
     if (filters.projectId) {
@@ -113,15 +122,7 @@ class DeliverableService {
   async getDeliverable(id: string): Promise<Deliverable> {
     const { data, error } = await supabase
       .from('deliverables')
-      .select(
-        `
-        *,
-        current_version:deliverable_versions!fk_deliverables_current_version(
-          id, version_number, file_url, file_name, file_size, mime_type, comment, created_at,
-          uploaded_by:users(id, name, avatar_url)
-        )
-      `
-      )
+      .select('*')
       .eq('id', id)
       .single();
 
@@ -199,13 +200,17 @@ class DeliverableService {
   async uploadVersion(input: UploadVersionInput): Promise<DeliverableVersion> {
     const { deliverableId, file, comment } = input;
 
-    // Get current version count
-    const { count } = await supabase
-      .from('deliverable_versions')
-      .select('*', { count: 'exact', head: true })
-      .eq('deliverable_id', deliverableId);
+    // Get current deliverable to find version count
+    const { data: deliverable, error: fetchError } = await supabase
+      .from('deliverables')
+      .select('versions')
+      .eq('id', deliverableId)
+      .single();
 
-    const versionNumber = (count || 0) + 1;
+    if (fetchError) throw fetchError;
+
+    const currentVersions = (deliverable?.versions as VersionJsonb[] | null) || [];
+    const versionNumber = currentVersions.length + 1;
 
     // Upload file to storage
     const fileExt = file.name.split('.').pop();
@@ -226,54 +231,65 @@ class DeliverableService {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
 
-    // Create version record
-    const { data: version, error: versionError } = await supabase
-      .from('deliverable_versions')
-      .insert({
-        deliverable_id: deliverableId,
-        version_number: versionNumber,
-        file_url: publicUrl,
-        file_name: file.name,
-        file_size: file.size,
-        mime_type: file.type,
-        uploaded_by_id: user.id,
-        comment,
-      })
-      .select(`
-        *,
-        uploaded_by:users(id, name, avatar_url)
-      `)
+    // Get user details for the version record
+    const { data: userDetails } = await supabase
+      .from('users')
+      .select('id, name, avatar_url')
+      .eq('auth_user_id', user.id)
       .single();
 
-    if (versionError) throw versionError;
+    const uploadedById = userDetails?.id || user.id;
+    const uploadedByName = userDetails?.name || user.email || 'Unknown';
+    const uploadedByAvatar = userDetails?.avatar_url || null;
 
-    // Update deliverable with new current version and type
+    // Create new version object
+    const newVersion: VersionJsonb = {
+      id: crypto.randomUUID(),
+      version: versionNumber,
+      file_url: publicUrl,
+      file_name: file.name,
+      file_size: file.size,
+      mime_type: file.type,
+      uploaded_by_id: uploadedById,
+      uploaded_by_name: uploadedByName,
+      uploaded_by_avatar: uploadedByAvatar,
+      comment: comment || null,
+      created_at: new Date().toISOString(),
+    };
+
+    // Update deliverable with new version in JSONB array
     const fileType = mapMimeTypeToDeliverableType(file.type);
-    await supabase
+    const updatedVersions = [...currentVersions, newVersion];
+
+    const { error: updateError } = await supabase
       .from('deliverables')
       .update({
-        current_version_id: version.id,
+        versions: updatedVersions,
         type: fileType,
         thumbnail_url: fileType === 'image' ? publicUrl : null,
         updated_at: new Date().toISOString(),
       })
       .eq('id', deliverableId);
 
-    return this.mapVersionFromDB(version);
+    if (updateError) throw updateError;
+
+    return this.mapVersionFromJsonb(newVersion, deliverableId);
   }
 
   async getVersions(deliverableId: string): Promise<DeliverableVersion[]> {
     const { data, error } = await supabase
-      .from('deliverable_versions')
-      .select(`
-        *,
-        uploaded_by:users(id, name, avatar_url)
-      `)
-      .eq('deliverable_id', deliverableId)
-      .order('version_number', { ascending: false });
+      .from('deliverables')
+      .select('versions')
+      .eq('id', deliverableId)
+      .single();
 
     if (error) throw error;
-    return (data || []).map(this.mapVersionFromDB);
+
+    const versions = (data?.versions as VersionJsonb[] | null) || [];
+    // Return versions sorted by version number descending (newest first)
+    return versions
+      .sort((a, b) => b.version - a.version)
+      .map((v) => this.mapVersionFromJsonb(v, deliverableId));
   }
 
   async addFeedback(
@@ -351,16 +367,25 @@ class DeliverableService {
   }
 
   private mapDeliverableFromDB(data: Record<string, unknown>): Deliverable {
+    // Extract versions from JSONB column
+    const versions = (data.versions as VersionJsonb[] | null) || [];
+    const versionsCount = versions.length;
+    // Current version is the last one in the array (highest version number)
+    const currentVersionJsonb = versions.length > 0 ? versions[versions.length - 1] : null;
+    const deliverableId = data.id as string;
+
     return {
-      id: data.id as string,
+      id: deliverableId,
       projectId: data.project_id as string,
       name: data.name as string,
       description: data.description as string | null,
       type: data.type as Deliverable['type'],
       status: data.status as Deliverable['status'],
-      currentVersionId: data.current_version_id as string | null,
-      currentVersion: data.current_version ? this.mapVersionFromDB(data.current_version as Record<string, unknown>) : null,
-      versionsCount: (data.versions_count as number) || 0,
+      currentVersionId: currentVersionJsonb?.id || null,
+      currentVersion: currentVersionJsonb
+        ? this.mapVersionFromJsonb(currentVersionJsonb, deliverableId)
+        : null,
+      versionsCount,
       feedbackCount: (data.feedback_count as number) || 0,
       miroFrameId: data.miro_frame_id as string | null,
       miroUrl: data.miro_url as string | null,
@@ -377,22 +402,22 @@ class DeliverableService {
     };
   }
 
-  private mapVersionFromDB(data: Record<string, unknown>): DeliverableVersion {
+  private mapVersionFromJsonb(data: VersionJsonb, deliverableId: string): DeliverableVersion {
     return {
-      id: data.id as string,
-      deliverableId: data.deliverable_id as string,
-      versionNumber: data.version_number as number,
-      fileUrl: data.file_url as string,
-      fileName: data.file_name as string,
-      fileSize: data.file_size as number,
-      mimeType: data.mime_type as string,
+      id: data.id,
+      deliverableId,
+      versionNumber: data.version,
+      fileUrl: data.file_url,
+      fileName: data.file_name,
+      fileSize: data.file_size,
+      mimeType: data.mime_type,
       uploadedBy: {
-        id: (data.uploaded_by as Record<string, unknown>).id as string,
-        name: (data.uploaded_by as Record<string, unknown>).name as string,
-        avatarUrl: (data.uploaded_by as Record<string, unknown>).avatar_url as string | null,
+        id: data.uploaded_by_id,
+        name: data.uploaded_by_name,
+        avatarUrl: data.uploaded_by_avatar,
       },
-      comment: data.comment as string | null,
-      createdAt: data.created_at as string,
+      comment: data.comment,
+      createdAt: data.created_at,
     };
   }
 

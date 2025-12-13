@@ -5,6 +5,7 @@ export type NotificationType =
   | 'status_changed'
   | 'deadline_approaching'
   | 'project_assigned'
+  | 'project_created'
   | 'mention';
 
 export interface Notification {
@@ -20,6 +21,9 @@ export interface Notification {
     deliverableName?: string;
     actorId?: string;
     actorName?: string;
+    version?: string;
+    oldStatus?: string;
+    newStatus?: string;
   };
   isRead: boolean;
   createdAt: string;

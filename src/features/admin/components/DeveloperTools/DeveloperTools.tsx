@@ -812,9 +812,8 @@ export function DeveloperTools() {
       await supabase.from('deliverable_feedback').delete().neq('id', '00000000-0000-0000-0000-000000000000');
       addProgress('✓ deliverable_feedback deleted');
 
-      addProgress('Deleting deliverable_versions...');
-      await supabase.from('deliverable_versions').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-      addProgress('✓ deliverable_versions deleted');
+      // Note: deliverable_versions table was removed in migration 038
+      // Versions are now stored as JSONB in deliverables.versions column
 
       addProgress('Deleting deliverables...');
       await supabase.from('deliverables').delete().neq('id', '00000000-0000-0000-0000-000000000000');
@@ -924,13 +923,8 @@ export function DeveloperTools() {
       if (dfError) addProgress(`  ⚠ ${dfError.message}`);
       else addProgress('  ✓ deliverable_feedback cleared');
 
-      addProgress('  Deleting deliverable_versions...');
-      const { error: dvError } = await supabase
-        .from('deliverable_versions')
-        .delete()
-        .neq('id', '00000000-0000-0000-0000-000000000000');
-      if (dvError) addProgress(`  ⚠ ${dvError.message}`);
-      else addProgress('  ✓ deliverable_versions cleared');
+      // Note: deliverable_versions table was removed in migration 038
+      // Versions are now stored as JSONB in deliverables.versions column
 
       addProgress('  Deleting deliverables...');
       const { error: delError } = await supabase

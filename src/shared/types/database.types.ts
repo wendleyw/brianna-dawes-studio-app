@@ -149,6 +149,24 @@ export interface ProjectDesignerInsert {
   assigned_at?: string;
 }
 
+/**
+ * Version object stored in the JSONB `versions` column.
+ * This replaced the old `deliverable_versions` table (removed in migration 038).
+ */
+export interface DeliverableVersionJsonb {
+  id: string;
+  version: number;
+  file_url: string;
+  file_name: string;
+  file_size: number;
+  mime_type: string;
+  uploaded_by_id: string;
+  uploaded_by_name: string;
+  uploaded_by_avatar: string | null;
+  comment: string | null;
+  created_at: string;
+}
+
 export interface DeliverableRow {
   id: string;
   project_id: string;
@@ -156,13 +174,13 @@ export interface DeliverableRow {
   description: string | null;
   type: DeliverableType;
   status: DeliverableStatus;
-  current_version_id: string | null;
   miro_frame_id: string | null;
   miro_url: string | null;
   external_url: string | null;
   thumbnail_url: string | null;
   count: number;
   bonus_count: number;
+  versions: DeliverableVersionJsonb[] | null;
   due_date: string | null;
   delivered_at: string | null;
   created_at: string;
@@ -176,13 +194,13 @@ export interface DeliverableInsert {
   description?: string | null;
   type?: DeliverableType;
   status?: DeliverableStatus;
-  current_version_id?: string | null;
   miro_frame_id?: string | null;
   miro_url?: string | null;
   external_url?: string | null;
   thumbnail_url?: string | null;
   count?: number;
   bonus_count?: number;
+  versions?: DeliverableVersionJsonb[] | null;
   due_date?: string | null;
   delivered_at?: string | null;
   created_at?: string;
@@ -194,42 +212,16 @@ export interface DeliverableUpdate {
   description?: string | null;
   type?: DeliverableType;
   status?: DeliverableStatus;
-  current_version_id?: string | null;
   miro_frame_id?: string | null;
   miro_url?: string | null;
   external_url?: string | null;
   thumbnail_url?: string | null;
   count?: number;
   bonus_count?: number;
+  versions?: DeliverableVersionJsonb[] | null;
   due_date?: string | null;
   delivered_at?: string | null;
   updated_at?: string;
-}
-
-export interface DeliverableVersionRow {
-  id: string;
-  deliverable_id: string;
-  version_number: number;
-  file_url: string;
-  file_name: string;
-  file_size: number;
-  mime_type: string;
-  uploaded_by_id: string;
-  comment: string | null;
-  created_at: string;
-}
-
-export interface DeliverableVersionInsert {
-  id?: string;
-  deliverable_id: string;
-  version_number: number;
-  file_url: string;
-  file_name: string;
-  file_size: number;
-  mime_type: string;
-  uploaded_by_id: string;
-  comment?: string | null;
-  created_at?: string;
 }
 
 export interface DeliverableFeedbackRow {
@@ -372,11 +364,6 @@ export interface Database {
         Row: DeliverableRow;
         Insert: DeliverableInsert;
         Update: DeliverableUpdate;
-      };
-      deliverable_versions: {
-        Row: DeliverableVersionRow;
-        Insert: DeliverableVersionInsert;
-        Update: never;
       };
       deliverable_feedback: {
         Row: DeliverableFeedbackRow;
