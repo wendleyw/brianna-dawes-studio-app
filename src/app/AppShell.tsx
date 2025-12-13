@@ -38,6 +38,15 @@ const SettingsIcon = () => (
   </svg>
 );
 
+const AnalyticsIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M3 3v18h18" />
+    <path d="M7 15v-5" />
+    <path d="M12 15v-9" />
+    <path d="M17 15v-3" />
+  </svg>
+);
+
 const AdminMenuIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
     <path d="M4 6h16M4 12h16M4 18h16" />
@@ -155,6 +164,18 @@ export function AppShell() {
                   >
                     <ReportIcon />
                     <span>Report</span>
+                  </button>
+                  <button
+                    className={styles.adminMenuItem}
+                    onClick={() => {
+                      setIsAdminMenuOpen(false);
+                      navigate('/admin/dashboard');
+                    }}
+                    type="button"
+                    role="menuitem"
+                  >
+                    <AnalyticsIcon />
+                    <span>Analytics</span>
                   </button>
                   <button
                     className={styles.adminMenuItem}
