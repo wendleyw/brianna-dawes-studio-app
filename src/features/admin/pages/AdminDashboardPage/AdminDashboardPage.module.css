@@ -181,6 +181,7 @@
   padding: 12px;
   text-align: center;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  border-top: 3px solid transparent;
 }
 
 .statusCard.onTrack {
@@ -548,6 +549,19 @@
   max-width: 40px;
   border-radius: 4px 4px 0 0;
   transition: height 0.3s ease;
+  position: relative;
+}
+
+.bar::after {
+  content: attr(data-value);
+  position: absolute;
+  top: -16px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 10px;
+  font-weight: 700;
+  color: #111827;
+  white-space: nowrap;
 }
 
 .bar.projects {

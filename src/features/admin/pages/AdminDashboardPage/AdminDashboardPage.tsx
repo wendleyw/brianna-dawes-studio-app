@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDashboardAnalytics } from '../../hooks/useAnalytics';
 import { Button, RefreshIcon } from '@shared/ui';
+import { STATUS_COLUMNS } from '@shared/lib/timelineStatus';
 import styles from './AdminDashboardPage.module.css';
 import type {
   ClientAnalytics,
@@ -135,6 +136,21 @@ interface OverviewTabProps {
 }
 
 function OverviewTab({ overview, projectsByStatus, monthlyMetrics, recentProjects, onViewProject }: OverviewTabProps) {
+  const statusCards = [
+    ...STATUS_COLUMNS.map((col) => ({
+      id: col.id,
+      label: col.label,
+      color: col.color,
+      count: projectsByStatus[col.id],
+    })),
+    {
+      id: 'archived',
+      label: 'ARCHIVED',
+      color: '#111827',
+      count: projectsByStatus.archived,
+    },
+  ] as const;
+
   return (
     <>
       {/* KPI Cards */}
@@ -183,12 +199,9 @@ function OverviewTab({ overview, projectsByStatus, monthlyMetrics, recentProject
 
       {/* Status Distribution */}
       <div className={styles.statusGrid}>
-        <StatusCard status="in_progress" count={projectsByStatus.in_progress} />
-        <StatusCard status="review" count={projectsByStatus.review} />
-        <StatusCard status="urgent" count={projectsByStatus.urgent} />
-        <StatusCard status="overdue" count={projectsByStatus.overdue} />
-        <StatusCard status="done" count={projectsByStatus.done} />
-        <StatusCard status="archived" count={projectsByStatus.archived} />
+        {statusCards.map((s) => (
+          <StatusCard key={s.id} label={s.label} count={s.count} color={s.color} />
+        ))}
       </div>
 
       {/* Charts and Recent */}
@@ -436,21 +449,11 @@ function KPICard({ label, value, subtext }: KPICardProps) {
   );
 }
 
-// Status Card Component
-function StatusCard({ status, count }: { status: string; count: number }) {
-  const statusClassMap: Record<string, string | undefined> = {
-    in_progress: styles.inProgress,
-    review: styles.review,
-    urgent: styles.urgent,
-    overdue: styles.overdue,
-    done: styles.done,
-    archived: styles.archived,
-  };
-
+function StatusCard({ label, count, color }: { label: string; count: number; color: string }) {
   return (
-    <div className={`${styles.statusCard} ${statusClassMap[status] ?? ''}`}>
+    <div className={styles.statusCard} style={{ borderTopColor: color }}>
       <div className={styles.statusCount}>{count}</div>
-      <div className={styles.statusLabel}>{formatStatus(status)}</div>
+      <div className={styles.statusLabel}>{label}</div>
     </div>
   );
 }
@@ -469,11 +472,13 @@ function MonthlyChart({ data }: { data: MonthlyMetrics[] }) {
             className={`${styles.bar} ${styles.deliverables}`}
             style={{ height: `${(item.deliverablesApproved / maxValue) * 160}px` }}
             title={`${item.deliverablesApproved} deliverables`}
+            data-value={item.deliverablesApproved}
           />
           <div
             className={`${styles.bar} ${styles.projects}`}
             style={{ height: `${(item.projectsCreated / maxValue) * 160}px` }}
             title={`${item.projectsCreated} projects`}
+            data-value={item.projectsCreated}
           />
           <span className={styles.barLabel}>{formatMonth(item.month)}</span>
         </div>
