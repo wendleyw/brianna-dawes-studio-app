@@ -300,14 +300,15 @@ export const adminService = {
       .from('app_settings')
       .select('value')
       .eq('key', key)
-      .single();
+      .maybeSingle();
 
     if (error) {
+      // PGRST116: No rows found (shouldn't happen with maybeSingle but keep for safety)
       if (error.code === 'PGRST116') return null;
       throw error;
     }
 
-    return data?.value;
+    return data?.value ?? null;
   },
 
   /**
