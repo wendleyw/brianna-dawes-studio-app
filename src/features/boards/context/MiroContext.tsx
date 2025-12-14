@@ -54,7 +54,8 @@ declare global {
       getIdToken: () => Promise<string>;
       getUserInfo: () => Promise<{ id: string; name: string; email?: string }>;
       ui: {
-        on: (event: string, handler: () => void) => void;
+        on: (event: string, handler: (event?: { items?: Array<{ id: string; type: string; description?: string }> }) => void) => void;
+        off: (event: string, handler: (event?: { items?: Array<{ id: string; type: string; description?: string }> }) => void) => void;
         openPanel: (options: { url: string; height?: number }) => Promise<void>;
         closePanel: () => Promise<void>;
         openModal: (options: { url: string; width?: number; height?: number; fullscreen?: boolean }) => Promise<void>;
@@ -127,6 +128,7 @@ interface MiroContextValue {
   boardId: string | null;
   miro: typeof miro | null;
   error: string | null;
+  selectedProjectId: string | null;
 }
 
 const MiroContext = createContext<MiroContextValue>({
@@ -135,6 +137,7 @@ const MiroContext = createContext<MiroContextValue>({
   boardId: null,
   miro: null,
   error: null,
+  selectedProjectId: null,
 });
 
 interface MiroProviderProps {
@@ -146,6 +149,7 @@ export function MiroProvider({ children }: MiroProviderProps) {
   const [isReady, setIsReady] = useState(false);
   const [boardId, setBoardId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
 
   useEffect(() => {
     async function initMiro() {
@@ -233,12 +237,89 @@ export function MiroProvider({ children }: MiroProviderProps) {
     initMiro();
   }, []);
 
+  // Listen for card selection changes to detect project card clicks
+  useEffect(() => {
+    if (!isInMiro || !isReady) return;
+
+    let lastClickTime = 0;
+    let lastClickedProjectId: string | null = null;
+
+    const handleSelectionUpdate = async (event?: { items?: Array<{ id: string; type: string; description?: string }> }) => {
+      console.log('[MiroContext] Selection update:', event);
+
+      if (!event?.items?.length) {
+        setSelectedProjectId(null);
+        return;
+      }
+
+      // Check if a card with projectId in description is selected
+      const selectedCard = event.items.find(item =>
+        item.type === 'card' && item.description?.includes('projectId:')
+      );
+
+      if (!selectedCard) {
+        setSelectedProjectId(null);
+        return;
+      }
+
+      // Extract projectId from description
+      const match = selectedCard.description?.match(/projectId:([a-f0-9-]+)/);
+      const projectId = match?.[1] || null;
+
+      if (!projectId) {
+        setSelectedProjectId(null);
+        return;
+      }
+
+      const now = Date.now();
+      const isDoubleClick = lastClickedProjectId === projectId && (now - lastClickTime) < 500;
+
+      console.log('[MiroContext] Project card selected:', { projectId, isDoubleClick });
+      setSelectedProjectId(projectId);
+
+      if (isDoubleClick) {
+        // Double click: Open project modal
+        console.log('[MiroContext] Double click detected, opening project modal');
+        try {
+          await window.miro.board.ui.openModal({
+            url: `board-modal.html?mode=project&projectId=${projectId}`,
+            width: 800,
+            height: 600,
+          });
+        } catch (err) {
+          console.error('[MiroContext] Error opening project modal:', err);
+        }
+      } else {
+        // Single click: Zoom to project briefing frame
+        console.log('[MiroContext] Single click, zooming to project');
+        // Import dynamically to avoid circular dependencies
+        import('../services/miroSdkService').then(({ zoomToProject }) => {
+          zoomToProject(projectId);
+        }).catch(err => {
+          console.error('[MiroContext] Error zooming to project:', err);
+        });
+      }
+
+      lastClickTime = now;
+      lastClickedProjectId = projectId;
+    };
+
+    console.log('[MiroContext] Registering selection:update listener');
+    window.miro.board.ui.on('selection:update', handleSelectionUpdate);
+
+    return () => {
+      console.log('[MiroContext] Removing selection:update listener');
+      window.miro.board.ui.off('selection:update', handleSelectionUpdate);
+    };
+  }, [isInMiro, isReady]);
+
   const value: MiroContextValue = {
     isInMiro,
     isReady,
     boardId,
     miro: isInMiro ? window.miro : null,
     error,
+    selectedProjectId,
   };
 
   return (
