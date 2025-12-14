@@ -1533,7 +1533,7 @@ class MiroProjectRowService {
 
     // Badge dimensions and spacing
     const BADGE_HEIGHT = 26;
-    const BADGE_GAP = 8;
+    const BADGE_GAP = 16; // Professional spacing between badges
     const BADGE_WIDTHS = { priority: 70, type: 100, status: 90, date: 100 };
 
     // Calculate positions with equal gaps (left side)
