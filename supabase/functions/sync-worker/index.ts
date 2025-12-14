@@ -48,14 +48,18 @@ function safeString(v: unknown): string | null {
 function sanitizeHeaderToken(raw: string): { ok: true; token: string } | { ok: false; message: string } {
   // Prevent invalid Request header values:
   // - remove all whitespace (copy/paste often includes newlines)
-  // - reject control chars and non-ByteString chars (> 0xFF)
-  const token = raw.replace(/\s+/g, '');
+  // - remove invisible unicode formatting chars (common when copying from logs/chats)
+  // - reject control chars and any unexpected characters for OAuth/JWT tokens
+  const token = raw
+    .replace(/\s+/g, '')
+    // Unicode "format" / zero-width characters frequently introduced by copy/paste
+    .replace(/[\u200B-\u200F\u202A-\u202E\u2060-\u206F\uFEFF]/g, '');
   if (!token) return { ok: false, message: 'empty' };
   if (/[\u0000-\u001F\u007F]/.test(token)) return { ok: false, message: 'contains_control_chars' };
-  // ByteString allows code points 0..255; reject anything above.
-  for (let i = 0; i < token.length; i++) {
-    if (token.charCodeAt(i) > 0xff) return { ok: false, message: 'contains_non_bytestring_chars' };
-  }
+  // Miro OAuth tokens / JWTs are ASCII. Reject any non-ASCII.
+  if (/[^\x21-\x7E]/.test(token)) return { ok: false, message: 'contains_non_ascii_chars' };
+  // Allow common bearer token charset: base64/base64url/JWT/opaque tokens.
+  if (!/^[A-Za-z0-9._~+/=-]+$/.test(token)) return { ok: false, message: 'contains_invalid_chars' };
   return { ok: true, token };
 }
 
