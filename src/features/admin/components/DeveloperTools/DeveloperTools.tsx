@@ -17,13 +17,16 @@ import styles from './DeveloperTools.module.css';
 
 const logger = createLogger('DeveloperTools');
 
-async function tryGetMiroAccessToken(): Promise<string | null> {
+async function tryGetMiroAccessToken(): Promise<{ token: string | null; error?: string }> {
   try {
     const miro = (window as unknown as { miro?: { board?: { getToken?: () => Promise<string> } } }).miro;
-    const token = await miro?.board?.getToken?.();
-    return typeof token === 'string' && token.trim() ? token : null;
-  } catch {
-    return null;
+    if (!miro?.board?.getToken) {
+      return { token: null, error: 'miro.board.getToken() not available in this context' };
+    }
+    const token = await miro.board.getToken();
+    return { token: typeof token === 'string' && token.trim() ? token : null };
+  } catch (err) {
+    return { token: null, error: err instanceof Error ? err.message : String(err) };
   }
 }
 
@@ -712,6 +715,7 @@ export function DeveloperTools() {
   const [syncOpsLimit, setSyncOpsLimit] = useState(20);
   const [isSyncOpsRunning, setIsSyncOpsRunning] = useState(false);
   const [isSyncOpsEnqueueing, setIsSyncOpsEnqueueing] = useState(false);
+  const [miroTokenOverride, setMiroTokenOverride] = useState('');
   const [progress, setProgress] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
 
@@ -1017,8 +1021,11 @@ export function DeveloperTools() {
             const accessToken = sessionData.session?.access_token;
             if (!accessToken) throw new Error('Missing Supabase session token for sync-worker');
 
-            const miroAccessToken = await tryGetMiroAccessToken();
+            const override = miroTokenOverride.trim();
+            const miroTokenRes = override ? { token: override } : await tryGetMiroAccessToken();
+            const miroAccessToken = miroTokenRes.token;
             addProgress(`✓ Miro access token: ${miroAccessToken ? 'present' : 'missing'} (required for real Miro REST sync)`);
+            if (!miroAccessToken && miroTokenRes.error) addProgress(`ℹ Miro token reason: ${miroTokenRes.error}`);
 
             const res = await fetch(`${env.supabase.url}/functions/v1/sync-worker`, {
               method: 'POST',
@@ -1160,8 +1167,11 @@ export function DeveloperTools() {
       const accessToken = sessionData.session?.access_token;
       if (!accessToken) throw new Error('Missing Supabase session token for sync-worker');
 
-      const miroAccessToken = await tryGetMiroAccessToken();
+      const override = miroTokenOverride.trim();
+      const miroTokenRes = override ? { token: override } : await tryGetMiroAccessToken();
+      const miroAccessToken = miroTokenRes.token;
       addProgress(`✓ Miro access token: ${miroAccessToken ? 'present' : 'missing'} (required for Miro REST writes)`);
+      if (!miroAccessToken && miroTokenRes.error) addProgress(`ℹ Miro token reason: ${miroTokenRes.error}`);
 
       addProgress(`▶ Running sync-worker (maxJobs=${batchSize})...`);
       const res = await fetch(`${env.supabase.url}/functions/v1/sync-worker`, {
@@ -1970,6 +1980,17 @@ export function DeveloperTools() {
         <div className={styles.warning}>
           <strong>Nota:</strong> Para o worker fazer writes no Miro via REST, o Miro access token precisa estar disponível no contexto do board.
         </div>
+
+        <label className={styles.checkboxRow}>
+          <span>Miro token override</span>
+          <input
+            type="password"
+            placeholder="(optional) cole o token aqui"
+            value={miroTokenOverride}
+            onChange={(e) => setMiroTokenOverride(e.target.value)}
+            disabled={isSyncOpsEnqueueing || isSyncOpsRunning}
+          />
+        </label>
 
         <label className={styles.checkboxRow}>
           <span>Enqueue limit</span>

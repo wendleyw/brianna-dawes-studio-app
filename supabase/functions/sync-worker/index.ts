@@ -242,6 +242,24 @@ function computeFirstCardY(): number {
   return dropZoneTop + TIMELINE.CARD_HEIGHT / 2 + 10;
 }
 
+function normalizeClaimResult(raw: unknown): SyncJob | null {
+  if (!raw) return null;
+  if (Array.isArray(raw)) {
+    const first = raw[0] as unknown;
+    if (!first) return null;
+    const asJob = first as Partial<SyncJob>;
+    return asJob.id ? (first as SyncJob) : null;
+  }
+  const asJob = raw as Partial<SyncJob>;
+  return asJob.id ? (raw as SyncJob) : null;
+}
+
+async function rpcOrThrow<T>(client: ReturnType<typeof createClient>, fn: string, args: Record<string, unknown>) {
+  const { data, error } = await client.rpc(fn, args);
+  if (error) throw new Error(`${fn}: ${error.message}`);
+  return data as T;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders() });
@@ -320,9 +338,8 @@ serve(async (req) => {
     if (claimError) {
       return json({ error: 'claim_failed', details: claimError.message }, { status: 500, headers: corsHeaders() });
     }
-    if (!job) break;
-
-    const typedJob = job as SyncJob;
+    const typedJob = normalizeClaimResult(job);
+    if (!typedJob) break;
 
     try {
       if (typedJob.job_type === 'project_sync') {
@@ -331,7 +348,7 @@ serve(async (req) => {
         if (!miroAccessToken) {
           const msg = 'missing_miro_access_token';
           const delay = retryDelaySeconds(typedJob.attempt_count);
-          await supabase.rpc('fail_sync_job', { p_job_id: typedJob.id, p_error: msg, p_retry_delay_seconds: delay });
+          await rpcOrThrow(supabase, 'fail_sync_job', { p_job_id: typedJob.id, p_error: msg, p_retry_delay_seconds: delay });
           results.push({ jobId: typedJob.id, type: typedJob.job_type, projectId: typedJob.project_id, boardId: typedJob.board_id, result: 'requeued', details: msg });
           continue;
         }
@@ -339,7 +356,7 @@ serve(async (req) => {
         // Load project (source of truth)
         if (!typedJob.project_id) {
           const msg = 'project_sync_requires_project_id';
-          await supabase.rpc('complete_sync_job', { p_job_id: typedJob.id, p_success: false, p_error: msg });
+          await rpcOrThrow(supabase, 'complete_sync_job', { p_job_id: typedJob.id, p_success: false, p_error: msg });
           results.push({ jobId: typedJob.id, type: typedJob.job_type, projectId: null, boardId: typedJob.board_id, result: 'failed', details: msg });
           continue;
         }
@@ -360,7 +377,7 @@ serve(async (req) => {
         if (!boardId) {
           // No board: not required
           await supabase.from('projects').update({ sync_status: 'not_required', last_sync_attempt: nowIso(), last_synced_at: nowIso() }).eq('id', project.id);
-          await supabase.rpc('complete_sync_job', { p_job_id: typedJob.id, p_success: true, p_error: null });
+          await rpcOrThrow(supabase, 'complete_sync_job', { p_job_id: typedJob.id, p_success: true, p_error: null });
           results.push({ jobId: typedJob.id, type: typedJob.job_type, projectId: project.id, boardId: null, result: 'skipped', details: 'no_board_id' });
           continue;
         }
@@ -368,17 +385,16 @@ serve(async (req) => {
         // Update project to syncing
         await supabase.from('projects').update({ sync_status: 'syncing', last_sync_attempt: nowIso(), sync_error_message: null }).eq('id', project.id);
 
-        const syncLogIdRes = await supabase.rpc('create_sync_log', { p_project_id: project.id, p_operation: 'sync' });
-        const syncLogId = (syncLogIdRes.data as string | null) ?? null;
+        const syncLogId = await rpcOrThrow<string | null>(supabase, 'create_sync_log', { p_project_id: project.id, p_operation: 'sync' });
 
         // Miro connectivity check
         const boardRes = await miroGetBoard(miroAccessToken, boardId);
         if (!boardRes.ok) {
           const msg = `miro_board_unreachable:${boardRes.status}:${boardRes.message}`;
-          if (syncLogId) await supabase.rpc('complete_sync_log', { p_sync_id: syncLogId, p_status: 'error', p_error_message: msg, p_error_category: 'miro_api_error' });
+          if (syncLogId) await rpcOrThrow(supabase, 'complete_sync_log', { p_sync_id: syncLogId, p_status: 'error', p_error_message: msg, p_error_category: 'miro_api_error' });
           await supabase.from('projects').update({ sync_status: 'sync_error', sync_error_message: msg, last_sync_attempt: nowIso() }).eq('id', project.id);
           const delay = retryDelaySeconds(typedJob.attempt_count);
-          await supabase.rpc('fail_sync_job', { p_job_id: typedJob.id, p_error: msg, p_retry_delay_seconds: delay });
+          await rpcOrThrow(supabase, 'fail_sync_job', { p_job_id: typedJob.id, p_error: msg, p_retry_delay_seconds: delay });
           results.push({ jobId: typedJob.id, type: typedJob.job_type, projectId: project.id, boardId, result: 'requeued', details: msg });
           continue;
         }
@@ -410,10 +426,10 @@ serve(async (req) => {
         const cardsRes = await miroListCards(miroAccessToken, boardId);
         if (!cardsRes.ok) {
           const msg = `miro_cards_list_failed:${cardsRes.status}:${cardsRes.message}`;
-          if (syncLogId) await supabase.rpc('complete_sync_log', { p_sync_id: syncLogId, p_status: 'error', p_error_message: msg, p_error_category: 'miro_api_error' });
+          if (syncLogId) await rpcOrThrow(supabase, 'complete_sync_log', { p_sync_id: syncLogId, p_status: 'error', p_error_message: msg, p_error_category: 'miro_api_error' });
           await supabase.from('projects').update({ sync_status: 'sync_error', sync_error_message: msg, last_sync_attempt: nowIso() }).eq('id', project.id);
           const delay = retryDelaySeconds(typedJob.attempt_count);
-          await supabase.rpc('fail_sync_job', { p_job_id: typedJob.id, p_error: msg, p_retry_delay_seconds: delay });
+          await rpcOrThrow(supabase, 'fail_sync_job', { p_job_id: typedJob.id, p_error: msg, p_retry_delay_seconds: delay });
           results.push({ jobId: typedJob.id, type: typedJob.job_type, projectId: project.id, boardId, result: 'requeued', details: msg });
           continue;
         }
@@ -480,10 +496,10 @@ serve(async (req) => {
             });
             if (!create.ok) {
               const msg = `miro_card_write_failed:${upd.status}:${upd.message}:${create.status}:${create.message}`;
-              if (syncLogId) await supabase.rpc('complete_sync_log', { p_sync_id: syncLogId, p_status: 'error', p_error_message: msg, p_error_category: 'miro_api_error' });
+              if (syncLogId) await rpcOrThrow(supabase, 'complete_sync_log', { p_sync_id: syncLogId, p_status: 'error', p_error_message: msg, p_error_category: 'miro_api_error' });
               await supabase.from('projects').update({ sync_status: 'sync_error', sync_error_message: msg, last_sync_attempt: nowIso() }).eq('id', project.id);
               const delay = retryDelaySeconds(typedJob.attempt_count);
-              await supabase.rpc('fail_sync_job', { p_job_id: typedJob.id, p_error: msg, p_retry_delay_seconds: delay });
+              await rpcOrThrow(supabase, 'fail_sync_job', { p_job_id: typedJob.id, p_error: msg, p_retry_delay_seconds: delay });
               results.push({ jobId: typedJob.id, type: typedJob.job_type, projectId: project.id, boardId, result: 'requeued', details: msg });
               continue;
             }
@@ -502,10 +518,10 @@ serve(async (req) => {
           });
           if (!create.ok) {
             const msg = `miro_card_create_failed:${create.status}:${create.message}`;
-            if (syncLogId) await supabase.rpc('complete_sync_log', { p_sync_id: syncLogId, p_status: 'error', p_error_message: msg, p_error_category: 'miro_api_error' });
+            if (syncLogId) await rpcOrThrow(supabase, 'complete_sync_log', { p_sync_id: syncLogId, p_status: 'error', p_error_message: msg, p_error_category: 'miro_api_error' });
             await supabase.from('projects').update({ sync_status: 'sync_error', sync_error_message: msg, last_sync_attempt: nowIso() }).eq('id', project.id);
             const delay = retryDelaySeconds(typedJob.attempt_count);
-            await supabase.rpc('fail_sync_job', { p_job_id: typedJob.id, p_error: msg, p_retry_delay_seconds: delay });
+            await rpcOrThrow(supabase, 'fail_sync_job', { p_job_id: typedJob.id, p_error: msg, p_retry_delay_seconds: delay });
             results.push({ jobId: typedJob.id, type: typedJob.job_type, projectId: project.id, boardId, result: 'requeued', details: msg });
             continue;
           }
@@ -529,7 +545,7 @@ serve(async (req) => {
         if (syncLogId) {
           const created = miroOp === 'created' ? [{ id: cardId, type: 'card' }] : [];
           const updated = miroOp === 'updated' ? [{ id: cardId, type: 'card' }] : [];
-          await supabase.rpc('complete_sync_log', {
+          await rpcOrThrow(supabase, 'complete_sync_log', {
             p_sync_id: syncLogId,
             p_status: 'success',
             p_miro_items_created: created,
@@ -540,7 +556,7 @@ serve(async (req) => {
           });
         }
 
-        await supabase.rpc('complete_sync_job', { p_job_id: typedJob.id, p_success: true, p_error: null });
+        await rpcOrThrow(supabase, 'complete_sync_job', { p_job_id: typedJob.id, p_success: true, p_error: null });
         results.push({ jobId: typedJob.id, type: typedJob.job_type, projectId: project.id, boardId, result: 'succeeded', details: `miro:${miroOp}:${cardId}` });
         continue;
       }
@@ -548,12 +564,16 @@ serve(async (req) => {
       // master_board_sync not yet implemented
       const msg = `sync-worker: job ${typedJob.job_type} not implemented`;
       const delay = retryDelaySeconds(typedJob.attempt_count);
-      await supabase.rpc('fail_sync_job', { p_job_id: typedJob.id, p_error: msg, p_retry_delay_seconds: delay });
+      await rpcOrThrow(supabase, 'fail_sync_job', { p_job_id: typedJob.id, p_error: msg, p_retry_delay_seconds: delay });
       results.push({ jobId: typedJob.id, type: typedJob.job_type, projectId: typedJob.project_id, boardId: typedJob.board_id, result: 'requeued', details: msg });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       const delay = retryDelaySeconds(typedJob.attempt_count);
-      await supabase.rpc('fail_sync_job', { p_job_id: typedJob.id, p_error: message, p_retry_delay_seconds: delay });
+      try {
+        await rpcOrThrow(supabase, 'fail_sync_job', { p_job_id: typedJob.id, p_error: message, p_retry_delay_seconds: delay });
+      } catch (rpcErr) {
+        return json({ error: 'job_failure_update_failed', details: rpcErr instanceof Error ? rpcErr.message : String(rpcErr) }, { status: 500, headers: corsHeaders() });
+      }
       results.push({ jobId: typedJob.id, type: typedJob.job_type, projectId: typedJob.project_id, boardId: typedJob.board_id, result: 'requeued', details: message });
     }
   }
