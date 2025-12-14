@@ -11,10 +11,24 @@ Este documento é um **backlog executável** (minucioso) para transformar este r
 - **Sync Miro↔Supabase não é durável**: depende de clientes abrirem o board e rodarem sync (sem job server-side), usa heurísticas frágeis (match por título/posição), e permite desync permanente.
 - **Modelo de deliverables inconsistente**: código assume `deliverables.versions` (JSONB), enquanto migrations antigas criam `deliverable_versions` (tabela). Triggers/migrations posteriores também divergem.
 
+### Hotfixes (já aplicados no código) — estabilização imediata
+- **Reports / Dashboard mais resiliente a drift de schema**: fallbacks quando `activity_feed`/RPC não existem e quando colunas `count/bonus_count` não estão presentes.
+- **Realtime subscription corrigida**: evitar subscription em tabela potencialmente inexistente.
+
+Arquivos relevantes:
+- `src/features/reports/services/reportService.ts`
+- `src/features/reports/hooks/useRecentActivity.ts`
+- `src/features/reports/pages/DashboardPage/DashboardPage.tsx`
+
 ### Resultado
 Antes de qualquer “refatoração bonita”, precisamos **restaurar a verdade do schema**, **reconstruir a fronteira de confiança**, e **tornar sync durável**.
 
 ---
+
+## Docs relacionados (para apresentação e alinhamento)
+- Diagrama investor-ready: `docs/DIAGRAMA_FLOW_INVESTIDOR.md`
+- Flow do Admin: `docs/FLOW_ADMIN.md`
+- Arquitetura do banco (base): `docs/DATABASE_ARCHITECTURE.md`
 
 ## 1) Objetivos (Definition of Done global)
 
@@ -488,4 +502,3 @@ Cada fase tem um **gate**. Não avance sem passar no gate. Isso evita “refacto
 1) Executar **F0-001** (matriz de contrato) e anexar o resultado neste repo.
 2) Tomar decisões **D-01/D-02/D-03**.
 3) Iniciar **DB-001** e **DB-002** (sem isso, nada é confiável).
-

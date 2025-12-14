@@ -203,7 +203,14 @@ export const adminService = {
       .select('id, name')
       .order('name');
 
-    if (error) throw error;
+    if (error) {
+      // Rollout safety: allow admin UI to load even if the `boards` table isn't deployed yet.
+      if (error.code === '42P01' || error.message?.includes('relation') || error.message?.includes('does not exist')) {
+        logger.warn('Boards table missing; returning empty list', { code: error.code, message: error.message });
+        return [];
+      }
+      throw error;
+    }
 
     return data || [];
   },
@@ -218,7 +225,12 @@ export const adminService = {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      if (error.code === '42P01' || error.message?.includes('relation') || error.message?.includes('does not exist')) {
+        logger.error('Boards table missing; cannot upsert board', { code: error.code, message: error.message });
+      }
+      throw error;
+    }
 
     return { id: data.id, name: data.name };
   },
@@ -361,7 +373,14 @@ export const adminService = {
       .eq('is_active', true)
       .order('sort_order');
 
-    if (error) throw error;
+    if (error) {
+      // Rollout safety: allow admin UI to load even if billing tables aren't deployed yet.
+      if (error.code === '42P01' || error.message?.includes('relation') || error.message?.includes('does not exist')) {
+        logger.warn('subscription_plans table missing; returning empty list', { code: error.code, message: error.message });
+        return [];
+      }
+      throw error;
+    }
 
     return (data || []).map(mapSubscriptionPlanFromDb);
   },
@@ -378,6 +397,10 @@ export const adminService = {
 
     if (error) {
       if (error.code === 'PGRST116') return null;
+      if (error.code === '42P01' || error.message?.includes('relation') || error.message?.includes('does not exist')) {
+        logger.warn('client_plan_stats view missing; returning null', { code: error.code, message: error.message });
+        return null;
+      }
       throw error;
     }
 

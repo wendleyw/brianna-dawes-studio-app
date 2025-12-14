@@ -9,6 +9,8 @@ import { projectKeys } from '@features/projects/services/projectKeys';
 import { deliverableService } from '@features/deliverables/services/deliverableService';
 import { supabase } from '@shared/lib/supabase';
 import { createLogger } from '@shared/lib/logger';
+import { env } from '@shared/config/env';
+import { callEdgeFunction } from '@shared/lib/edgeFunctions';
 import type { CreateProjectInput, ProjectBriefing, ProjectStatus, ProjectPriority, ProjectType } from '@features/projects/domain/project.types';
 import type { DeliverableType, DeliverableStatus } from '@features/deliverables/domain/deliverable.types';
 import styles from './DeveloperTools.module.css';
@@ -692,11 +694,334 @@ export function DeveloperTools() {
   const [isClearing, setIsClearing] = useState(false);
   const [isRenaming, setIsRenaming] = useState(false);
   const [isResettingDB, setIsResettingDB] = useState(false);
+  const [isSmokeRunning, setIsSmokeRunning] = useState(false);
+  const [smokeDoWrites, setSmokeDoWrites] = useState(false);
+  const [smokeTestEdgeApi, setSmokeTestEdgeApi] = useState(false);
+  const [smokeTestSyncWorker, setSmokeTestSyncWorker] = useState(false);
   const [progress, setProgress] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const addProgress = (message: string) => {
     setProgress((prev) => [...prev, message]);
+  };
+
+  const formatError = (err: unknown): string => {
+    if (err instanceof Error) return err.message;
+    if (typeof err === 'string') return err;
+    try {
+      return JSON.stringify(err);
+    } catch {
+      return 'Unknown error';
+    }
+  };
+
+  const runSmokeTests = async () => {
+    if (!authUser) {
+      setError('Not authenticated. Please log in first.');
+      return;
+    }
+
+    if (smokeDoWrites) {
+      const allow =
+        confirm(
+          '⚠️ Smoke Tests (E2E) vão CRIAR e DELETAR registros no seu banco.\n\nRecomendado: rodar em staging/dev.\n\nContinuar?'
+        ) &&
+        confirm('Confirma que você entende que isso cria/deleta dados de teste?');
+      if (!allow) return;
+    }
+
+    setIsSmokeRunning(true);
+    setProgress([]);
+    setError(null);
+
+    const createdProjectIds: string[] = [];
+    const createdJobIds: string[] = [];
+
+    const step = async <T,>(name: string, fn: () => Promise<T>): Promise<T> => {
+      addProgress('');
+      addProgress(`▶ ${name}`);
+      const t0 = Date.now();
+      try {
+        const result = await fn();
+        addProgress(`✓ ${name} (${Date.now() - t0}ms)`);
+        return result;
+      } catch (err) {
+        addProgress(`✗ ${name}: ${formatError(err)}`);
+        throw err;
+      }
+    };
+
+    const cleanup = async () => {
+      if (createdJobIds.length > 0) {
+        try {
+          await supabase.from('sync_jobs').delete().in('id', createdJobIds);
+          addProgress(`✓ Cleanup: deleted ${createdJobIds.length} sync_jobs`);
+        } catch (err) {
+          addProgress(`⚠ Cleanup sync_jobs failed: ${formatError(err)}`);
+        }
+      }
+
+      if (createdProjectIds.length > 0) {
+        try {
+          await supabase.from('projects').delete().in('id', createdProjectIds);
+          addProgress(`✓ Cleanup: deleted ${createdProjectIds.length} projects (cascade)`);
+        } catch (err) {
+          addProgress(`⚠ Cleanup projects failed: ${formatError(err)}`);
+        }
+      }
+    };
+
+    try {
+      await step('Auth sanity', async () => {
+        addProgress(`✓ Logged in as: ${authUser.email} (${authUser.role})`);
+        const { data } = await supabase.auth.getSession();
+        addProgress(`✓ Supabase session: ${data.session ? 'present' : 'missing'}`);
+      });
+
+      await step('Schema smoke (read)', async () => {
+        const results = await Promise.all([
+          Promise.resolve(supabase.from('projects').select('id').limit(1)),
+          Promise.resolve(supabase.from('deliverables').select('id').limit(1)),
+          Promise.resolve(supabase.from('deliverable_feedback').select('id').limit(1)),
+          Promise.resolve(supabase.from('sync_logs').select('id').limit(1)),
+          Promise.resolve(supabase.from('sync_jobs').select('id').limit(1)),
+        ]);
+        for (const r of results) {
+          const res = r as { error?: { message: string; code?: string } | null };
+          if (res.error) {
+            throw new Error(`${res.error.code ?? 'ERR'}: ${res.error.message}`);
+          }
+        }
+      });
+
+      await step('Read-only RPCs', async () => {
+        const { error: dashErr } = await supabase.rpc('get_dashboard_metrics');
+        if (dashErr) throw dashErr;
+
+        const { error: healthErr } = await supabase.rpc('get_sync_health_metrics');
+        if (healthErr) throw healthErr;
+      });
+
+      await step('Security: job claim must be denied for non-service role', async () => {
+        const { data, error: claimErr } = await supabase.rpc('claim_next_sync_job', { p_worker_id: 'smoke' });
+        if (!claimErr) {
+          throw new Error(`Expected claim_next_sync_job to fail, but succeeded (data=${JSON.stringify(data)})`);
+        }
+        addProgress(`✓ claim_next_sync_job denied as expected (${claimErr.code ?? 'ERR'})`);
+      });
+
+      if (smokeDoWrites) {
+        const client = await step('Find a client user', async () => {
+          const { data, error: e } = await supabase
+            .from('users')
+            .select('id, email')
+            .eq('role', 'client')
+            .order('created_at', { ascending: true })
+            .limit(1)
+            .maybeSingle();
+          if (e) throw e;
+          if (!data?.id) throw new Error('No client user found. Create a client first.');
+          addProgress(`✓ Using client: ${data.email} (${data.id})`);
+          return data as { id: string; email: string };
+        });
+
+        const projectId = await step('Create project via RPC', async () => {
+          const { data, error: e } = await supabase.rpc('create_project_with_designers', {
+            p_name: `[SMOKE][RPC] ${new Date().toISOString()}`,
+            p_client_id: client.id,
+            p_description: 'Smoke test project (RPC path)',
+            p_status: 'in_progress',
+            p_priority: 'medium',
+            p_start_date: null,
+            p_due_date: null,
+            p_miro_board_id: null,
+            p_miro_board_url: null,
+            p_briefing: {},
+            p_google_drive_url: null,
+            p_due_date_approved: true,
+            p_sync_status: 'not_required',
+            p_designer_ids: [],
+          });
+          if (e) throw e;
+          if (!data) throw new Error('RPC create_project_with_designers returned no project id');
+          createdProjectIds.push(data as string);
+          addProgress(`✓ Created project: ${data}`);
+          return data as string;
+        });
+
+        await step('Update project via RPC', async () => {
+          const { error: e } = await supabase.rpc('update_project_with_designers', {
+            p_project_id: projectId,
+            p_update_designers: false,
+            p_name: `[SMOKE][RPC][UPDATED] ${new Date().toISOString()}`,
+            p_description: null,
+            p_status: null,
+            p_priority: null,
+            p_start_date: null,
+            p_due_date: null,
+            p_client_id: null,
+            p_miro_board_id: null,
+            p_miro_board_url: null,
+            p_briefing: null,
+            p_google_drive_url: null,
+            p_was_reviewed: null,
+            p_was_approved: null,
+            p_requested_due_date: null,
+            p_due_date_requested_at: null,
+            p_due_date_requested_by: null,
+            p_due_date_approved: null,
+            p_thumbnail_url: null,
+            p_designer_ids: null,
+          });
+          if (e) throw e;
+        });
+
+        const deliverableId = await step('Create deliverable (DB insert)', async () => {
+          const { data, error: e } = await supabase
+            .from('deliverables')
+            .insert({
+              project_id: projectId,
+              name: `[SMOKE] Deliverable ${new Date().toISOString()}`,
+              description: 'Smoke test deliverable',
+              type: 'other',
+              status: 'draft',
+            })
+            .select('id')
+            .single();
+
+          if (e) throw e;
+          if (!data?.id) throw new Error('Failed to create deliverable');
+          addProgress(`✓ Created deliverable: ${data.id}`);
+          return data.id as string;
+        });
+
+        const versionId = crypto.randomUUID();
+
+        await step('Append versions JSONB (no storage)', async () => {
+          const { data, error: e } = await supabase
+            .from('deliverables')
+            .select('versions')
+            .eq('id', deliverableId)
+            .single();
+          if (e) throw e;
+
+          const current = (data?.versions as unknown[] | null) ?? [];
+          const nextVersionNumber = current.length + 1;
+
+          const newVersion = {
+            id: versionId,
+            version: nextVersionNumber,
+            file_url: 'https://example.com/smoke-file',
+            file_name: 'smoke.txt',
+            file_size: 1,
+            mime_type: 'text/plain',
+            uploaded_by_id: authUser.id,
+            uploaded_by_name: authUser.name || authUser.email,
+            uploaded_by_avatar: authUser.avatarUrl || null,
+            comment: 'Smoke version',
+            created_at: new Date().toISOString(),
+          };
+
+          const { error: u } = await supabase
+            .from('deliverables')
+            .update({
+              versions: [...current, newVersion],
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', deliverableId);
+          if (u) throw u;
+        });
+
+        await step('Create feedback (deliverable_feedback)', async () => {
+          const feedback = await deliverableService.addFeedback(deliverableId, versionId, 'Smoke feedback');
+          addProgress(`✓ Feedback created: ${feedback.id}`);
+        });
+
+        await step('Enqueue sync job (admin-only)', async () => {
+          const { data, error: e } = await supabase.rpc('enqueue_sync_job', {
+            p_job_type: 'project_sync',
+            p_project_id: projectId,
+            p_board_id: null,
+            p_payload: { reason: 'smoke' },
+            p_run_at: new Date().toISOString(),
+          });
+          if (e) throw e;
+          if (data) createdJobIds.push(data as string);
+          addProgress(`✓ Enqueued job: ${data}`);
+        });
+
+        if (smokeTestSyncWorker) {
+          await step('Run sync-worker once', async () => {
+            const { data: sessionData } = await supabase.auth.getSession();
+            const accessToken = sessionData.session?.access_token;
+            if (!accessToken) throw new Error('Missing Supabase session token for sync-worker');
+
+            const res = await fetch(`${env.supabase.url}/functions/v1/sync-worker`, {
+              method: 'POST',
+              headers: {
+                apikey: env.supabase.anonKey,
+                Authorization: `Bearer ${accessToken}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({}),
+            });
+
+            const body = await res.json().catch(() => null);
+            if (!res.ok) throw new Error(`sync-worker failed (${res.status}): ${JSON.stringify(body)}`);
+            addProgress(`✓ sync-worker response: ${JSON.stringify(body)}`);
+          });
+        }
+
+        if (smokeTestEdgeApi) {
+          await step('Edge API: projects-create + projects-update', async () => {
+            const { data: sessionData } = await supabase.auth.getSession();
+            const accessToken = sessionData.session?.access_token;
+            if (!accessToken) throw new Error('Missing Supabase session token for Edge API');
+
+            const created = await callEdgeFunction<{ ok: boolean; projectId: string }>(
+              'projects-create',
+              {
+                name: `[SMOKE][EDGE] ${new Date().toISOString()}`,
+                clientId: client.id,
+                description: 'Smoke test project (Edge API path)',
+                status: 'in_progress',
+                priority: 'medium',
+                briefing: {},
+                syncStatus: 'not_required',
+                designerIds: [],
+              },
+              { headers: { apikey: env.supabase.anonKey, Authorization: `Bearer ${accessToken}` } }
+            );
+
+            if (!created.ok || !created.projectId) throw new Error('projects-create did not return projectId');
+            createdProjectIds.push(created.projectId);
+            addProgress(`✓ Edge created project: ${created.projectId}`);
+
+            const updated = await callEdgeFunction<{ ok: boolean }>(
+              'projects-update',
+              { projectId: created.projectId, name: `[SMOKE][EDGE][UPDATED] ${new Date().toISOString()}` },
+              { headers: { apikey: env.supabase.anonKey, Authorization: `Bearer ${accessToken}` } }
+            );
+
+            if (!updated.ok) throw new Error('projects-update failed');
+          });
+        }
+      }
+
+      addProgress('');
+      addProgress('✅ Smoke tests finished successfully');
+      await queryClient.invalidateQueries();
+    } catch (err) {
+      logger.error('Smoke tests failed', err);
+      setError(formatError(err));
+    } finally {
+      if (smokeDoWrites) {
+        addProgress('');
+        addProgress('🧹 Cleanup...');
+        await cleanup();
+      }
+      setIsSmokeRunning(false);
+    }
   };
 
   // Rename all STAGE frames to VERSION on the Miro board
@@ -1410,6 +1735,65 @@ export function DeveloperTools() {
           disabled={!isInMiro}
         >
           {isRenaming ? 'Renaming...' : '📝 Rename STAGE to VERSION'}
+        </Button>
+      </div>
+
+      {/* Smoke Tests Section */}
+      <div className={styles.section}>
+        <h3 className={styles.sectionTitle}>✅ Smoke Tests (DB + Edge + Sync)</h3>
+        <p className={styles.sectionDescription}>
+          Roda uma bateria de checks para validar schema, RPCs, permissões e (opcionalmente) um fluxo E2E criando e deletando dados de teste.
+        </p>
+
+        <div className={styles.warning}>
+          <strong>Dica:</strong> Rode o modo E2E em staging/dev. Em produção, mantenha “Read-only”.
+        </div>
+
+        <div className={styles.featureList}>
+          <div className={styles.featureItem}>✓ Schema: projects/deliverables/deliverable_feedback/sync_jobs</div>
+          <div className={styles.featureItem}>✓ RPCs read-only: get_dashboard_metrics/get_sync_health_metrics</div>
+          <div className={styles.featureItem}>✓ Segurança: claim_next_sync_job deve ser negado (service_role only)</div>
+          <div className={styles.featureItem}>✓ (E2E) Projeto + deliverable + versão(JSONB) + feedback + cleanup</div>
+          <div className={styles.featureItem}>✓ (Opcional) Edge: projects-create/projects-update</div>
+        </div>
+
+        <label className={styles.checkboxRow}>
+          <input
+            type="checkbox"
+            checked={smokeDoWrites}
+            onChange={(e) => setSmokeDoWrites(e.target.checked)}
+            disabled={isSmokeRunning}
+          />
+          <span>Modo E2E (cria/deleta dados)</span>
+        </label>
+
+        <label className={styles.checkboxRow}>
+          <input
+            type="checkbox"
+            checked={smokeTestEdgeApi}
+            onChange={(e) => setSmokeTestEdgeApi(e.target.checked)}
+            disabled={isSmokeRunning || !smokeDoWrites}
+          />
+          <span>Testar Edge API (projects-create/projects-update)</span>
+        </label>
+
+        <label className={styles.checkboxRow}>
+          <input
+            type="checkbox"
+            checked={smokeTestSyncWorker}
+            onChange={(e) => setSmokeTestSyncWorker(e.target.checked)}
+            disabled={isSmokeRunning || !smokeDoWrites}
+          />
+          <span>Rodar sync-worker (consome 1 job e marca como failed_not_implemented)</span>
+        </label>
+
+        <Button
+          onClick={runSmokeTests}
+          isLoading={isSmokeRunning}
+          variant="primary"
+          className={styles.primaryButton}
+        >
+          {isSmokeRunning ? 'Running Smoke Tests...' : '✅ Run Smoke Tests'}
         </Button>
       </div>
 

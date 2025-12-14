@@ -33,6 +33,11 @@ export const env = {
     isProd: import.meta.env.PROD,
     // App URL for public assets (logo, etc.)
     url: getEnvVar('VITE_APP_URL') || 'https://brianna-dawes-studio-app.vercel.app',
+    // Feature flags (default OFF for safe rollout)
+    useEdgeApi: getEnvVar('VITE_USE_EDGE_API') === '1',
+    useSyncJobs: getEnvVar('VITE_USE_SYNC_JOBS') === '1',
+    useDeliverableVersionsTable: getEnvVar('VITE_USE_DELIVERABLE_VERSIONS_TABLE') === '1',
+    disableAnonRest: getEnvVar('VITE_DISABLE_ANON_REST') === '1',
   },
   // Brand assets
   brand: {

@@ -1,4 +1,5 @@
 import { supabase } from '@shared/lib/supabase';
+import { env } from '@shared/config/env';
 import {
   mapDeliverableStatusToDb,
   mapDeliverableStatusArrayToDb,
@@ -33,6 +34,20 @@ interface VersionJsonb {
   uploaded_by_avatar: string | null;
   comment: string | null;
   created_at: string;
+}
+
+interface VersionRow {
+  id: string;
+  deliverable_id: string;
+  version_number: number;
+  file_url: string;
+  file_name: string;
+  file_size: number;
+  mime_type: string;
+  uploaded_by_id: string | null;
+  comment: string | null;
+  created_at: string;
+  uploaded_by?: { id: string; name: string; avatar_url: string | null } | null;
 }
 
 /**
@@ -154,13 +169,34 @@ class DeliverableService {
       ...(input.deliveredAt ? { delivered_at: input.deliveredAt } : {}),
     };
 
-    const { data, error } = await supabase
-      .from('deliverables')
-      .insert(insertData)
-      .select()
-      .single();
+    let data: { id: string } | null = null;
+    let error: { code?: string; message: string } | null = null;
+
+    {
+      const result = await supabase.from('deliverables').insert(insertData).select().single();
+      data = result.data as { id: string } | null;
+      error = result.error as { code?: string; message: string } | null;
+    }
+
+    // Rollout safety: if DB doesn't have newer columns yet, retry with minimal insert.
+    if (error?.code === 'PGRST204') {
+      const minimalInsertData: Record<string, unknown> = {
+        project_id: input.projectId,
+        name: input.name,
+        description: input.description || null,
+        type: dbType,
+        status: dbStatus,
+        due_date: input.dueDate,
+        ...(input.deliveredAt ? { delivered_at: input.deliveredAt } : {}),
+      };
+
+      const retry = await supabase.from('deliverables').insert(minimalInsertData).select().single();
+      data = retry.data as { id: string } | null;
+      error = retry.error as { code?: string; message: string } | null;
+    }
 
     if (error) throw error;
+    if (!data) throw new Error('Failed to create deliverable (no data returned)');
     return this.getDeliverable(data.id);
   }
 
@@ -183,12 +219,29 @@ class DeliverableService {
 
     updateData.updated_at = new Date().toISOString();
 
-    const { error } = await supabase
-      .from('deliverables')
-      .update(updateData)
-      .eq('id', id);
+    let updateError: { code?: string; message: string } | null = null;
 
-    if (error) throw error;
+    {
+      const { error } = await supabase.from('deliverables').update(updateData).eq('id', id);
+      updateError = error as { code?: string; message: string } | null;
+    }
+
+    // Rollout safety: retry with a reduced payload if some columns are not present yet.
+    if (updateError?.code === 'PGRST204') {
+      const minimalUpdateData: Record<string, unknown> = {};
+      if (input.name !== undefined) minimalUpdateData.name = input.name;
+      if (input.description !== undefined) minimalUpdateData.description = input.description;
+      if (input.type !== undefined) minimalUpdateData.type = mapDeliverableTypeToDb(input.type);
+      if (input.status !== undefined) minimalUpdateData.status = mapDeliverableStatusToDb(input.status);
+      if (input.dueDate !== undefined) minimalUpdateData.due_date = input.dueDate;
+      if (input.status === 'delivered') minimalUpdateData.delivered_at = new Date().toISOString();
+      minimalUpdateData.updated_at = new Date().toISOString();
+
+      const { error } = await supabase.from('deliverables').update(minimalUpdateData).eq('id', id);
+      updateError = error as { code?: string; message: string } | null;
+    }
+
+    if (updateError) throw updateError;
     return this.getDeliverable(id);
   }
 
@@ -200,21 +253,24 @@ class DeliverableService {
   async uploadVersion(input: UploadVersionInput): Promise<DeliverableVersion> {
     const { deliverableId, file, comment } = input;
 
-    // Get current deliverable to find version count
-    const { data: deliverable, error: fetchError } = await supabase
-      .from('deliverables')
-      .select('versions')
-      .eq('id', deliverableId)
-      .single();
+    // Get current user (auth)
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
 
-    if (fetchError) throw fetchError;
+    // Resolve public user record (for FK + display)
+    const { data: userDetails } = await supabase
+      .from('users')
+      .select('id, name, avatar_url')
+      .eq('auth_user_id', user.id)
+      .maybeSingle();
 
-    const currentVersions = (deliverable?.versions as VersionJsonb[] | null) || [];
-    const versionNumber = currentVersions.length + 1;
+    const uploadedByPublicUserId = (userDetails?.id as string | undefined) ?? null;
+    const uploadedByName = (userDetails?.name as string | undefined) ?? user.email ?? 'Unknown';
+    const uploadedByAvatar = (userDetails?.avatar_url as string | null | undefined) ?? null;
 
     // Upload file to storage
     const fileExt = file.name.split('.').pop();
-    const filePath = `deliverables/${deliverableId}/${versionNumber}_${Date.now()}.${fileExt}`;
+    const filePath = `deliverables/${deliverableId}/${Date.now()}.${fileExt}`;
 
     const { error: uploadError } = await supabase.storage
       .from('deliverable-files')
@@ -227,22 +283,91 @@ class DeliverableService {
       .from('deliverable-files')
       .getPublicUrl(filePath);
 
-    // Get current user
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('User not authenticated');
+    const fileType = mapMimeTypeToDeliverableType(file.type);
 
-    // Get user details for the version record
-    const { data: userDetails } = await supabase
-      .from('users')
-      .select('id, name, avatar_url')
-      .eq('auth_user_id', user.id)
+    // Preferred path (D-01): write versions to relational table
+    if (env.app.useDeliverableVersionsTable) {
+      const { data: latestVersion, error: latestError } = await supabase
+        .from('deliverable_versions')
+        .select('version_number')
+        .eq('deliverable_id', deliverableId)
+        .order('version_number', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (latestError && latestError.code !== '42P01') {
+        throw latestError;
+      }
+
+      const nextVersionNumber = (latestVersion?.version_number as number | undefined ?? 0) + 1;
+      const versionId = crypto.randomUUID();
+      const createdAt = new Date().toISOString();
+
+      const { error: insertError } = await supabase
+        .from('deliverable_versions')
+        .insert({
+          id: versionId,
+          deliverable_id: deliverableId,
+          version_number: nextVersionNumber,
+          file_url: publicUrl,
+          file_name: file.name,
+          file_size: file.size,
+          mime_type: file.type,
+          uploaded_by_id: uploadedByPublicUserId,
+          comment: comment || null,
+          created_at: createdAt,
+        });
+
+      // If the table doesn't exist yet, fall back to JSONB path.
+      if (insertError?.code !== '42P01' && insertError) {
+        throw insertError;
+      }
+
+      if (!insertError) {
+        // Keep deliverable metadata coherent (type/thumbnail/current_version_id).
+        const { error: metaError } = await supabase
+          .from('deliverables')
+          .update({
+            type: fileType,
+            thumbnail_url: fileType === 'image' ? publicUrl : null,
+            current_version_id: versionId,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', deliverableId);
+
+        if (metaError) throw metaError;
+
+        return {
+          id: versionId,
+          deliverableId,
+          versionNumber: nextVersionNumber,
+          fileUrl: publicUrl,
+          fileName: file.name,
+          fileSize: file.size,
+          mimeType: file.type,
+          uploadedBy: {
+            id: uploadedByPublicUserId ?? user.id,
+            name: uploadedByName,
+            avatarUrl: uploadedByAvatar,
+          },
+          comment: comment || null,
+          createdAt,
+        };
+      }
+    }
+
+    // Fallback path: append-only JSONB in deliverables.versions (legacy)
+    const { data: deliverable, error: fetchError } = await supabase
+      .from('deliverables')
+      .select('versions')
+      .eq('id', deliverableId)
       .single();
 
-    const uploadedById = userDetails?.id || user.id;
-    const uploadedByName = userDetails?.name || user.email || 'Unknown';
-    const uploadedByAvatar = userDetails?.avatar_url || null;
+    if (fetchError) throw fetchError;
 
-    // Create new version object
+    const currentVersions = (deliverable?.versions as VersionJsonb[] | null) || [];
+    const versionNumber = currentVersions.length + 1;
+
     const newVersion: VersionJsonb = {
       id: crypto.randomUUID(),
       version: versionNumber,
@@ -250,15 +375,13 @@ class DeliverableService {
       file_name: file.name,
       file_size: file.size,
       mime_type: file.type,
-      uploaded_by_id: uploadedById,
+      uploaded_by_id: uploadedByPublicUserId ?? user.id,
       uploaded_by_name: uploadedByName,
       uploaded_by_avatar: uploadedByAvatar,
       comment: comment || null,
       created_at: new Date().toISOString(),
     };
 
-    // Update deliverable with new version in JSONB array
-    const fileType = mapMimeTypeToDeliverableType(file.type);
     const updatedVersions = [...currentVersions, newVersion];
 
     const { error: updateError } = await supabase
@@ -277,6 +400,36 @@ class DeliverableService {
   }
 
   async getVersions(deliverableId: string): Promise<DeliverableVersion[]> {
+    if (env.app.useDeliverableVersionsTable) {
+      const { data, error } = await supabase
+        .from('deliverable_versions')
+        .select('*, uploaded_by:users(id, name, avatar_url)')
+        .eq('deliverable_id', deliverableId)
+        .order('version_number', { ascending: false });
+
+      if (error) {
+        // If table doesn't exist yet, fall back to JSONB path.
+        if (error.code !== '42P01') throw error;
+      } else {
+        return (data as unknown as VersionRow[]).map((row) => ({
+          id: row.id,
+          deliverableId: row.deliverable_id,
+          versionNumber: row.version_number,
+          fileUrl: row.file_url,
+          fileName: row.file_name,
+          fileSize: row.file_size,
+          mimeType: row.mime_type,
+          uploadedBy: {
+            id: row.uploaded_by?.id ?? row.uploaded_by_id ?? '',
+            name: row.uploaded_by?.name ?? '',
+            avatarUrl: row.uploaded_by?.avatar_url ?? null,
+          },
+          comment: row.comment,
+          createdAt: row.created_at,
+        }));
+      }
+    }
+
     const { data, error } = await supabase
       .from('deliverables')
       .select('versions')
@@ -301,12 +454,22 @@ class DeliverableService {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
 
+    // IMPORTANT: deliverable_feedback.user_id references public.users(id), not auth.users(id)
+    const { data: publicUser, error: publicUserError } = await supabase
+      .from('users')
+      .select('id')
+      .eq('auth_user_id', user.id)
+      .maybeSingle();
+
+    if (publicUserError) throw publicUserError;
+    if (!publicUser?.id) throw new Error('Public user profile not linked to auth user');
+
     const { data, error } = await supabase
       .from('deliverable_feedback')
       .insert({
         deliverable_id: deliverableId,
         version_id: versionId,
-        user_id: user.id,
+        user_id: publicUser.id,
         content,
         position,
       })

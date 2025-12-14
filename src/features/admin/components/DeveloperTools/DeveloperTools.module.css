@@ -201,3 +201,18 @@
   color: var(--color-text-secondary, #6b7280);
   font-style: italic;
 }
+
+.checkboxRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--color-text-primary, #1f2937);
+  margin-bottom: 10px;
+  user-select: none;
+}
+
+.checkboxRow input {
+  width: 16px;
+  height: 16px;
+}

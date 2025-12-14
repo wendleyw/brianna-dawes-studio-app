@@ -1,6 +1,8 @@
 import { supabase } from '@shared/lib/supabase';
 import { supabaseRestQuery, isInMiroIframe } from '@shared/lib/supabaseRest';
 import { createLogger } from '@shared/lib/logger';
+import { env } from '@shared/config/env';
+import { callEdgeFunction } from '@shared/lib/edgeFunctions';
 import type {
   Project,
   ProjectStatus,
@@ -201,6 +203,20 @@ class ProjectService {
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
 
+    // Try to use the authenticated session token (more secure).
+    // Keep a small timeout so we don't hang inside Miro iframe.
+    let authToken: string | null = null;
+    try {
+      const sessionPromise = supabase.auth.getSession();
+      const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 500));
+      const result = await Promise.race([sessionPromise, timeoutPromise]);
+      if (result && typeof result === 'object' && 'data' in result) {
+        authToken = (result as { data: { session: { access_token: string } | null } }).data.session?.access_token ?? null;
+      }
+    } catch {
+      authToken = null;
+    }
+
     console.log('[ProjectService] REST query with:', { eq, inFilters, sort: sortColumn });
 
     const result = await supabaseRestQuery<Record<string, unknown>[]>('projects', {
@@ -210,6 +226,7 @@ class ProjectService {
       order: { column: sortColumn, ascending: sort.direction === 'asc' },
       range: { from, to },
       limit: pageSize,
+      authToken,
     });
 
     if (result.error) {
@@ -361,6 +378,47 @@ class ProjectService {
     const syncStatus = projectData.syncStatus ||
       (projectData.miroBoardId ? null : 'not_required');
 
+    // Edge API path (safe rollout behind flag)
+    if (env.app.useEdgeApi) {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+      if (!accessToken) {
+        throw new Error('Missing Supabase session (Edge API enabled)');
+      }
+
+      const response = await callEdgeFunction<{ ok: boolean; projectId: string }>(
+        'projects-create',
+        {
+          name: projectData.name,
+          clientId: projectData.clientId,
+          description: projectData.description || null,
+          status: projectData.status || 'in_progress',
+          priority: projectData.priority || 'medium',
+          startDate: projectData.startDate || null,
+          dueDate: projectData.dueDate || null,
+          miroBoardId: projectData.miroBoardId || null,
+          miroBoardUrl: projectData.miroBoardUrl || null,
+          briefing: projectData.briefing || {},
+          googleDriveUrl: projectData.googleDriveUrl || null,
+          dueDateApproved: projectData.dueDateApproved ?? true,
+          syncStatus,
+          designerIds: designerIds || [],
+        },
+        {
+          headers: {
+            apikey: env.supabase.anonKey,
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to create project via Edge API');
+      }
+
+      return this.getProject(response.projectId);
+    }
+
     // Use transactional RPC function for atomic operation
     const { data: projectId, error } = await supabase.rpc('create_project_with_designers', {
       p_name: projectData.name,
@@ -396,6 +454,54 @@ class ProjectService {
    */
   async updateProject(id: string, input: UpdateProjectInput): Promise<Project> {
     const { designerIds, ...projectData } = input;
+
+    // Edge API path (safe rollout behind flag)
+    if (env.app.useEdgeApi) {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+      if (!accessToken) {
+        throw new Error('Missing Supabase session (Edge API enabled)');
+      }
+
+      const response = await callEdgeFunction<{ ok: boolean }>(
+        'projects-update',
+        {
+          projectId: id,
+          updateDesigners: designerIds !== undefined,
+          name: projectData.name ?? null,
+          description: projectData.description ?? null,
+          status: projectData.status ?? null,
+          priority: projectData.priority ?? null,
+          startDate: projectData.startDate ?? null,
+          dueDate: projectData.dueDate ?? null,
+          clientId: projectData.clientId ?? null,
+          miroBoardId: projectData.miroBoardId ?? null,
+          miroBoardUrl: projectData.miroBoardUrl ?? null,
+          briefing: projectData.briefing ?? null,
+          googleDriveUrl: projectData.googleDriveUrl ?? null,
+          wasReviewed: projectData.wasReviewed ?? null,
+          wasApproved: projectData.wasApproved ?? null,
+          requestedDueDate: projectData.requestedDueDate ?? null,
+          dueDateRequestedAt: projectData.dueDateRequestedAt ?? null,
+          dueDateRequestedBy: projectData.dueDateRequestedBy ?? null,
+          dueDateApproved: projectData.dueDateApproved ?? null,
+          thumbnailUrl: projectData.thumbnailUrl ?? null,
+          designerIds: designerIds ?? null,
+        },
+        {
+          headers: {
+            apikey: env.supabase.anonKey,
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to update project via Edge API');
+      }
+
+      return this.getProject(id);
+    }
 
     // Use transactional RPC function for atomic operation
     const { error } = await supabase.rpc('update_project_with_designers', {

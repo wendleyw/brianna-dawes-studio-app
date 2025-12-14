@@ -5,6 +5,8 @@
  * The JS client blocks on auth initialization, but direct REST calls work fine.
  */
 
+import { env } from '@shared/config/env';
+
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
@@ -22,6 +24,7 @@ interface RestQueryOptions {
   limit?: number;
   single?: boolean;
   maybeSingle?: boolean;
+  authToken?: string | null;
 }
 
 interface RestResponse<T> {
@@ -37,7 +40,7 @@ export async function supabaseRestQuery<T = unknown>(
   table: string,
   options: RestQueryOptions = {}
 ): Promise<RestResponse<T>> {
-  const { select = '*', eq = {}, filters = {}, order, range, limit, single, maybeSingle } = options;
+  const { select = '*', eq = {}, filters = {}, order, range, limit, single, maybeSingle, authToken } = options;
   const inFilters = options.in || {};
 
   // Build URL
@@ -72,9 +75,17 @@ export async function supabaseRestQuery<T = unknown>(
   }
 
   // Build headers
+  const bearerToken = authToken || (env.app.disableAnonRest ? null : supabaseAnonKey);
+  if (!bearerToken) {
+    return {
+      data: null,
+      error: { message: 'Authentication required (anon REST disabled)', code: 'AUTH_REQUIRED' },
+    };
+  }
+
   const headers: Record<string, string> = {
     'apikey': supabaseAnonKey,
-    'Authorization': `Bearer ${supabaseAnonKey}`,
+    'Authorization': `Bearer ${bearerToken}`,
     'Content-Type': 'application/json',
     'Prefer': 'return=representation',
   };
