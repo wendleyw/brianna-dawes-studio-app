@@ -715,7 +715,10 @@ export function DeveloperTools() {
   const [syncOpsLimit, setSyncOpsLimit] = useState(20);
   const [isSyncOpsRunning, setIsSyncOpsRunning] = useState(false);
   const [isSyncOpsEnqueueing, setIsSyncOpsEnqueueing] = useState(false);
+  const [isSyncOpsCreating, setIsSyncOpsCreating] = useState(false);
   const [miroTokenOverride, setMiroTokenOverride] = useState('');
+  const [lastOpsProjectId, setLastOpsProjectId] = useState<string | null>(null);
+  const [lastOpsJobId, setLastOpsJobId] = useState<string | null>(null);
   const [progress, setProgress] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
 
@@ -1193,6 +1196,88 @@ export function DeveloperTools() {
       setError(formatError(err));
     } finally {
       setIsSyncOpsRunning(false);
+    }
+  };
+
+  const createLinkedProjectAndEnqueue = async () => {
+    if (!authUser) {
+      setError('Not authenticated. Please log in first.');
+      return;
+    }
+    if (authUser.role !== 'admin') {
+      setError('Forbidden (admin only)');
+      return;
+    }
+    if (!isInMiro || !miro) {
+      setError('Must be running inside Miro board to link a project to the current board.');
+      return;
+    }
+
+    const allow = confirm(
+      'Isso vai CRIAR um projeto de teste ligado a este board e ENFILEIRAR um job project_sync.\n\nSe você rodar o worker com token válido, ele vai criar/atualizar cards no Miro.\n\nContinuar?'
+    );
+    if (!allow) return;
+
+    setIsSyncOpsCreating(true);
+    setError(null);
+    setProgress([]);
+    setLastOpsProjectId(null);
+    setLastOpsJobId(null);
+
+    try {
+      addProgress('▶ Getting current board id...');
+      const boardInfo = await miro.board.getInfo();
+      const boardId = boardInfo.id;
+      addProgress(`✓ Current board: ${boardId}`);
+
+      addProgress('▶ Selecting a client user...');
+      const { data: client, error: clientErr } = await supabase
+        .from('users')
+        .select('id, email')
+        .eq('role', 'client')
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      if (clientErr) throw clientErr;
+      if (!client?.id) throw new Error('No client user found. Create a client first.');
+      addProgress(`✓ Using client: ${client.email} (${client.id})`);
+
+      addProgress('▶ Creating linked project...');
+      const project = await projectService.createProject({
+        name: `[OPS][SYNC] ${new Date().toISOString()}`,
+        clientId: client.id,
+        description: 'Linked project for sync-worker test',
+        status: 'in_progress',
+        priority: 'medium',
+        startDate: null,
+        dueDate: null,
+        miroBoardId: boardId,
+        miroBoardUrl: `https://miro.com/app/board/${boardId}/`,
+        briefing: {},
+        googleDriveUrl: null,
+        dueDateApproved: true,
+        designerIds: [],
+      });
+      setLastOpsProjectId(project.id);
+      addProgress(`✓ Project created: ${project.id}`);
+
+      addProgress('▶ Enqueueing project_sync job...');
+      const { data: jobId, error: jobErr } = await supabase.rpc('enqueue_sync_job', {
+        p_job_type: 'project_sync',
+        p_project_id: project.id,
+        p_board_id: boardId,
+        p_payload: { reason: 'ops_linked' },
+        p_run_at: new Date().toISOString(),
+      });
+      if (jobErr) throw jobErr;
+      if (!jobId) throw new Error('enqueue_sync_job returned no job id');
+      setLastOpsJobId(jobId as string);
+      addProgress(`✓ Job enqueued: ${jobId}`);
+    } catch (err) {
+      logger.error('Create linked project + enqueue failed', err);
+      setError(formatError(err));
+    } finally {
+      setIsSyncOpsCreating(false);
     }
   };
 
@@ -1988,9 +2073,26 @@ export function DeveloperTools() {
             placeholder="(optional) cole o token aqui"
             value={miroTokenOverride}
             onChange={(e) => setMiroTokenOverride(e.target.value)}
-            disabled={isSyncOpsEnqueueing || isSyncOpsRunning}
+            disabled={isSyncOpsEnqueueing || isSyncOpsRunning || isSyncOpsCreating}
           />
         </label>
+
+        <Button
+          onClick={createLinkedProjectAndEnqueue}
+          isLoading={isSyncOpsCreating}
+          variant="primary"
+          className={styles.primaryButton}
+          disabled={isSyncOpsEnqueueing || isSyncOpsRunning}
+        >
+          {isSyncOpsCreating ? 'Creating...' : '🧪 Create linked project + enqueue project_sync'}
+        </Button>
+
+        {(lastOpsProjectId || lastOpsJobId) && (
+          <div className={styles.featureList}>
+            {lastOpsProjectId && <div className={styles.featureItem}>✓ Last ops project: {lastOpsProjectId}</div>}
+            {lastOpsJobId && <div className={styles.featureItem}>✓ Last ops job: {lastOpsJobId}</div>}
+          </div>
+        )}
 
         <label className={styles.checkboxRow}>
           <span>Enqueue limit</span>
@@ -2000,7 +2102,7 @@ export function DeveloperTools() {
             max={200}
             value={syncOpsLimit}
             onChange={(e) => setSyncOpsLimit(Number(e.target.value))}
-            disabled={isSyncOpsEnqueueing || isSyncOpsRunning}
+            disabled={isSyncOpsEnqueueing || isSyncOpsRunning || isSyncOpsCreating}
           />
         </label>
 
@@ -2009,7 +2111,7 @@ export function DeveloperTools() {
           isLoading={isSyncOpsEnqueueing}
           variant="primary"
           className={styles.secondaryButton}
-          disabled={isSyncOpsRunning}
+          disabled={isSyncOpsRunning || isSyncOpsCreating}
         >
           {isSyncOpsEnqueueing ? 'Enqueueing...' : '📥 Enqueue project_sync (pending/sync_error)'}
         </Button>
@@ -2022,7 +2124,7 @@ export function DeveloperTools() {
             max={10}
             value={syncOpsBatchSize}
             onChange={(e) => setSyncOpsBatchSize(Number(e.target.value))}
-            disabled={isSyncOpsEnqueueing || isSyncOpsRunning}
+            disabled={isSyncOpsEnqueueing || isSyncOpsRunning || isSyncOpsCreating}
           />
         </label>
 
@@ -2031,7 +2133,7 @@ export function DeveloperTools() {
           isLoading={isSyncOpsRunning}
           variant="primary"
           className={styles.primaryButton}
-          disabled={isSyncOpsEnqueueing}
+          disabled={isSyncOpsEnqueueing || isSyncOpsCreating}
         >
           {isSyncOpsRunning ? 'Running worker...' : '⚙️ Run sync-worker (batch)'}
         </Button>
