@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@shared/ui';
 import { useMiro } from '@features/boards';
@@ -16,6 +16,51 @@ import type { DeliverableType, DeliverableStatus } from '@features/deliverables/
 import styles from './DeveloperTools.module.css';
 
 const logger = createLogger('DeveloperTools');
+
+function formatError(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (typeof err === 'string') return err;
+  try {
+    return JSON.stringify(err);
+  } catch {
+    return 'Unknown error';
+  }
+}
+
+async function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  let timeoutId: number | null = null;
+  const timeout = new Promise<never>((_, reject) => {
+    timeoutId = window.setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms);
+  });
+
+  try {
+    return (await Promise.race([promise, timeout])) as T;
+  } finally {
+    if (timeoutId !== null) window.clearTimeout(timeoutId);
+  }
+}
+
+async function fetchJsonWithTimeout(
+  url: string,
+  init: RequestInit,
+  ms: number
+): Promise<{ ok: boolean; status: number; body: unknown }> {
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), ms);
+  try {
+    const res = await fetch(url, { ...init, signal: controller.signal });
+    const text = await res.text().catch(() => '');
+    const body = text ? (() => { try { return JSON.parse(text) as unknown; } catch { return text; } })() : null;
+    return { ok: res.ok, status: res.status, body };
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'AbortError') {
+      throw new Error(`Request timed out after ${ms}ms`);
+    }
+    throw err;
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
+}
 
 async function tryGetMiroAccessToken(): Promise<{ token: string | null; error?: string }> {
   try {
@@ -721,20 +766,22 @@ export function DeveloperTools() {
   const [lastOpsJobId, setLastOpsJobId] = useState<string | null>(null);
   const [progress, setProgress] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [syncOpsExpanded, setSyncOpsExpanded] = useState(true);
+  const progressLogRef = useRef<HTMLDivElement | null>(null);
+  const isSyncOpsActive = useMemo(
+    () => isSyncOpsEnqueueing || isSyncOpsRunning || isSyncOpsCreating,
+    [isSyncOpsCreating, isSyncOpsEnqueueing, isSyncOpsRunning]
+  );
 
   const addProgress = (message: string) => {
     setProgress((prev) => [...prev, message]);
   };
 
-  const formatError = (err: unknown): string => {
-    if (err instanceof Error) return err.message;
-    if (typeof err === 'string') return err;
-    try {
-      return JSON.stringify(err);
-    } catch {
-      return 'Unknown error';
-    }
-  };
+  useEffect(() => {
+    if (!syncOpsExpanded) return;
+    if (!progressLogRef.current) return;
+    progressLogRef.current.scrollTop = progressLogRef.current.scrollHeight;
+  }, [progress.length, syncOpsExpanded]);
 
   const runSmokeTests = async () => {
     if (!authUser) {
@@ -1166,7 +1213,8 @@ export function DeveloperTools() {
     setProgress([]);
 
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
+      addProgress('▶ Preparing sync-worker request...');
+      const { data: sessionData } = await withTimeout(supabase.auth.getSession(), 7000, 'supabase.auth.getSession');
       const accessToken = sessionData.session?.access_token;
       if (!accessToken) throw new Error('Missing Supabase session token for sync-worker');
 
@@ -1177,18 +1225,21 @@ export function DeveloperTools() {
       if (!miroAccessToken && miroTokenRes.error) addProgress(`ℹ Miro token reason: ${miroTokenRes.error}`);
 
       addProgress(`▶ Running sync-worker (maxJobs=${batchSize})...`);
-      const res = await fetch(`${env.supabase.url}/functions/v1/sync-worker`, {
-        method: 'POST',
-        headers: {
-          apikey: env.supabase.anonKey,
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
+      const { ok, status, body } = await fetchJsonWithTimeout(
+        `${env.supabase.url}/functions/v1/sync-worker`,
+        {
+          method: 'POST',
+          headers: {
+            apikey: env.supabase.anonKey,
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ miroAccessToken: miroAccessToken ?? undefined, maxJobs: batchSize }),
         },
-        body: JSON.stringify({ miroAccessToken: miroAccessToken ?? undefined, maxJobs: batchSize }),
-      });
+        30000
+      );
 
-      const body = await res.json().catch(() => null);
-      if (!res.ok) throw new Error(`sync-worker failed (${res.status}): ${JSON.stringify(body)}`);
+      if (!ok) throw new Error(`sync-worker failed (${status}): ${JSON.stringify(body)}`);
       addProgress(`✓ sync-worker response: ${JSON.stringify(body)}`);
       await queryClient.invalidateQueries();
     } catch (err) {
@@ -1225,8 +1276,9 @@ export function DeveloperTools() {
     setLastOpsJobId(null);
 
     try {
+      addProgress('▶ Starting linked project + enqueue workflow...');
       addProgress('▶ Getting current board id...');
-      const boardInfo = await miro.board.getInfo();
+      const boardInfo = await withTimeout(miro.board.getInfo(), 12000, 'miro.board.getInfo');
       const boardId = boardInfo.id;
       addProgress(`✓ Current board: ${boardId}`);
 
@@ -2137,20 +2189,31 @@ export function DeveloperTools() {
         >
           {isSyncOpsRunning ? 'Running worker...' : '⚙️ Run sync-worker (batch)'}
         </Button>
+
+        <label className={styles.checkboxRow}>
+          <input
+            type="checkbox"
+            checked={syncOpsExpanded}
+            onChange={(e) => setSyncOpsExpanded(e.target.checked)}
+          />
+          <span>Mostrar output (recomendado)</span>
+        </label>
+
+        {syncOpsExpanded && (error || progress.length > 0) && (
+          <>
+            {error && <div className={styles.error}>{error}</div>}
+            {progress.length > 0 && (
+              <div ref={progressLogRef} className={styles.progressLog} aria-busy={isSyncOpsActive}>
+                {progress.map((msg, i) => (
+                  <div key={i} className={styles.progressLine}>
+                    {msg}
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
       </div>
-
-      {/* Progress & Error */}
-      {error && (
-        <div className={styles.error}>{error}</div>
-      )}
-
-      {progress.length > 0 && (
-        <div className={styles.progressLog}>
-          {progress.map((msg, i) => (
-            <div key={i} className={styles.progressLine}>{msg}</div>
-          ))}
-        </div>
-      )}
     </div>
   );
 }

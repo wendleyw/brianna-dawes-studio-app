@@ -212,7 +212,18 @@
   user-select: none;
 }
 
-.checkboxRow input {
+.checkboxRow input[type='checkbox'] {
   width: 16px;
   height: 16px;
+}
+
+.checkboxRow input:not([type='checkbox']) {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 10px;
+  font-size: 14px;
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: 6px;
+  background: var(--color-surface, #ffffff);
+  color: var(--color-text-primary, #1f2937);
 }
