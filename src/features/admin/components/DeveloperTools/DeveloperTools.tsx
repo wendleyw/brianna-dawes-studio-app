@@ -17,6 +17,16 @@ import styles from './DeveloperTools.module.css';
 
 const logger = createLogger('DeveloperTools');
 
+async function tryGetMiroAccessToken(): Promise<string | null> {
+  try {
+    const miro = (window as unknown as { miro?: { board?: { getToken?: () => Promise<string> } } }).miro;
+    const token = await miro?.board?.getToken?.();
+    return typeof token === 'string' && token.trim() ? token : null;
+  } catch {
+    return null;
+  }
+}
+
 // Project types from NewProjectPage - exact match
 const PROJECT_TYPES: Array<{ value: ProjectType; label: string; days: number }> = [
   { value: 'social-post-design', label: 'Social Post Design (Carousel / Static)', days: 5 },
@@ -698,6 +708,10 @@ export function DeveloperTools() {
   const [smokeDoWrites, setSmokeDoWrites] = useState(false);
   const [smokeTestEdgeApi, setSmokeTestEdgeApi] = useState(false);
   const [smokeTestSyncWorker, setSmokeTestSyncWorker] = useState(false);
+  const [syncOpsBatchSize, setSyncOpsBatchSize] = useState(5);
+  const [syncOpsLimit, setSyncOpsLimit] = useState(20);
+  const [isSyncOpsRunning, setIsSyncOpsRunning] = useState(false);
+  const [isSyncOpsEnqueueing, setIsSyncOpsEnqueueing] = useState(false);
   const [progress, setProgress] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
 
@@ -1003,6 +1017,9 @@ export function DeveloperTools() {
             const accessToken = sessionData.session?.access_token;
             if (!accessToken) throw new Error('Missing Supabase session token for sync-worker');
 
+            const miroAccessToken = await tryGetMiroAccessToken();
+            addProgress(`✓ Miro access token: ${miroAccessToken ? 'present' : 'missing'} (required for real Miro REST sync)`);
+
             const res = await fetch(`${env.supabase.url}/functions/v1/sync-worker`, {
               method: 'POST',
               headers: {
@@ -1010,7 +1027,7 @@ export function DeveloperTools() {
                 Authorization: `Bearer ${accessToken}`,
                 'Content-Type': 'application/json',
               },
-              body: JSON.stringify({}),
+              body: JSON.stringify({ miroAccessToken: miroAccessToken ?? undefined, maxJobs: 1 }),
             });
 
             const body = await res.json().catch(() => null);
@@ -1068,6 +1085,104 @@ export function DeveloperTools() {
         await cleanup();
       }
       setIsSmokeRunning(false);
+    }
+  };
+
+  const enqueueProjectSyncForPendingProjects = async () => {
+    if (!authUser) {
+      setError('Not authenticated. Please log in first.');
+      return;
+    }
+    if (authUser.role !== 'admin') {
+      setError('Forbidden (admin only)');
+      return;
+    }
+
+    const limit = Math.max(1, Math.min(200, Number(syncOpsLimit || 20)));
+    setIsSyncOpsEnqueueing(true);
+    setError(null);
+    setProgress([]);
+
+    try {
+      addProgress(`▶ Finding up to ${limit} projects needing sync (pending/sync_error)...`);
+
+      const { data: projects, error: e } = await supabase
+        .from('projects')
+        .select('id, miro_board_id, sync_status')
+        .in('sync_status', ['pending', 'sync_error'])
+        .not('miro_board_id', 'is', null)
+        .limit(limit);
+
+      if (e) throw e;
+      const rows = (projects || []) as Array<{ id: string; miro_board_id: string | null; sync_status: string | null }>;
+      addProgress(`✓ Found ${rows.length} projects`);
+
+      let enqueued = 0;
+      for (const p of rows) {
+        const boardId = p.miro_board_id;
+        const { data: jobId, error: jobErr } = await supabase.rpc('enqueue_sync_job', {
+          p_job_type: 'project_sync',
+          p_project_id: p.id,
+          p_board_id: boardId ?? null,
+          p_payload: { reason: 'ops_bulk' },
+          p_run_at: new Date().toISOString(),
+        });
+        if (jobErr) throw jobErr;
+        if (jobId) enqueued++;
+      }
+
+      addProgress(`✅ Enqueued ${enqueued} project_sync jobs`);
+    } catch (err) {
+      logger.error('Enqueue pending sync jobs failed', err);
+      setError(formatError(err));
+    } finally {
+      setIsSyncOpsEnqueueing(false);
+    }
+  };
+
+  const runSyncWorkerBatch = async () => {
+    if (!authUser) {
+      setError('Not authenticated. Please log in first.');
+      return;
+    }
+    if (authUser.role !== 'admin') {
+      setError('Forbidden (admin only)');
+      return;
+    }
+
+    const batchSize = Math.max(1, Math.min(10, Number(syncOpsBatchSize || 1)));
+    setIsSyncOpsRunning(true);
+    setError(null);
+    setProgress([]);
+
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+      if (!accessToken) throw new Error('Missing Supabase session token for sync-worker');
+
+      const miroAccessToken = await tryGetMiroAccessToken();
+      addProgress(`✓ Miro access token: ${miroAccessToken ? 'present' : 'missing'} (required for Miro REST writes)`);
+
+      addProgress(`▶ Running sync-worker (maxJobs=${batchSize})...`);
+      const res = await fetch(`${env.supabase.url}/functions/v1/sync-worker`, {
+        method: 'POST',
+        headers: {
+          apikey: env.supabase.anonKey,
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ miroAccessToken: miroAccessToken ?? undefined, maxJobs: batchSize }),
+      });
+
+      const body = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(`sync-worker failed (${res.status}): ${JSON.stringify(body)}`);
+      addProgress(`✓ sync-worker response: ${JSON.stringify(body)}`);
+      await queryClient.invalidateQueries();
+    } catch (err) {
+      logger.error('Run sync-worker batch failed', err);
+      setError(formatError(err));
+    } finally {
+      setIsSyncOpsRunning(false);
     }
   };
 
@@ -1832,7 +1947,7 @@ export function DeveloperTools() {
             onChange={(e) => setSmokeTestSyncWorker(e.target.checked)}
             disabled={isSmokeRunning || !smokeDoWrites}
           />
-          <span>Rodar sync-worker (consome 1 job e marca como failed_not_implemented)</span>
+          <span>Rodar sync-worker (consome 1 job; tenta sync real no Miro via REST se tiver token)</span>
         </label>
 
         <Button
@@ -1842,6 +1957,62 @@ export function DeveloperTools() {
           className={styles.primaryButton}
         >
           {isSmokeRunning ? 'Running Smoke Tests...' : '✅ Run Smoke Tests'}
+        </Button>
+      </div>
+
+      {/* Sync Jobs Ops Section */}
+      <div className={styles.section}>
+        <h3 className={styles.sectionTitle}>🧰 Sync Jobs Ops (Queue + Worker)</h3>
+        <p className={styles.sectionDescription}>
+          Ferramentas para enfileirar `project_sync` e processar jobs via `sync-worker` (server-side).
+        </p>
+
+        <div className={styles.warning}>
+          <strong>Nota:</strong> Para o worker fazer writes no Miro via REST, o Miro access token precisa estar disponível no contexto do board.
+        </div>
+
+        <label className={styles.checkboxRow}>
+          <span>Enqueue limit</span>
+          <input
+            type="number"
+            min={1}
+            max={200}
+            value={syncOpsLimit}
+            onChange={(e) => setSyncOpsLimit(Number(e.target.value))}
+            disabled={isSyncOpsEnqueueing || isSyncOpsRunning}
+          />
+        </label>
+
+        <Button
+          onClick={enqueueProjectSyncForPendingProjects}
+          isLoading={isSyncOpsEnqueueing}
+          variant="primary"
+          className={styles.secondaryButton}
+          disabled={isSyncOpsRunning}
+        >
+          {isSyncOpsEnqueueing ? 'Enqueueing...' : '📥 Enqueue project_sync (pending/sync_error)'}
+        </Button>
+
+        <label className={styles.checkboxRow}>
+          <span>Worker batch size</span>
+          <input
+            type="number"
+            min={1}
+            max={10}
+            value={syncOpsBatchSize}
+            onChange={(e) => setSyncOpsBatchSize(Number(e.target.value))}
+            disabled={isSyncOpsEnqueueing || isSyncOpsRunning}
+          />
+        </label>
+
+        <Button
+          onClick={runSyncWorkerBatch}
+          isLoading={isSyncOpsRunning}
+          variant="primary"
+          className={styles.primaryButton}
+          disabled={isSyncOpsEnqueueing}
+        >
+          {isSyncOpsRunning ? 'Running worker...' : '⚙️ Run sync-worker (batch)'}
         </Button>
       </div>
 

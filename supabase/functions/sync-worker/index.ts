@@ -1,9 +1,10 @@
 // Supabase Edge Function: sync-worker
 //
 // Purpose (foundation): claim and run one durable sync job from `public.sync_jobs`.
-// This is intentionally minimal and safe to deploy behind a feature flag.
-//
-// NOTE: Real Miro sync logic should live in dedicated modules and be idempotent.
+// This is safe to deploy behind a feature flag and now includes:
+// - Admin-gated invocation (user JWT required)
+// - Retry/backoff with `fail_sync_job`
+// - `project_sync` implementation using Miro REST API (requires Miro access token)
 
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
@@ -14,7 +15,7 @@ type SyncJob = {
   status: 'queued' | 'running' | 'succeeded' | 'failed' | 'canceled';
   project_id: string | null;
   board_id: string | null;
-  payload: Record<string, unknown>;
+  payload: Record<string, unknown> | null;
   attempt_count: number;
   max_attempts: number;
 };
@@ -34,6 +35,213 @@ function corsHeaders() {
   };
 }
 
+function nowIso() {
+  return new Date().toISOString();
+}
+
+function safeString(v: unknown): string | null {
+  if (typeof v !== 'string') return null;
+  const t = v.trim();
+  return t.length ? t : null;
+}
+
+function normalizeDateToYYYYMMDD(dateStr: string | null): string | null {
+  if (!dateStr) return null;
+  const date = new Date(dateStr);
+  if (Number.isNaN(date.getTime())) return null;
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function retryDelaySeconds(attemptCount: number): number {
+  // Exponential backoff with caps:
+  // attempt_count is incremented when the job is claimed.
+  const base = 30;
+  const pow = Math.max(0, attemptCount - 1);
+  const delay = base * Math.pow(2, pow);
+  return Math.min(60 * 30, Math.max(10, Math.floor(delay))); // 10s .. 30m
+}
+
+type MiroBoard = { id: string; name?: string };
+type MiroFrame = { id: string; data?: { title?: string }; position?: { x?: number; y?: number }; geometry?: { width?: number; height?: number } };
+type MiroCard = { id: string; data?: { title?: string; description?: string; dueDate?: string }; position?: { x?: number; y?: number }; geometry?: { width?: number; height?: number }; style?: { cardTheme?: string } };
+
+const MIRO_BASE_URL = 'https://api.miro.com/v2';
+
+async function miroRequest<T>(
+  accessToken: string,
+  method: string,
+  path: string,
+  body?: unknown
+): Promise<{ ok: true; data: T } | { ok: false; status: number; message: string; raw?: unknown }> {
+  const res = await fetch(`${MIRO_BASE_URL}${path}`, {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+
+  const text = await res.text();
+  let parsed: unknown = null;
+  try {
+    parsed = text ? JSON.parse(text) : null;
+  } catch {
+    parsed = text || null;
+  }
+
+  if (!res.ok) {
+    const msg =
+      (typeof parsed === 'object' && parsed && 'message' in parsed && typeof (parsed as { message?: unknown }).message === 'string'
+        ? (parsed as { message: string }).message
+        : `Miro API error: ${res.status}`);
+    return { ok: false, status: res.status, message: msg, raw: parsed };
+  }
+
+  return { ok: true, data: parsed as T };
+}
+
+async function miroGetBoard(accessToken: string, boardId: string) {
+  return miroRequest<MiroBoard>(accessToken, 'GET', `/boards/${boardId}`);
+}
+
+async function miroListFrames(accessToken: string, boardId: string) {
+  return miroRequest<{ data: MiroFrame[] }>(accessToken, 'GET', `/boards/${boardId}/frames?limit=200`);
+}
+
+async function miroCreateFrame(accessToken: string, boardId: string, args: { title: string; x: number; y: number; width: number; height: number }) {
+  return miroRequest<{ id: string }>(accessToken, 'POST', `/boards/${boardId}/frames`, {
+    data: { title: args.title, format: 'custom' },
+    position: { x: args.x, y: args.y },
+    geometry: { width: args.width, height: args.height },
+  });
+}
+
+async function miroListCards(accessToken: string, boardId: string) {
+  return miroRequest<{ data: MiroCard[] }>(accessToken, 'GET', `/boards/${boardId}/cards?limit=500`);
+}
+
+async function miroCreateCard(
+  accessToken: string,
+  boardId: string,
+  args: { title: string; description: string; x: number; y: number; width: number; dueDate?: string | null; cardTheme?: string }
+) {
+  return miroRequest<{ id: string }>(accessToken, 'POST', `/boards/${boardId}/cards`, {
+    data: { title: args.title, description: args.description, dueDate: args.dueDate ?? undefined },
+    position: { x: args.x, y: args.y },
+    geometry: { width: args.width },
+    style: args.cardTheme ? { cardTheme: args.cardTheme } : undefined,
+  });
+}
+
+async function miroUpdateCard(
+  accessToken: string,
+  boardId: string,
+  cardId: string,
+  args: { title?: string; description?: string; x?: number; y?: number; dueDate?: string | null; cardTheme?: string }
+) {
+  const data: Record<string, unknown> = {};
+  if (args.title !== undefined || args.description !== undefined || args.dueDate !== undefined) {
+    data.data = {
+      title: args.title,
+      description: args.description,
+      dueDate: args.dueDate ?? undefined,
+    };
+  }
+  if (args.x !== undefined || args.y !== undefined) {
+    data.position = { x: args.x, y: args.y };
+  }
+  if (args.cardTheme !== undefined) {
+    data.style = { cardTheme: args.cardTheme };
+  }
+
+  return miroRequest<{ id: string }>(accessToken, 'PATCH', `/boards/${boardId}/cards/${cardId}`, data);
+}
+
+type TimelineStatus = 'overdue' | 'urgent' | 'in_progress' | 'review' | 'done';
+const TIMELINE = {
+  FRAME_WIDTH: 1000,
+  FRAME_HEIGHT: 600,
+  COLUMN_WIDTH: 130,
+  COLUMN_GAP: 10,
+  HEADER_HEIGHT: 28,
+  TITLE_HEIGHT: 35,
+  CARD_WIDTH: 120,
+  CARD_HEIGHT: 80,
+  CARD_GAP: 15,
+  PADDING: 15,
+} as const;
+
+const TIMELINE_COLUMNS: Array<{ id: TimelineStatus; label: string; color: string }> = [
+  { id: 'overdue', label: 'OVERDUE', color: '#F97316' },
+  { id: 'urgent', label: 'URGENT', color: '#DC2626' },
+  { id: 'in_progress', label: 'IN PROGRESS', color: '#3B82F6' },
+  { id: 'review', label: 'REVIEW', color: '#6366F1' },
+  { id: 'done', label: 'DONE', color: '#22C55E' },
+];
+
+function mapProjectToTimelineStatus(project: { status: string; due_date?: string | null; due_date_approved?: boolean | null }): TimelineStatus {
+  if (project.status === 'done' || project.status === 'archived') return 'done';
+
+  const dueDate = project.due_date;
+  if (dueDate && project.due_date_approved !== false) {
+    const due = new Date(dueDate);
+    if (!Number.isNaN(due.getTime())) {
+      if (/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) {
+        due.setHours(23, 59, 59, 999);
+      }
+      if (due.getTime() < Date.now()) return 'overdue';
+    }
+  }
+
+  if (project.status === 'urgent' || project.status === 'critical') return 'urgent';
+  if (project.status === 'review') return 'review';
+  return 'in_progress';
+}
+
+function getPriorityIcon(priority: string | null | undefined): string {
+  switch ((priority ?? '').toLowerCase()) {
+    case 'high':
+    case 'urgent':
+      return '🔺';
+    case 'medium':
+      return '🔸';
+    case 'low':
+      return '🔹';
+    default:
+      return '🔸';
+  }
+}
+
+function findTimelineFrame(frames: MiroFrame[]): MiroFrame | null {
+  const byTitle = frames.find((f) => (f.data?.title ?? '').includes('MASTER TIMELINE') || (f.data?.title ?? '').includes('Timeline Master'));
+  if (byTitle) return byTitle;
+  return null;
+}
+
+function extractCardDescription(card: MiroCard): string {
+  return card.data?.description ?? '';
+}
+
+function extractCardPosition(card: MiroCard): { x: number; y: number } {
+  return { x: Number(card.position?.x ?? 0), y: Number(card.position?.y ?? 0) };
+}
+
+function computeColumnX(colIndex: number): number {
+  const frameLeft = 0 - TIMELINE.FRAME_WIDTH / 2;
+  const startX = frameLeft + TIMELINE.PADDING;
+  return startX + TIMELINE.COLUMN_WIDTH / 2 + colIndex * (TIMELINE.COLUMN_WIDTH + TIMELINE.COLUMN_GAP);
+}
+
+function computeFirstCardY(): number {
+  const frameTop = 0 - TIMELINE.FRAME_HEIGHT / 2;
+  const dropZoneTop = frameTop + TIMELINE.PADDING + TIMELINE.TITLE_HEIGHT + TIMELINE.HEADER_HEIGHT + 10;
+  return dropZoneTop + TIMELINE.CARD_HEIGHT / 2 + 10;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders() });
@@ -45,49 +253,318 @@ serve(async (req) => {
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
   const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
-  if (!supabaseUrl || !serviceRoleKey) {
+  const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
+  if (!supabaseUrl || !serviceRoleKey || !anonKey) {
     return json({ error: 'missing_env' }, { status: 500, headers: corsHeaders() });
   }
+
+  const authHeader = req.headers.get('Authorization') || req.headers.get('authorization');
+  if (!authHeader) {
+    return json({ error: 'missing_authorization' }, { status: 401, headers: corsHeaders() });
+  }
+
+  // Verify caller is an admin (RBAC at the trust boundary)
+  const userClient = createClient(supabaseUrl, anonKey, {
+    auth: { persistSession: false },
+    global: { headers: { Authorization: authHeader } },
+  });
+
+  const { data: authData, error: authErr } = await userClient.auth.getUser();
+  if (authErr || !authData?.user) {
+    return json({ error: 'invalid_token', details: authErr?.message }, { status: 401, headers: corsHeaders() });
+  }
+
+  const { data: publicUser, error: publicUserErr } = await userClient
+    .from('users')
+    .select('id, role')
+    .eq('auth_user_id', authData.user.id)
+    .maybeSingle();
+
+  if (publicUserErr || !publicUser) {
+    return json({ error: 'public_user_not_found' }, { status: 403, headers: corsHeaders() });
+  }
+  if (publicUser.role !== 'admin') {
+    return json({ error: 'forbidden' }, { status: 403, headers: corsHeaders() });
+  }
+
+  let body: { miroAccessToken?: string; maxJobs?: number } = {};
+  try {
+    body = (await req.json().catch(() => ({}))) as { miroAccessToken?: string; maxJobs?: number };
+  } catch {
+    return json({ error: 'invalid_json' }, { status: 400, headers: corsHeaders() });
+  }
+
+  const requestMiroToken = safeString(body.miroAccessToken);
+  const maxJobs = Math.max(1, Math.min(10, Number(body.maxJobs ?? 1)));
 
   const supabase = createClient(supabaseUrl, serviceRoleKey, {
     auth: { persistSession: false },
   });
 
-  const workerId = crypto.randomUUID();
+  const workerId = `edge:${crypto.randomUUID()}`;
 
-  // Claim one job (SKIP LOCKED) via RPC
-  const { data: job, error: claimError } = await supabase.rpc('claim_next_sync_job', {
-    p_worker_id: workerId,
-  });
+  const results: Array<{
+    jobId: string;
+    type: SyncJob['job_type'];
+    projectId: string | null;
+    boardId: string | null;
+    result: 'succeeded' | 'requeued' | 'failed' | 'skipped';
+    details?: string;
+  }> = [];
 
-  if (claimError) {
-    return json({ error: 'claim_failed', details: claimError.message }, { status: 500, headers: corsHeaders() });
+  for (let i = 0; i < maxJobs; i++) {
+    const { data: job, error: claimError } = await supabase.rpc('claim_next_sync_job', {
+      p_worker_id: workerId,
+    });
+
+    if (claimError) {
+      return json({ error: 'claim_failed', details: claimError.message }, { status: 500, headers: corsHeaders() });
+    }
+    if (!job) break;
+
+    const typedJob = job as SyncJob;
+
+    try {
+      if (typedJob.job_type === 'project_sync') {
+        const jobToken = safeString((typedJob.payload ?? ({} as Record<string, unknown>)).miroAccessToken);
+        const miroAccessToken = jobToken ?? requestMiroToken;
+        if (!miroAccessToken) {
+          const msg = 'missing_miro_access_token';
+          const delay = retryDelaySeconds(typedJob.attempt_count);
+          await supabase.rpc('fail_sync_job', { p_job_id: typedJob.id, p_error: msg, p_retry_delay_seconds: delay });
+          results.push({ jobId: typedJob.id, type: typedJob.job_type, projectId: typedJob.project_id, boardId: typedJob.board_id, result: 'requeued', details: msg });
+          continue;
+        }
+
+        // Load project (source of truth)
+        if (!typedJob.project_id) {
+          const msg = 'project_sync_requires_project_id';
+          await supabase.rpc('complete_sync_job', { p_job_id: typedJob.id, p_success: false, p_error: msg });
+          results.push({ jobId: typedJob.id, type: typedJob.job_type, projectId: null, boardId: typedJob.board_id, result: 'failed', details: msg });
+          continue;
+        }
+
+        const { data: project, error: projErr } = await supabase
+          .from('projects')
+          .select('id, name, status, priority, due_date, due_date_approved, miro_board_id, miro_card_id, sync_status')
+          .eq('id', typedJob.project_id)
+          .maybeSingle();
+        if (projErr || !project) {
+          const msg = `project_not_found:${projErr?.message ?? 'missing'}`;
+          await supabase.rpc('complete_sync_job', { p_job_id: typedJob.id, p_success: false, p_error: msg });
+          results.push({ jobId: typedJob.id, type: typedJob.job_type, projectId: typedJob.project_id, boardId: typedJob.board_id, result: 'failed', details: msg });
+          continue;
+        }
+
+        const boardId = typedJob.board_id ?? (project.miro_board_id as string | null);
+        if (!boardId) {
+          // No board: not required
+          await supabase.from('projects').update({ sync_status: 'not_required', last_sync_attempt: nowIso(), last_synced_at: nowIso() }).eq('id', project.id);
+          await supabase.rpc('complete_sync_job', { p_job_id: typedJob.id, p_success: true, p_error: null });
+          results.push({ jobId: typedJob.id, type: typedJob.job_type, projectId: project.id, boardId: null, result: 'skipped', details: 'no_board_id' });
+          continue;
+        }
+
+        // Update project to syncing
+        await supabase.from('projects').update({ sync_status: 'syncing', last_sync_attempt: nowIso(), sync_error_message: null }).eq('id', project.id);
+
+        const syncLogIdRes = await supabase.rpc('create_sync_log', { p_project_id: project.id, p_operation: 'sync' });
+        const syncLogId = (syncLogIdRes.data as string | null) ?? null;
+
+        // Miro connectivity check
+        const boardRes = await miroGetBoard(miroAccessToken, boardId);
+        if (!boardRes.ok) {
+          const msg = `miro_board_unreachable:${boardRes.status}:${boardRes.message}`;
+          if (syncLogId) await supabase.rpc('complete_sync_log', { p_sync_id: syncLogId, p_status: 'error', p_error_message: msg, p_error_category: 'miro_api_error' });
+          await supabase.from('projects').update({ sync_status: 'sync_error', sync_error_message: msg, last_sync_attempt: nowIso() }).eq('id', project.id);
+          const delay = retryDelaySeconds(typedJob.attempt_count);
+          await supabase.rpc('fail_sync_job', { p_job_id: typedJob.id, p_error: msg, p_retry_delay_seconds: delay });
+          results.push({ jobId: typedJob.id, type: typedJob.job_type, projectId: project.id, boardId, result: 'requeued', details: msg });
+          continue;
+        }
+
+        // Ensure timeline frame exists (best-effort)
+        const framesRes = await miroListFrames(miroAccessToken, boardId);
+        if (framesRes.ok) {
+          const frames = framesRes.data.data ?? [];
+          const timeline = findTimelineFrame(frames);
+          if (!timeline) {
+            await miroCreateFrame(miroAccessToken, boardId, {
+              title: 'MASTER TIMELINE',
+              x: 0,
+              y: 0,
+              width: TIMELINE.FRAME_WIDTH,
+              height: TIMELINE.FRAME_HEIGHT,
+            });
+          }
+        }
+
+        const status = mapProjectToTimelineStatus({
+          status: project.status as string,
+          due_date: project.due_date as string | null,
+          due_date_approved: project.due_date_approved as boolean | null,
+        });
+        const colIndex = Math.max(0, TIMELINE_COLUMNS.findIndex((c) => c.id === status));
+        const col = TIMELINE_COLUMNS[colIndex] ?? TIMELINE_COLUMNS[2];
+
+        const cardsRes = await miroListCards(miroAccessToken, boardId);
+        if (!cardsRes.ok) {
+          const msg = `miro_cards_list_failed:${cardsRes.status}:${cardsRes.message}`;
+          if (syncLogId) await supabase.rpc('complete_sync_log', { p_sync_id: syncLogId, p_status: 'error', p_error_message: msg, p_error_category: 'miro_api_error' });
+          await supabase.from('projects').update({ sync_status: 'sync_error', sync_error_message: msg, last_sync_attempt: nowIso() }).eq('id', project.id);
+          const delay = retryDelaySeconds(typedJob.attempt_count);
+          await supabase.rpc('fail_sync_job', { p_job_id: typedJob.id, p_error: msg, p_retry_delay_seconds: delay });
+          results.push({ jobId: typedJob.id, type: typedJob.job_type, projectId: project.id, boardId, result: 'requeued', details: msg });
+          continue;
+        }
+
+        const cards = cardsRes.data.data ?? [];
+        const marker = `projectId:${project.id}`;
+        const existingByMarker = cards.find((c) => extractCardDescription(c).includes(marker));
+
+        const priorityIcon = getPriorityIcon(project.priority as string | null);
+        const cardTitle = `${project.name ?? 'Project'}\n${priorityIcon}`;
+        const description = marker;
+        const dueDate = normalizeDateToYYYYMMDD(project.due_date as string | null);
+
+        const targetX = computeColumnX(colIndex);
+        let targetY = computeFirstCardY();
+
+        // If updating an existing card in the same column, keep its Y.
+        if (existingByMarker) {
+          const pos = extractCardPosition(existingByMarker);
+          const inSameColumn = Math.abs(pos.x - targetX) < TIMELINE.COLUMN_WIDTH / 2;
+          targetY = inSameColumn ? pos.y : targetY;
+        } else {
+          // Place below the lowest card in that column region.
+          const sameColumnCards = cards.filter((c) => {
+            const pos = extractCardPosition(c);
+            return Math.abs(pos.x - targetX) < TIMELINE.COLUMN_WIDTH / 2;
+          });
+          const bottoms = sameColumnCards.map((c) => {
+            const pos = extractCardPosition(c);
+            const h = Number(c.geometry?.height ?? TIMELINE.CARD_HEIGHT);
+            return pos.y + h / 2;
+          });
+          const maxBottom = bottoms.length ? Math.max(...bottoms) : null;
+          if (maxBottom !== null) {
+            targetY = maxBottom + TIMELINE.CARD_GAP + TIMELINE.CARD_HEIGHT / 2;
+          }
+        }
+
+        let cardId: string | null = (project.miro_card_id as string | null) ?? null;
+        let miroOp: 'created' | 'updated' = 'updated';
+
+        // Prefer updating by known cardId, fallback to marker match, else create.
+        if (!cardId && existingByMarker) cardId = existingByMarker.id;
+
+        if (cardId) {
+          const upd = await miroUpdateCard(miroAccessToken, boardId, cardId, {
+            title: cardTitle,
+            description,
+            x: targetX,
+            y: targetY,
+            dueDate,
+            cardTheme: col.color,
+          });
+          if (!upd.ok) {
+            // If stale id, create new.
+            const create = await miroCreateCard(miroAccessToken, boardId, {
+              title: cardTitle,
+              description,
+              x: targetX,
+              y: targetY,
+              width: TIMELINE.CARD_WIDTH,
+              dueDate,
+              cardTheme: col.color,
+            });
+            if (!create.ok) {
+              const msg = `miro_card_write_failed:${upd.status}:${upd.message}:${create.status}:${create.message}`;
+              if (syncLogId) await supabase.rpc('complete_sync_log', { p_sync_id: syncLogId, p_status: 'error', p_error_message: msg, p_error_category: 'miro_api_error' });
+              await supabase.from('projects').update({ sync_status: 'sync_error', sync_error_message: msg, last_sync_attempt: nowIso() }).eq('id', project.id);
+              const delay = retryDelaySeconds(typedJob.attempt_count);
+              await supabase.rpc('fail_sync_job', { p_job_id: typedJob.id, p_error: msg, p_retry_delay_seconds: delay });
+              results.push({ jobId: typedJob.id, type: typedJob.job_type, projectId: project.id, boardId, result: 'requeued', details: msg });
+              continue;
+            }
+            cardId = create.data.id;
+            miroOp = 'created';
+          }
+        } else {
+          const create = await miroCreateCard(miroAccessToken, boardId, {
+            title: cardTitle,
+            description,
+            x: targetX,
+            y: targetY,
+            width: TIMELINE.CARD_WIDTH,
+            dueDate,
+            cardTheme: col.color,
+          });
+          if (!create.ok) {
+            const msg = `miro_card_create_failed:${create.status}:${create.message}`;
+            if (syncLogId) await supabase.rpc('complete_sync_log', { p_sync_id: syncLogId, p_status: 'error', p_error_message: msg, p_error_category: 'miro_api_error' });
+            await supabase.from('projects').update({ sync_status: 'sync_error', sync_error_message: msg, last_sync_attempt: nowIso() }).eq('id', project.id);
+            const delay = retryDelaySeconds(typedJob.attempt_count);
+            await supabase.rpc('fail_sync_job', { p_job_id: typedJob.id, p_error: msg, p_retry_delay_seconds: delay });
+            results.push({ jobId: typedJob.id, type: typedJob.job_type, projectId: project.id, boardId, result: 'requeued', details: msg });
+            continue;
+          }
+          cardId = create.data.id;
+          miroOp = 'created';
+        }
+
+        await supabase
+          .from('projects')
+          .update({
+            miro_board_id: boardId,
+            miro_card_id: cardId,
+            sync_status: 'synced',
+            last_synced_at: nowIso(),
+            last_sync_attempt: nowIso(),
+            sync_error_message: null,
+            sync_retry_count: 0,
+          })
+          .eq('id', project.id);
+
+        if (syncLogId) {
+          const created = miroOp === 'created' ? [{ id: cardId, type: 'card' }] : [];
+          const updated = miroOp === 'updated' ? [{ id: cardId, type: 'card' }] : [];
+          await supabase.rpc('complete_sync_log', {
+            p_sync_id: syncLogId,
+            p_status: 'success',
+            p_miro_items_created: created,
+            p_miro_items_updated: updated,
+            p_miro_items_deleted: [],
+            p_error_message: null,
+            p_error_category: null,
+          });
+        }
+
+        await supabase.rpc('complete_sync_job', { p_job_id: typedJob.id, p_success: true, p_error: null });
+        results.push({ jobId: typedJob.id, type: typedJob.job_type, projectId: project.id, boardId, result: 'succeeded', details: `miro:${miroOp}:${cardId}` });
+        continue;
+      }
+
+      // master_board_sync not yet implemented
+      const msg = `sync-worker: job ${typedJob.job_type} not implemented`;
+      const delay = retryDelaySeconds(typedJob.attempt_count);
+      await supabase.rpc('fail_sync_job', { p_job_id: typedJob.id, p_error: msg, p_retry_delay_seconds: delay });
+      results.push({ jobId: typedJob.id, type: typedJob.job_type, projectId: typedJob.project_id, boardId: typedJob.board_id, result: 'requeued', details: msg });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      const delay = retryDelaySeconds(typedJob.attempt_count);
+      await supabase.rpc('fail_sync_job', { p_job_id: typedJob.id, p_error: message, p_retry_delay_seconds: delay });
+      results.push({ jobId: typedJob.id, type: typedJob.job_type, projectId: typedJob.project_id, boardId: typedJob.board_id, result: 'requeued', details: message });
+    }
   }
-
-  if (!job) {
-    return json({ ok: true, claimed: false }, { status: 200, headers: corsHeaders() });
-  }
-
-  const typedJob = job as SyncJob;
-
-  // Placeholder: real sync implementation lives here.
-  // For now, mark failed with explicit "not implemented" so we can safely deploy wiring.
-  const notImplementedError = `sync-worker: job ${typedJob.job_type} not implemented`;
-
-  await supabase.rpc('complete_sync_job', {
-    p_job_id: typedJob.id,
-    p_success: false,
-    p_error: notImplementedError,
-  });
 
   return json(
     {
       ok: true,
-      claimed: true,
-      job: { id: typedJob.id, type: typedJob.job_type, projectId: typedJob.project_id, boardId: typedJob.board_id },
-      result: 'failed_not_implemented',
+      workerId,
+      processed: results.length,
+      results,
     },
     { status: 200, headers: corsHeaders() }
   );
 });
-
