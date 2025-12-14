@@ -778,6 +778,53 @@ export function DeveloperTools() {
         addProgress(`✓ Supabase session: ${data.session ? 'present' : 'missing'}`);
       });
 
+      await step('Auth link health (public.users ↔ auth.uid())', async () => {
+        const { data: sessionData, error: sessionErr } = await supabase.auth.getSession();
+        if (sessionErr) throw sessionErr;
+
+        const authUserId = sessionData.session?.user?.id;
+        if (!authUserId) {
+          throw new Error('Missing Supabase auth user id (no session user)');
+        }
+
+        const { data: row, error: rowErr } = await supabase
+          .from('users')
+          .select('id, email, auth_user_id')
+          .eq('id', authUser.id)
+          .maybeSingle();
+        if (rowErr) throw rowErr;
+        if (!row) throw new Error('Current public user not found in public.users');
+
+        addProgress(`✓ public.users.auth_user_id: ${row.auth_user_id ?? 'null'}`);
+
+        if ((row.email ?? '').toLowerCase() !== authUser.email.toLowerCase()) {
+          addProgress(`⚠ Email mismatch between context and DB (${row.email ?? 'null'} vs ${authUser.email})`);
+        }
+
+        if (row.auth_user_id !== authUserId) {
+          addProgress('⚠ Auth link mismatch, attempting repair via link_auth_user...');
+          const { data: ok, error: linkErr } = await supabase.rpc('link_auth_user', {
+            p_public_user_id: authUser.id,
+            p_auth_user_id: authUserId,
+          });
+          if (linkErr) throw linkErr;
+          if (ok !== true) throw new Error('link_auth_user returned false (possible hijack/mismatch)');
+
+          const { data: verify, error: verifyErr } = await supabase
+            .from('users')
+            .select('auth_user_id')
+            .eq('id', authUser.id)
+            .maybeSingle();
+          if (verifyErr) throw verifyErr;
+          if (!verify?.auth_user_id) throw new Error('Auth link repair did not persist auth_user_id');
+          if (verify.auth_user_id !== authUserId) throw new Error('Auth link repair persisted unexpected auth_user_id');
+
+          addProgress('✓ Auth link repaired');
+        } else {
+          addProgress('✓ Auth link OK');
+        }
+      });
+
       await step('Schema smoke (read)', async () => {
         const results = await Promise.all([
           Promise.resolve(supabase.from('projects').select('id').limit(1)),
@@ -1750,6 +1797,7 @@ export function DeveloperTools() {
         </div>
 
         <div className={styles.featureList}>
+          <div className={styles.featureItem}>✓ Auth link: public.users.auth_user_id ↔ auth.uid() (auto-repair)</div>
           <div className={styles.featureItem}>✓ Schema: projects/deliverables/deliverable_feedback/sync_jobs</div>
           <div className={styles.featureItem}>✓ RPCs read-only: get_dashboard_metrics/get_sync_health_metrics</div>
           <div className={styles.featureItem}>✓ Segurança: claim_next_sync_job deve ser negado (service_role only)</div>

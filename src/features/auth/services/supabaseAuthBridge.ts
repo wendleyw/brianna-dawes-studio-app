@@ -6,8 +6,8 @@
  * Flow:
  * 1. User authenticates via Miro SDK (getMiroUserFromSdk)
  * 2. We create/sign-in a Supabase auth user using email + derived password
- * 3. Supabase session is established with auth.uid() = public.users.id
- * 4. RLS policies can now use auth.uid() for security
+ * 3. Supabase session is established and public.users.auth_user_id is linked to auth.uid()
+ * 4. RLS policies can now use auth.uid() + auth_user_id mapping for security
  *
  * The password is derived from miro_user_id + a secret, so it's:
  * - Deterministic (same user always gets same password)
@@ -91,7 +91,12 @@ async function derivePassword(miroUserId: string): Promise<string> {
 
 export interface SupabaseAuthResult {
   success: boolean;
+  /**
+   * Back-compat: historically used as "userId".
+   * This is the Supabase Auth user id (auth.users.id), not public.users.id.
+   */
   userId?: string | undefined;
+  authUserId?: string | undefined;
   error?: string | undefined;
 }
 
@@ -123,18 +128,25 @@ export const supabaseAuthBridge = {
       });
 
       if (signInData.session) {
-        logger.info('Signed in to Supabase Auth', { userId, email });
-
-        // Verify the auth user ID matches our users table ID
-        // If not, we need to update the mapping
-        if (signInData.user?.id !== userId) {
-          logger.warn('Auth user ID mismatch, this should not happen', {
-            authUserId: signInData.user?.id,
-            publicUserId: userId,
-          });
+        const authUserId = signInData.user?.id;
+        if (!authUserId) {
+          logger.error('Signed in but missing auth user id', { publicUserId: userId, email });
+          return { success: false, error: 'Authentication succeeded but user data missing' };
         }
 
-        return { success: true, userId: signInData.user?.id };
+        logger.info('Signed in to Supabase Auth', { publicUserId: userId, authUserId, email });
+
+        // CRITICAL: Ensure public.users is linked to auth.uid() for RLS.
+        const linked = await this.linkAuthUser(userId, authUserId);
+        if (!linked) {
+          logger.error('Failed to link auth user to public user after sign-in', { publicUserId: userId, authUserId });
+          return {
+            success: false,
+            error: 'Account linking failed. Please contact support.',
+          };
+        }
+
+        return { success: true, userId: authUserId, authUserId };
       }
 
       // If sign in failed with invalid credentials, try to create the user
@@ -174,10 +186,20 @@ export const supabaseAuthBridge = {
 
           // Link the auth user to public user for RLS
           if (signUpData.user?.id) {
-            await this.linkAuthUser(userId, signUpData.user.id);
+            const linked = await this.linkAuthUser(userId, signUpData.user.id);
+            if (!linked) {
+              logger.error('Failed to link auth user to public user after signup', {
+                publicUserId: userId,
+                authUserId: signUpData.user.id,
+              });
+              return {
+                success: false,
+                error: 'Account created but linking failed. Please contact support.',
+              };
+            }
           }
 
-          return { success: true, userId: signUpData.user?.id };
+          return { success: true, userId: signUpData.user?.id, authUserId: signUpData.user?.id };
         }
 
         // If email confirmation is required, sign in after signup
@@ -195,10 +217,20 @@ export const supabaseAuthBridge = {
 
         // Link the auth user to public user for RLS
         if (postSignupLogin.user?.id) {
-          await this.linkAuthUser(userId, postSignupLogin.user.id);
+          const linked = await this.linkAuthUser(userId, postSignupLogin.user.id);
+          if (!linked) {
+            logger.error('Failed to link auth user to public user after post-signup login', {
+              publicUserId: userId,
+              authUserId: postSignupLogin.user.id,
+            });
+            return {
+              success: false,
+              error: 'Account created but linking failed. Please contact support.',
+            };
+          }
         }
 
-        return { success: true, userId: postSignupLogin.user?.id };
+        return { success: true, userId: postSignupLogin.user?.id, authUserId: postSignupLogin.user?.id };
       }
 
       // Other sign in errors
