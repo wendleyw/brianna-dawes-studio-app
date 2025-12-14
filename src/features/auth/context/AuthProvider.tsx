@@ -108,8 +108,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
             localStorage.removeItem(AUTH_STORAGE_KEY);
             // Don't return - fall through to trigger re-auth
           } else {
-            // Miro user ID matches stored user - trust the cached data
-            // Try to re-establish Supabase session with a timeout
+            // Miro user ID matches stored user
+            // Re-establish Supabase session and verify user data is still current
             console.log('[AuthProvider] Miro user matches stored user, attempting Supabase session...');
 
             // Re-establish Supabase Auth session for RLS (with timeout)
@@ -137,9 +137,39 @@ export function AuthProvider({ children }: AuthProviderProps) {
               }
             }
 
-            console.log('[AuthProvider] Setting authenticated state from localStorage');
+            // IMPORTANT: Always verify user data from DB to catch role changes
+            console.log('[AuthProvider] Verifying user data from database...');
+            const userCheck = await verifyUserExists(user.id);
+
+            if (!userCheck.exists) {
+              // User no longer exists - clear cache and require re-auth
+              console.log('[AuthProvider] User no longer exists in DB, clearing cache');
+              localStorage.removeItem(AUTH_STORAGE_KEY);
+              setState({ ...initialState, isLoading: false });
+              return;
+            }
+
+            // Update user with latest data from DB (role, primaryBoardId, etc.)
+            const updatedUser: AuthUser = {
+              ...user,
+              role: (userCheck.role as AuthUser['role']) ?? user.role,
+              name: userCheck.name ?? user.name,
+              email: userCheck.email ?? user.email,
+              primaryBoardId: userCheck.primaryBoardId ?? user.primaryBoardId,
+              isSuperAdmin: userCheck.isSuperAdmin ?? user.isSuperAdmin,
+              companyName: userCheck.companyName ?? user.companyName,
+              companyLogoUrl: userCheck.companyLogoUrl ?? user.companyLogoUrl,
+            };
+
+            // Check if anything changed
+            if (userCheck.role !== user.role) {
+              console.log('[AuthProvider] User role changed:', user.role, '->', userCheck.role);
+              localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(updatedUser));
+            }
+
+            console.log('[AuthProvider] Setting authenticated state with verified data');
             setState({
-              user,
+              user: updatedUser,
               session: null,
               isLoading: false,
               isAuthenticated: true,
