@@ -95,6 +95,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         if (storedUser) {
           const user = JSON.parse(storedUser) as AuthUser;
           console.log('[AuthProvider] Stored user:', { id: user.id, role: user.role, miroUserId: user.miroUserId });
+          let bridgedTokens: { accessToken: string; refreshToken: string; expiresAt: number } | null = null;
 
           // IMPORTANT: Verify the stored user matches the current Miro user
           // If miroUserId doesn't match, we need to re-authenticate
@@ -131,6 +132,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
                   console.warn('[AuthProvider] Supabase session failed (will use anon):', authResult.error);
                 } else {
                   console.log('[AuthProvider] Supabase session re-established successfully');
+                  if (authResult.accessToken && authResult.refreshToken) {
+                    bridgedTokens = {
+                      accessToken: authResult.accessToken,
+                      refreshToken: authResult.refreshToken,
+                      expiresAt: authResult.expiresAt ?? 0,
+                    };
+                  }
                 }
               } catch (err) {
                 console.warn('[AuthProvider] Supabase session error (will use anon):', err);
@@ -170,7 +178,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
             console.log('[AuthProvider] Setting authenticated state with verified data');
             setState({
               user: updatedUser,
-              session: null,
+              session: bridgedTokens
+                ? {
+                    accessToken: bridgedTokens.accessToken,
+                    refreshToken: bridgedTokens.refreshToken,
+                    expiresAt: bridgedTokens.expiresAt,
+                    user: updatedUser,
+                  }
+                : null,
               isLoading: false,
               isAuthenticated: true,
               error: null,

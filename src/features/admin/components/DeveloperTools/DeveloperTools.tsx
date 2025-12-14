@@ -746,7 +746,7 @@ const TEST_PROJECTS: TestProjectData[] = [
 
 export function DeveloperTools() {
   const { isInMiro, miro } = useMiro();
-  const { user: authUser } = useAuth();
+  const { user: authUser, session: authSession } = useAuth();
   const queryClient = useQueryClient();
   const [isCreating, setIsCreating] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
@@ -772,6 +772,16 @@ export function DeveloperTools() {
     () => isSyncOpsEnqueueing || isSyncOpsRunning || isSyncOpsCreating,
     [isSyncOpsCreating, isSyncOpsEnqueueing, isSyncOpsRunning]
   );
+
+  const getAccessToken = async (): Promise<string> => {
+    const fromContext = authSession?.accessToken;
+    if (fromContext) return fromContext;
+
+    const { data: sessionData } = await withTimeout(supabase.auth.getSession(), 15000, 'supabase.auth.getSession');
+    const accessToken = sessionData.session?.access_token;
+    if (!accessToken) throw new Error('Missing Supabase session token');
+    return accessToken;
+  };
 
   const addProgress = (message: string) => {
     setProgress((prev) => [...prev, message]);
@@ -842,8 +852,8 @@ export function DeveloperTools() {
     try {
       await step('Auth sanity', async () => {
         addProgress(`✓ Logged in as: ${authUser.email} (${authUser.role})`);
-        const { data } = await supabase.auth.getSession();
-        addProgress(`✓ Supabase session: ${data.session ? 'present' : 'missing'}`);
+        const token = await getAccessToken().catch(() => null);
+        addProgress(`✓ Supabase session: ${token ? 'present' : 'missing'}`);
       });
 
       await step('Auth link health (public.users ↔ auth.uid())', async () => {
@@ -1067,9 +1077,7 @@ export function DeveloperTools() {
 
         if (smokeTestSyncWorker) {
           await step('Run sync-worker once', async () => {
-            const { data: sessionData } = await supabase.auth.getSession();
-            const accessToken = sessionData.session?.access_token;
-            if (!accessToken) throw new Error('Missing Supabase session token for sync-worker');
+            const accessToken = await getAccessToken();
 
             const override = miroTokenOverride.trim();
             const miroTokenRes = override ? { token: override } : await tryGetMiroAccessToken();
@@ -1095,9 +1103,7 @@ export function DeveloperTools() {
 
         if (smokeTestEdgeApi) {
           await step('Edge API: projects-create + projects-update', async () => {
-            const { data: sessionData } = await supabase.auth.getSession();
-            const accessToken = sessionData.session?.access_token;
-            if (!accessToken) throw new Error('Missing Supabase session token for Edge API');
+            const accessToken = await getAccessToken();
 
             const created = await callEdgeFunction<{ ok: boolean; projectId: string }>(
               'projects-create',
@@ -1214,9 +1220,7 @@ export function DeveloperTools() {
 
     try {
       addProgress('▶ Preparing sync-worker request...');
-      const { data: sessionData } = await withTimeout(supabase.auth.getSession(), 7000, 'supabase.auth.getSession');
-      const accessToken = sessionData.session?.access_token;
-      if (!accessToken) throw new Error('Missing Supabase session token for sync-worker');
+      const accessToken = await getAccessToken();
 
       const override = miroTokenOverride.trim();
       const miroTokenRes = override ? { token: override } : await tryGetMiroAccessToken();

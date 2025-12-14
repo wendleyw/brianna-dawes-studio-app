@@ -97,6 +97,9 @@ export interface SupabaseAuthResult {
    */
   userId?: string | undefined;
   authUserId?: string | undefined;
+  accessToken?: string | undefined;
+  refreshToken?: string | undefined;
+  expiresAt?: number | undefined;
   error?: string | undefined;
 }
 
@@ -146,7 +149,14 @@ export const supabaseAuthBridge = {
           };
         }
 
-        return { success: true, userId: authUserId, authUserId };
+        return {
+          success: true,
+          userId: authUserId,
+          authUserId,
+          accessToken: signInData.session.access_token,
+          refreshToken: signInData.session.refresh_token,
+          expiresAt: signInData.session.expires_at ?? 0,
+        };
       }
 
       // If sign in failed with invalid credentials, try to create the user
@@ -199,7 +209,14 @@ export const supabaseAuthBridge = {
             }
           }
 
-          return { success: true, userId: signUpData.user?.id, authUserId: signUpData.user?.id };
+          return {
+            success: true,
+            userId: signUpData.user?.id,
+            authUserId: signUpData.user?.id,
+            accessToken: signUpData.session.access_token,
+            refreshToken: signUpData.session.refresh_token,
+            expiresAt: signUpData.session.expires_at ?? 0,
+          };
         }
 
         // If email confirmation is required, sign in after signup
@@ -230,7 +247,14 @@ export const supabaseAuthBridge = {
           }
         }
 
-        return { success: true, userId: postSignupLogin.user?.id, authUserId: postSignupLogin.user?.id };
+        return {
+          success: true,
+          userId: postSignupLogin.user?.id,
+          authUserId: postSignupLogin.user?.id,
+          accessToken: postSignupLogin.session?.access_token,
+          refreshToken: postSignupLogin.session?.refresh_token,
+          expiresAt: postSignupLogin.session?.expires_at ?? 0,
+        };
       }
 
       // Other sign in errors
