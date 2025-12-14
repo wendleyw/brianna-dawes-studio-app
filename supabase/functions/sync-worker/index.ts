@@ -73,6 +73,19 @@ function normalizeDateToYYYYMMDD(dateStr: string | null): string | null {
   return `${year}-${month}-${day}`;
 }
 
+function normalizeDueDateToIso(dateStr: string | null | undefined): string | null {
+  if (!dateStr) return null;
+  // Accept either full ISO or YYYY-MM-DD.
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    const d = new Date(`${dateStr}T23:59:59.999Z`);
+    if (!Number.isNaN(d.getTime())) return d.toISOString();
+    return null;
+  }
+  const d = new Date(dateStr);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toISOString();
+}
+
 function retryDelaySeconds(attemptCount: number): number {
   // Exponential backoff with caps:
   // attempt_count is incremented when the job is claimed.
@@ -145,10 +158,27 @@ async function miroRequest<T>(
   }
 
   if (!res.ok) {
-    const msg =
-      (typeof parsed === 'object' && parsed && 'message' in parsed && typeof (parsed as { message?: unknown }).message === 'string'
+    let msg =
+      typeof parsed === 'object' && parsed && 'message' in parsed && typeof (parsed as { message?: unknown }).message === 'string'
         ? (parsed as { message: string }).message
-        : `Miro API error: ${res.status}`);
+        : `Miro API error: ${res.status}`;
+
+    // Surface validation details if present (truncated).
+    if (typeof parsed === 'object' && parsed) {
+      const p = parsed as Record<string, unknown>;
+      const extra = p.details ?? p.errors ?? p.violations ?? p.validation_errors;
+      if (extra !== undefined) {
+        const s = (() => {
+          try {
+            return JSON.stringify(extra);
+          } catch {
+            return String(extra);
+          }
+        })();
+        msg = `${msg} details=${s.slice(0, 500)}`;
+      }
+    }
+
     return { ok: false, status: res.status, message: msg, raw: parsed };
   }
 
@@ -185,13 +215,13 @@ async function miroListCards(accessToken: string, boardId: string) {
 async function miroCreateCard(
   accessToken: string,
   boardId: string,
-  args: { title: string; description: string; x: number; y: number; width: number; dueDate?: string | null; cardTheme?: string }
+  args: { title: string; description: string; x: number; y: number; width: number; dueDate?: string | null }
 ) {
+  const dueDate = normalizeDueDateToIso(args.dueDate);
   return miroRequest<{ id: string }>(accessToken, 'POST', `/boards/${enc(boardId)}/cards`, {
-    data: { title: args.title, description: args.description, dueDate: args.dueDate ?? undefined },
+    data: { title: args.title, description: args.description, dueDate: dueDate ?? undefined },
     position: { x: args.x, y: args.y },
-    geometry: { width: args.width },
-    style: args.cardTheme ? { cardTheme: args.cardTheme } : undefined,
+    geometry: { width: args.width, height: TIMELINE.CARD_HEIGHT },
   });
 }
 
@@ -199,21 +229,19 @@ async function miroUpdateCard(
   accessToken: string,
   boardId: string,
   cardId: string,
-  args: { title?: string; description?: string; x?: number; y?: number; dueDate?: string | null; cardTheme?: string }
+  args: { title?: string; description?: string; x?: number; y?: number; dueDate?: string | null }
 ) {
   const data: Record<string, unknown> = {};
   if (args.title !== undefined || args.description !== undefined || args.dueDate !== undefined) {
+    const dueDate = normalizeDueDateToIso(args.dueDate);
     data.data = {
       title: args.title,
       description: args.description,
-      dueDate: args.dueDate ?? undefined,
+      dueDate: dueDate ?? undefined,
     };
   }
   if (args.x !== undefined || args.y !== undefined) {
     data.position = { x: args.x, y: args.y };
-  }
-  if (args.cardTheme !== undefined) {
-    data.style = { cardTheme: args.cardTheme };
   }
 
   return miroRequest<{ id: string }>(accessToken, 'PATCH', `/boards/${enc(boardId)}/cards/${enc(cardId)}`, data);
