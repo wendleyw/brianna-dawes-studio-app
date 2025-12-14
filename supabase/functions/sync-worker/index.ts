@@ -98,6 +98,10 @@ type MiroCard = { id: string; data?: { title?: string; description?: string; due
 
 const MIRO_BASE_URL = 'https://api.miro.com/v2';
 
+function enc(value: string): string {
+  return encodeURIComponent(value);
+}
+
 async function miroRequest<T>(
   accessToken: string,
   method: string,
@@ -152,15 +156,16 @@ async function miroRequest<T>(
 }
 
 async function miroGetBoard(accessToken: string, boardId: string) {
-  return miroRequest<MiroBoard>(accessToken, 'GET', `/boards/${boardId}`);
+  return miroRequest<MiroBoard>(accessToken, 'GET', `/boards/${enc(boardId)}`);
 }
 
 async function miroListFrames(accessToken: string, boardId: string) {
-  return miroRequest<{ data: MiroFrame[] }>(accessToken, 'GET', `/boards/${boardId}/frames?limit=200`);
+  // Keep limit small to avoid API parameter issues.
+  return miroRequest<{ data: MiroFrame[] }>(accessToken, 'GET', `/boards/${enc(boardId)}/frames?limit=50`);
 }
 
 async function miroCreateFrame(accessToken: string, boardId: string, args: { title: string; x: number; y: number; width: number; height: number }) {
-  return miroRequest<{ id: string }>(accessToken, 'POST', `/boards/${boardId}/frames`, {
+  return miroRequest<{ id: string }>(accessToken, 'POST', `/boards/${enc(boardId)}/frames`, {
     data: { title: args.title, format: 'custom' },
     position: { x: args.x, y: args.y },
     geometry: { width: args.width, height: args.height },
@@ -168,7 +173,13 @@ async function miroCreateFrame(accessToken: string, boardId: string, args: { tit
 }
 
 async function miroListCards(accessToken: string, boardId: string) {
-  return miroRequest<{ data: MiroCard[] }>(accessToken, 'GET', `/boards/${boardId}/cards?limit=500`);
+  // Miro often rejects high limits with 400 Invalid parameters.
+  // We keep it small and implement a fallback to /items if needed.
+  const primary = await miroRequest<{ data: MiroCard[] }>(accessToken, 'GET', `/boards/${enc(boardId)}/cards?limit=50`);
+  if (!primary.ok && primary.status === 400) {
+    return miroRequest<{ data: MiroCard[] }>(accessToken, 'GET', `/boards/${enc(boardId)}/items?type=card&limit=50`);
+  }
+  return primary;
 }
 
 async function miroCreateCard(
@@ -176,7 +187,7 @@ async function miroCreateCard(
   boardId: string,
   args: { title: string; description: string; x: number; y: number; width: number; dueDate?: string | null; cardTheme?: string }
 ) {
-  return miroRequest<{ id: string }>(accessToken, 'POST', `/boards/${boardId}/cards`, {
+  return miroRequest<{ id: string }>(accessToken, 'POST', `/boards/${enc(boardId)}/cards`, {
     data: { title: args.title, description: args.description, dueDate: args.dueDate ?? undefined },
     position: { x: args.x, y: args.y },
     geometry: { width: args.width },
@@ -205,7 +216,7 @@ async function miroUpdateCard(
     data.style = { cardTheme: args.cardTheme };
   }
 
-  return miroRequest<{ id: string }>(accessToken, 'PATCH', `/boards/${boardId}/cards/${cardId}`, data);
+  return miroRequest<{ id: string }>(accessToken, 'PATCH', `/boards/${enc(boardId)}/cards/${enc(cardId)}`, data);
 }
 
 type TimelineStatus = 'overdue' | 'urgent' | 'in_progress' | 'review' | 'done';
