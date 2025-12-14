@@ -1642,10 +1642,15 @@ class MiroProjectRowService {
       const display = hasValue && value ? value : 'NEEDS ATTENTION!';
 
       // Create section title (bold, above the container)
+      // Title positioned 8px above the content frame for professional spacing
+      const frameTopY = cellY - 5; // Content frame center position
+      const frameHeight = CELL_HEIGHT - 20;
+      const titleY = frameTopY - frameHeight / 2 - 8; // 8px gap above frame
+
       await miro.board.createText({
         content: `<b>${field.label}</b>`,
         x: cellX,
-        y: cellY - CELL_HEIGHT / 2 + 8,
+        y: titleY,
         width: CELL_WIDTH,
         style: {
           color: '#6B7280',
@@ -1660,9 +1665,9 @@ class MiroProjectRowService {
         shape: 'rectangle',
         content: hasValue ? `<p>${display}</p>` : `<p><b>${display}</b></p>`,
         x: cellX,
-        y: cellY + 15,
+        y: frameTopY,
         width: CELL_WIDTH,
-        height: CELL_HEIGHT - 30,
+        height: frameHeight,
         style: {
           fillColor: hasValue ? '#FFFFFF' : '#FEF2F2',
           borderColor: '#E5E7EB',
