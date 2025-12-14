@@ -34,9 +34,10 @@ export function useRecentActivity(limit = 20) {
     onDelete: handleChange,
   });
 
-  // Subscribe to project_updates for activity log
+  // Subscribe to deliverable feedback for activity log
+  // Note: Avoid subscribing to tables that may not exist in all environments (e.g. legacy `project_updates`)
   useRealtimeSubscription<{ id: string }>({
-    table: 'project_updates',
+    table: 'deliverable_feedback',
     event: '*',
     onInsert: handleChange,
     onUpdate: handleChange,

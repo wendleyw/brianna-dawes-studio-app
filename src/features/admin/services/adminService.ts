@@ -140,17 +140,24 @@ export const adminService = {
   async deleteUser(id: string): Promise<void> {
     logger.debug('Deleting user', { id });
 
-    const { error, count } = await supabase
+    const { data, error } = await supabase
       .from('users')
       .delete()
       .eq('id', id)
       .select();
 
-    logger.debug('Delete result', { error, count });
+    logger.debug('Delete result', { error, deletedCount: data?.length });
 
     if (error) {
       logger.error('Delete user failed', error);
       throw error;
+    }
+
+    // Check if any rows were actually deleted
+    // RLS policies may silently prevent deletion (returns 200 but deletes nothing)
+    if (!data || data.length === 0) {
+      logger.error('Delete user failed - no rows deleted (check RLS policies)', { id });
+      throw new Error('Failed to delete user. You may not have permission to delete this user.');
     }
 
     logger.info('User deleted successfully', { id });

@@ -209,41 +209,84 @@ export function DashboardPage() {
         return [];
       }
 
+      const asAssetRows = (rows: Array<{ count: number | null; bonus_count: number | null }> | null) =>
+        (rows || []).map((d) => ({
+          count: typeof d.count === 'number' ? d.count : 1,
+          bonus_count: typeof d.bonus_count === 'number' ? d.bonus_count : 0,
+        }));
+
       // Use REST API in Miro iframe context to avoid Supabase client hanging
       if (isInMiroIframe()) {
         console.log('[DashboardPage] Using REST API for deliverables (Miro iframe context)');
-        const result = await supabaseRestQuery<Array<{ count: number; bonus_count: number }>>('deliverables', {
-          select: 'count,bonus_count',
+        // Try: count + bonus_count (newest)
+        const result = await supabaseRestQuery<Array<{ count?: number; bonus_count?: number }>>(
+          'deliverables',
+          { select: 'count,bonus_count', in: { project_id: projectIds } }
+        );
+        if (!result.error) {
+          return asAssetRows(
+            (result.data || []).map((d) => ({
+              count: typeof d.count === 'number' ? d.count : null,
+              bonus_count: typeof d.bonus_count === 'number' ? d.bonus_count : null,
+            }))
+          );
+        }
+
+        // Fallback: count only
+        const fallbackCount = await supabaseRestQuery<Array<{ count?: number }>>('deliverables', {
+          select: 'count',
           in: { project_id: projectIds },
         });
-        if (result.error) {
-          // Fallback without bonus_count
-          const fallbackResult = await supabaseRestQuery<Array<{ count: number }>>('deliverables', {
-            select: 'count',
-            in: { project_id: projectIds },
-          });
-          if (fallbackResult.error) throw new Error(fallbackResult.error.message);
-          return (fallbackResult.data || []).map(d => ({ count: d.count, bonus_count: 0 }));
+        if (!fallbackCount.error) {
+          return asAssetRows(
+            (fallbackCount.data || []).map((d) => ({
+              count: typeof d.count === 'number' ? d.count : null,
+              bonus_count: 0,
+            }))
+          );
         }
-        return result.data || [];
+
+        // Last resort: no count columns exist → treat each deliverable as 1 asset
+        const fallbackIds = await supabaseRestQuery<Array<{ id: string }>>('deliverables', {
+          select: 'id',
+          in: { project_id: projectIds },
+        });
+        if (fallbackIds.error) throw new Error(fallbackIds.error.message);
+        return (fallbackIds.data || []).map(() => ({ count: 1, bonus_count: 0 }));
       }
 
       // Standard Supabase client for non-iframe context
-      const { data, error } = await supabase
-        .from('deliverables')
-        .select('count, bonus_count')
-        .in('project_id', projectIds);
-
-      // If bonus_count doesn't exist, fallback to just count
-      if (error) {
-        const { data: fallbackData, error: fallbackError } = await supabase
-          .from('deliverables')
-          .select('count')
-          .in('project_id', projectIds);
-        if (fallbackError) throw fallbackError;
-        return (fallbackData || []).map(d => ({ count: d.count, bonus_count: 0 }));
+      const { data, error } = await supabase.from('deliverables').select('count, bonus_count').in('project_id', projectIds);
+      if (!error) {
+        return asAssetRows(
+          ((data as Array<{ count?: number; bonus_count?: number }> | null) || []).map((d) => ({
+            count: typeof d.count === 'number' ? d.count : null,
+            bonus_count: typeof d.bonus_count === 'number' ? d.bonus_count : null,
+          }))
+        );
       }
-      return data || [];
+
+      // Fallback: count only
+      const { data: fallbackData, error: fallbackError } = await supabase
+        .from('deliverables')
+        .select('count')
+        .in('project_id', projectIds);
+      if (!fallbackError) {
+        return asAssetRows(
+          (fallbackData || []).map((d) => ({
+            count: typeof d.count === 'number' ? d.count : null,
+            bonus_count: 0,
+          }))
+        );
+      }
+
+      // Last resort: no count columns exist → treat each deliverable as 1 asset
+      const { data: idOnlyData, error: idOnlyError } = await supabase
+        .from('deliverables')
+        .select('id')
+        .in('project_id', projectIds);
+      if (idOnlyError) throw idOnlyError;
+      return (idOnlyData || []).map(() => ({ count: 1, bonus_count: 0 }));
     },
     // Only run when we have project IDs (after projects are loaded)
     enabled: !projectsLoading,

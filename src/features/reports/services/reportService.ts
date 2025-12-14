@@ -11,6 +11,30 @@ import type {
 
 const logger = createLogger('ReportService');
 
+type RpcDashboardMetricsRow = {
+  active_projects?: number | null;
+  pending_reviews?: number | null;
+  overdue_deliverables?: number | null;
+  recent_activity?: unknown;
+};
+
+function asNumber(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string' && value.trim() !== '' && Number.isFinite(Number(value))) return Number(value);
+  return null;
+}
+
+function extractRpcMetrics(data: unknown): RpcDashboardMetricsRow | null {
+  if (!data) return null;
+  if (Array.isArray(data)) {
+    const first = data[0];
+    if (first && typeof first === 'object') return first as RpcDashboardMetricsRow;
+    return null;
+  }
+  if (typeof data === 'object') return data as RpcDashboardMetricsRow;
+  return null;
+}
+
 /**
  * ReportService - Handles analytics and reporting operations
  *
@@ -34,10 +58,19 @@ const logger = createLogger('ReportService');
  */
 class ReportService {
   async getDashboardMetrics(): Promise<DashboardMetrics> {
-    // Get basic metrics using RPC function
-    const { data: metrics, error: metricsError } = await supabase.rpc('get_dashboard_metrics');
-
-    if (metricsError) throw metricsError;
+    // Attempt to use RPC (faster/cheaper) but do not depend on it:
+    // migrations have historically changed the function signature.
+    let rpcRow: RpcDashboardMetricsRow | null = null;
+    try {
+      const { data: rpcData, error: rpcError } = await supabase.rpc('get_dashboard_metrics');
+      if (rpcError) {
+        logger.warn('get_dashboard_metrics RPC failed; falling back to direct queries', rpcError);
+      } else {
+        rpcRow = extractRpcMetrics(rpcData);
+      }
+    } catch (error) {
+      logger.warn('get_dashboard_metrics RPC threw; falling back to direct queries', error);
+    }
 
     // Get projects by status
     const { data: projectsByStatus } = await supabase
@@ -112,6 +145,24 @@ class ReportService {
       })
       .filter((item): item is DeadlineItem => item !== null);
 
+    // Fallback metrics if RPC is unavailable / incompatible
+    const nowIso = new Date().toISOString();
+    const { count: activeProjectsFallback } = await supabase
+      .from('projects')
+      .select('*', { count: 'exact', head: true })
+      .neq('status', 'done');
+
+    const { count: pendingReviewsFallback } = await supabase
+      .from('deliverables')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'in_review');
+
+    const { count: overdueDeliverablesFallback } = await supabase
+      .from('deliverables')
+      .select('*', { count: 'exact', head: true })
+      .lt('due_date', nowIso)
+      .not('status', 'in', '("delivered","approved")');
+
     // Calculate completion rate
     const { count: totalDeliverables } = await supabase
       .from('deliverables')
@@ -152,16 +203,36 @@ class ReportService {
       });
     }
 
+    // Recent activity: prefer view-backed feed; fallback if needed
+    let recentActivity: ActivityItem[] = [];
+    try {
+      recentActivity = await this.getRecentActivity(20);
+    } catch (error) {
+      logger.warn('getRecentActivity failed; returning empty activity list', error);
+    }
+
+    const activeProjects =
+      asNumber(rpcRow?.active_projects) ??
+      (typeof activeProjectsFallback === 'number' ? activeProjectsFallback : 0);
+
+    const pendingReviews =
+      asNumber(rpcRow?.pending_reviews) ??
+      (typeof pendingReviewsFallback === 'number' ? pendingReviewsFallback : 0);
+
+    const overdueDeliverables =
+      asNumber(rpcRow?.overdue_deliverables) ??
+      (typeof overdueDeliverablesFallback === 'number' ? overdueDeliverablesFallback : 0);
+
     return {
-      activeProjects: metrics?.active_projects || 0,
-      pendingReviews: metrics?.pending_reviews || 0,
-      overdueDeliverables: metrics?.overdue_deliverables || 0,
+      activeProjects,
+      pendingReviews,
+      overdueDeliverables,
       completionRate,
       totalAssets,
       totalBonusAssets,
       projectsByStatus: projectsByStatus || [],
       deliverablesByType: deliverablesByType || [],
-      recentActivity: metrics?.recent_activity || [],
+      recentActivity,
       upcomingDeadlines,
     };
   }
@@ -293,22 +364,92 @@ class ReportService {
   }
 
   async getRecentActivity(limit = 20): Promise<ActivityItem[]> {
-    const { data } = await supabase
-      .from('activity_feed')
-      .select('*')
-      .order('activity_time', { ascending: false })
-      .limit(limit);
+    // Preferred path: activity_feed view (DB-aggregated, cheapest).
+    // Fallback: build a minimal feed from base tables when the view is missing or incompatible.
+    try {
+      const { data, error } = await supabase
+        .from('activity_feed')
+        .select('*')
+        .order('activity_time', { ascending: false })
+        .limit(limit);
+      if (error) throw error;
 
-    return (data || []).map((item) => ({
-      id: item.item_id,
-      type: item.activity_type as ActivityItem['type'],
-      itemName: item.item_name,
-      projectName: item.project_name,
-      projectId: item.project_id,
-      userName: item.user_name,
-      userId: item.user_id,
-      timestamp: item.activity_time,
-    }));
+      return (data || []).map((item) => ({
+        id: item.item_id,
+        type: item.activity_type as ActivityItem['type'],
+        itemName: item.item_name,
+        projectName: item.project_name,
+        projectId: item.project_id,
+        userName: item.user_name,
+        userId: item.user_id,
+        timestamp: item.activity_time,
+      }));
+    } catch (error) {
+      logger.warn('activity_feed view not available; falling back to base tables', error);
+
+      const [projectsRes, deliverablesRes, feedbackRes] = await Promise.all([
+        supabase
+          .from('projects')
+          .select('id, name, created_at')
+          .order('created_at', { ascending: false })
+          .limit(limit),
+        supabase
+          .from('deliverables')
+          .select('id, name, project_id, created_at, updated_at')
+          .order('updated_at', { ascending: false })
+          .limit(limit),
+        supabase
+          .from('deliverable_feedback')
+          .select('id, deliverable_id, user_id, created_at, deliverable:deliverables(id, name, project_id, project:projects(id, name)), user:users(id, name)')
+          .order('created_at', { ascending: false })
+          .limit(limit),
+      ]);
+
+      const projectCreated: ActivityItem[] = (projectsRes.data || []).map((p) => ({
+        id: p.id,
+        type: 'project_created',
+        itemName: p.name,
+        projectName: p.name,
+        projectId: p.id,
+        userName: null,
+        userId: null,
+        timestamp: p.created_at,
+      }));
+
+      const deliverableCreated: ActivityItem[] = (deliverablesRes.data || []).map((d) => ({
+        id: d.id,
+        type: 'deliverable_created',
+        itemName: d.name,
+        projectName: '',
+        projectId: d.project_id,
+        userName: null,
+        userId: null,
+        timestamp: d.created_at,
+      }));
+
+      const feedbackAdded: ActivityItem[] = (feedbackRes.data || []).map((f) => {
+        const deliverable = (f as unknown as { deliverable?: { name?: string; project?: { id?: string; name?: string } } }).deliverable;
+        const user = (f as unknown as { user?: { id?: string; name?: string } }).user;
+        const project = deliverable?.project;
+        return {
+          id: f.id,
+          type: 'feedback_added',
+          itemName: deliverable?.name || 'Deliverable',
+          projectName: project?.name || '',
+          projectId: project?.id || '',
+          userName: user?.name || null,
+          userId: user?.id || null,
+          timestamp: f.created_at,
+        };
+      });
+
+      const combined = [...feedbackAdded, ...deliverableCreated, ...projectCreated]
+        .filter((a) => a.timestamp)
+        .sort((a, b) => b.timestamp.localeCompare(a.timestamp))
+        .slice(0, limit);
+
+      return combined;
+    }
   }
 }
 

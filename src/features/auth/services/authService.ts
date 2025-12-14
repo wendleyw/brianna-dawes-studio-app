@@ -97,7 +97,7 @@ class AuthService {
     const { data: profile, error } = await supabase
       .from('users')
       .select('*')
-      .eq('id', user.id)
+      .eq('auth_user_id', user.id)
       .single();
 
     if (error || !profile) {
