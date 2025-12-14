@@ -1079,7 +1079,7 @@ export function DeveloperTools() {
           await step('Run sync-worker once', async () => {
             const accessToken = await getAccessToken();
 
-            const override = miroTokenOverride.trim();
+            const override = miroTokenOverride.replace(/\s+/g, '').trim();
             const miroTokenRes = override ? { token: override } : await tryGetMiroAccessToken();
             const miroAccessToken = miroTokenRes.token;
             addProgress(`✓ Miro access token: ${miroAccessToken ? 'present' : 'missing'} (required for real Miro REST sync)`);
@@ -1222,7 +1222,7 @@ export function DeveloperTools() {
       addProgress('▶ Preparing sync-worker request...');
       const accessToken = await getAccessToken();
 
-      const override = miroTokenOverride.trim();
+      const override = miroTokenOverride.replace(/\s+/g, '').trim();
       const miroTokenRes = override ? { token: override } : await tryGetMiroAccessToken();
       const miroAccessToken = miroTokenRes.token;
       addProgress(`✓ Miro access token: ${miroAccessToken ? 'present' : 'missing'} (required for Miro REST writes)`);

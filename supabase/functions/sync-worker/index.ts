@@ -45,6 +45,20 @@ function safeString(v: unknown): string | null {
   return t.length ? t : null;
 }
 
+function sanitizeHeaderToken(raw: string): { ok: true; token: string } | { ok: false; message: string } {
+  // Prevent invalid Request header values:
+  // - remove all whitespace (copy/paste often includes newlines)
+  // - reject control chars and non-ByteString chars (> 0xFF)
+  const token = raw.replace(/\s+/g, '');
+  if (!token) return { ok: false, message: 'empty' };
+  if (/[\u0000-\u001F\u007F]/.test(token)) return { ok: false, message: 'contains_control_chars' };
+  // ByteString allows code points 0..255; reject anything above.
+  for (let i = 0; i < token.length; i++) {
+    if (token.charCodeAt(i) > 0xff) return { ok: false, message: 'contains_non_bytestring_chars' };
+  }
+  return { ok: true, token };
+}
+
 function normalizeDateToYYYYMMDD(dateStr: string | null): string | null {
   if (!dateStr) return null;
   const date = new Date(dateStr);
@@ -86,14 +100,33 @@ async function miroRequest<T>(
   path: string,
   body?: unknown
 ): Promise<{ ok: true; data: T } | { ok: false; status: number; message: string; raw?: unknown }> {
-  const res = await fetch(`${MIRO_BASE_URL}${path}`, {
-    method,
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${accessToken}`,
-    },
-    body: body === undefined ? undefined : JSON.stringify(body),
-  });
+  const sanitized = sanitizeHeaderToken(accessToken);
+  if (!sanitized.ok) {
+    return {
+      ok: false,
+      status: 400,
+      message: `invalid_miro_access_token:${sanitized.message}`,
+    };
+  }
+
+  let res: Response;
+  try {
+    res = await fetch(`${MIRO_BASE_URL}${path}`, {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${sanitized.token}`,
+      },
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    // This often happens when the token contains invalid header characters.
+    if (message.includes('not a valid ByteString')) {
+      return { ok: false, status: 400, message: 'invalid_miro_access_token:invalid_header_bytestring' };
+    }
+    return { ok: false, status: 0, message };
+  }
 
   const text = await res.text();
   let parsed: unknown = null;
