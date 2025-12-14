@@ -302,6 +302,12 @@ class ProjectService {
   }
 
   async getProject(id: string): Promise<Project> {
+    // In Miro iframe, use direct REST API to avoid Supabase client hanging/406 errors
+    if (isInMiroIframe()) {
+      console.log('[ProjectService] getProject using REST API (Miro iframe context)');
+      return this.getProjectViaRest(id);
+    }
+
     const { data, error } = await supabase
       .from('projects')
       .select(
@@ -316,6 +322,30 @@ class ProjectService {
 
     if (error) throw error;
     return this.mapProjectFromDB(data);
+  }
+
+  /**
+   * Get a single project using direct REST API (for Miro iframe context)
+   */
+  private async getProjectViaRest(id: string): Promise<Project> {
+    const result = await supabaseRestQuery<Record<string, unknown>>('projects', {
+      select: '*',
+      eq: { id },
+      single: true,
+    });
+
+    if (result.error) {
+      console.error('[ProjectService] REST getProject error:', result.error);
+      throw new Error(result.error.message);
+    }
+
+    if (!result.data) {
+      throw new Error('Project not found');
+    }
+
+    // Note: REST doesn't do joins, so client/designers will be fetched separately if needed
+    // For now, return project without nested relations
+    return this.mapProjectFromDB(result.data);
   }
 
   /**
