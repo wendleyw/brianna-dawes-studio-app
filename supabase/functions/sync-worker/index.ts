@@ -163,20 +163,16 @@ async function miroRequest<T>(
         ? (parsed as { message: string }).message
         : `Miro API error: ${res.status}`;
 
-    // Surface validation details if present (truncated).
-    if (typeof parsed === 'object' && parsed) {
-      const p = parsed as Record<string, unknown>;
-      const extra = p.details ?? p.errors ?? p.violations ?? p.validation_errors;
-      if (extra !== undefined) {
-        const s = (() => {
-          try {
-            return JSON.stringify(extra);
-          } catch {
-            return String(extra);
-          }
-        })();
-        msg = `${msg} details=${s.slice(0, 500)}`;
-      }
+    // Surface any validation/structured details if present (truncated).
+    if (parsed !== null) {
+      const s = (() => {
+        try {
+          return JSON.stringify(parsed);
+        } catch {
+          return String(parsed);
+        }
+      })();
+      msg = `${msg} raw=${s.slice(0, 800)}`;
     }
 
     return { ok: false, status: res.status, message: msg, raw: parsed };
@@ -534,8 +530,8 @@ serve(async (req) => {
         const marker = `projectId:${project.id}`;
         const existingByMarker = cards.find((c) => extractCardDescription(c).includes(marker));
 
-        const priorityIcon = getPriorityIcon(project.priority as string | null);
-        const cardTitle = `${project.name ?? 'Project'}\n${priorityIcon}`;
+        const rawName = String(project.name ?? 'Project');
+        const cardTitle = rawName.replace(/[\r\n]+/g, ' ').trim().slice(0, 80) || 'Project';
         const description = marker;
         const dueDate = normalizeDateToYYYYMMDD(project.due_date as string | null);
 
