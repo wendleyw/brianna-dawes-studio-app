@@ -580,8 +580,10 @@ export function ProjectsPage() {
       {
         onSuccess: (updatedProject) => {
           logger.debug('Project updated', { projectId, input });
-          // Sync with Miro if there was a status change
-          if (input.status || input.dueDate) {
+          // Sync with Miro if there was a status, approval, review, or due date change
+          // wasApproved: client approved the project (shows ✓ icon on card)
+          // wasReviewed: client requested changes (shows 🔄 icon on card)
+          if (input.status || input.dueDate || input.wasApproved !== undefined || input.wasReviewed !== undefined) {
             syncProject(updatedProject).catch(err => logger.error('Sync failed', err));
           }
         },
