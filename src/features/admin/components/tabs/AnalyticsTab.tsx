@@ -1,69 +1,25 @@
-import { useState } from 'react';
-import { useProjectsByStatus } from '../../hooks';
+import {
+  useOverviewMetrics,
+  useProjectsByStatus,
+  useClientAnalytics,
+  useDesignerAnalytics,
+  useMonthlyMetrics,
+} from '../../hooks';
 import styles from './AnalyticsTab.module.css';
 
-type AnalyticsSubTab = 'overview' | 'projects' | 'users' | 'settings';
-
 export default function AnalyticsTab() {
-  const [activeSubTab, setActiveSubTab] = useState<AnalyticsSubTab>('overview');
+  const { data: metrics, isLoading: metricsLoading } = useOverviewMetrics();
+  const { data: projectsByStatus, isLoading: statusLoading } = useProjectsByStatus();
+  const { data: clients, isLoading: clientsLoading } = useClientAnalytics();
+  const { data: designers, isLoading: designersLoading } = useDesignerAnalytics();
+  const { data: monthlyMetrics, isLoading: monthlyLoading } = useMonthlyMetrics();
 
-  const renderSubTabContent = () => {
-    switch (activeSubTab) {
-      case 'overview':
-        return <OverviewSection />;
-      case 'projects':
-        return <ProjectsSection />;
-      case 'users':
-        return <UsersSection />;
-      case 'settings':
-        return <SettingsSection />;
-      default:
-        return <OverviewSection />;
-    }
-  };
-
-  return (
-    <div className={styles.container}>
-      <nav className={styles.subNav}>
-        <button
-          className={activeSubTab === 'overview' ? styles.subNavButtonActive : styles.subNavButton}
-          onClick={() => setActiveSubTab('overview')}
-        >
-          Overview
-        </button>
-        <button
-          className={activeSubTab === 'projects' ? styles.subNavButtonActive : styles.subNavButton}
-          onClick={() => setActiveSubTab('projects')}
-        >
-          Projects
-        </button>
-        <button
-          className={activeSubTab === 'users' ? styles.subNavButtonActive : styles.subNavButton}
-          onClick={() => setActiveSubTab('users')}
-        >
-          Users
-        </button>
-        <button
-          className={activeSubTab === 'settings' ? styles.subNavButtonActive : styles.subNavButton}
-          onClick={() => setActiveSubTab('settings')}
-        >
-          Settings
-        </button>
-      </nav>
-
-      <div className={styles.content}>
-        {renderSubTabContent()}
-      </div>
-    </div>
-  );
-}
-
-function OverviewSection() {
-  const { data: projectsByStatus, isLoading } = useProjectsByStatus();
+  const isLoading =
+    metricsLoading || statusLoading || clientsLoading || designersLoading || monthlyLoading;
 
   if (isLoading) {
     return (
-      <div className={styles.section}>
+      <div className={styles.container}>
         <div style={{ textAlign: 'center', padding: '48px', color: '#6B7280' }}>
           Loading analytics...
         </div>
@@ -71,274 +27,232 @@ function OverviewSection() {
     );
   }
 
-  const total =
-    (projectsByStatus?.overdue || 0) +
-    (projectsByStatus?.urgent || 0) +
-    (projectsByStatus?.in_progress || 0) +
-    (projectsByStatus?.review || 0) +
-    (projectsByStatus?.done || 0) +
-    (projectsByStatus?.archived || 0);
+  // Calculate trends from monthly metrics
+  const lastTwoMonths = monthlyMetrics?.slice(-2) || [];
+  const projectsTrend =
+    lastTwoMonths.length === 2 && lastTwoMonths[0] && lastTwoMonths[1]
+      ? lastTwoMonths[1].projectsCompleted - lastTwoMonths[0].projectsCompleted
+      : 0;
+
+  // Top performers
+  const topDesigners = [...(designers || [])]
+    .sort((a, b) => b.approvedDeliverables - a.approvedDeliverables)
+    .slice(0, 3);
+
+  const activeClients = [...(clients || [])]
+    .filter((c) => c.activeProjects > 0)
+    .sort((a, b) => b.activeProjects - a.activeProjects)
+    .slice(0, 5);
 
   return (
-    <div className={styles.section}>
-      <div className={styles.sectionHeader}>
-        <h3 className={styles.sectionTitle}>Analytics Overview</h3>
-        <select className={styles.dateRangeSelect}>
-          <option>Last 7 days</option>
-          <option>Last 30 days</option>
-          <option>Last 90 days</option>
-          <option>This year</option>
-        </select>
-      </div>
+    <div className={styles.container}>
+      <div className={styles.section}>
+        <h3 className={styles.sectionTitle}>Key Performance Indicators</h3>
 
-      <div className={styles.chartsGrid}>
-        <div className={styles.chartCard}>
+        {/* KPI Grid */}
+        <div className={styles.kpiGrid}>
+          {/* Projects KPIs */}
+          <div className={styles.kpiCard}>
+            <div className={styles.kpiHeader}>
+              <span className={styles.kpiIcon}>📁</span>
+              <span className={styles.kpiLabel}>Total Projects</span>
+            </div>
+            <div className={styles.kpiValue}>{metrics?.totalProjects || 0}</div>
+            <div className={styles.kpiMeta}>
+              <span className={styles.kpiSubValue}>
+                {metrics?.activeProjects || 0} active
+              </span>
+              <span className={styles.kpiSubValue}>
+                {metrics?.completedProjects || 0} completed
+              </span>
+            </div>
+          </div>
+
+          <div className={styles.kpiCard}>
+            <div className={styles.kpiHeader}>
+              <span className={styles.kpiIcon}>🔥</span>
+              <span className={styles.kpiLabel}>Active Projects</span>
+            </div>
+            <div className={styles.kpiValue}>{metrics?.activeProjects || 0}</div>
+            <div className={styles.kpiMeta}>
+              {metrics?.overdueProjects ? (
+                <span className={styles.kpiAlert}>{metrics.overdueProjects} overdue</span>
+              ) : (
+                <span className={styles.kpiSuccess}>All on track</span>
+              )}
+            </div>
+          </div>
+
+          <div className={styles.kpiCard}>
+            <div className={styles.kpiHeader}>
+              <span className={styles.kpiIcon}>✅</span>
+              <span className={styles.kpiLabel}>Completion Rate</span>
+            </div>
+            <div className={styles.kpiValue}>{metrics?.completionRate || 0}%</div>
+            <div className={styles.kpiMeta}>
+              <span className={styles.kpiSubValue}>
+                {metrics?.approvedDeliverables || 0}/{metrics?.totalDeliverables || 0} deliverables
+              </span>
+            </div>
+          </div>
+
+          <div className={styles.kpiCard}>
+            <div className={styles.kpiHeader}>
+              <span className={styles.kpiIcon}>📈</span>
+              <span className={styles.kpiLabel}>Monthly Completed</span>
+            </div>
+            <div className={styles.kpiValue}>
+              {lastTwoMonths[1]?.projectsCompleted || 0}
+            </div>
+            <div className={styles.kpiMeta}>
+              {projectsTrend > 0 ? (
+                <span className={styles.kpiTrendUp}>+{projectsTrend} from last month</span>
+              ) : projectsTrend < 0 ? (
+                <span className={styles.kpiTrendDown}>{projectsTrend} from last month</span>
+              ) : (
+                <span className={styles.kpiSubValue}>No change</span>
+              )}
+            </div>
+          </div>
+
+          {/* Client KPIs */}
+          <div className={styles.kpiCard}>
+            <div className={styles.kpiHeader}>
+              <span className={styles.kpiIcon}>👥</span>
+              <span className={styles.kpiLabel}>Total Clients</span>
+            </div>
+            <div className={styles.kpiValue}>{metrics?.totalClients || 0}</div>
+            <div className={styles.kpiMeta}>
+              <span className={styles.kpiSubValue}>
+                {metrics?.activeClients || 0} with active projects
+              </span>
+            </div>
+          </div>
+
+          <div className={styles.kpiCard}>
+            <div className={styles.kpiHeader}>
+              <span className={styles.kpiIcon}>🎨</span>
+              <span className={styles.kpiLabel}>Designers</span>
+            </div>
+            <div className={styles.kpiValue}>{metrics?.totalDesigners || 0}</div>
+            <div className={styles.kpiMeta}>
+              <span className={styles.kpiSubValue}>
+                {designers?.filter((d) => d.activeProjects > 0).length || 0} active
+              </span>
+            </div>
+          </div>
+
+          {/* Deliverables KPIs */}
+          <div className={styles.kpiCard}>
+            <div className={styles.kpiHeader}>
+              <span className={styles.kpiIcon}>📦</span>
+              <span className={styles.kpiLabel}>Total Deliverables</span>
+            </div>
+            <div className={styles.kpiValue}>{metrics?.totalDeliverables || 0}</div>
+            <div className={styles.kpiMeta}>
+              <span className={styles.kpiSubValue}>
+                {metrics?.totalAssets || 0} total assets
+              </span>
+            </div>
+          </div>
+
+          <div className={styles.kpiCard}>
+            <div className={styles.kpiHeader}>
+              <span className={styles.kpiIcon}>⏱️</span>
+              <span className={styles.kpiLabel}>Pending Items</span>
+            </div>
+            <div className={styles.kpiValue}>{metrics?.pendingDeliverables || 0}</div>
+            <div className={styles.kpiMeta}>
+              {metrics?.overdueDeliverables ? (
+                <span className={styles.kpiAlert}>{metrics.overdueDeliverables} overdue</span>
+              ) : (
+                <span className={styles.kpiSuccess}>None overdue</span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Projects by Status */}
+        <div className={styles.chartSection}>
           <h4 className={styles.chartTitle}>Projects by Status</h4>
-          <div className={styles.chartPlaceholder}>
-            <div className={styles.pieChart}>
-              {projectsByStatus?.overdue ? (
-                <div className={styles.pieSegment} style={{ background: '#EF4444' }}>
-                  Overdue: {projectsByStatus.overdue}
-                </div>
-              ) : null}
-              {projectsByStatus?.urgent ? (
-                <div className={styles.pieSegment} style={{ background: '#F59E0B' }}>
-                  Urgent: {projectsByStatus.urgent}
-                </div>
-              ) : null}
-              {projectsByStatus?.in_progress ? (
-                <div className={styles.pieSegment} style={{ background: '#2563EB' }}>
-                  In Progress: {projectsByStatus.in_progress}
-                </div>
-              ) : null}
-              {projectsByStatus?.review ? (
-                <div className={styles.pieSegment} style={{ background: '#8B5CF6' }}>
-                  Review: {projectsByStatus.review}
-                </div>
-              ) : null}
-              {projectsByStatus?.done ? (
-                <div className={styles.pieSegment} style={{ background: '#10B981' }}>
-                  Done: {projectsByStatus.done}
-                </div>
-              ) : null}
-              {projectsByStatus?.archived ? (
-                <div className={styles.pieSegment} style={{ background: '#6B7280' }}>
-                  Archived: {projectsByStatus.archived}
-                </div>
-              ) : null}
-              {total === 0 && <div className={styles.pieSegment}>No projects</div>}
-            </div>
-          </div>
-        </div>
-
-        <div className={styles.chartCard}>
-          <h4 className={styles.chartTitle}>Deliverables Completion Rate</h4>
-          <div className={styles.chartPlaceholder}>
-            <div className={styles.lineChart}>
-              📈 Trending upward - 87% completion rate this week
-            </div>
-          </div>
-        </div>
-
-        <div className={styles.chartCard}>
-          <h4 className={styles.chartTitle}>User Activity Heatmap</h4>
-          <div className={styles.chartPlaceholder}>
-            <div className={styles.heatmap}>
-              <div className={styles.heatmapRow}>
-                <span>Mon</span>
-                <div className={styles.heatmapCells}>
-                  <div className={styles.heatmapCell} data-level="high"></div>
-                  <div className={styles.heatmapCell} data-level="medium"></div>
-                  <div className={styles.heatmapCell} data-level="high"></div>
-                </div>
+          <div className={styles.statusGrid}>
+            {projectsByStatus?.overdue ? (
+              <div className={styles.statusCard} style={{ borderColor: '#EF4444' }}>
+                <div className={styles.statusLabel}>🔴 Overdue</div>
+                <div className={styles.statusValue}>{projectsByStatus.overdue}</div>
               </div>
-              <div className={styles.heatmapRow}>
-                <span>Tue</span>
-                <div className={styles.heatmapCells}>
-                  <div className={styles.heatmapCell} data-level="medium"></div>
-                  <div className={styles.heatmapCell} data-level="low"></div>
-                  <div className={styles.heatmapCell} data-level="medium"></div>
+            ) : null}
+            {projectsByStatus?.urgent ? (
+              <div className={styles.statusCard} style={{ borderColor: '#F59E0B' }}>
+                <div className={styles.statusLabel}>⚠️ Urgent</div>
+                <div className={styles.statusValue}>{projectsByStatus.urgent}</div>
+              </div>
+            ) : null}
+            <div className={styles.statusCard} style={{ borderColor: '#2563EB' }}>
+              <div className={styles.statusLabel}>🔵 In Progress</div>
+              <div className={styles.statusValue}>{projectsByStatus?.in_progress || 0}</div>
+            </div>
+            <div className={styles.statusCard} style={{ borderColor: '#8B5CF6' }}>
+              <div className={styles.statusLabel}>👁️ Review</div>
+              <div className={styles.statusValue}>{projectsByStatus?.review || 0}</div>
+            </div>
+            <div className={styles.statusCard} style={{ borderColor: '#10B981' }}>
+              <div className={styles.statusLabel}>✅ Done</div>
+              <div className={styles.statusValue}>{projectsByStatus?.done || 0}</div>
+            </div>
+            <div className={styles.statusCard} style={{ borderColor: '#6B7280' }}>
+              <div className={styles.statusLabel}>📦 Archived</div>
+              <div className={styles.statusValue}>{projectsByStatus?.archived || 0}</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Top Performers */}
+        <div className={styles.performersSection}>
+          <div className={styles.performerColumn}>
+            <h4 className={styles.chartTitle}>Top Designers</h4>
+            <div className={styles.performerList}>
+              {topDesigners.map((designer) => (
+                <div key={designer.id} className={styles.performerCard}>
+                  <div className={styles.performerInfo}>
+                    <div className={styles.performerName}>{designer.name}</div>
+                    <div className={styles.performerMeta}>
+                      {designer.approvedDeliverables} approved deliverables
+                    </div>
+                  </div>
+                  <div className={styles.performerBadge}>
+                    {designer.activeProjects} active
+                  </div>
                 </div>
-              </div>
-              <div className={styles.heatmapRow}>
-                <span>Wed</span>
-                <div className={styles.heatmapCells}>
-                  <div className={styles.heatmapCell} data-level="high"></div>
-                  <div className={styles.heatmapCell} data-level="high"></div>
-                  <div className={styles.heatmapCell} data-level="medium"></div>
+              ))}
+              {topDesigners.length === 0 && (
+                <div className={styles.emptyState}>No designers yet</div>
+              )}
+            </div>
+          </div>
+
+          <div className={styles.performerColumn}>
+            <h4 className={styles.chartTitle}>Active Clients</h4>
+            <div className={styles.performerList}>
+              {activeClients.map((client) => (
+                <div key={client.id} className={styles.performerCard}>
+                  <div className={styles.performerInfo}>
+                    <div className={styles.performerName}>{client.name}</div>
+                    <div className={styles.performerMeta}>
+                      {client.totalProjects} total projects
+                    </div>
+                  </div>
+                  <div className={styles.performerBadge}>
+                    {client.activeProjects} active
+                  </div>
                 </div>
-              </div>
+              ))}
+              {activeClients.length === 0 && (
+                <div className={styles.emptyState}>No active clients</div>
+              )}
             </div>
           </div>
         </div>
-
-        <div className={styles.chartCard}>
-          <h4 className={styles.chartTitle}>Miro Sync Health</h4>
-          <div className={styles.chartPlaceholder}>
-            <div className={styles.syncHealth}>
-              <div className={styles.syncHealthBar}>
-                <div className={styles.syncHealthFill} style={{ width: '95%' }}></div>
-              </div>
-              <div className={styles.syncHealthLabel}>95% Uptime - Healthy</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function ProjectsSection() {
-  return (
-    <div className={styles.section}>
-      <div className={styles.sectionHeader}>
-        <h3 className={styles.sectionTitle}>Project Analytics</h3>
-      </div>
-      <div className={styles.emptyState}>
-        <span className={styles.emptyIcon}>📊</span>
-        <p>Project-specific analytics coming soon</p>
-        <p className={styles.emptySubtext}>Track completion rates, timelines, and bottlenecks</p>
-      </div>
-    </div>
-  );
-}
-
-function UsersSection() {
-  return (
-    <div className={styles.section}>
-      <div className={styles.sectionHeader}>
-        <h3 className={styles.sectionTitle}>User Analytics</h3>
-      </div>
-      <div className={styles.emptyState}>
-        <span className={styles.emptyIcon}>👥</span>
-        <p>User activity analytics coming soon</p>
-        <p className={styles.emptySubtext}>Monitor engagement, login frequency, and collaboration patterns</p>
-      </div>
-    </div>
-  );
-}
-
-function SettingsSection() {
-  return (
-    <div className={styles.section}>
-      <div className={styles.sectionHeader}>
-        <h3 className={styles.sectionTitle}>Admin Settings</h3>
-      </div>
-
-      <div className={styles.settingsGroup}>
-        <h4 className={styles.settingsGroupTitle}>⚙️ System Configuration</h4>
-        <div className={styles.settingsList}>
-          <div className={styles.settingItem}>
-            <div className={styles.settingLabel}>
-              Miro Board Template ID
-              <span className={styles.settingDescription}>Default template for new projects</span>
-            </div>
-            <input
-              type="text"
-              className={styles.settingInput}
-              placeholder="Enter template ID"
-              defaultValue="o9J_k1234567890"
-            />
-          </div>
-
-          <div className={styles.settingItem}>
-            <div className={styles.settingLabel}>
-              Auto-sync Interval
-              <span className={styles.settingDescription}>How often to sync with Miro boards</span>
-            </div>
-            <select className={styles.settingSelect}>
-              <option>Every 5 minutes</option>
-              <option>Every 15 minutes</option>
-              <option>Every 30 minutes</option>
-              <option>Every hour</option>
-            </select>
-          </div>
-
-          <div className={styles.settingItem}>
-            <div className={styles.settingLabel}>
-              Notification Preferences
-              <span className={styles.settingDescription}>Who receives system notifications</span>
-            </div>
-            <div className={styles.checkboxGroup}>
-              <label className={styles.checkbox}>
-                <input type="checkbox" defaultChecked />
-                Notify admins on sync failures
-              </label>
-              <label className={styles.checkbox}>
-                <input type="checkbox" defaultChecked />
-                Notify admins on new user signups
-              </label>
-              <label className={styles.checkbox}>
-                <input type="checkbox" />
-                Notify all on project status changes
-              </label>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className={styles.settingsGroup}>
-        <h4 className={styles.settingsGroupTitle}>🔐 Security</h4>
-        <div className={styles.settingsList}>
-          <div className={styles.settingItem}>
-            <div className={styles.settingLabel}>
-              Session Timeout
-              <span className={styles.settingDescription}>Automatic logout after inactivity</span>
-            </div>
-            <select className={styles.settingSelect}>
-              <option>30 minutes</option>
-              <option>1 hour</option>
-              <option>4 hours</option>
-              <option>8 hours</option>
-            </select>
-          </div>
-
-          <div className={styles.settingItem}>
-            <div className={styles.settingLabel}>
-              Two-Factor Authentication
-              <span className={styles.settingDescription}>Require 2FA for all users</span>
-            </div>
-            <label className={styles.toggle}>
-              <input type="checkbox" />
-              <span className={styles.toggleSlider}></span>
-              <span className={styles.toggleLabel}>Require 2FA</span>
-            </label>
-          </div>
-        </div>
-      </div>
-
-      <div className={styles.settingsGroup}>
-        <h4 className={styles.settingsGroupTitle}>📧 Email Templates (Postmark)</h4>
-        <div className={styles.settingsList}>
-          <div className={styles.settingItem}>
-            <div className={styles.settingLabel}>
-              Project Created
-              <span className={styles.settingDescription}>Sent when a new project is created</span>
-            </div>
-            <button className={styles.settingButton}>Edit Template</button>
-          </div>
-
-          <div className={styles.settingItem}>
-            <div className={styles.settingLabel}>
-              Deliverable Ready for Review
-              <span className={styles.settingDescription}>Sent when deliverable status changes</span>
-            </div>
-            <button className={styles.settingButton}>Edit Template</button>
-          </div>
-
-          <div className={styles.settingItem}>
-            <div className={styles.settingLabel}>
-              User Invitation
-              <span className={styles.settingDescription}>Sent to new users</span>
-            </div>
-            <button className={styles.settingButton}>Edit Template</button>
-          </div>
-        </div>
-      </div>
-
-      <div className={styles.settingsActions}>
-        <button className={styles.saveButton}>💾 Save Changes</button>
-        <button className={styles.cancelButton}>Cancel</button>
       </div>
     </div>
   );
