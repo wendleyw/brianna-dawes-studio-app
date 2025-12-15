@@ -8,6 +8,7 @@ import { projectService } from '@features/projects/services/projectService';
 import { projectKeys } from '@features/projects/services/projectKeys';
 import { deliverableService } from '@features/deliverables/services/deliverableService';
 import { supabase } from '@shared/lib/supabase';
+import { supabaseRestQuery } from '@shared/lib/supabaseRest';
 import { createLogger } from '@shared/lib/logger';
 import { env } from '@shared/config/env';
 import { callEdgeFunction } from '@shared/lib/edgeFunctions';
@@ -1256,6 +1257,15 @@ export function DeveloperTools() {
 
       if (!ok) throw new Error(`sync-worker failed (${status}): ${JSON.stringify(body)}`);
       addProgress(`✓ sync-worker response: ${JSON.stringify(body)}`);
+      if (
+        body &&
+        typeof body === 'object' &&
+        'processed' in body &&
+        typeof (body as { processed?: unknown }).processed === 'number' &&
+        (body as { processed: number }).processed === 0
+      ) {
+        addProgress('ℹ No jobs processed. Queue may be empty — try "Create linked project + enqueue" first.');
+      }
       await queryClient.invalidateQueries();
     } catch (err) {
       logger.error('Run sync-worker batch failed', err);
@@ -1297,15 +1307,25 @@ export function DeveloperTools() {
       const boardId = boardInfo.id;
       addProgress(`✓ Current board: ${boardId}`);
 
+      addProgress('▶ Getting Supabase access token...');
+      const accessToken = await getAccessToken();
+      addProgress('✓ Supabase access token: present');
+
       addProgress('▶ Selecting a client user...');
-      const { data: client, error: clientErr } = await supabase
-        .from('users')
-        .select('id, email')
-        .eq('role', 'client')
-        .order('created_at', { ascending: true })
-        .limit(1)
-        .maybeSingle();
-      if (clientErr) throw clientErr;
+      // Use direct REST query because supabase-js can hang in Miro iframe context.
+      const { data: client, error: clientErr } = await withTimeout(
+        supabaseRestQuery<{ id: string; email: string }>('users', {
+          select: 'id,email',
+          eq: { role: 'client' },
+          order: { column: 'created_at', ascending: true },
+          limit: 1,
+          maybeSingle: true,
+          authToken: accessToken,
+        }),
+        12000,
+        'supabaseRestQuery(users)'
+      );
+      if (clientErr) throw new Error(clientErr.message || 'Failed to fetch client user');
       if (!client?.id) throw new Error('No client user found. Create a client first.');
       addProgress(`✓ Using client: ${client.email} (${client.id})`);
 
