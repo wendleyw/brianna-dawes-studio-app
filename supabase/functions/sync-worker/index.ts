@@ -69,7 +69,8 @@ function sanitizeHeaderToken(raw: string): { ok: true; token: string } | { ok: f
     return { ok: false, message: `contains_non_ascii_chars:${codeList || 'unknown'}` };
   }
   // Allow common bearer token charset: base64/base64url/JWT/opaque tokens.
-  if (!/^[A-Za-z0-9._~+/=-]+$/.test(token)) return { ok: false, message: 'contains_invalid_chars' };
+  // Include '-' for base64url tokens.
+  if (!/^[A-Za-z0-9._~+/=\-]+$/.test(token)) return { ok: false, message: 'contains_invalid_chars' };
   return { ok: true, token };
 }
 
@@ -584,7 +585,6 @@ serve(async (req) => {
             x: targetX,
             y: targetY,
             dueDate,
-            cardTheme: col.color,
           });
           if (!upd.ok) {
             // If stale id, create new.
@@ -595,7 +595,6 @@ serve(async (req) => {
               y: targetY,
               width: TIMELINE.CARD_WIDTH,
               dueDate,
-              cardTheme: col.color,
             });
             if (!create.ok) {
               const msg = `miro_card_write_failed:${upd.status}:${upd.message}:${create.status}:${create.message}`;
@@ -623,7 +622,6 @@ serve(async (req) => {
             y: targetY,
             width: TIMELINE.CARD_WIDTH,
             dueDate,
-            cardTheme: col.color,
           });
           if (!create.ok) {
             const msg = `miro_card_create_failed:${create.status}:${create.message}`;
