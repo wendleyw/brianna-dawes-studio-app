@@ -22,39 +22,24 @@ BEGIN
   -- Normalize email
   p_email := lower(trim(p_email));
 
-  -- Check if user already exists
+  -- Check if user already exists in public.users
   SELECT id INTO v_user_id
   FROM public.users
   WHERE email = p_email;
 
   IF v_user_id IS NULL THEN
-    -- Create new super admin user
-    INSERT INTO public.users (
-      email,
-      name,
-      role,
-      is_super_admin,
-      miro_user_id,
-      created_at,
-      updated_at
-    ) VALUES (
-      p_email,
-      COALESCE(p_name, 'Admin'),
-      'admin',
-      true,
-      p_miro_user_id,
-      NOW(),
-      NOW()
-    )
-    RETURNING id INTO v_user_id;
-
-    RAISE NOTICE 'Created new super admin: %', p_email;
+    -- User doesn't exist in public.users yet
+    -- This means they haven't been created in auth.users either
+    -- Return null to signal that auth sign-up is needed first
+    RAISE NOTICE 'User does not exist in public.users: %. Auth sign-up required first.', p_email;
+    RETURN NULL;
   ELSE
     -- Update existing user to ensure they are super admin
     UPDATE public.users
     SET
       is_super_admin = true,
       role = 'admin',
+      name = COALESCE(p_name, name),
       miro_user_id = COALESCE(p_miro_user_id, miro_user_id),
       updated_at = NOW()
     WHERE id = v_user_id

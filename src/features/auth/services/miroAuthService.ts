@@ -141,19 +141,62 @@ export const miroAuthService = {
 
     // Check if this is the main admin from env (only if email is available)
     if (email && isMainAdmin(email)) {
-      // Ensure main admin exists in database (uses SECURITY DEFINER to bypass RLS)
-      // This function returns full user data, avoiding the need for a separate SELECT
-      const adminUser = await this.ensureMainAdminExists(email, name || 'Admin', miroUserId);
+      // Try to find existing admin first
+      let adminUser = await this.ensureMainAdminExists(email, name || 'Admin', miroUserId);
 
+      // If admin doesn't exist in public.users, we need to create them via auth first
       if (!adminUser) {
-        logger.error('Failed to create/find super admin');
+        logger.info('Admin user not found, creating via Supabase Auth...');
+
+        // Create a temporary userId for the signInAfterMiroAuth call
+        // This will trigger auth signup which creates the user in public.users via trigger
+        const tempUserId = 'pending'; // This will be replaced after auth creation
+
+        const authResult = await supabaseAuthBridge.signInAfterMiroAuth(
+          tempUserId,
+          email,
+          miroUserId
+        );
+
+        if (!authResult.success) {
+          logger.error('Failed to create admin via auth', { error: authResult.error });
+          return {
+            success: false,
+            error: authResult.error || 'Failed to create admin account.',
+          };
+        }
+
+        // Now try again to promote to super admin
+        adminUser = await this.ensureMainAdminExists(email, name || 'Admin', miroUserId);
+
+        if (!adminUser) {
+          logger.error('Failed to promote admin after auth creation');
+          return {
+            success: false,
+            error: 'Admin account created but promotion failed. Please try again.',
+          };
+        }
+
+        logger.info('Admin created and promoted successfully', { userId: adminUser.id });
+
         return {
-          success: false,
-          error: 'Failed to initialize admin account. Please check server logs.',
+          success: true,
+          user: {
+            id: adminUser.id,
+            email: adminUser.email,
+            name: adminUser.name || name || 'Admin',
+            role: adminUser.role as 'admin',
+            primaryBoardId: adminUser.primary_board_id,
+            isSuperAdmin: true,
+            miroUserId: adminUser.miro_user_id || miroUserId,
+            companyName: adminUser.company_name,
+            companyLogoUrl: adminUser.company_logo_url,
+          },
+          redirectTo: '/admin',
         };
       }
 
-      // Sign in to Supabase Auth for proper RLS
+      // Admin exists, now sign in to Supabase Auth for proper RLS
       const authResult = await supabaseAuthBridge.signInAfterMiroAuth(
         adminUser.id,
         adminUser.email,
