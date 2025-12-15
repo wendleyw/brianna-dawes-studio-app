@@ -224,10 +224,11 @@ async function miroCreateCard(
   args: { title: string; description: string; x: number; y: number; width: number; dueDate?: string | null }
 ) {
   const dueDate = normalizeDueDateToIso(args.dueDate);
+  const width = Math.max(256, Number(args.width || 0));
   return miroRequest<{ id: string }>(accessToken, 'POST', `/boards/${enc(boardId)}/cards`, {
     data: { title: args.title, description: args.description, dueDate: dueDate ?? undefined },
     position: { x: args.x, y: args.y },
-    geometry: { width: args.width, height: TIMELINE.CARD_HEIGHT },
+    geometry: { width, height: TIMELINE.CARD_HEIGHT },
   });
 }
 
@@ -255,16 +256,16 @@ async function miroUpdateCard(
 
 type TimelineStatus = 'overdue' | 'urgent' | 'in_progress' | 'review' | 'done';
 const TIMELINE = {
-  FRAME_WIDTH: 1000,
-  FRAME_HEIGHT: 600,
-  COLUMN_WIDTH: 130,
-  COLUMN_GAP: 10,
-  HEADER_HEIGHT: 28,
-  TITLE_HEIGHT: 35,
-  CARD_WIDTH: 120,
-  CARD_HEIGHT: 80,
-  CARD_GAP: 15,
-  PADDING: 15,
+  FRAME_WIDTH: 2400,
+  FRAME_HEIGHT: 800,
+  COLUMN_WIDTH: 350,
+  COLUMN_GAP: 20,
+  HEADER_HEIGHT: 32,
+  TITLE_HEIGHT: 44,
+  CARD_WIDTH: 320,
+  CARD_HEIGHT: 120,
+  CARD_GAP: 24,
+  PADDING: 20,
 } as const;
 
 const TIMELINE_COLUMNS: Array<{ id: TimelineStatus; label: string; color: string }> = [
