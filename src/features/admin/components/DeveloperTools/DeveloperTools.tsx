@@ -309,6 +309,37 @@ async function postgrestDeleteWhereWithTimeout(
   }
 }
 
+async function postgrestPatchWithTimeout<T extends Record<string, unknown>>(
+  table: string,
+  accessToken: string,
+  queryString: string,
+  patch: T,
+  ms: number
+): Promise<T[]> {
+  const url = `${env.supabase.url}/rest/v1/${table}?${queryString}&select=*`;
+  const { ok, status, body } = await fetchJsonWithTimeout(
+    url,
+    {
+      method: 'PATCH',
+      headers: {
+        apikey: env.supabase.anonKey,
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+        Prefer: 'return=representation',
+      },
+      body: JSON.stringify(patch),
+    },
+    ms
+  );
+
+  if (!ok) {
+    throw new Error(`${table} patch failed (${status}): ${JSON.stringify(body)}`);
+  }
+
+  if (!body) return [];
+  return Array.isArray(body) ? (body as T[]) : ([body as T] as T[]);
+}
+
 type DashboardMetricsRpc = {
   active_projects: number;
   pending_reviews: number;
@@ -1051,6 +1082,7 @@ export function DeveloperTools() {
   const [isFullFlowRunning, setIsFullFlowRunning] = useState(false);
   const [fullFlowDoWrites, setFullFlowDoWrites] = useState(false);
   const [fullFlowIncludeSync, setFullFlowIncludeSync] = useState(false);
+  const [fullFlowBootstrapClientMiroUserId, setFullFlowBootstrapClientMiroUserId] = useState(true);
   const [fullFlowExpanded, setFullFlowExpanded] = useState(true);
   const [fullFlowProgress, setFullFlowProgress] = useState<string[]>([]);
   const [fullFlowError, setFullFlowError] = useState<string | null>(null);
@@ -1194,6 +1226,36 @@ export function DeveloperTools() {
       const client = clientRes.data;
       if (!client?.id || !client.email) {
         throw new Error('No existing client user found. Create a client in Settings → Users.');
+      }
+
+      // If this client was created only in DB (never opened the app), miro_user_id may be NULL.
+      // Full Flow E2E needs miro_user_id to derive deterministic Supabase Auth credentials.
+      if (!client.miro_user_id) {
+        if (!fullFlowBootstrapClientMiroUserId) {
+          throw new Error('Client is missing miro_user_id (open the app as this user once to populate it).');
+        }
+
+        // Safety: only bootstrap test users (avoid corrupting a real Miro-linked account).
+        if (!/e2e|example\\.com/i.test(client.email)) {
+          throw new Error(
+            `Client \"${client.email}\" is missing miro_user_id. Bootstrap is only allowed for E2E/test emails (example.com/e2e).`
+          );
+        }
+
+        addFullFlow('ℹ Client missing miro_user_id → bootstrapping synthetic id for E2E auth...');
+        const syntheticMiroUserId = `${Date.now()}${Math.floor(Math.random() * 1_000_000)
+          .toString()
+          .padStart(6, '0')}`;
+
+        await postgrestPatchWithTimeout(
+          'users',
+          adminAccessToken,
+          `id=eq.${client.id}`,
+          { miro_user_id: syntheticMiroUserId },
+          15000
+        );
+        client.miro_user_id = syntheticMiroUserId;
+        addFullFlow(`✓ Client miro_user_id set (synthetic): ${syntheticMiroUserId}`);
       }
 
       const designerRes = await withTimeout(
@@ -3576,6 +3638,16 @@ export function DeveloperTools() {
             disabled={isFullFlowRunning}
           />
           <span>Modo E2E (cria/deleta project + deliverable + feedback)</span>
+        </label>
+
+        <label className={styles.checkboxRow}>
+          <input
+            type="checkbox"
+            checked={fullFlowBootstrapClientMiroUserId}
+            onChange={(e) => setFullFlowBootstrapClientMiroUserId(e.target.checked)}
+            disabled={isFullFlowRunning}
+          />
+          <span>Se client não tiver `miro_user_id`, preencher sintético (apenas E2E/test emails) para criar sessão Auth</span>
         </label>
 
         <label className={styles.checkboxRow}>
