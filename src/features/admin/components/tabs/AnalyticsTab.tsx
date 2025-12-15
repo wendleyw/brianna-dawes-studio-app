@@ -27,6 +27,25 @@ export default function AnalyticsTab() {
     );
   }
 
+  // Check if there's any data at all
+  const hasAnyData = (metrics?.totalProjects || 0) > 0 ||
+                     (clients?.length || 0) > 0 ||
+                     (designers?.length || 0) > 0;
+
+  if (!hasAnyData) {
+    return (
+      <div className={styles.container}>
+        <div className={styles.emptyState}>
+          <span className={styles.emptyIcon}>📊</span>
+          <p>No data available yet</p>
+          <p className={styles.emptySubtext}>
+            Create your first project to see analytics and insights here
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   // Calculate trends from monthly metrics
   const lastTwoMonths = monthlyMetrics?.slice(-2) || [];
   const projectsTrend =

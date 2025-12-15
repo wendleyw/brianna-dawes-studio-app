@@ -103,6 +103,22 @@ export default function OverviewTab() {
     );
   }
 
+  const hasAnyData = (metrics?.totalProjects || 0) > 0 || recentActivity.length > 0;
+
+  if (!hasAnyData) {
+    return (
+      <div className={styles.container}>
+        <div className={styles.emptyState}>
+          <span className={styles.emptyIcon}>🎯</span>
+          <p>Welcome to the Admin Dashboard!</p>
+          <p className={styles.emptySubtext}>
+            Create your first project to start seeing activity and metrics
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={styles.container}>
       <div className={styles.statsGrid}>
