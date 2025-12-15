@@ -1,0 +1,41 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.subNav {
+  display: flex;
+  gap: 4px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid #E5E7EB;
+  margin-bottom: 24px;
+}
+
+.subNavButton {
+  background: transparent;
+  border: none;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #6B7280;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.subNavButton:hover {
+  background: #F3F4F6;
+  color: #050038;
+}
+
+.subNavButtonActive {
+  composes: subNavButton;
+  background: #EFF6FF;
+  color: #2563EB;
+}
+
+.content {
+  flex: 1;
+  overflow-y: auto;
+}

@@ -2,10 +2,13 @@ import { useState } from 'react';
 import type { AdminTab } from '../domain/types';
 import OverviewTab from './tabs/OverviewTab';
 import AnalyticsTab from './tabs/AnalyticsTab';
-import UsersTab from './tabs/UsersTab';
 import ProjectsTab from './tabs/ProjectsTab';
 import ActivityTab from './tabs/ActivityTab';
-import SettingsTab from './tabs/SettingsTab';
+import SystemTab from './tabs/SystemTab';
+import { TeamManagement } from './TeamManagement';
+import { BoardManagement } from './BoardManagement';
+import { AppSettings } from './AppSettings';
+import { ProjectTypesSettings } from './ProjectTypesSettings';
 import styles from './AdminDashboard.module.css';
 
 interface AdminDashboardProps {
@@ -30,14 +33,23 @@ export default function AdminDashboard({ isOpen, onClose }: AdminDashboardProps)
         return <OverviewTab />;
       case 'analytics':
         return <AnalyticsTab />;
-      case 'users':
-        return <UsersTab />;
+      case 'team':
+        return <TeamManagement />;
+      case 'boards':
+        return <BoardManagement />;
       case 'projects':
         return <ProjectsTab />;
       case 'activity':
         return <ActivityTab />;
+      case 'system':
+        return <SystemTab />;
       case 'settings':
-        return <SettingsTab />;
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <ProjectTypesSettings />
+            <AppSettings />
+          </div>
+        );
       default:
         return <OverviewTab />;
     }
@@ -49,9 +61,11 @@ export default function AdminDashboard({ isOpen, onClose }: AdminDashboardProps)
     const activeClasses: Record<AdminTab, string | undefined> = {
       overview: styles.overviewActive,
       analytics: styles.analyticsActive,
-      users: styles.usersActive,
+      team: styles.teamActive,
+      boards: styles.boardsActive,
       projects: styles.projectsActive,
       activity: styles.activityActive,
+      system: styles.systemActive,
       settings: styles.settingsActive,
     };
 
@@ -92,11 +106,18 @@ export default function AdminDashboard({ isOpen, onClose }: AdminDashboardProps)
               Analytics
             </button>
             <button
-              className={getNavButtonClass('users')}
-              onClick={() => setActiveTab('users')}
+              className={getNavButtonClass('team')}
+              onClick={() => setActiveTab('team')}
             >
               <span className={styles.navIcon}>👥</span>
-              Users
+              Team
+            </button>
+            <button
+              className={getNavButtonClass('boards')}
+              onClick={() => setActiveTab('boards')}
+            >
+              <span className={styles.navIcon}>📋</span>
+              Boards
             </button>
             <button
               className={getNavButtonClass('projects')}
@@ -111,6 +132,13 @@ export default function AdminDashboard({ isOpen, onClose }: AdminDashboardProps)
             >
               <span className={styles.navIcon}>🔔</span>
               Activity
+            </button>
+            <button
+              className={getNavButtonClass('system')}
+              onClick={() => setActiveTab('system')}
+            >
+              <span className={styles.navIcon}>🔧</span>
+              System
             </button>
             <button
               className={getNavButtonClass('settings')}

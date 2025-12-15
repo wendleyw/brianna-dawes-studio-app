@@ -115,10 +115,16 @@
   border-left-color: #8B5CF6;
 }
 
-.navButton.usersActive {
+.navButton.teamActive {
   background: #ECFDF5;
   color: #10B981;
   border-left-color: #10B981;
+}
+
+.navButton.boardsActive {
+  background: #EFF6FF;
+  color: #3B82F6;
+  border-left-color: #3B82F6;
 }
 
 .navButton.projectsActive {
@@ -131,6 +137,12 @@
   background: #FEF2F2;
   color: #EF4444;
   border-left-color: #EF4444;
+}
+
+.navButton.systemActive {
+  background: #FDF4FF;
+  color: #A855F7;
+  border-left-color: #A855F7;
 }
 
 .navButton.settingsActive {

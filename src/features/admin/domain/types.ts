@@ -1,10 +1,14 @@
 export type AdminTab =
   | 'overview'
   | 'analytics'
-  | 'users'
+  | 'team'
+  | 'boards'
   | 'projects'
   | 'activity'
+  | 'system'
   | 'settings';
+
+export type SystemSubTab = 'master' | 'sync' | 'developer';
 
 export interface DashboardStats {
   totalProjects: number;
