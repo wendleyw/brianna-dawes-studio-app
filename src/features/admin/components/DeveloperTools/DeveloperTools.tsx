@@ -1330,28 +1330,60 @@ export function DeveloperTools() {
       addProgress(`✓ Using client: ${client.email} (${client.id})`);
 
       addProgress('▶ Creating linked project...');
-      const project = await projectService.createProject({
-        name: `[OPS][SYNC] ${new Date().toISOString()}`,
-        clientId: client.id,
-        description: 'Linked project for sync-worker test',
-        status: 'in_progress',
-        priority: 'medium',
-        startDate: null,
-        dueDate: null,
-        miroBoardId: boardId,
-        miroBoardUrl: `https://miro.com/app/board/${boardId}/`,
-        briefing: {},
-        googleDriveUrl: null,
-        dueDateApproved: true,
-        designerIds: [],
-      });
-      setLastOpsProjectId(project.id);
-      addProgress(`✓ Project created: ${project.id}`);
+      // Use direct REST RPC call to avoid supabase-js hanging in Miro iframe context.
+      const rpcPayload = {
+        p_name: `[OPS][SYNC] ${new Date().toISOString()}`,
+        p_client_id: client.id,
+        p_description: 'Linked project for sync-worker test',
+        p_status: 'in_progress',
+        p_priority: 'medium',
+        p_start_date: null,
+        p_due_date: null,
+        p_miro_board_id: boardId,
+        p_miro_board_url: `https://miro.com/app/board/${boardId}/`,
+        p_briefing: {},
+        p_google_drive_url: null,
+        p_due_date_approved: true,
+        p_sync_status: null,
+        p_designer_ids: [],
+      };
+
+      const { ok: rpcOk, status: rpcStatus, body: rpcBody } = await fetchJsonWithTimeout(
+        `${env.supabase.url}/rest/v1/rpc/create_project_with_designers`,
+        {
+          method: 'POST',
+          headers: {
+            apikey: env.supabase.anonKey,
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(rpcPayload),
+        },
+        30000
+      );
+
+      if (!rpcOk) {
+        throw new Error(`create_project_with_designers failed (${rpcStatus}): ${JSON.stringify(rpcBody)}`);
+      }
+
+      const createdProjectId =
+        typeof rpcBody === 'string'
+          ? rpcBody
+          : rpcBody && typeof rpcBody === 'object' && 'id' in rpcBody
+            ? String((rpcBody as { id?: unknown }).id)
+            : String(rpcBody);
+
+      if (!createdProjectId || createdProjectId === 'null' || createdProjectId === 'undefined') {
+        throw new Error(`create_project_with_designers returned invalid project id: ${JSON.stringify(rpcBody)}`);
+      }
+
+      setLastOpsProjectId(createdProjectId);
+      addProgress(`✓ Project created: ${createdProjectId}`);
 
       addProgress('▶ Enqueueing project_sync job...');
       const { data: jobId, error: jobErr } = await supabase.rpc('enqueue_sync_job', {
         p_job_type: 'project_sync',
-        p_project_id: project.id,
+        p_project_id: createdProjectId,
         p_board_id: boardId,
         p_payload: { reason: 'ops_linked' },
         p_run_at: new Date().toISOString(),
