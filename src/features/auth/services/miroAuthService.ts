@@ -165,7 +165,7 @@ export const miroAuthService = {
         // CRITICAL: Do NOT continue without auth - this would bypass security
         return {
           success: false,
-          error: 'Authentication failed. Please try again or contact support.',
+          error: authResult.error || 'Authentication failed. Please try again.',
         };
       }
 
@@ -266,7 +266,7 @@ export const miroAuthService = {
         // CRITICAL: Do NOT continue without auth - this would bypass security
         return {
           success: false,
-          error: 'Authentication failed. Please try again or contact support.',
+          error: authResult.error || 'Authentication failed. Please try again.',
         };
       }
 

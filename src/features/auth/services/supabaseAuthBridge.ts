@@ -121,7 +121,14 @@ export const supabaseAuthBridge = {
       return { success: false, error: 'Miro user ID is required' };
     }
 
-    const password = await derivePassword(miroUserId);
+    let password: string;
+    try {
+      password = await derivePassword(miroUserId);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      logger.error('Password derivation failed', { publicUserId: userId, email, miroUserId, msg });
+      return { success: false, error: 'Auth bridge is misconfigured (missing/invalid secret). Please contact support.' };
+    }
 
     try {
       // First, try to sign in with existing credentials
@@ -178,11 +185,35 @@ export const supabaseAuthBridge = {
         if (signUpError) {
           // If user already exists (email taken), try password reset flow
           if (signUpError.message?.includes('already registered')) {
-            logger.warn('Email already registered with different password, attempting recovery');
-            // For now, return error - in production, would need password reset flow
+            logger.warn('Email already registered with different password, attempting recovery', { email });
+
+            const redirectTo = `${env.app.url}/auth/callback`;
+            // Recovery option A: send a magic link (OTP) to the user's email.
+            // This is the safest non-admin recovery path when password derivation no longer matches.
+            const { error: otpErr } = await supabase.auth.signInWithOtp({
+              email,
+              options: { emailRedirectTo: redirectTo, shouldCreateUser: false },
+            });
+            if (otpErr) {
+              logger.warn('OTP sign-in failed, attempting password reset email', { email, error: otpErr.message });
+              const { error: resetErr } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+              if (resetErr) {
+                logger.error('Password reset email failed', { email, error: resetErr.message });
+                return {
+                  success: false,
+                  error:
+                    'Your email is already registered, but we could not start a recovery flow. Please contact support.',
+                };
+              }
+              return {
+                success: false,
+                error: 'We sent you a password reset email. Open it to finish signing in.',
+              };
+            }
+
             return {
               success: false,
-              error: 'Email already registered. Please contact support.',
+              error: 'Your email is already registered. We sent you a magic link to sign in (check your inbox).',
             };
           }
 
