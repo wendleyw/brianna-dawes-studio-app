@@ -1209,9 +1209,23 @@ export function DeveloperTools() {
         'supabaseRestQuery(users:designer)'
       );
       if (designerRes.error) throw new Error(designerRes.error.message || 'Failed to fetch designer user');
-      const designer = designerRes.data;
+      let designer = designerRes.data;
+      const hasDesigner = Boolean(designer?.id && designer.email);
+      const usingAdminAsDesigner = !hasDesigner;
+      if (!hasDesigner) {
+        if (!authUser?.id || !authUser.email) {
+          throw new Error('No existing designer user found. Create a designer in Settings → Users.');
+        }
+        designer = {
+          id: authUser.id,
+          email: authUser.email,
+          miro_user_id: authUser.miroUserId ?? null,
+        };
+        addFullFlow('ℹ No designer found → using current ADMIN as designer recipient for this run.');
+        addFullFlow('ℹ For a strict role test: create a designer in Settings → Users and open the app as them once.');
+      }
       if (!designer?.id || !designer.email) {
-        throw new Error('No existing designer user found. Create a designer in Settings → Users.');
+        throw new Error('Designer resolution failed');
       }
 
       addFullFlow(`✓ Client: ${client.email} (${client.id})`);
@@ -1226,14 +1240,20 @@ export function DeveloperTools() {
       });
       addFullFlow('✓ Client session ready');
 
-      addFullFlow('▶ Creating designer session (for notifications)...');
-      const designerSession = await ensureUserSessionForPublicUser({
-        label: 'Designer',
-        publicUserId: designer.id,
-        email: designer.email,
-        miroUserId: designer.miro_user_id,
-      });
-      addFullFlow('✓ Designer session ready');
+      let designerAccessToken = adminAccessToken;
+      if (!usingAdminAsDesigner) {
+        addFullFlow('▶ Creating designer session (for notifications)...');
+        const session = await ensureUserSessionForPublicUser({
+          label: 'Designer',
+          publicUserId: designer.id,
+          email: designer.email,
+          miroUserId: designer.miro_user_id,
+        });
+        designerAccessToken = session.accessToken;
+        addFullFlow('✓ Designer session ready');
+      } else {
+        addFullFlow('✓ Designer session: using admin token (fallback)');
+      }
 
       const nowIso = new Date().toISOString();
       const projectName = `[E2E][FULL] ${nowIso}`;
@@ -1290,7 +1310,7 @@ export function DeveloperTools() {
         select: 'id,type,title,data,created_at,is_read',
         order: { column: 'created_at', ascending: false },
         limit: 50,
-        authToken: designerSession.accessToken,
+        authToken: designerAccessToken,
       });
       if (designerNotifs.error) throw new Error(designerNotifs.error.message);
       const designerProjectNotifs =
@@ -1353,7 +1373,7 @@ export function DeveloperTools() {
         select: 'id,type,data',
         order: { column: 'created_at', ascending: false },
         limit: 50,
-        authToken: designerSession.accessToken,
+        authToken: designerAccessToken,
       });
       if (designerNotifs2.error) throw new Error(designerNotifs2.error.message);
       const designerDeliverableNotifs =
@@ -1396,7 +1416,7 @@ export function DeveloperTools() {
         select: 'id,type,data',
         order: { column: 'created_at', ascending: false },
         limit: 50,
-        authToken: designerSession.accessToken,
+        authToken: designerAccessToken,
       });
       if (designerNotifs3.error) throw new Error(designerNotifs3.error.message);
       const feedbackNotifs =
@@ -1514,6 +1534,25 @@ export function DeveloperTools() {
         // Best-effort: delete related notifications created during the run (per-user, using their own token).
         try {
           const adminAccessToken = await getAccessToken();
+
+          // Always cleanup admin notifications related to this project (covers "admin-as-designer" fallback too).
+          try {
+            const { data } = await supabaseRestQuery<
+              { id: string; data: { projectId?: string } | null; created_at: string }[]
+            >('notifications', {
+              select: 'id,data,created_at',
+              order: { column: 'created_at', ascending: false },
+              limit: 80,
+              authToken: adminAccessToken,
+            });
+            const ids = (data ?? [])
+              .filter((n) => (n.data?.projectId ?? '') === created.projectId && new Date(n.created_at).getTime() >= startedAt - 120000)
+              .map((n) => n.id);
+            await cleanupNotificationIds(adminAccessToken, 'admin', ids);
+          } catch (e) {
+            addFullFlow(`⚠️ Cleanup admin notifications skipped: ${formatError(e)}`);
+          }
+
           const clientRes = await supabaseRestQuery<{ id: string; email: string; miro_user_id: string | null }>('users', {
             select: 'id,email,miro_user_id',
             eq: { role: 'client' },
