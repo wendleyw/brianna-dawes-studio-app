@@ -212,7 +212,7 @@ class MasterBoardService {
     const offset = (page - 1) * pageSize;
 
     // Get clients with pagination
-    let clientsQuery = supabase
+    const clientsQuery = supabase
       .from('users')
       .select('*', { count: 'exact' })
       .eq('role', 'client')

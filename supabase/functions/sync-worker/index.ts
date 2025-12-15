@@ -45,6 +45,10 @@ function safeString(v: unknown): string | null {
   return t.length ? t : null;
 }
 
+function isUuid(v: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v);
+}
+
 function sanitizeHeaderToken(raw: string): { ok: true; token: string } | { ok: false; message: string } {
   // Prevent invalid Request header values:
   // - remove all whitespace (copy/paste often includes newlines)
@@ -56,7 +60,10 @@ function sanitizeHeaderToken(raw: string): { ok: true; token: string } | { ok: f
     // Unicode "format" / zero-width characters frequently introduced by copy/paste
     .replace(/[\u200B-\u200F\u202A-\u202E\u2060-\u206F\uFEFF]/g, '');
   if (!token) return { ok: false, message: 'empty' };
-  if (/[\u0000-\u001F\u007F]/.test(token)) return { ok: false, message: 'contains_control_chars' };
+  for (let i = 0; i < token.length; i++) {
+    const code = token.charCodeAt(i);
+    if (code < 0x20 || code === 0x7f) return { ok: false, message: 'contains_control_chars' };
+  }
   // Miro OAuth tokens / JWTs are ASCII. Reject any non-ASCII.
   if (/[^\x21-\x7E]/.test(token)) {
     const codes = new Set<number>();
@@ -70,7 +77,7 @@ function sanitizeHeaderToken(raw: string): { ok: true; token: string } | { ok: f
   }
   // Allow common bearer token charset: base64/base64url/JWT/opaque tokens.
   // Include '-' for base64url tokens.
-  if (!/^[A-Za-z0-9._~+/=\-]+$/.test(token)) return { ok: false, message: 'contains_invalid_chars' };
+  if (!/^[A-Za-z0-9._~+/=-]+$/.test(token)) return { ok: false, message: 'contains_invalid_chars' };
   return { ok: true, token };
 }
 
@@ -296,20 +303,6 @@ function mapProjectToTimelineStatus(project: { status: string; due_date?: string
   return 'in_progress';
 }
 
-function getPriorityIcon(priority: string | null | undefined): string {
-  switch ((priority ?? '').toLowerCase()) {
-    case 'high':
-    case 'urgent':
-      return '🔺';
-    case 'medium':
-      return '🔸';
-    case 'low':
-      return '🔹';
-    default:
-      return '🔸';
-  }
-}
-
 function findTimelineFrame(frames: MiroFrame[]): MiroFrame | null {
   const byTitle = frames.find((f) => (f.data?.title ?? '').includes('MASTER TIMELINE') || (f.data?.title ?? '').includes('Timeline Master'));
   if (byTitle) return byTitle;
@@ -399,15 +392,20 @@ serve(async (req) => {
     return json({ error: 'forbidden' }, { status: 403, headers: corsHeaders() });
   }
 
-  let body: { miroAccessToken?: string; maxJobs?: number } = {};
+  let body: { miroAccessToken?: string; maxJobs?: number; jobId?: string } = {};
   try {
-    body = (await req.json().catch(() => ({}))) as { miroAccessToken?: string; maxJobs?: number };
+    body = (await req.json().catch(() => ({}))) as { miroAccessToken?: string; maxJobs?: number; jobId?: string };
   } catch {
     return json({ error: 'invalid_json' }, { status: 400, headers: corsHeaders() });
   }
 
   const requestMiroToken = safeString(body.miroAccessToken);
-  const maxJobs = Math.max(1, Math.min(10, Number(body.maxJobs ?? 1)));
+  const requestJobId = safeString(body.jobId);
+  if (requestJobId && !isUuid(requestJobId)) {
+    return json({ error: 'invalid_job_id' }, { status: 400, headers: corsHeaders() });
+  }
+
+  const maxJobs = requestJobId ? 1 : Math.max(1, Math.min(10, Number(body.maxJobs ?? 1)));
 
   const supabase = createClient(supabaseUrl, serviceRoleKey, {
     auth: { persistSession: false },
@@ -425,9 +423,9 @@ serve(async (req) => {
   }> = [];
 
   for (let i = 0; i < maxJobs; i++) {
-    const { data: job, error: claimError } = await supabase.rpc('claim_next_sync_job', {
-      p_worker_id: workerId,
-    });
+    const { data: job, error: claimError } = requestJobId
+      ? await supabase.rpc('claim_sync_job_by_id', { p_job_id: requestJobId, p_worker_id: workerId })
+      : await supabase.rpc('claim_next_sync_job', { p_worker_id: workerId });
 
     if (claimError) {
       return json({ error: 'claim_failed', details: claimError.message }, { status: 500, headers: corsHeaders() });
@@ -520,7 +518,6 @@ serve(async (req) => {
           due_date_approved: project.due_date_approved as boolean | null,
         });
         const colIndex = Math.max(0, TIMELINE_COLUMNS.findIndex((c) => c.id === status));
-        const col = TIMELINE_COLUMNS[colIndex] ?? TIMELINE_COLUMNS[2];
 
         const cardsRes = await miroListCards(miroAccessToken, boardId);
         if (!cardsRes.ok) {

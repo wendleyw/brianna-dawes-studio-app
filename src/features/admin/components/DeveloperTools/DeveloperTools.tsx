@@ -1163,6 +1163,7 @@ export function DeveloperTools() {
       projectId?: string;
       deliverableId?: string;
       feedbackId?: string;
+      syncJobId?: string;
     } = {};
 
     const cleanupNotificationIds = async (accessToken: string, label: string, ids: string[]) => {
@@ -1238,7 +1239,7 @@ export function DeveloperTools() {
         // Safety: only bootstrap test users (avoid corrupting a real Miro-linked account).
         if (!/e2e|example\\.com/i.test(client.email)) {
           throw new Error(
-            `Client \"${client.email}\" is missing miro_user_id. Bootstrap is only allowed for E2E/test emails (example.com/e2e).`
+            `Client "${client.email}" is missing miro_user_id. Bootstrap is only allowed for E2E/test emails (example.com/e2e).`
           );
         }
 
@@ -1526,9 +1527,10 @@ export function DeveloperTools() {
         );
         const jobId = coerceUuidFromRpcBody(enqueueBody, 'enqueue_sync_job');
         if (!jobId) throw new Error(`Invalid job id from enqueue_sync_job: ${JSON.stringify(enqueueBody)}`);
+        created.syncJobId = jobId;
         addFullFlow(`✓ Job enqueued: ${jobId}`);
 
-        addFullFlow('▶ Running sync-worker (maxJobs=1)...');
+        addFullFlow('▶ Running sync-worker for this job...');
         const { ok, status, body } = await fetchJsonWithTimeout(
           `${env.supabase.url}/functions/v1/sync-worker`,
           {
@@ -1538,12 +1540,21 @@ export function DeveloperTools() {
               Authorization: `Bearer ${adminAccessToken}`,
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ miroAccessToken, maxJobs: 1 }),
+            body: JSON.stringify({ miroAccessToken, jobId }),
           },
-          30000
+          45000
         );
         if (!ok) throw new Error(`sync-worker failed (${status}): ${JSON.stringify(body)}`);
         addFullFlow(`✓ sync-worker: ${JSON.stringify(body)}`);
+
+        const results =
+          body && typeof body === 'object' && 'results' in body && Array.isArray((body as { results?: unknown }).results)
+            ? ((body as { results: Array<{ jobId?: unknown; projectId?: unknown }> }).results ?? [])
+            : [];
+        const didProcessThisJob = results.some((r) => String(r.jobId ?? '') === jobId);
+        if (!didProcessThisJob) {
+          throw new Error(`sync-worker did not claim/process job ${jobId}. It may already be running, delayed, or missing.`);
+        }
 
         addFullFlow('▶ Verifying project got linked Miro ids...');
         const proj = await supabaseRestQuery<{ id: string; miro_card_id: string | null; sync_status: string | null }>('projects', {
@@ -1567,6 +1578,14 @@ export function DeveloperTools() {
       if (fullFlowDoWrites && created.projectId) {
         addFullFlow('');
         addFullFlow('🧹 Cleanup...');
+        try {
+          const adminAccessToken = await getAccessToken();
+          // Always delete any sync jobs for this test project to avoid draining unrelated jobs later.
+          await postgrestDeleteWhereWithTimeout('sync_jobs', adminAccessToken, `project_id=eq.${created.projectId}`, 15000);
+          addFullFlow('✓ Cleanup: deleted sync jobs for project');
+        } catch (e) {
+          addFullFlow(`⚠️ Cleanup sync jobs failed: ${formatError(e)}`);
+        }
         try {
           const adminAccessToken = await getAccessToken();
           if (created.feedbackId) {
@@ -1747,7 +1766,7 @@ export function DeveloperTools() {
       }
 
       addReport('▶ Resolving a client user...');
-      let { data: client, error: clientErr } = await withTimeout(
+      const { data: initialClient, error: clientErr } = await withTimeout(
         supabaseRestQuery<{ id: string; email: string; miro_user_id: string | null }>('users', {
           select: 'id,email,miro_user_id',
           eq: { role: 'client' },
@@ -1760,6 +1779,7 @@ export function DeveloperTools() {
         'supabaseRestQuery(users)'
       );
       if (clientErr) throw new Error(clientErr.message || 'Failed to fetch client user');
+      let client = initialClient;
       if (!client?.id) {
         if (reportCreateProjectAsClient) {
           throw new Error(
