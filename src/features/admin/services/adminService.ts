@@ -150,6 +150,14 @@ export const adminService = {
 
     if (error) {
       logger.error('Delete user failed', error);
+      // Friendly message for the most common failure mode:
+      // deleting a client that still owns projects (or an invalid FK action).
+      const code = (error as { code?: string }).code;
+      if (code === '23502' || code === '23503') {
+        throw new Error(
+          'Cannot delete this user because they are referenced by existing data (e.g. projects). Delete or reassign their projects first.'
+        );
+      }
       throw error;
     }
 

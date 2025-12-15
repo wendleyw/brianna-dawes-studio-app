@@ -154,7 +154,11 @@ export const TeamManagement = memo(function TeamManagement() {
       return;
     }
 
-    const confirmed = confirm(`Are you sure you want to delete ${user.name}?`);
+    const message =
+      user.role === 'client'
+        ? `Are you sure you want to delete ${user.name}?\n\nThis will also delete ALL projects owned by this client (and related deliverables/feedback/sync data).`
+        : `Are you sure you want to delete ${user.name}?`;
+    const confirmed = confirm(message);
     if (!confirmed) return;
 
     try {
