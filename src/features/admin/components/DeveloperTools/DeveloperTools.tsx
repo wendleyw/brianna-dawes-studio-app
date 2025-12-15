@@ -17,6 +17,13 @@ import styles from './DeveloperTools.module.css';
 
 const logger = createLogger('DeveloperTools');
 
+function sanitizeMiroToken(raw: string): string {
+  return raw
+    .replace(/[\s\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000]+/g, '')
+    .replace(/[\u200B-\u200F\u202A-\u202E\u2060-\u206F\uFEFF]/g, '')
+    .trim();
+}
+
 function formatError(err: unknown): string {
   if (err instanceof Error) return err.message;
   if (typeof err === 'string') return err;
@@ -69,7 +76,11 @@ async function tryGetMiroAccessToken(): Promise<{ token: string | null; error?: 
       return { token: null, error: 'miro.board.getToken() not available in this context' };
     }
     const token = await miro.board.getToken();
-    return { token: typeof token === 'string' && token.trim() ? token : null };
+    if (typeof token !== 'string') return { token: null, error: 'miro.board.getToken() returned non-string' };
+    const cleaned = sanitizeMiroToken(token);
+    if (!cleaned) return { token: null, error: 'miro.board.getToken() returned empty token' };
+    if (/[^\x21-\x7E]/.test(cleaned)) return { token: null, error: 'miro token contains non-ASCII characters' };
+    return { token: cleaned };
   } catch (err) {
     return { token: null, error: err instanceof Error ? err.message : String(err) };
   }
@@ -1079,10 +1090,7 @@ export function DeveloperTools() {
           await step('Run sync-worker once', async () => {
             const accessToken = await getAccessToken();
 
-            const override = miroTokenOverride
-              .replace(/\s+/g, '')
-              .replace(/[\u200B-\u200F\u202A-\u202E\u2060-\u206F\uFEFF]/g, '')
-              .trim();
+            const override = sanitizeMiroToken(miroTokenOverride);
             const miroTokenRes = override ? { token: override } : await tryGetMiroAccessToken();
             const miroAccessToken = miroTokenRes.token;
             addProgress(`✓ Miro access token: ${miroAccessToken ? 'present' : 'missing'} (required for real Miro REST sync)`);
@@ -1225,10 +1233,7 @@ export function DeveloperTools() {
       addProgress('▶ Preparing sync-worker request...');
       const accessToken = await getAccessToken();
 
-      const override = miroTokenOverride
-        .replace(/\s+/g, '')
-        .replace(/[\u200B-\u200F\u202A-\u202E\u2060-\u206F\uFEFF]/g, '')
-        .trim();
+      const override = sanitizeMiroToken(miroTokenOverride);
       const miroTokenRes = override ? { token: override } : await tryGetMiroAccessToken();
       const miroAccessToken = miroTokenRes.token;
       addProgress(`✓ Miro access token: ${miroAccessToken ? 'present' : 'missing'} (required for Miro REST writes)`);

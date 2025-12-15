@@ -51,13 +51,23 @@ function sanitizeHeaderToken(raw: string): { ok: true; token: string } | { ok: f
   // - remove invisible unicode formatting chars (common when copying from logs/chats)
   // - reject control chars and any unexpected characters for OAuth/JWT tokens
   const token = raw
-    .replace(/\s+/g, '')
+    // \s may miss some unicode spaces depending on engine; remove common ones explicitly too.
+    .replace(/[\s\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000]+/g, '')
     // Unicode "format" / zero-width characters frequently introduced by copy/paste
     .replace(/[\u200B-\u200F\u202A-\u202E\u2060-\u206F\uFEFF]/g, '');
   if (!token) return { ok: false, message: 'empty' };
   if (/[\u0000-\u001F\u007F]/.test(token)) return { ok: false, message: 'contains_control_chars' };
   // Miro OAuth tokens / JWTs are ASCII. Reject any non-ASCII.
-  if (/[^\x21-\x7E]/.test(token)) return { ok: false, message: 'contains_non_ascii_chars' };
+  if (/[^\x21-\x7E]/.test(token)) {
+    const codes = new Set<number>();
+    for (let i = 0; i < token.length; i++) {
+      const c = token.charCodeAt(i);
+      if (c < 0x21 || c > 0x7e) codes.add(c);
+      if (codes.size >= 8) break;
+    }
+    const codeList = [...codes].map((c) => `0x${c.toString(16)}`).join(',');
+    return { ok: false, message: `contains_non_ascii_chars:${codeList || 'unknown'}` };
+  }
   // Allow common bearer token charset: base64/base64url/JWT/opaque tokens.
   if (!/^[A-Za-z0-9._~+/=-]+$/.test(token)) return { ok: false, message: 'contains_invalid_chars' };
   return { ok: true, token };
