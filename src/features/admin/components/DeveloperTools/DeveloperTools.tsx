@@ -110,6 +110,79 @@ async function postgrestRpcWithTimeout(
   return body;
 }
 
+async function postgrestInsertWithTimeout<T extends Record<string, unknown>>(
+  table: string,
+  accessToken: string,
+  rows: T[] | T,
+  ms: number
+): Promise<T[]> {
+  const { ok, status, body } = await fetchJsonWithTimeout(
+    `${env.supabase.url}/rest/v1/${table}?select=*`,
+    {
+      method: 'POST',
+      headers: {
+        apikey: env.supabase.anonKey,
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+        Prefer: 'return=representation',
+      },
+      body: JSON.stringify(rows),
+    },
+    ms
+  );
+
+  if (!ok) {
+    throw new Error(`${table} insert failed (${status}): ${JSON.stringify(body)}`);
+  }
+
+  if (!body) return [];
+  return Array.isArray(body) ? (body as T[]) : ([body as T] as T[]);
+}
+
+async function postgrestDeleteWhereWithTimeout(
+  table: string,
+  accessToken: string,
+  queryString: string,
+  ms: number
+): Promise<void> {
+  const url = `${env.supabase.url}/rest/v1/${table}?${queryString}`;
+  const { ok, status, body } = await fetchJsonWithTimeout(
+    url,
+    {
+      method: 'DELETE',
+      headers: {
+        apikey: env.supabase.anonKey,
+        Authorization: `Bearer ${accessToken}`,
+      },
+    },
+    ms
+  );
+  if (!ok) {
+    throw new Error(`${table} delete failed (${status}): ${JSON.stringify(body)}`);
+  }
+}
+
+type DashboardMetricsRpc = {
+  active_projects: number;
+  pending_reviews: number;
+  overdue_deliverables: number;
+  recent_activity: unknown;
+};
+
+function parseDashboardMetricsRpc(body: unknown): DashboardMetricsRpc {
+  const row =
+    Array.isArray(body) ? (body[0] as Record<string, unknown> | undefined) : (body as Record<string, unknown> | null);
+  const active = Number((row?.active_projects ?? 0) as unknown);
+  const pending = Number((row?.pending_reviews ?? 0) as unknown);
+  const overdue = Number((row?.overdue_deliverables ?? 0) as unknown);
+  return {
+    active_projects: Number.isFinite(active) ? active : 0,
+    pending_reviews: Number.isFinite(pending) ? pending : 0,
+    overdue_deliverables: Number.isFinite(overdue) ? overdue : 0,
+    recent_activity: row?.recent_activity ?? [],
+  };
+}
+
 async function tryGetMiroAccessToken(): Promise<{ token: string | null; error?: string }> {
   try {
     const miro = (window as unknown as { miro?: { board?: { getToken?: () => Promise<string> } } }).miro;
@@ -820,6 +893,13 @@ export function DeveloperTools() {
   const [error, setError] = useState<string | null>(null);
   const [syncOpsExpanded, setSyncOpsExpanded] = useState(true);
   const progressLogRef = useRef<HTMLDivElement | null>(null);
+  const [isReportE2ERunning, setIsReportE2ERunning] = useState(false);
+  const [reportDoWrites, setReportDoWrites] = useState(false);
+  const [reportIncludeSync, setReportIncludeSync] = useState(false);
+  const [reportExpanded, setReportExpanded] = useState(true);
+  const [reportProgress, setReportProgress] = useState<string[]>([]);
+  const [reportError, setReportError] = useState<string | null>(null);
+  const reportLogRef = useRef<HTMLDivElement | null>(null);
   const isSyncOpsActive = useMemo(
     () => isSyncOpsEnqueueing || isSyncOpsRunning || isSyncOpsCreating,
     [isSyncOpsCreating, isSyncOpsEnqueueing, isSyncOpsRunning]
@@ -839,11 +919,271 @@ export function DeveloperTools() {
     setProgress((prev) => [...prev, message]);
   };
 
+  const addReport = (message: string) => {
+    setReportProgress((prev) => [...prev, message]);
+  };
+
   useEffect(() => {
     if (!syncOpsExpanded) return;
     if (!progressLogRef.current) return;
     progressLogRef.current.scrollTop = progressLogRef.current.scrollHeight;
   }, [progress.length, syncOpsExpanded]);
+
+  useEffect(() => {
+    if (!reportExpanded) return;
+    if (!reportLogRef.current) return;
+    reportLogRef.current.scrollTop = reportLogRef.current.scrollHeight;
+  }, [reportProgress.length, reportExpanded]);
+
+  const runReportE2E = async () => {
+    if (!authUser) {
+      setReportError('Not authenticated. Please log in first.');
+      return;
+    }
+    if (authUser.role !== 'admin') {
+      setReportError('Forbidden (admin only)');
+      return;
+    }
+
+    if (reportIncludeSync && (!isInMiro || !miro)) {
+      setReportError('Must be running inside a Miro board to include sync-worker in Report E2E.');
+      return;
+    }
+
+    if (reportDoWrites) {
+      const allow =
+        confirm(
+          '⚠️ Report E2E vai CRIAR e DELETAR registros (project + deliverables) para validar métricas.\n\nContinuar?'
+        ) &&
+        (!reportIncludeSync ||
+          confirm(
+            'Este teste também vai rodar sync-worker com token do Miro e pode criar/atualizar itens no board.\n\nContinuar?'
+          ));
+      if (!allow) return;
+    }
+
+    setIsReportE2ERunning(true);
+    setReportError(null);
+    setReportProgress([]);
+
+    let createdProjectId: string | null = null;
+
+    try {
+      addReport('▶ Report E2E: starting...');
+      addReport('▶ Getting Supabase access token...');
+      const accessToken = await getAccessToken();
+      addReport('✓ Supabase access token: present');
+
+      const getMetrics = async () => {
+        const body = await postgrestRpcWithTimeout('get_dashboard_metrics', accessToken, {}, 15000);
+        return parseDashboardMetricsRpc(body);
+      };
+
+      addReport('▶ Reading dashboard metrics (before)...');
+      const before = await getMetrics();
+      addReport(
+        `✓ Before: active=${before.active_projects} pending_reviews=${before.pending_reviews} overdue=${before.overdue_deliverables}`
+      );
+
+      if (!reportDoWrites) {
+        addReport('ℹ reportDoWrites=off → read-only check finished.');
+        addReport('✅ Report E2E finished successfully');
+        return;
+      }
+
+      let boardId: string | null = null;
+      if (reportIncludeSync && miro) {
+        addReport('▶ Getting current board id...');
+        const boardInfo = await withTimeout(miro.board.getInfo(), 12000, 'miro.board.getInfo');
+        boardId = boardInfo.id;
+        addReport(`✓ Board: ${boardId}`);
+      }
+
+      addReport('▶ Resolving a client user...');
+      const { data: client, error: clientErr } = await withTimeout(
+        supabaseRestQuery<{ id: string; email: string }>('users', {
+          select: 'id,email',
+          eq: { role: 'client' },
+          order: { column: 'created_at', ascending: true },
+          limit: 1,
+          maybeSingle: true,
+          authToken: accessToken,
+        }),
+        12000,
+        'supabaseRestQuery(users)'
+      );
+      if (clientErr) throw new Error(clientErr.message || 'Failed to fetch client user');
+      if (!client?.id) throw new Error('No client user found. Create a client first.');
+      addReport(`✓ Using client: ${client.email} (${client.id})`);
+
+      const nowIso = new Date().toISOString();
+      const projectName = `[E2E][REPORT] ${nowIso}`;
+
+      addReport('▶ Creating test project...');
+      const createBody = await postgrestRpcWithTimeout(
+        'create_project_with_designers',
+        accessToken,
+        {
+          p_name: projectName,
+          p_client_id: client.id,
+          p_description: 'E2E report test project',
+          p_status: 'in_progress',
+          p_priority: 'medium',
+          p_start_date: null,
+          p_due_date: null,
+          p_miro_board_id: boardId,
+          p_miro_board_url: boardId ? `https://miro.com/app/board/${boardId}/` : null,
+          p_briefing: {},
+          p_google_drive_url: null,
+          p_due_date_approved: true,
+          p_sync_status: boardId ? null : 'not_required',
+          p_designer_ids: [],
+        },
+        30000
+      );
+      createdProjectId = coerceUuidFromRpcBody(createBody, 'create_project_with_designers');
+      if (!createdProjectId) {
+        throw new Error(`Invalid project id from create_project_with_designers: ${JSON.stringify(createBody)}`);
+      }
+      addReport(`✓ Project created: ${createdProjectId}`);
+
+      const dueFuture = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
+      const duePast = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
+      const deliverableReviewName = `[E2E][REPORT] Review deliverable ${nowIso}`;
+      const deliverableOverdueName = `[E2E][REPORT] Overdue deliverable ${nowIso}`;
+
+      addReport('▶ Creating deliverables (in_review + overdue)...');
+      await postgrestInsertWithTimeout(
+        'deliverables',
+        accessToken,
+        [
+          {
+            project_id: createdProjectId,
+            name: deliverableReviewName,
+            description: null,
+            type: 'design',
+            status: 'in_review',
+            due_date: dueFuture,
+            count: 1,
+            bonus_count: 0,
+          },
+          {
+            project_id: createdProjectId,
+            name: deliverableOverdueName,
+            description: null,
+            type: 'design',
+            status: 'in_progress',
+            due_date: duePast,
+            count: 1,
+            bonus_count: 0,
+          },
+        ],
+        30000
+      );
+      addReport('✓ Deliverables created');
+
+      addReport('▶ Reading dashboard metrics (after)...');
+      const after = await getMetrics();
+      addReport(
+        `✓ After: active=${after.active_projects} pending_reviews=${after.pending_reviews} overdue=${after.overdue_deliverables}`
+      );
+
+      const dActive = after.active_projects - before.active_projects;
+      const dPending = after.pending_reviews - before.pending_reviews;
+      const dOverdue = after.overdue_deliverables - before.overdue_deliverables;
+      addReport(`Δ Metrics: active=+${dActive} pending_reviews=+${dPending} overdue=+${dOverdue}`);
+
+      if (dActive < 1) throw new Error('Dashboard metrics did not increase active_projects as expected (+1).');
+      if (dPending < 1) throw new Error('Dashboard metrics did not increase pending_reviews as expected (+1).');
+      if (dOverdue < 1) throw new Error('Dashboard metrics did not increase overdue_deliverables as expected (+1).');
+
+      const activityArray = Array.isArray(after.recent_activity) ? after.recent_activity : [];
+      const activityText = JSON.stringify(activityArray).toLowerCase();
+      if (!activityText.includes(deliverableReviewName.toLowerCase()) && !activityText.includes(projectName.toLowerCase())) {
+        addReport('⚠️ recent_activity did not include the new deliverable/project (older activity may dominate).');
+      } else {
+        addReport('✓ recent_activity includes new deliverable/project');
+      }
+
+      if (reportIncludeSync && boardId) {
+        addReport('▶ Enqueueing project_sync job...');
+        const miroTokenClean = sanitizeMiroToken(miroTokenOverride);
+        const miroTokenRes = miroTokenClean ? { token: miroTokenClean } : await tryGetMiroAccessToken();
+        const miroAccessToken = miroTokenRes.token;
+        if (!miroAccessToken) throw new Error(`Missing Miro access token: ${miroTokenRes.error ?? 'unknown'}`);
+
+        const enqueueBody = await postgrestRpcWithTimeout(
+          'enqueue_sync_job',
+          accessToken,
+          {
+            p_job_type: 'project_sync',
+            p_project_id: createdProjectId,
+            p_board_id: boardId,
+            p_payload: { reason: 'report_e2e' },
+            p_run_at: new Date().toISOString(),
+          },
+          15000
+        );
+        const jobId = coerceUuidFromRpcBody(enqueueBody, 'enqueue_sync_job');
+        if (!jobId) throw new Error(`Invalid job id from enqueue_sync_job: ${JSON.stringify(enqueueBody)}`);
+        addReport(`✓ Job enqueued: ${jobId}`);
+
+        addReport('▶ Running sync-worker (maxJobs=1)...');
+        const { ok, status, body } = await fetchJsonWithTimeout(
+          `${env.supabase.url}/functions/v1/sync-worker`,
+          {
+            method: 'POST',
+            headers: {
+              apikey: env.supabase.anonKey,
+              Authorization: `Bearer ${accessToken}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ miroAccessToken, maxJobs: 1 }),
+          },
+          30000
+        );
+        if (!ok) throw new Error(`sync-worker failed (${status}): ${JSON.stringify(body)}`);
+        addReport(`✓ sync-worker: ${JSON.stringify(body)}`);
+
+        addReport('▶ Verifying project got linked Miro ids...');
+        const proj = await supabaseRestQuery<{ id: string; miro_card_id: string | null; sync_status: string | null }>('projects', {
+          select: 'id,miro_card_id,sync_status',
+          eq: { id: createdProjectId },
+          maybeSingle: true,
+          authToken: accessToken,
+        });
+        if (proj.error) throw new Error(proj.error.message);
+        if (!proj.data?.miro_card_id) throw new Error('Project miro_card_id not set after sync-worker run.');
+        addReport(`✓ Project miro_card_id: ${proj.data.miro_card_id} (sync_status=${proj.data.sync_status ?? 'n/a'})`);
+      }
+
+      addReport('✅ Report E2E finished successfully');
+    } catch (err) {
+      logger.error('Report E2E failed', err);
+      const msg = formatError(err);
+      setReportError(msg);
+      addReport(`✗ Report E2E failed: ${msg}`);
+    } finally {
+      if (reportDoWrites && createdProjectId) {
+        addReport('');
+        addReport('🧹 Cleanup...');
+        try {
+          const accessToken = await getAccessToken();
+          await postgrestDeleteWhereWithTimeout('deliverables', accessToken, `project_id=eq.${createdProjectId}`, 15000);
+        } catch (e) {
+          addReport(`⚠️ Cleanup deliverables failed: ${formatError(e)}`);
+        }
+        try {
+          const accessToken = await getAccessToken();
+          await postgrestDeleteWhereWithTimeout('projects', accessToken, `id=eq.${createdProjectId}`, 15000);
+          addReport('✓ Cleanup: deleted project');
+        } catch (e) {
+          addReport(`⚠️ Cleanup project failed: ${formatError(e)}`);
+        }
+      }
+      setIsReportE2ERunning(false);
+    }
+  };
 
   const runSmokeTests = async () => {
     if (!authUser) {
@@ -2308,6 +2648,68 @@ export function DeveloperTools() {
             {progress.length > 0 && (
               <div ref={progressLogRef} className={styles.progressLog} aria-busy={isSyncOpsActive}>
                 {progress.map((msg, i) => (
+                  <div key={i} className={styles.progressLine}>
+                    {msg}
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* Report E2E Section */}
+      <div className={styles.section}>
+        <h3 className={styles.sectionTitle}>📊 Report E2E (Client → Project → Deliverables → Metrics)</h3>
+        <p className={styles.sectionDescription}>
+          Valida se o pipeline de dados que alimenta o Dashboard/Reports está consistente. Usa{' '}
+          <code>get_dashboard_metrics</code> (RPC) e confirma que as métricas mudam após criar dados de teste.
+        </p>
+
+        <label className={styles.checkboxRow}>
+          <input
+            type="checkbox"
+            checked={reportDoWrites}
+            onChange={(e) => setReportDoWrites(e.target.checked)}
+            disabled={isReportE2ERunning}
+          />
+          <span>Modo E2E (cria/deleta project + deliverables)</span>
+        </label>
+
+        <label className={styles.checkboxRow}>
+          <input
+            type="checkbox"
+            checked={reportIncludeSync}
+            onChange={(e) => setReportIncludeSync(e.target.checked)}
+            disabled={isReportE2ERunning || !reportDoWrites}
+          />
+          <span>Incluir Sync Jobs + sync-worker (cria item no Miro via REST)</span>
+        </label>
+
+        <Button
+          onClick={runReportE2E}
+          isLoading={isReportE2ERunning}
+          variant="primary"
+          className={styles.primaryButton}
+        >
+          {isReportE2ERunning ? 'Running Report E2E...' : '📊 Run Report E2E'}
+        </Button>
+
+        <label className={styles.checkboxRow}>
+          <input
+            type="checkbox"
+            checked={reportExpanded}
+            onChange={(e) => setReportExpanded(e.target.checked)}
+          />
+          <span>Mostrar output</span>
+        </label>
+
+        {reportExpanded && (reportError || reportProgress.length > 0) && (
+          <>
+            {reportError && <div className={styles.error}>{reportError}</div>}
+            {reportProgress.length > 0 && (
+              <div ref={reportLogRef} className={styles.progressLog} aria-busy={isReportE2ERunning}>
+                {reportProgress.map((msg, i) => (
                   <div key={i} className={styles.progressLine}>
                     {msg}
                   </div>

@@ -172,6 +172,33 @@ export function DashboardPage() {
   const { data: clientsData } = useQuery<Array<{ id: string; name: string; company_name: string | null }>>({
     queryKey: ['clients-for-filter'],
     queryFn: async () => {
+      // In Miro iframe context, prefer REST because supabase-js can hang.
+      if (isInMiroIframe()) {
+        // Try to use the authenticated session token (more secure).
+        // Keep a small timeout so we don't hang inside Miro iframe.
+        let authToken: string | null = null;
+        try {
+          const sessionPromise = supabase.auth.getSession();
+          const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 500));
+          const result = await Promise.race([sessionPromise, timeoutPromise]);
+          if (result && typeof result === 'object' && 'data' in result) {
+            authToken =
+              (result as { data: { session: { access_token: string } | null } }).data.session?.access_token ?? null;
+          }
+        } catch {
+          authToken = null;
+        }
+
+        const result = await supabaseRestQuery<Array<{ id: string; name: string; company_name: string | null }>>('users', {
+          select: 'id,name,company_name',
+          eq: { role: 'client' },
+          order: { column: 'name', ascending: true },
+          authToken,
+        });
+        if (result.error) throw new Error(result.error.message);
+        return result.data || [];
+      }
+
       const { data, error } = await supabase
         .from('users')
         .select('id, name, company_name')
