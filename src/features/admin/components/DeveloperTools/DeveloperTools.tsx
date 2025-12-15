@@ -70,6 +70,46 @@ async function fetchJsonWithTimeout(
   }
 }
 
+function coerceUuidFromRpcBody(body: unknown, fnName: string): string {
+  if (typeof body === 'string') return body;
+  if (Array.isArray(body)) {
+    if (body.length === 0) return '';
+    return coerceUuidFromRpcBody(body[0], fnName);
+  }
+  if (body && typeof body === 'object') {
+    if ('id' in body) return String((body as { id?: unknown }).id ?? '');
+    if (fnName in body) return String((body as Record<string, unknown>)[fnName] ?? '');
+  }
+  return String(body ?? '');
+}
+
+async function postgrestRpcWithTimeout(
+  fnName: string,
+  accessToken: string,
+  payload: unknown,
+  ms: number
+): Promise<unknown> {
+  const { ok, status, body } = await fetchJsonWithTimeout(
+    `${env.supabase.url}/rest/v1/rpc/${fnName}`,
+    {
+      method: 'POST',
+      headers: {
+        apikey: env.supabase.anonKey,
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    },
+    ms
+  );
+
+  if (!ok) {
+    throw new Error(`${fnName} failed (${status}): ${JSON.stringify(body)}`);
+  }
+
+  return body;
+}
+
 async function tryGetMiroAccessToken(): Promise<{ token: string | null; error?: string }> {
   try {
     const miro = (window as unknown as { miro?: { board?: { getToken?: () => Promise<string> } } }).miro;
@@ -1181,28 +1221,36 @@ export function DeveloperTools() {
     try {
       addProgress(`▶ Finding up to ${limit} projects needing sync (pending/sync_error)...`);
 
-      const { data: projects, error: e } = await supabase
-        .from('projects')
-        .select('id, miro_board_id, sync_status')
-        .in('sync_status', ['pending', 'sync_error'])
-        .not('miro_board_id', 'is', null)
-        .limit(limit);
+      const accessToken = await getAccessToken();
+      const result = await withTimeout(
+        supabaseRestQuery<Array<{ id: string; miro_board_id: string | null; sync_status: string | null }>>('projects', {
+          select: 'id,miro_board_id,sync_status',
+          in: { sync_status: ['pending', 'sync_error'] },
+          filters: { 'miro_board_id': 'not.is.null' },
+          limit,
+          authToken: accessToken,
+        }),
+        15000,
+        'supabaseRestQuery(projects)'
+      );
 
-      if (e) throw e;
-      const rows = (projects || []) as Array<{ id: string; miro_board_id: string | null; sync_status: string | null }>;
+      if (result.error) throw new Error(result.error.message);
+      const rows = result.data || [];
       addProgress(`✓ Found ${rows.length} projects`);
 
       let enqueued = 0;
+      const fnName = 'enqueue_sync_job';
       for (const p of rows) {
         const boardId = p.miro_board_id;
-        const { data: jobId, error: jobErr } = await supabase.rpc('enqueue_sync_job', {
+        const payload = {
           p_job_type: 'project_sync',
           p_project_id: p.id,
           p_board_id: boardId ?? null,
           p_payload: { reason: 'ops_bulk' },
           p_run_at: new Date().toISOString(),
-        });
-        if (jobErr) throw jobErr;
+        };
+        const body = await postgrestRpcWithTimeout(fnName, accessToken, payload, 15000);
+        const jobId = coerceUuidFromRpcBody(body, fnName);
         if (jobId) enqueued++;
       }
 
@@ -1331,7 +1379,8 @@ export function DeveloperTools() {
 
       addProgress('▶ Creating linked project...');
       // Use direct REST RPC call to avoid supabase-js hanging in Miro iframe context.
-      const rpcPayload = {
+      const createFn = 'create_project_with_designers';
+      const createPayload = {
         p_name: `[OPS][SYNC] ${new Date().toISOString()}`,
         p_client_id: client.id,
         p_description: 'Linked project for sync-worker test',
@@ -1348,49 +1397,36 @@ export function DeveloperTools() {
         p_designer_ids: [],
       };
 
-      const { ok: rpcOk, status: rpcStatus, body: rpcBody } = await fetchJsonWithTimeout(
-        `${env.supabase.url}/rest/v1/rpc/create_project_with_designers`,
-        {
-          method: 'POST',
-          headers: {
-            apikey: env.supabase.anonKey,
-            Authorization: `Bearer ${accessToken}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(rpcPayload),
-        },
-        30000
-      );
-
-      if (!rpcOk) {
-        throw new Error(`create_project_with_designers failed (${rpcStatus}): ${JSON.stringify(rpcBody)}`);
-      }
-
-      const createdProjectId =
-        typeof rpcBody === 'string'
-          ? rpcBody
-          : rpcBody && typeof rpcBody === 'object' && 'id' in rpcBody
-            ? String((rpcBody as { id?: unknown }).id)
-            : String(rpcBody);
+      const createBody = await postgrestRpcWithTimeout(createFn, accessToken, createPayload, 30000);
+      const createdProjectId = coerceUuidFromRpcBody(createBody, createFn);
 
       if (!createdProjectId || createdProjectId === 'null' || createdProjectId === 'undefined') {
-        throw new Error(`create_project_with_designers returned invalid project id: ${JSON.stringify(rpcBody)}`);
+        throw new Error(`create_project_with_designers returned invalid project id: ${JSON.stringify(createBody)}`);
       }
 
       setLastOpsProjectId(createdProjectId);
       addProgress(`✓ Project created: ${createdProjectId}`);
 
       addProgress('▶ Enqueueing project_sync job...');
-      const { data: jobId, error: jobErr } = await supabase.rpc('enqueue_sync_job', {
-        p_job_type: 'project_sync',
-        p_project_id: createdProjectId,
-        p_board_id: boardId,
-        p_payload: { reason: 'ops_linked' },
-        p_run_at: new Date().toISOString(),
-      });
-      if (jobErr) throw jobErr;
-      if (!jobId) throw new Error('enqueue_sync_job returned no job id');
-      setLastOpsJobId(jobId as string);
+      const enqueueFn = 'enqueue_sync_job';
+      const enqueueBody = await postgrestRpcWithTimeout(
+        enqueueFn,
+        accessToken,
+        {
+          p_job_type: 'project_sync',
+          p_project_id: createdProjectId,
+          p_board_id: boardId,
+          p_payload: { reason: 'ops_linked' },
+          p_run_at: new Date().toISOString(),
+        },
+        15000
+      );
+
+      const jobId = coerceUuidFromRpcBody(enqueueBody, enqueueFn);
+      if (!jobId || jobId === 'null' || jobId === 'undefined') {
+        throw new Error(`enqueue_sync_job returned invalid job id: ${JSON.stringify(enqueueBody)}`);
+      }
+      setLastOpsJobId(jobId);
       addProgress(`✓ Job enqueued: ${jobId}`);
     } catch (err) {
       logger.error('Create linked project + enqueue failed', err);
