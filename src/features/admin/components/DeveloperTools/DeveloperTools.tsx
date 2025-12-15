@@ -25,6 +25,49 @@ function sanitizeMiroToken(raw: string): string {
     .trim();
 }
 
+async function deriveSupabasePasswordFromMiroUserId(miroUserId: string): Promise<string> {
+  const secret = env.auth.secret;
+  if (!secret) throw new Error('VITE_AUTH_SECRET is not configured. Cannot derive password.');
+  if (!miroUserId) throw new Error('Missing miro_user_id for password derivation.');
+
+  const encoder = new TextEncoder();
+  const keyMaterial = await crypto.subtle.importKey('raw', encoder.encode(secret), 'PBKDF2', false, ['deriveBits']);
+  const salt = encoder.encode(`miro-auth-salt:${miroUserId}`);
+  const derivedBits = await crypto.subtle.deriveBits(
+    { name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' },
+    keyMaterial,
+    256
+  );
+  const hashArray = Array.from(new Uint8Array(derivedBits));
+  const hashHex = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+  return hashHex.slice(0, 32);
+}
+
+async function signInWithPasswordToken(opts: {
+  email: string;
+  password: string;
+  timeoutMs: number;
+}): Promise<{ accessToken: string }> {
+  const { ok, status, body } = await fetchJsonWithTimeout(
+    `${env.supabase.url}/auth/v1/token?grant_type=password`,
+    {
+      method: 'POST',
+      headers: {
+        apikey: env.supabase.anonKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email: opts.email, password: opts.password }),
+    },
+    opts.timeoutMs
+  );
+
+  if (!ok) throw new Error(`auth token failed (${status}): ${JSON.stringify(body)}`);
+  const data = body as { access_token?: unknown } | null;
+  const accessToken = typeof data?.access_token === 'string' ? data.access_token : '';
+  if (!accessToken) throw new Error('auth token: missing access_token');
+  return { accessToken };
+}
+
 function formatError(err: unknown): string {
   if (err instanceof Error) return err.message;
   if (typeof err === 'string') return err;
@@ -896,6 +939,7 @@ export function DeveloperTools() {
   const [isReportE2ERunning, setIsReportE2ERunning] = useState(false);
   const [reportDoWrites, setReportDoWrites] = useState(false);
   const [reportIncludeSync, setReportIncludeSync] = useState(false);
+  const [reportCreateProjectAsClient, setReportCreateProjectAsClient] = useState(false);
   const [reportExpanded, setReportExpanded] = useState(true);
   const [reportProgress, setReportProgress] = useState<string[]>([]);
   const [reportError, setReportError] = useState<string | null>(null);
@@ -1001,8 +1045,8 @@ export function DeveloperTools() {
 
       addReport('▶ Resolving a client user...');
       const { data: client, error: clientErr } = await withTimeout(
-        supabaseRestQuery<{ id: string; email: string }>('users', {
-          select: 'id,email',
+        supabaseRestQuery<{ id: string; email: string; miro_user_id: string | null }>('users', {
+          select: 'id,email,miro_user_id',
           eq: { role: 'client' },
           order: { column: 'created_at', ascending: true },
           limit: 1,
@@ -1019,31 +1063,84 @@ export function DeveloperTools() {
       const nowIso = new Date().toISOString();
       const projectName = `[E2E][REPORT] ${nowIso}`;
 
-      addReport('▶ Creating test project...');
-      const createBody = await postgrestRpcWithTimeout(
-        'create_project_with_designers',
-        accessToken,
-        {
-          p_name: projectName,
-          p_client_id: client.id,
-          p_description: 'E2E report test project',
-          p_status: 'in_progress',
-          p_priority: 'medium',
-          p_start_date: null,
-          p_due_date: null,
-          p_miro_board_id: boardId,
-          p_miro_board_url: boardId ? `https://miro.com/app/board/${boardId}/` : null,
-          p_briefing: {},
-          p_google_drive_url: null,
-          p_due_date_approved: true,
-          p_sync_status: boardId ? null : 'not_required',
-          p_designer_ids: [],
-        },
-        30000
-      );
-      createdProjectId = coerceUuidFromRpcBody(createBody, 'create_project_with_designers');
+      const createProjectPayload = {
+        p_name: projectName,
+        p_client_id: client.id,
+        p_description: 'E2E report test project',
+        p_status: 'in_progress',
+        p_priority: 'medium',
+        p_start_date: null,
+        p_due_date: null,
+        p_miro_board_id: boardId,
+        p_miro_board_url: boardId ? `https://miro.com/app/board/${boardId}/` : null,
+        p_briefing: {},
+        p_google_drive_url: null,
+        p_due_date_approved: true,
+        p_sync_status: boardId ? null : 'not_required',
+        p_designer_ids: [],
+      };
+
+      if (reportCreateProjectAsClient) {
+        addReport('▶ Creating test project as CLIENT (validates no self-notify)...');
+        if (!client.email) throw new Error('Client is missing email.');
+        if (!client.miro_user_id) {
+          throw new Error('Client is missing miro_user_id. Open the app as this client once to populate it.');
+        }
+
+        const password = await deriveSupabasePasswordFromMiroUserId(client.miro_user_id);
+        const { accessToken: clientAccessToken } = await signInWithPasswordToken({
+          email: client.email,
+          password,
+          timeoutMs: 15000,
+        });
+        addReport('✓ Client auth token acquired');
+
+        const createBody = await postgrestRpcWithTimeout(
+          'create_project_with_designers',
+          clientAccessToken,
+          createProjectPayload,
+          30000
+        );
+        createdProjectId = coerceUuidFromRpcBody(createBody, 'create_project_with_designers');
+        if (!createdProjectId) {
+          throw new Error(`Invalid project id from create_project_with_designers: ${JSON.stringify(createBody)}`);
+        }
+        addReport(`✓ Project created (client actor): ${createdProjectId}`);
+
+        addReport('▶ Verifying client did NOT receive self-notification (project created)...');
+        const { data: clientNotifs, error: notifErr } = await supabaseRestQuery<
+          { id: string; type: string; title: string; data: { projectId?: string } | null; created_at: string }[]
+        >('notifications', {
+          select: 'id,type,title,data,created_at',
+          eq: { user_id: client.id },
+          order: { column: 'created_at', ascending: false },
+          limit: 20,
+          authToken: clientAccessToken,
+        });
+        if (notifErr) throw new Error(notifErr.message || 'Failed to fetch client notifications');
+        const hits =
+          (clientNotifs ?? []).filter((n) => (n.data?.projectId ?? '') === createdProjectId);
+        if (hits.length > 0) {
+          throw new Error(
+            `Client received self-notification(s) for their own project: ${hits
+              .map((n) => `${n.type}:${n.title}`)
+              .join(', ')}`
+          );
+        }
+        addReport('✓ OK: no self-notification found for this project');
+      } else {
+        addReport('▶ Creating test project...');
+        const createBody = await postgrestRpcWithTimeout(
+          'create_project_with_designers',
+          accessToken,
+          createProjectPayload,
+          30000
+        );
+        createdProjectId = coerceUuidFromRpcBody(createBody, 'create_project_with_designers');
+      }
+
       if (!createdProjectId) {
-        throw new Error(`Invalid project id from create_project_with_designers: ${JSON.stringify(createBody)}`);
+        throw new Error('create_project_with_designers returned an invalid project id');
       }
       addReport(`✓ Project created: ${createdProjectId}`);
 
@@ -2666,20 +2763,30 @@ export function DeveloperTools() {
           <code>get_dashboard_metrics</code> (RPC) e confirma que as métricas mudam após criar dados de teste.
         </p>
 
-        <label className={styles.checkboxRow}>
-          <input
-            type="checkbox"
-            checked={reportDoWrites}
-            onChange={(e) => setReportDoWrites(e.target.checked)}
-            disabled={isReportE2ERunning}
-          />
-          <span>Modo E2E (cria/deleta project + deliverables)</span>
-        </label>
+      <label className={styles.checkboxRow}>
+        <input
+          type="checkbox"
+          checked={reportDoWrites}
+          onChange={(e) => setReportDoWrites(e.target.checked)}
+          disabled={isReportE2ERunning}
+        />
+        <span>Modo E2E (cria/deleta project + deliverables)</span>
+      </label>
 
-        <label className={styles.checkboxRow}>
-          <input
-            type="checkbox"
-            checked={reportIncludeSync}
+      <label className={styles.checkboxRow}>
+        <input
+          type="checkbox"
+          checked={reportCreateProjectAsClient}
+          onChange={(e) => setReportCreateProjectAsClient(e.target.checked)}
+          disabled={isReportE2ERunning || !reportDoWrites}
+        />
+        <span>Criar o projeto como CLIENT (valida que não auto-notifica)</span>
+      </label>
+
+      <label className={styles.checkboxRow}>
+        <input
+          type="checkbox"
+          checked={reportIncludeSync}
             onChange={(e) => setReportIncludeSync(e.target.checked)}
             disabled={isReportE2ERunning || !reportDoWrites}
           />
