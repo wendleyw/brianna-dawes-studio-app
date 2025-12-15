@@ -8,7 +8,7 @@ export interface ProjectCardProps {
   onUnarchive?: (project: Project) => void;
   onViewBoard?: (project: Project) => void;
   onCardClick?: (project: Project) => void; // Single click on card - zoom to project on board
-  onUpdateGoogleDrive?: (projectId: string, googleDriveUrl: string) => void;
+  onUpdateGoogleDrive?: (projectId: string, googleDriveUrl: string) => void | Promise<void>;
   onUpdateStatus?: (projectId: string, status: ProjectStatus, options?: { markAsReviewed?: boolean }) => void;
   onUpdate?: (projectId: string, input: UpdateProjectInput) => void;
   onDelete?: (projectId: string) => void;

@@ -1,5 +1,5 @@
 import { useState, useMemo, memo, useRef, useCallback } from 'react';
-import { Badge, Dialog, Input, Button } from '@shared/ui';
+import { Badge, Dialog, Input, Button, useToast } from '@shared/ui';
 import {
   ClientIcon,
   CalendarIcon,
@@ -68,6 +68,7 @@ export const ProjectCard = memo(function ProjectCard({
   onExpandedChange,
 }: ProjectCardProps) {
   const { user } = useAuth();
+  const { addToast } = useToast();
   const [uncontrolledIsExpanded, setUncontrolledIsExpanded] = useState(false);
   const isExpanded = controlledIsExpanded ?? uncontrolledIsExpanded;
   const setIsExpanded = useCallback((next: boolean) => {
@@ -97,6 +98,7 @@ export const ProjectCard = memo(function ProjectCard({
   const [showEditModal, setShowEditModal] = useState(false);
   // Form states
   const [driveUrl, setDriveUrl] = useState(project.googleDriveUrl || '');
+  const [isSavingDriveUrl, setIsSavingDriveUrl] = useState(false);
   const [archiveReason, setArchiveReason] = useState('');
   const [selectedDesigners, setSelectedDesigners] = useState<string[]>(
     project.designers.map(d => d.id)
@@ -351,15 +353,65 @@ export const ProjectCard = memo(function ProjectCard({
       window.open(project.googleDriveUrl, '_blank', 'noopener,noreferrer');
     } else if (isAdmin) {
       // Only admin can open modal to set URL
+      setDriveUrl(project.googleDriveUrl || '');
       setShowDriveModal(true);
     }
   };
 
-  const handleSaveDriveUrl = () => {
-    if (driveUrl.trim()) {
-      onUpdateGoogleDrive?.(project.id, driveUrl.trim());
+  const handleSaveDriveUrl = async () => {
+    const trimmed = driveUrl.trim();
+    if (!trimmed) {
+      addToast({
+        variant: 'warning',
+        title: 'Missing Google Drive link',
+        description: 'Paste a Google Drive folder link before saving.',
+      });
+      return;
     }
-    setShowDriveModal(false);
+
+    try {
+      const url = new URL(trimmed);
+      const host = url.hostname.toLowerCase();
+      if (!host.includes('drive.google.com') && !host.includes('docs.google.com')) {
+        addToast({
+          variant: 'warning',
+          title: 'Link does not look like Google Drive',
+          description: 'We will save it anyway, but double-check the URL.',
+          duration: 6000,
+        });
+      }
+    } catch {
+      addToast({
+        variant: 'error',
+        title: 'Invalid URL',
+        description: 'Paste a full URL starting with https://',
+      });
+      return;
+    }
+
+    if (!onUpdateGoogleDrive) {
+      addToast({
+        variant: 'error',
+        title: 'Cannot save Google Drive link',
+        description: 'Update handler is not available on this screen.',
+      });
+      return;
+    }
+
+    setIsSavingDriveUrl(true);
+    try {
+      await onUpdateGoogleDrive(project.id, trimmed);
+      addToast({ variant: 'success', title: 'Google Drive linked' });
+      setShowDriveModal(false);
+    } catch (err) {
+      addToast({
+        variant: 'error',
+        title: 'Failed to save Google Drive link',
+        description: err instanceof Error ? err.message : 'Unknown error',
+      });
+    } finally {
+      setIsSavingDriveUrl(false);
+    }
   };
 
   const handleEditClick = (e: React.MouseEvent) => {
@@ -1155,7 +1207,10 @@ export const ProjectCard = memo(function ProjectCard({
       {/* Google Drive URL Modal */}
       <Dialog
         open={showDriveModal}
-        onClose={() => setShowDriveModal(false)}
+        onClose={() => {
+          if (isSavingDriveUrl) return;
+          setShowDriveModal(false);
+        }}
         title="Google Drive"
         description="Paste the Google Drive folder link for this project"
         size="sm"
@@ -1166,13 +1221,18 @@ export const ProjectCard = memo(function ProjectCard({
             placeholder="https://drive.google.com/drive/folders/..."
             value={driveUrl}
             onChange={(e) => setDriveUrl(e.target.value)}
+            disabled={isSavingDriveUrl}
           />
           <div className={styles.modalActions}>
-            <Button variant="ghost" onClick={() => setShowDriveModal(false)}>
+            <Button
+              variant="ghost"
+              onClick={() => setShowDriveModal(false)}
+              disabled={isSavingDriveUrl}
+            >
               Cancel
             </Button>
-            <Button onClick={handleSaveDriveUrl}>
-              Save
+            <Button onClick={handleSaveDriveUrl} disabled={isSavingDriveUrl}>
+              {isSavingDriveUrl ? 'Saving…' : 'Save'}
             </Button>
           </div>
         </div>

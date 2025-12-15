@@ -23,6 +23,17 @@ export function useUpdateProject() {
     onSuccess: (project: Project) => {
       queryClient.invalidateQueries({ queryKey: projectKeys.lists() });
       queryClient.setQueryData(projectKeys.detail(project.id), project);
+
+      // Optimistically update any cached lists so UI reflects changes immediately
+      queryClient.setQueriesData({ queryKey: projectKeys.lists() }, (oldData: unknown) => {
+        if (!oldData || typeof oldData !== 'object') return oldData;
+        if (!('data' in oldData)) return oldData;
+        const typed = oldData as { data: Project[] };
+        if (!Array.isArray(typed.data)) return oldData;
+
+        const next = typed.data.map((p) => (p.id === project.id ? project : p));
+        return { ...(oldData as Record<string, unknown>), data: next };
+      });
     },
   });
 }

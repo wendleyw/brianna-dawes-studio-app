@@ -404,7 +404,8 @@ export function ProjectsPage() {
   const totalProjects = projects.length;
 
   // Mutations
-  const { mutate: updateProject } = useUpdateProject();
+  const updateProjectMutation = useUpdateProject();
+  const { mutate: updateProject, mutateAsync: updateProjectAsync } = updateProjectMutation;
   const { mutate: archiveProject } = useArchiveProject();
   const { mutate: unarchiveProject } = useUnarchiveProject();
 
@@ -424,9 +425,14 @@ export function ProjectsPage() {
   }, [navigate]);
 
   // Update Google Drive URL
-  const handleUpdateGoogleDrive = useCallback((projectId: string, googleDriveUrl: string) => {
-    updateProject({ id: projectId, input: { googleDriveUrl } });
-  }, [updateProject]);
+  const handleUpdateGoogleDrive = useCallback(async (projectId: string, googleDriveUrl: string) => {
+    const trimmed = googleDriveUrl.trim();
+    const updated = await updateProjectAsync({ id: projectId, input: { googleDriveUrl: trimmed } });
+
+    if (!updated.googleDriveUrl) {
+      throw new Error('Google Drive link was not saved (missing on updated project)');
+    }
+  }, [updateProjectAsync]);
 
   // Track recently synced projects to avoid duplicate syncs (used by realtime subscription)
   const recentlySyncedRef = useRef<Set<string>>(new Set());
