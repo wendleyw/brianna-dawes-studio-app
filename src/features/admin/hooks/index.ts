@@ -14,4 +14,7 @@ export {
   useDesignerAnalytics,
   useTimelineData,
   useMonthlyMetrics,
+  useProjectsByStatus,
+  useRecentProjects,
+  useRecentActivity,
 } from './useAnalytics';

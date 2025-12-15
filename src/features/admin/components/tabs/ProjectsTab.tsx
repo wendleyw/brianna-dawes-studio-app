@@ -1,4 +1,7 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import { useProjects } from '@features/projects/hooks';
+import { useUsers } from '../../hooks';
+import type { Project } from '@features/projects/domain';
 import styles from './ProjectsTab.module.css';
 
 type ViewMode = 'kanban' | 'table';
@@ -6,26 +9,44 @@ type ViewMode = 'kanban' | 'table';
 export default function ProjectsTab() {
   const [viewMode, setViewMode] = useState<ViewMode>('kanban');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [designerFilter, setDesignerFilter] = useState<string>('all');
 
-  // Mock data
-  const projects = {
-    draft: [
-      { id: '1', name: 'Logo Redesign', client: 'Tech Corp', designer: 'Sarah M.' },
-      { id: '2', name: 'Brand Guide', client: 'StartupX', designer: 'John D.' },
-    ],
-    in_progress: [
-      { id: '3', name: 'Website Design', client: 'E-commerce Co', designer: 'Mike D.' },
-      { id: '4', name: 'App UI/UX', client: 'Mobile Inc', designer: 'Sarah M.' },
-      { id: '5', name: 'Packaging', client: 'Food Brand', designer: 'John D.' },
-    ],
-    review: [
-      { id: '6', name: 'Social Media Kit', client: 'Influencer', designer: 'Mike D.' },
-    ],
-    done: [
-      { id: '7', name: 'Business Cards', client: 'Law Firm', designer: 'Sarah M.' },
-      { id: '8', name: 'Flyer Design', client: 'Event Co', designer: 'John D.' },
-    ],
-  };
+  const { data: projectsResponse, isLoading: projectsLoading } = useProjects();
+  const { data: users, isLoading: usersLoading } = useUsers();
+
+  const allProjects = projectsResponse?.data || [];
+  const designers = users?.filter((u) => u.role === 'designer') || [];
+
+  const projects = useMemo(() => {
+    if (!allProjects) return { overdue: [], urgent: [], in_progress: [], review: [], done: [] };
+
+    const filtered = allProjects.filter((p: Project) => {
+      if (statusFilter !== 'all' && p.status !== statusFilter) return false;
+      if (designerFilter !== 'all') {
+        const hasDesigner = p.designers?.some((d) => d.id === designerFilter);
+        if (!hasDesigner) return false;
+      }
+      return true;
+    });
+
+    return {
+      overdue: filtered.filter((p: Project) => p.status === 'overdue'),
+      urgent: filtered.filter((p: Project) => p.status === 'urgent'),
+      in_progress: filtered.filter((p: Project) => p.status === 'in_progress'),
+      review: filtered.filter((p: Project) => p.status === 'review'),
+      done: filtered.filter((p: Project) => p.status === 'done' && !p.archivedAt),
+    };
+  }, [allProjects, statusFilter, designerFilter]);
+
+  if (projectsLoading || usersLoading) {
+    return (
+      <div className={styles.container}>
+        <div style={{ textAlign: 'center', padding: '48px', color: '#6B7280' }}>
+          Loading projects...
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.container}>
@@ -37,18 +58,24 @@ export default function ProjectsTab() {
             onChange={(e) => setStatusFilter(e.target.value)}
           >
             <option value="all">All Status</option>
-            <option value="draft">Draft</option>
+            <option value="overdue">Overdue</option>
+            <option value="urgent">Urgent</option>
             <option value="in_progress">In Progress</option>
             <option value="review">Review</option>
             <option value="done">Done</option>
-            <option value="archived">Archived</option>
           </select>
 
-          <select className={styles.filterSelect}>
+          <select
+            className={styles.filterSelect}
+            value={designerFilter}
+            onChange={(e) => setDesignerFilter(e.target.value)}
+          >
             <option value="all">All Designers</option>
-            <option value="sarah">Sarah M.</option>
-            <option value="john">John D.</option>
-            <option value="mike">Mike D.</option>
+            {designers.map((designer) => (
+              <option key={designer.id} value={designer.id}>
+                {designer.name}
+              </option>
+            ))}
           </select>
         </div>
 
@@ -70,23 +97,57 @@ export default function ProjectsTab() {
 
       {viewMode === 'kanban' ? (
         <div className={styles.kanbanBoard}>
-          <div className={styles.kanbanColumn}>
-            <div className={styles.kanbanHeader}>
-              <span className={styles.kanbanTitle}>Draft</span>
-              <span className={styles.kanbanCount}>{projects.draft.length}</span>
+          {projects.overdue.length > 0 && (
+            <div className={styles.kanbanColumn}>
+              <div className={styles.kanbanHeader}>
+                <span className={styles.kanbanTitle}>🔴 Overdue</span>
+                <span className={styles.kanbanCount}>{projects.overdue.length}</span>
+              </div>
+              <div className={styles.kanbanCards}>
+                {projects.overdue.map((project: Project) => {
+                  const clientName = project.client?.name || 'N/A';
+                  const designerNames =
+                    project.designers?.map((d) => d.name).join(', ') || 'Unassigned';
+
+                  return (
+                    <div key={project.id} className={styles.kanbanCard}>
+                      <div className={styles.cardTitle}>{project.name}</div>
+                      <div className={styles.cardMeta}>
+                        <span>👤 {clientName}</span>
+                        <span>🎨 {designerNames}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-            <div className={styles.kanbanCards}>
-              {projects.draft.map((project) => (
-                <div key={project.id} className={styles.kanbanCard}>
-                  <div className={styles.cardTitle}>{project.name}</div>
-                  <div className={styles.cardMeta}>
-                    <span>👤 {project.client}</span>
-                    <span>🎨 {project.designer}</span>
-                  </div>
-                </div>
-              ))}
+          )}
+
+          {projects.urgent.length > 0 && (
+            <div className={styles.kanbanColumn}>
+              <div className={styles.kanbanHeader}>
+                <span className={styles.kanbanTitle}>⚠️ Urgent</span>
+                <span className={styles.kanbanCount}>{projects.urgent.length}</span>
+              </div>
+              <div className={styles.kanbanCards}>
+                {projects.urgent.map((project: Project) => {
+                  const clientName = project.client?.name || 'N/A';
+                  const designerNames =
+                    project.designers?.map((d) => d.name).join(', ') || 'Unassigned';
+
+                  return (
+                    <div key={project.id} className={styles.kanbanCard}>
+                      <div className={styles.cardTitle}>{project.name}</div>
+                      <div className={styles.cardMeta}>
+                        <span>👤 {clientName}</span>
+                        <span>🎨 {designerNames}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          )}
 
           <div className={styles.kanbanColumn}>
             <div className={styles.kanbanHeader}>
@@ -94,15 +155,21 @@ export default function ProjectsTab() {
               <span className={styles.kanbanCount}>{projects.in_progress.length}</span>
             </div>
             <div className={styles.kanbanCards}>
-              {projects.in_progress.map((project) => (
-                <div key={project.id} className={styles.kanbanCard}>
-                  <div className={styles.cardTitle}>{project.name}</div>
-                  <div className={styles.cardMeta}>
-                    <span>👤 {project.client}</span>
-                    <span>🎨 {project.designer}</span>
+              {projects.in_progress.map((project: Project) => {
+                const clientName = project.client?.name || 'N/A';
+                const designerNames =
+                  project.designers?.map((d) => d.name).join(', ') || 'Unassigned';
+
+                return (
+                  <div key={project.id} className={styles.kanbanCard}>
+                    <div className={styles.cardTitle}>{project.name}</div>
+                    <div className={styles.cardMeta}>
+                      <span>👤 {clientName}</span>
+                      <span>🎨 {designerNames}</span>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 
@@ -112,15 +179,21 @@ export default function ProjectsTab() {
               <span className={styles.kanbanCount}>{projects.review.length}</span>
             </div>
             <div className={styles.kanbanCards}>
-              {projects.review.map((project) => (
-                <div key={project.id} className={styles.kanbanCard}>
-                  <div className={styles.cardTitle}>{project.name}</div>
-                  <div className={styles.cardMeta}>
-                    <span>👤 {project.client}</span>
-                    <span>🎨 {project.designer}</span>
+              {projects.review.map((project: Project) => {
+                const clientName = project.client?.name || 'N/A';
+                const designerNames =
+                  project.designers?.map((d) => d.name).join(', ') || 'Unassigned';
+
+                return (
+                  <div key={project.id} className={styles.kanbanCard}>
+                    <div className={styles.cardTitle}>{project.name}</div>
+                    <div className={styles.cardMeta}>
+                      <span>👤 {clientName}</span>
+                      <span>🎨 {designerNames}</span>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 
@@ -130,15 +203,21 @@ export default function ProjectsTab() {
               <span className={styles.kanbanCount}>{projects.done.length}</span>
             </div>
             <div className={styles.kanbanCards}>
-              {projects.done.map((project) => (
-                <div key={project.id} className={styles.kanbanCard}>
-                  <div className={styles.cardTitle}>{project.name}</div>
-                  <div className={styles.cardMeta}>
-                    <span>👤 {project.client}</span>
-                    <span>🎨 {project.designer}</span>
+              {projects.done.map((project: Project) => {
+                const clientName = project.client?.name || 'N/A';
+                const designerNames =
+                  project.designers?.map((d) => d.name).join(', ') || 'Unassigned';
+
+                return (
+                  <div key={project.id} className={styles.kanbanCard}>
+                    <div className={styles.cardTitle}>{project.name}</div>
+                    <div className={styles.cardMeta}>
+                      <span>👤 {clientName}</span>
+                      <span>🎨 {designerNames}</span>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>

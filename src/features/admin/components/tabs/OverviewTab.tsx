@@ -1,69 +1,66 @@
+import { useOverviewMetrics, useRecentActivity } from '../../hooks';
+import { formatDistanceToNow } from 'date-fns';
 import styles from './OverviewTab.module.css';
 
 export default function OverviewTab() {
-  // Mock data - será substituído por hooks de dados reais
+  const { data: metrics, isLoading: metricsLoading } = useOverviewMetrics();
+  const { data: activities, isLoading: activitiesLoading } = useRecentActivity(5);
+
   const stats = {
-    totalProjects: 24,
-    totalUsers: 12,
-    activeProjects: 8,
-    syncHealth: 95,
+    totalProjects: metrics?.totalProjects || 0,
+    totalUsers: (metrics?.totalClients || 0) + (metrics?.totalDesigners || 0),
+    activeProjects: metrics?.activeProjects || 0,
+    syncHealth: 95, // TODO: Implement real sync health tracking
   };
 
-  const recentActivity = [
-    {
-      id: '1',
-      message: 'Client Sarah M. uploaded file.pdf to Logo Redesign',
-      timestamp: '2 minutes ago',
-      type: 'upload' as const,
-    },
-    {
-      id: '2',
-      message: 'Designer John D. moved deliverable to done',
-      timestamp: '15 minutes ago',
-      type: 'status' as const,
-    },
-    {
-      id: '3',
-      message: 'Admin created new project: Brand Identity',
-      timestamp: '1 hour ago',
-      type: 'project' as const,
-    },
-    {
-      id: '4',
-      message: 'Miro board sync completed successfully',
-      timestamp: '2 hours ago',
-      type: 'sync' as const,
-    },
-    {
-      id: '5',
-      message: 'New user Client X invited to platform',
-      timestamp: '3 hours ago',
-      type: 'user' as const,
-    },
-  ];
+  const recentActivity =
+    activities?.map((activity) => ({
+      id: activity.id,
+      message: activity.description,
+      timestamp: formatDistanceToNow(new Date(activity.timestamp), { addSuffix: true }),
+      type: activity.type.includes('project')
+        ? ('project' as const)
+        : activity.type.includes('deliverable')
+          ? ('status' as const)
+          : activity.type.includes('client')
+            ? ('user' as const)
+            : ('upload' as const),
+    })) || [];
 
   const alerts = [
-    {
-      id: '1',
-      type: 'warning' as const,
-      title: '3 projects overdue',
-      message: 'Logo Redesign, Brand Guide, Website Mockups',
-      count: 3,
-    },
-    {
-      id: '2',
-      type: 'warning' as const,
-      title: '2 sync conflicts',
-      message: 'Manual resolution required',
-      count: 2,
-    },
-    {
-      id: '3',
-      type: 'info' as const,
-      title: '5 pending user invitations',
-      message: 'Awaiting acceptance',
-      count: 5,
-    },
+    ...(metrics && metrics.overdueProjects > 0
+      ? [
+          {
+            id: 'overdue',
+            type: 'warning' as const,
+            title: `${metrics.overdueProjects} project${metrics.overdueProjects > 1 ? 's' : ''} overdue`,
+            message: 'Review and update project timelines',
+            count: metrics.overdueProjects,
+          },
+        ]
+      : []),
+    ...(metrics && metrics.changesRequestedProjects > 0
+      ? [
+          {
+            id: 'changes',
+            type: 'warning' as const,
+            title: `${metrics.changesRequestedProjects} project${metrics.changesRequestedProjects > 1 ? 's' : ''} with changes requested`,
+            message: 'Review client feedback and update deliverables',
+            count: metrics.changesRequestedProjects,
+          },
+        ]
+      : []),
+    ...(metrics && metrics.dueDateRequests > 0
+      ? [
+          {
+            id: 'duedates',
+            type: 'info' as const,
+            title: `${metrics.dueDateRequests} pending due date request${metrics.dueDateRequests > 1 ? 's' : ''}`,
+            message: 'Review and approve requested due dates',
+            count: metrics.dueDateRequests,
+          },
+        ]
+      : []),
   ];
 
   const getActivityIcon = (type: string) => {
@@ -95,6 +92,16 @@ export default function OverviewTab() {
         return '•';
     }
   };
+
+  if (metricsLoading || activitiesLoading) {
+    return (
+      <div className={styles.container}>
+        <div style={{ textAlign: 'center', padding: '48px', color: '#6B7280' }}>
+          Loading overview data...
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.container}>

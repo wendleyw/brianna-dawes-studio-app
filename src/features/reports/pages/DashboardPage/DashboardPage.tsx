@@ -126,8 +126,8 @@ export function DashboardPage() {
       try {
         await miro.board.ui.openModal({
           url: `admin-modal.html?tab=${encodeURIComponent(tab)}`,
-          width: 900,
-          height: 700,
+          width: 1400,
+          height: 900,
           fullscreen: false,
         });
         return;

@@ -1,129 +1,82 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import { useRecentActivity } from '../../hooks';
+import { formatDistanceToNow, isToday, isYesterday, format } from 'date-fns';
 import styles from './ActivityTab.module.css';
 
 export default function ActivityTab() {
   const [filterType, setFilterType] = useState<string>('all');
   const [dateRange, setDateRange] = useState<string>('7days');
 
-  // Mock data grouped by date
-  const activityLog = {
-    today: [
-      {
-        id: '1',
-        type: 'file_upload',
-        user: 'Client Sarah M.',
-        message: 'uploaded file.pdf',
-        project: 'Logo Redesign',
-        time: '14:32',
-      },
-      {
-        id: '2',
-        type: 'status_change',
-        user: 'Designer John D.',
-        message: 'moved task to review',
-        project: 'Brand Guide',
-        time: '12:15',
-      },
-      {
-        id: '3',
-        type: 'project_created',
-        user: 'Admin',
-        message: 'created new project',
-        project: 'Website Redesign',
-        time: '10:05',
-      },
-    ],
-    yesterday: [
-      {
-        id: '4',
-        type: 'sync',
-        user: 'System',
-        message: 'completed Miro board sync',
-        project: null,
-        time: '18:44',
-      },
-      {
-        id: '5',
-        type: 'user_added',
-        user: 'Admin',
-        message: 'invited new user',
-        project: null,
-        time: '16:20',
-      },
-      {
-        id: '6',
-        type: 'deliverable_approved',
-        user: 'Client Corp.',
-        message: 'approved deliverable',
-        project: 'Business Cards',
-        time: '14:55',
-      },
-    ],
-    lastWeek: [
-      {
-        id: '7',
-        type: 'comment',
-        user: 'Designer Mike D.',
-        message: 'added a comment',
-        project: 'App UI/UX',
-        time: '3 days ago',
-      },
-      {
-        id: '8',
-        type: 'sync_failed',
-        user: 'System',
-        message: 'sync failed - conflict detected',
-        project: 'Logo Redesign',
-        time: '4 days ago',
-      },
-    ],
+  const limitMap = {
+    today: 20,
+    '7days': 50,
+    '30days': 100,
+    '90days': 200,
   };
 
+  const { data: activities, isLoading } = useRecentActivity(
+    limitMap[dateRange as keyof typeof limitMap] || 50
+  );
+
+  const activityLog = useMemo(() => {
+    if (!activities) return { today: [], yesterday: [], lastWeek: [] };
+
+    const filtered = activities.filter((activity) => {
+      if (filterType === 'all') return true;
+      if (filterType === 'projects' && activity.type.includes('project')) return true;
+      if (filterType === 'users' && activity.type.includes('client')) return true;
+      if (filterType === 'deliverables' && activity.type.includes('deliverable')) return true;
+      if (filterType === 'feedback' && activity.type.includes('feedback')) return true;
+      return false;
+    });
+
+    const grouped = {
+      today: [] as typeof activities,
+      yesterday: [] as typeof activities,
+      lastWeek: [] as typeof activities,
+    };
+
+    filtered.forEach((activity) => {
+      const activityDate = new Date(activity.timestamp);
+      if (isToday(activityDate)) {
+        grouped.today.push(activity);
+      } else if (isYesterday(activityDate)) {
+        grouped.yesterday.push(activity);
+      } else {
+        grouped.lastWeek.push(activity);
+      }
+    });
+
+    return grouped;
+  }, [activities, filterType]);
+
   const getActivityIcon = (type: string) => {
-    switch (type) {
-      case 'file_upload':
-        return '📎';
-      case 'status_change':
-        return '🔄';
-      case 'project_created':
-        return '📁';
-      case 'sync':
-        return '✅';
-      case 'sync_failed':
-        return '❌';
-      case 'user_added':
-        return '👤';
-      case 'deliverable_approved':
-        return '✓';
-      case 'comment':
-        return '💬';
-      default:
-        return '•';
-    }
+    if (type.includes('project_created')) return '📁';
+    if (type.includes('project_completed')) return '✅';
+    if (type.includes('deliverable_approved')) return '✓';
+    if (type.includes('client_joined')) return '👤';
+    if (type.includes('feedback')) return '💬';
+    return '•';
   };
 
   const getActivityColor = (type: string) => {
-    switch (type) {
-      case 'file_upload':
-        return styles.typeUpload;
-      case 'status_change':
-        return styles.typeStatusChange;
-      case 'project_created':
-        return styles.typeProject;
-      case 'sync':
-        return styles.typeSync;
-      case 'sync_failed':
-        return styles.typeSyncFailed;
-      case 'user_added':
-        return styles.typeUser;
-      case 'deliverable_approved':
-        return styles.typeApproved;
-      case 'comment':
-        return styles.typeComment;
-      default:
-        return '';
-    }
+    if (type.includes('project_created')) return styles.typeProject;
+    if (type.includes('project_completed')) return styles.typeSync;
+    if (type.includes('deliverable_approved')) return styles.typeApproved;
+    if (type.includes('client_joined')) return styles.typeUser;
+    if (type.includes('feedback')) return styles.typeComment;
+    return '';
   };
+
+  if (isLoading) {
+    return (
+      <div className={styles.container}>
+        <div style={{ textAlign: 'center', padding: '48px', color: '#6B7280' }}>
+          Loading activity...
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.container}>
@@ -137,8 +90,8 @@ export default function ActivityTab() {
             <option value="all">All Activities</option>
             <option value="projects">Projects</option>
             <option value="users">Users</option>
-            <option value="sync">Sync Events</option>
-            <option value="files">Files</option>
+            <option value="deliverables">Deliverables</option>
+            <option value="feedback">Feedback</option>
           </select>
 
           <select
@@ -157,74 +110,91 @@ export default function ActivityTab() {
       </div>
 
       <div className={styles.timeline}>
-        <div className={styles.timelineSection}>
-          <div className={styles.timelineDate}>Today</div>
-          <div className={styles.timelineItems}>
-            {activityLog.today.map((activity) => (
-              <div key={activity.id} className={styles.timelineItem}>
-                <div className={`${styles.timelineIcon} ${getActivityColor(activity.type)}`}>
-                  {getActivityIcon(activity.type)}
-                </div>
-                <div className={styles.timelineContent}>
-                  <div className={styles.timelineMessage}>
-                    <span className={styles.timelineUser}>{activity.user}</span>{' '}
-                    {activity.message}
-                    {activity.project && (
-                      <span className={styles.timelineProject}> in {activity.project}</span>
-                    )}
+        {activityLog.today.length > 0 && (
+          <div className={styles.timelineSection}>
+            <div className={styles.timelineDate}>Today</div>
+            <div className={styles.timelineItems}>
+              {activityLog.today.map((activity) => (
+                <div key={activity.id} className={styles.timelineItem}>
+                  <div className={`${styles.timelineIcon} ${getActivityColor(activity.type)}`}>
+                    {getActivityIcon(activity.type)}
                   </div>
-                  <div className={styles.timelineTime}>{activity.time}</div>
+                  <div className={styles.timelineContent}>
+                    <div className={styles.timelineMessage}>
+                      {activity.userName && (
+                        <span className={styles.timelineUser}>{activity.userName}</span>
+                      )}{' '}
+                      {activity.description}
+                    </div>
+                    <div className={styles.timelineTime}>
+                      {format(new Date(activity.timestamp), 'HH:mm')}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
-        <div className={styles.timelineSection}>
-          <div className={styles.timelineDate}>Yesterday</div>
-          <div className={styles.timelineItems}>
-            {activityLog.yesterday.map((activity) => (
-              <div key={activity.id} className={styles.timelineItem}>
-                <div className={`${styles.timelineIcon} ${getActivityColor(activity.type)}`}>
-                  {getActivityIcon(activity.type)}
-                </div>
-                <div className={styles.timelineContent}>
-                  <div className={styles.timelineMessage}>
-                    <span className={styles.timelineUser}>{activity.user}</span>{' '}
-                    {activity.message}
-                    {activity.project && (
-                      <span className={styles.timelineProject}> in {activity.project}</span>
-                    )}
+        {activityLog.yesterday.length > 0 && (
+          <div className={styles.timelineSection}>
+            <div className={styles.timelineDate}>Yesterday</div>
+            <div className={styles.timelineItems}>
+              {activityLog.yesterday.map((activity) => (
+                <div key={activity.id} className={styles.timelineItem}>
+                  <div className={`${styles.timelineIcon} ${getActivityColor(activity.type)}`}>
+                    {getActivityIcon(activity.type)}
                   </div>
-                  <div className={styles.timelineTime}>{activity.time}</div>
+                  <div className={styles.timelineContent}>
+                    <div className={styles.timelineMessage}>
+                      {activity.userName && (
+                        <span className={styles.timelineUser}>{activity.userName}</span>
+                      )}{' '}
+                      {activity.description}
+                    </div>
+                    <div className={styles.timelineTime}>
+                      {format(new Date(activity.timestamp), 'HH:mm')}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
-        <div className={styles.timelineSection}>
-          <div className={styles.timelineDate}>Last Week</div>
-          <div className={styles.timelineItems}>
-            {activityLog.lastWeek.map((activity) => (
-              <div key={activity.id} className={styles.timelineItem}>
-                <div className={`${styles.timelineIcon} ${getActivityColor(activity.type)}`}>
-                  {getActivityIcon(activity.type)}
-                </div>
-                <div className={styles.timelineContent}>
-                  <div className={styles.timelineMessage}>
-                    <span className={styles.timelineUser}>{activity.user}</span>{' '}
-                    {activity.message}
-                    {activity.project && (
-                      <span className={styles.timelineProject}> in {activity.project}</span>
-                    )}
+        {activityLog.lastWeek.length > 0 && (
+          <div className={styles.timelineSection}>
+            <div className={styles.timelineDate}>Earlier</div>
+            <div className={styles.timelineItems}>
+              {activityLog.lastWeek.map((activity) => (
+                <div key={activity.id} className={styles.timelineItem}>
+                  <div className={`${styles.timelineIcon} ${getActivityColor(activity.type)}`}>
+                    {getActivityIcon(activity.type)}
                   </div>
-                  <div className={styles.timelineTime}>{activity.time}</div>
+                  <div className={styles.timelineContent}>
+                    <div className={styles.timelineMessage}>
+                      {activity.userName && (
+                        <span className={styles.timelineUser}>{activity.userName}</span>
+                      )}{' '}
+                      {activity.description}
+                    </div>
+                    <div className={styles.timelineTime}>
+                      {formatDistanceToNow(new Date(activity.timestamp), { addSuffix: true })}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
+        )}
+
+        {activityLog.today.length === 0 &&
+          activityLog.yesterday.length === 0 &&
+          activityLog.lastWeek.length === 0 && (
+            <div style={{ textAlign: 'center', padding: '48px', color: '#6B7280' }}>
+              No recent activity
+            </div>
+          )}
 
         <div className={styles.loadMore}>
           <button className={styles.loadMoreButton}>Load More</button>

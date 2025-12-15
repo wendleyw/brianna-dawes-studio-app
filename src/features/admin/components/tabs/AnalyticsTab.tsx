@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useProjectsByStatus } from '../../hooks';
 import styles from './AnalyticsTab.module.css';
 
 type AnalyticsSubTab = 'overview' | 'projects' | 'users' | 'settings';
@@ -58,6 +59,26 @@ export default function AnalyticsTab() {
 }
 
 function OverviewSection() {
+  const { data: projectsByStatus, isLoading } = useProjectsByStatus();
+
+  if (isLoading) {
+    return (
+      <div className={styles.section}>
+        <div style={{ textAlign: 'center', padding: '48px', color: '#6B7280' }}>
+          Loading analytics...
+        </div>
+      </div>
+    );
+  }
+
+  const total =
+    (projectsByStatus?.overdue || 0) +
+    (projectsByStatus?.urgent || 0) +
+    (projectsByStatus?.in_progress || 0) +
+    (projectsByStatus?.review || 0) +
+    (projectsByStatus?.done || 0) +
+    (projectsByStatus?.archived || 0);
+
   return (
     <div className={styles.section}>
       <div className={styles.sectionHeader}>
@@ -75,18 +96,37 @@ function OverviewSection() {
           <h4 className={styles.chartTitle}>Projects by Status</h4>
           <div className={styles.chartPlaceholder}>
             <div className={styles.pieChart}>
-              <div className={styles.pieSegment} style={{ background: '#10B981' }}>
-                Done: 12
-              </div>
-              <div className={styles.pieSegment} style={{ background: '#2563EB' }}>
-                In Progress: 8
-              </div>
-              <div className={styles.pieSegment} style={{ background: '#F59E0B' }}>
-                Review: 4
-              </div>
-              <div className={styles.pieSegment} style={{ background: '#6B7280' }}>
-                Draft: 3
-              </div>
+              {projectsByStatus?.overdue ? (
+                <div className={styles.pieSegment} style={{ background: '#EF4444' }}>
+                  Overdue: {projectsByStatus.overdue}
+                </div>
+              ) : null}
+              {projectsByStatus?.urgent ? (
+                <div className={styles.pieSegment} style={{ background: '#F59E0B' }}>
+                  Urgent: {projectsByStatus.urgent}
+                </div>
+              ) : null}
+              {projectsByStatus?.in_progress ? (
+                <div className={styles.pieSegment} style={{ background: '#2563EB' }}>
+                  In Progress: {projectsByStatus.in_progress}
+                </div>
+              ) : null}
+              {projectsByStatus?.review ? (
+                <div className={styles.pieSegment} style={{ background: '#8B5CF6' }}>
+                  Review: {projectsByStatus.review}
+                </div>
+              ) : null}
+              {projectsByStatus?.done ? (
+                <div className={styles.pieSegment} style={{ background: '#10B981' }}>
+                  Done: {projectsByStatus.done}
+                </div>
+              ) : null}
+              {projectsByStatus?.archived ? (
+                <div className={styles.pieSegment} style={{ background: '#6B7280' }}>
+                  Archived: {projectsByStatus.archived}
+                </div>
+              ) : null}
+              {total === 0 && <div className={styles.pieSegment}>No projects</div>}
             </div>
           </div>
         </div>

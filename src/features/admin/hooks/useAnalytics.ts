@@ -68,3 +68,36 @@ export function useMonthlyMetrics() {
     staleTime: 1000 * 60 * 10, // 10 minutes
   });
 }
+
+/**
+ * Hook for fetching projects by status
+ */
+export function useProjectsByStatus() {
+  return useQuery({
+    queryKey: [...analyticsKeys.all, 'projectsByStatus'],
+    queryFn: () => analyticsService.getProjectsByStatus(),
+    staleTime: 1000 * 60 * 2,
+  });
+}
+
+/**
+ * Hook for fetching recent projects
+ */
+export function useRecentProjects(limit = 10) {
+  return useQuery({
+    queryKey: [...analyticsKeys.all, 'recentProjects', limit],
+    queryFn: () => analyticsService.getRecentProjects(limit),
+    staleTime: 1000 * 60 * 2,
+  });
+}
+
+/**
+ * Hook for fetching recent activity
+ */
+export function useRecentActivity(limit = 20) {
+  return useQuery({
+    queryKey: [...analyticsKeys.all, 'recentActivity', limit],
+    queryFn: () => analyticsService.getRecentActivity(limit),
+    staleTime: 1000 * 60, // 1 minute
+  });
+}
