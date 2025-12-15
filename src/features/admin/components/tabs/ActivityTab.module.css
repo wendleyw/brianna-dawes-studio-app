@@ -1,0 +1,201 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.filters {
+  display: flex;
+  gap: 12px;
+}
+
+.filterSelect {
+  padding: 10px 16px;
+  border: 1px solid #E5E7EB;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #374151;
+  background: #ffffff;
+  cursor: pointer;
+  min-width: 140px;
+}
+
+.exportButton {
+  padding: 10px 20px;
+  background: #ffffff;
+  border: 1px solid #E5E7EB;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.exportButton:hover {
+  background: #F9FAFB;
+  border-color: #2563EB;
+  color: #2563EB;
+}
+
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.timelineSection {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.timelineDate {
+  font-size: 16px;
+  font-weight: 600;
+  color: #050038;
+  padding: 8px 0;
+  border-bottom: 2px solid #E5E7EB;
+}
+
+.timelineItems {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-left: 12px;
+}
+
+.timelineItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  position: relative;
+  padding-bottom: 16px;
+}
+
+.timelineItem::before {
+  content: '';
+  position: absolute;
+  left: 19px;
+  top: 40px;
+  bottom: -16px;
+  width: 2px;
+  background: #E5E7EB;
+}
+
+.timelineItem:last-child::before {
+  display: none;
+}
+
+.timelineIcon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.typeUpload {
+  background: #DBEAFE;
+  color: #1E40AF;
+}
+
+.typeStatusChange {
+  background: #E0E7FF;
+  color: #4F46E5;
+}
+
+.typeProject {
+  background: #ECFDF5;
+  color: #065F46;
+}
+
+.typeSync {
+  background: #D1FAE5;
+  color: #047857;
+}
+
+.typeSyncFailed {
+  background: #FEE2E2;
+  color: #991B1B;
+}
+
+.typeUser {
+  background: #F3E8FF;
+  color: #6B21A8;
+}
+
+.typeApproved {
+  background: #D1FAE5;
+  color: #065F46;
+}
+
+.typeComment {
+  background: #FEF3C7;
+  color: #92400E;
+}
+
+.timelineContent {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.timelineMessage {
+  font-size: 14px;
+  color: #374151;
+  line-height: 1.5;
+}
+
+.timelineUser {
+  font-weight: 600;
+  color: #050038;
+}
+
+.timelineProject {
+  font-weight: 500;
+  color: #2563EB;
+}
+
+.timelineTime {
+  font-size: 12px;
+  color: #9CA3AF;
+}
+
+.loadMore {
+  display: flex;
+  justify-content: center;
+  padding: 20px 0;
+}
+
+.loadMoreButton {
+  padding: 10px 24px;
+  background: #ffffff;
+  border: 1px solid #E5E7EB;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.loadMoreButton:hover {
+  background: #F9FAFB;
+  border-color: #2563EB;
+  color: #2563EB;
+}

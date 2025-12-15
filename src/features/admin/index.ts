@@ -43,7 +43,7 @@ export {
 } from './hooks';
 
 // Components
-export { UserManagement, BoardManagement, ReportModal } from './components';
+export { UserManagement, BoardManagement, ReportModal, AdminDashboard } from './components';
 export type { ReportModalProps } from './components';
 
 // Pages

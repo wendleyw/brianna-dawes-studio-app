@@ -1,0 +1,411 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.subNav {
+  display: flex;
+  gap: 4px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid #E5E7EB;
+  margin-bottom: 24px;
+}
+
+.subNavButton {
+  background: transparent;
+  border: none;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #6B7280;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.subNavButton:hover {
+  background: #F3F4F6;
+  color: #050038;
+}
+
+.subNavButtonActive {
+  composes: subNavButton;
+  background: #EFF6FF;
+  color: #2563EB;
+}
+
+.content {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sectionTitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: #050038;
+  margin: 0;
+}
+
+.dateRangeSelect {
+  padding: 8px 12px;
+  border: 1px solid #E5E7EB;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #374151;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.chartsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.chartCard {
+  background: #ffffff;
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.chartTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: #050038;
+  margin: 0 0 16px 0;
+}
+
+.chartPlaceholder {
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #F9FAFB;
+  border-radius: 6px;
+  padding: 20px;
+}
+
+.pieChart {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.pieSegment {
+  padding: 12px 16px;
+  border-radius: 6px;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.lineChart {
+  text-align: center;
+  font-size: 16px;
+  color: #6B7280;
+}
+
+.heatmap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.heatmapRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  color: #6B7280;
+}
+
+.heatmapRow > span {
+  width: 40px;
+  font-weight: 500;
+}
+
+.heatmapCells {
+  display: flex;
+  gap: 4px;
+  flex: 1;
+}
+
+.heatmapCell {
+  flex: 1;
+  height: 24px;
+  border-radius: 4px;
+  background: #E5E7EB;
+}
+
+.heatmapCell[data-level="low"] {
+  background: #DBEAFE;
+}
+
+.heatmapCell[data-level="medium"] {
+  background: #93C5FD;
+}
+
+.heatmapCell[data-level="high"] {
+  background: #2563EB;
+}
+
+.syncHealth {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.syncHealthBar {
+  width: 100%;
+  height: 32px;
+  background: #E5E7EB;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.syncHealthFill {
+  height: 100%;
+  background: linear-gradient(90deg, #10B981, #059669);
+  transition: width 0.3s;
+}
+
+.syncHealthLabel {
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: #10B981;
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+  color: #6B7280;
+}
+
+.emptyIcon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.emptyState > p {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.emptySubtext {
+  margin-top: 8px !important;
+  font-size: 14px !important;
+  color: #9CA3AF !important;
+}
+
+.settingsGroup {
+  background: #ffffff;
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
+  padding: 24px;
+  margin-bottom: 20px;
+}
+
+.settingsGroupTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: #050038;
+  margin: 0 0 20px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.settingsList {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.settingItem {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.settingLabel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #050038;
+}
+
+.settingDescription {
+  font-size: 12px;
+  color: #6B7280;
+  font-weight: 400;
+}
+
+.settingInput {
+  width: 280px;
+  padding: 8px 12px;
+  border: 1px solid #E5E7EB;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #374151;
+}
+
+.settingSelect {
+  width: 200px;
+  padding: 8px 12px;
+  border: 1px solid #E5E7EB;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #374151;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.checkboxGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #374151;
+  cursor: pointer;
+}
+
+.checkbox input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+}
+
+.toggleSlider {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  background: #E5E7EB;
+  border-radius: 12px;
+  transition: all 0.3s;
+}
+
+.toggleSlider::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  background: #ffffff;
+  border-radius: 50%;
+  transition: all 0.3s;
+}
+
+.toggle input[type="checkbox"]:checked + .toggleSlider {
+  background: #2563EB;
+}
+
+.toggle input[type="checkbox"]:checked + .toggleSlider::after {
+  left: 22px;
+}
+
+.toggle input[type="checkbox"] {
+  display: none;
+}
+
+.toggleLabel {
+  font-size: 13px;
+  color: #374151;
+}
+
+.settingButton {
+  padding: 8px 16px;
+  background: #ffffff;
+  border: 1px solid #E5E7EB;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.settingButton:hover {
+  background: #F9FAFB;
+  border-color: #D1D5DB;
+}
+
+.settingsActions {
+  display: flex;
+  gap: 12px;
+  padding-top: 24px;
+}
+
+.saveButton {
+  padding: 10px 24px;
+  background: #2563EB;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #ffffff;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.saveButton:hover {
+  background: #1D4ED8;
+}
+
+.cancelButton {
+  padding: 10px 24px;
+  background: #ffffff;
+  border: 1px solid #E5E7EB;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cancelButton:hover {
+  background: #F9FAFB;
+}

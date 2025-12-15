@@ -6,6 +6,7 @@ import { DeveloperTools } from '../../components/DeveloperTools';
 import { SyncHealthDashboard } from '../../components/SyncHealthDashboard';
 import { ProjectTypesSettings } from '../../components/ProjectTypesSettings';
 import { AppSettings } from '../../components/AppSettings';
+import { AdminDashboard } from '../../components';
 import type { AdminTab } from '../../domain';
 import styles from './AdminSettingsPage.module.css';
 
@@ -85,6 +86,7 @@ function getGroupForTab(tab: AdminTab): AdminGroup {
 
 export function AdminSettingsPage() {
   const [activeTab, setActiveTab] = useState<AdminTab>('team');
+  const [isDashboardOpen, setIsDashboardOpen] = useState(false);
   const activeGroup = getGroupForTab(activeTab);
 
   const subTabs = activeGroup === 'people' ? PEOPLE_TABS : activeGroup === 'system' ? SYSTEM_TABS : [];
@@ -99,6 +101,12 @@ export function AdminSettingsPage() {
               Manage users, board assignments, and application settings
             </p>
           </div>
+          <button
+            className={styles.dashboardButton}
+            onClick={() => setIsDashboardOpen(true)}
+          >
+            🎛️ Dashboard
+          </button>
         </div>
       </header>
 
@@ -143,6 +151,8 @@ export function AdminSettingsPage() {
         {activeTab === 'sync' && <SyncHealthDashboard />}
         {activeTab === 'developer' && <DeveloperTools />}
       </div>
+
+      <AdminDashboard isOpen={isDashboardOpen} onClose={() => setIsDashboardOpen(false)} />
     </div>
   );
 }
