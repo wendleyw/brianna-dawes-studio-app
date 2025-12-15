@@ -2146,6 +2146,41 @@ export function DeveloperTools() {
           return data as string;
         });
 
+        await step('Notifications: actor excluded (no self-notify)', async () => {
+          const { data, error: e } = await supabase.rpc('create_project_with_designers', {
+            p_name: `[SMOKE][SELF_NOTIFY] ${new Date().toISOString()}`,
+            p_client_id: authUser.id,
+            p_description: 'Smoke test: ensure actor does not self-notify when also client',
+            p_status: 'in_progress',
+            p_priority: 'medium',
+            p_start_date: null,
+            p_due_date: null,
+            p_miro_board_id: null,
+            p_miro_board_url: null,
+            p_briefing: {},
+            p_google_drive_url: null,
+            p_due_date_approved: true,
+            p_sync_status: 'not_required',
+            p_designer_ids: [],
+          });
+          if (e) throw e;
+          if (!data) throw new Error('RPC create_project_with_designers returned no project id (self-notify test)');
+          const selfProjectId = data as string;
+          createdProjectIds.push(selfProjectId);
+
+          const { data: notifs, error: nErr } = await supabase
+            .from('notifications')
+            .select('id')
+            .eq('user_id', authUser.id)
+            .eq('type', 'project_assigned')
+            .eq('data->>projectId', selfProjectId)
+            .limit(1);
+          if (nErr) throw nErr;
+          if ((notifs ?? []).length > 0) {
+            throw new Error('Self-notification detected for project creation (actor exclusion failed)');
+          }
+        });
+
         await step('Update project via RPC', async () => {
           const { error: e } = await supabase.rpc('update_project_with_designers', {
             p_project_id: projectId,
