@@ -13,6 +13,8 @@ import type { ProjectFilters as ProjectFiltersType } from '@features/projects/do
 import { STATUS_COLUMNS, getStatusColumn } from '@shared/lib/timelineStatus';
 import { formatDateShort, formatDateMonthYear } from '@shared/lib/dateFormat';
 import { useRealtimeSubscription } from '@shared/hooks/useRealtimeSubscription';
+import { AdminDashboard } from '@features/admin/components';
+import type { AdminTab } from '@features/admin/domain/types';
 import styles from './DashboardPage.module.css';
 import type { ProjectStatus } from '@features/projects/domain/project.types';
 
@@ -39,6 +41,13 @@ const DashboardIcon = () => (
     <rect x="13" y="3" width="8" height="4" rx="1"/>
     <rect x="13" y="9" width="8" height="12" rx="1"/>
     <rect x="3" y="13" width="8" height="8" rx="1"/>
+  </svg>
+);
+
+const SettingsIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <circle cx="12" cy="12" r="3"/>
+    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
   </svg>
 );
 
@@ -108,26 +117,28 @@ export function DashboardPage() {
   const { isInMiro, boardId: currentBoardId, miro } = useMiro();
   const { boardId: masterBoardId } = useMasterBoardSettings();
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
+  const [isAdminDashboardOpen, setIsAdminDashboardOpen] = useState(false);
+  const [adminDashboardTab, setAdminDashboardTab] = useState<AdminTab>('analytics');
 
   // Handler to open Admin Dashboard in modal
-  const handleOpenAdminDashboard = useCallback(async () => {
+  const openAdminDashboard = useCallback(async (tab: AdminTab) => {
     if (miro && isInMiro) {
       try {
         await miro.board.ui.openModal({
-          url: 'admin-modal.html',
+          url: `admin-modal.html?tab=${encodeURIComponent(tab)}`,
           width: 900,
           height: 700,
           fullscreen: false,
         });
+        return;
       } catch (error) {
         console.error('Failed to open admin modal', error);
-        // Fallback to navigation
-        navigate('/admin/dashboard');
+        // Fallback to modal
       }
-    } else {
-      navigate('/admin/dashboard');
     }
-  }, [miro, isInMiro, navigate]);
+    setAdminDashboardTab(tab);
+    setIsAdminDashboardOpen(true);
+  }, [miro, isInMiro]);
 
   // Debug log
   console.log('[DashboardPage] Render:', {
@@ -445,13 +456,26 @@ export function DashboardPage() {
           {isAdmin && (
             <button
               className={styles.actionCard}
-              onClick={handleOpenAdminDashboard}
+              onClick={() => openAdminDashboard('analytics')}
             >
               <div className={styles.actionIconBlue}>
                 <DashboardIcon />
               </div>
               <span className={styles.actionLabel}>Admin</span>
               <span className={styles.actionSub}>Dashboard</span>
+            </button>
+          )}
+
+          {isAdmin && (
+            <button
+              className={styles.actionCard}
+              onClick={() => openAdminDashboard('settings')}
+            >
+              <div className={styles.actionIconSecondary}>
+                <SettingsIcon />
+              </div>
+              <span className={styles.actionLabel}>Admin</span>
+              <span className={styles.actionSub}>Settings</span>
             </button>
           )}
         </div>
@@ -531,6 +555,12 @@ export function DashboardPage() {
           </div>
         </div>
       </section>
+
+      <AdminDashboard
+        isOpen={isAdminDashboardOpen}
+        onClose={() => setIsAdminDashboardOpen(false)}
+        defaultTab={adminDashboardTab}
+      />
     </div>
   );
 }

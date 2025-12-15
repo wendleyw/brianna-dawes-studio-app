@@ -2,6 +2,7 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { NotificationBell } from '@features/notifications';
 import { ReportModal, AdminDashboard } from '@features/admin/components';
+import type { AdminTab } from '@features/admin/domain/types';
 import { useAuth } from '@features/auth';
 import { useMiro } from '@features/boards';
 import styles from './AppShell.module.css';
@@ -61,6 +62,7 @@ export function AppShell() {
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [isAdminMenuOpen, setIsAdminMenuOpen] = useState(false);
   const [isAdminDashboardOpen, setIsAdminDashboardOpen] = useState(false);
+  const [adminDashboardTab, setAdminDashboardTab] = useState<AdminTab>('overview');
   const adminMenuRef = useRef<HTMLDivElement | null>(null);
 
   const isAdmin = user?.role === 'admin';
@@ -106,22 +108,23 @@ export function AppShell() {
     }
   }, [miro, isInMiro]);
 
-  const handleOpenAnalyticsModal = useCallback(async () => {
+  const openAdminDashboard = useCallback(async (tab: AdminTab) => {
     if (miro && isInMiro) {
       try {
         await miro.board.ui.openModal({
-          url: 'admin-modal.html',
+          url: `admin-modal.html?tab=${encodeURIComponent(tab)}`,
           width: 1200,
           height: 800,
           fullscreen: false,
         });
       } catch (error) {
-        console.error('Failed to open analytics modal', error);
+        console.error('Failed to open admin modal', error);
       }
       return;
     }
-    navigate('/admin/dashboard');
-  }, [miro, isInMiro, navigate]);
+    setAdminDashboardTab(tab);
+    setIsAdminDashboardOpen(true);
+  }, [miro, isInMiro]);
 
   return (
     <div className={styles.shell}>
@@ -183,9 +186,9 @@ export function AppShell() {
                   </button>
                   <button
                     className={styles.adminMenuItem}
-                    onClick={() => {
+                    onClick={async () => {
                       setIsAdminMenuOpen(false);
-                      setIsAdminDashboardOpen(true);
+                      await openAdminDashboard('settings');
                     }}
                     type="button"
                     role="menuitem"
@@ -197,7 +200,7 @@ export function AppShell() {
               )}
               <button
                 className={styles.adminToggle}
-                onClick={handleOpenAnalyticsModal}
+                onClick={() => openAdminDashboard('analytics')}
                 aria-label="Analytics"
                 type="button"
                 title="Analytics"
@@ -222,6 +225,7 @@ export function AppShell() {
       <AdminDashboard
         isOpen={isAdminDashboardOpen}
         onClose={() => setIsAdminDashboardOpen(false)}
+        defaultTab={adminDashboardTab}
       />
     </div>
   );

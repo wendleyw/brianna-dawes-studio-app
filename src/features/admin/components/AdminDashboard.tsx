@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { AdminTab } from '../domain/types';
 import OverviewTab from './tabs/OverviewTab';
 import AnalyticsTab from './tabs/AnalyticsTab';
@@ -14,10 +14,18 @@ import styles from './AdminDashboard.module.css';
 interface AdminDashboardProps {
   isOpen: boolean;
   onClose: () => void;
+  defaultTab?: AdminTab;
 }
 
-export default function AdminDashboard({ isOpen, onClose }: AdminDashboardProps) {
-  const [activeTab, setActiveTab] = useState<AdminTab>('overview');
+export default function AdminDashboard({ isOpen, onClose, defaultTab = 'overview' }: AdminDashboardProps) {
+  const [activeTab, setActiveTab] = useState<AdminTab>(defaultTab);
+
+  // Reset to defaultTab when modal reopens or defaultTab changes
+  useEffect(() => {
+    if (isOpen) {
+      setActiveTab(defaultTab);
+    }
+  }, [isOpen, defaultTab]);
 
   if (!isOpen) return null;
 
