@@ -1011,6 +1011,7 @@ export function DeveloperTools() {
     setReportProgress([]);
 
     let createdProjectId: string | null = null;
+    let createdClientId: string | null = null;
 
     try {
       addReport('▶ Report E2E: starting...');
@@ -1044,7 +1045,7 @@ export function DeveloperTools() {
       }
 
       addReport('▶ Resolving a client user...');
-      const { data: client, error: clientErr } = await withTimeout(
+      let { data: client, error: clientErr } = await withTimeout(
         supabaseRestQuery<{ id: string; email: string; miro_user_id: string | null }>('users', {
           select: 'id,email,miro_user_id',
           eq: { role: 'client' },
@@ -1057,7 +1058,34 @@ export function DeveloperTools() {
         'supabaseRestQuery(users)'
       );
       if (clientErr) throw new Error(clientErr.message || 'Failed to fetch client user');
-      if (!client?.id) throw new Error('No client user found. Create a client first.');
+      if (!client?.id) {
+        if (reportCreateProjectAsClient) {
+          throw new Error(
+            'No client user found. Create a client first (Settings → Users) and open the app as this client once to populate miro_user_id.'
+          );
+        }
+
+        addReport('ℹ No client found → creating temporary E2E client...');
+        const email = `e2e-client+${Date.now()}@example.com`;
+        const created = await postgrestInsertWithTimeout<Record<string, unknown>>(
+          'users',
+          accessToken,
+          {
+            email,
+            name: 'E2E Client',
+            role: 'client',
+          },
+          15000
+        );
+        const row = (created[0] ?? null) as { id?: unknown; email?: unknown; miro_user_id?: unknown } | null;
+        const newClientId = typeof row?.id === 'string' ? row.id : '';
+        const newClientEmail = typeof row?.email === 'string' ? row.email : email;
+        const newClientMiroUserId = typeof row?.miro_user_id === 'string' ? row.miro_user_id : null;
+        if (!newClientId) throw new Error('Failed to create temporary E2E client user');
+        createdClientId = newClientId;
+        client = { id: newClientId, email: newClientEmail, miro_user_id: newClientMiroUserId };
+        addReport(`✓ Created E2E client: ${client.email} (${client.id})`);
+      }
       addReport(`✓ Using client: ${client.email} (${client.id})`);
 
       const nowIso = new Date().toISOString();
@@ -1276,6 +1304,15 @@ export function DeveloperTools() {
           addReport('✓ Cleanup: deleted project');
         } catch (e) {
           addReport(`⚠️ Cleanup project failed: ${formatError(e)}`);
+        }
+      }
+      if (reportDoWrites && createdClientId) {
+        try {
+          const accessToken = await getAccessToken();
+          await postgrestDeleteWhereWithTimeout('users', accessToken, `id=eq.${createdClientId}`, 15000);
+          addReport('✓ Cleanup: deleted temporary client');
+        } catch (e) {
+          addReport(`⚠️ Cleanup client failed: ${formatError(e)}`);
         }
       }
       setIsReportE2ERunning(false);
