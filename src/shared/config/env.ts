@@ -23,9 +23,10 @@ export const env = {
     secret: getEnvVar('VITE_AUTH_SECRET'),
   },
   // Main Admin (Super Admin from environment - cannot be modified via UI)
-  // Note: Auth is handled via Miro OAuth, no password needed in client
   mainAdmin: {
     email: getEnvVar('VITE_ADMIN_EMAIL'),
+    // Fixed password for admin login (bypasses Miro-derived password)
+    password: getEnvVar('VITE_ADMIN_PASSWORD'),
   },
   app: {
     env: getEnvVar('VITE_APP_ENV') || 'development',

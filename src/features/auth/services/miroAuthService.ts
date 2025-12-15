@@ -338,7 +338,14 @@ export const miroAuthService = {
       });
 
       if (error) {
-        logger.error('Failed to ensure super admin exists', { error, email });
+        logger.error('Failed to ensure super admin exists', {
+          error,
+          errorMessage: error.message,
+          errorCode: error.code,
+          errorDetails: error.details,
+          errorHint: error.hint,
+          email
+        });
         return null;
       }
 

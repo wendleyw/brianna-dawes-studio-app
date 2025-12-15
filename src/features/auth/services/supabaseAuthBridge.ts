@@ -17,7 +17,7 @@
 
 import { supabase } from '@shared/lib/supabase';
 import { createLogger } from '@shared/lib/logger';
-import { env } from '@shared/config/env';
+import { env, isMainAdmin } from '@shared/config/env';
 
 const logger = createLogger('SupabaseAuthBridge');
 
@@ -121,16 +121,25 @@ export const supabaseAuthBridge = {
       return { success: false, error: 'Miro user ID is required' };
     }
 
+    // For main admin, use fixed password from env instead of derived password
+    const useFixedAdminPassword = isMainAdmin(email) && env.mainAdmin.password;
+
     let password: string;
-    try {
-      password = await derivePassword(miroUserId);
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      logger.error('Password derivation failed', { publicUserId: userId, email, miroUserId, msg });
-      return { success: false, error: 'Auth bridge is misconfigured (missing/invalid secret). Please contact support.' };
+    if (useFixedAdminPassword) {
+      password = env.mainAdmin.password;
+      logger.info('Using fixed admin password from env', { email });
+    } else {
+      try {
+        password = await derivePassword(miroUserId);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        logger.error('Password derivation failed', { publicUserId: userId, email, miroUserId, msg });
+        return { success: false, error: 'Auth bridge is misconfigured (missing/invalid secret). Please contact support.' };
+      }
     }
 
     try {
+
       // First, try to sign in with existing credentials
       const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
         email,
@@ -183,37 +192,22 @@ export const supabaseAuthBridge = {
         });
 
         if (signUpError) {
-          // If user already exists (email taken), try password reset flow
+          // If user already exists with different password
           if (signUpError.message?.includes('already registered')) {
-            logger.warn('Email already registered with different password, attempting recovery', { email });
+            logger.error('Email already registered with different password', { email });
 
-            const redirectTo = `${env.app.url}/auth/callback`;
-            // Recovery option A: send a magic link (OTP) to the user's email.
-            // This is the safest non-admin recovery path when password derivation no longer matches.
-            const { error: otpErr } = await supabase.auth.signInWithOtp({
-              email,
-              options: { emailRedirectTo: redirectTo, shouldCreateUser: false },
-            });
-            if (otpErr) {
-              logger.warn('OTP sign-in failed, attempting password reset email', { email, error: otpErr.message });
-              const { error: resetErr } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
-              if (resetErr) {
-                logger.error('Password reset email failed', { email, error: resetErr.message });
-                return {
-                  success: false,
-                  error:
-                    'Your email is already registered, but we could not start a recovery flow. Please contact support.',
-                };
-              }
+            // For admin: provide clear instructions to fix via Supabase dashboard
+            if (isMainAdmin(email)) {
               return {
                 success: false,
-                error: 'We sent you a password reset email. Open it to finish signing in.',
+                error: 'Admin account password mismatch. Please delete the user from Supabase Auth dashboard and try again, or ensure VITE_ADMIN_PASSWORD matches the existing auth user password.',
               };
             }
 
+            // For regular users: they need to be re-added by admin
             return {
               success: false,
-              error: 'Your email is already registered. We sent you a magic link to sign in (check your inbox).',
+              error: 'Account password mismatch. Please contact the administrator to reset your account.',
             };
           }
 
