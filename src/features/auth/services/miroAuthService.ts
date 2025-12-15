@@ -148,12 +148,9 @@ export const miroAuthService = {
       if (!adminUser) {
         logger.info('Admin user not found, creating via Supabase Auth...');
 
-        // Create a temporary userId for the signInAfterMiroAuth call
-        // This will trigger auth signup which creates the user in public.users via trigger
-        const tempUserId = 'pending'; // This will be replaced after auth creation
-
+        // First, create via auth signup (will create public.users via trigger)
         const authResult = await supabaseAuthBridge.signInAfterMiroAuth(
-          tempUserId,
+          '', // Empty userId - will be looked up after auth creation
           email,
           miroUserId
         );
@@ -166,7 +163,22 @@ export const miroAuthService = {
           };
         }
 
-        // Now try again to promote to super admin
+        // Auth user created, now look up the public.users record
+        const { data: publicUser } = await supabase
+          .from('users')
+          .select('*')
+          .eq('email', email.toLowerCase())
+          .single();
+
+        if (!publicUser) {
+          logger.error('Public user not found after auth creation');
+          return {
+            success: false,
+            error: 'Auth created but user record not found. Please try again.',
+          };
+        }
+
+        // Now promote to super admin
         adminUser = await this.ensureMainAdminExists(email, name || 'Admin', miroUserId);
 
         if (!adminUser) {

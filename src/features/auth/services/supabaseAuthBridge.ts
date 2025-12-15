@@ -156,13 +156,18 @@ export const supabaseAuthBridge = {
         logger.info('Signed in to Supabase Auth', { publicUserId: userId, authUserId, email });
 
         // CRITICAL: Ensure public.users is linked to auth.uid() for RLS.
-        const linked = await this.linkAuthUser(userId, authUserId);
-        if (!linked) {
-          logger.error('Failed to link auth user to public user after sign-in', { publicUserId: userId, authUserId });
-          return {
-            success: false,
-            error: 'Account linking failed. Please contact support.',
-          };
+        // Skip linking if userId is empty (trigger already created the link)
+        if (userId && userId !== '') {
+          const linked = await this.linkAuthUser(userId, authUserId);
+          if (!linked) {
+            logger.error('Failed to link auth user to public user after sign-in', { publicUserId: userId, authUserId });
+            return {
+              success: false,
+              error: 'Account linking failed. Please contact support.',
+            };
+          }
+        } else {
+          logger.info('Skipping link (userId empty - trigger created the link)', { authUserId });
         }
 
         return {
