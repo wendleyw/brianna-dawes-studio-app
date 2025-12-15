@@ -68,6 +68,110 @@ async function signInWithPasswordToken(opts: {
   return { accessToken };
 }
 
+async function signUpWithPasswordToken(opts: {
+  email: string;
+  password: string;
+  publicUserId?: string | null;
+  miroUserId?: string | null;
+  timeoutMs: number;
+}): Promise<{ accessToken: string }> {
+  const { ok, status, body } = await fetchJsonWithTimeout(
+    `${env.supabase.url}/auth/v1/signup`,
+    {
+      method: 'POST',
+      headers: {
+        apikey: env.supabase.anonKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email: opts.email,
+        password: opts.password,
+        options: {
+          data: {
+            public_user_id: opts.publicUserId ?? null,
+            miro_user_id: opts.miroUserId ?? null,
+          },
+        },
+      }),
+    },
+    opts.timeoutMs
+  );
+
+  if (!ok) throw new Error(`auth signup failed (${status}): ${JSON.stringify(body)}`);
+  const data = body as { access_token?: unknown } | null;
+  const accessToken = typeof data?.access_token === 'string' ? data.access_token : '';
+  if (!accessToken) {
+    throw new Error('auth signup: missing access_token (email confirmation may be enabled)');
+  }
+  return { accessToken };
+}
+
+async function getAuthUserIdFromAccessToken(accessToken: string): Promise<string> {
+  const { ok, status, body } = await fetchJsonWithTimeout(
+    `${env.supabase.url}/auth/v1/user`,
+    {
+      method: 'GET',
+      headers: {
+        apikey: env.supabase.anonKey,
+        Authorization: `Bearer ${accessToken}`,
+      },
+    },
+    15000
+  );
+  if (!ok) throw new Error(`auth user fetch failed (${status}): ${JSON.stringify(body)}`);
+  const user = body as { id?: unknown } | null;
+  const id = typeof user?.id === 'string' ? user.id : '';
+  if (!id) throw new Error('auth user fetch: missing id');
+  return id;
+}
+
+async function ensureUserSessionForPublicUser(opts: {
+  label: string;
+  publicUserId: string;
+  email: string;
+  miroUserId: string | null;
+}): Promise<{ accessToken: string; authUserId: string }> {
+  if (!opts.miroUserId) {
+    throw new Error(`${opts.label} is missing miro_user_id (open the app as this user once to populate it).`);
+  }
+  const password = await deriveSupabasePasswordFromMiroUserId(opts.miroUserId);
+
+  let accessToken = '';
+  try {
+    const res = await signInWithPasswordToken({ email: opts.email, password, timeoutMs: 15000 });
+    accessToken = res.accessToken;
+  } catch (err) {
+    const msg = formatError(err);
+    if (!msg.toLowerCase().includes('invalid') && !msg.toLowerCase().includes('credentials')) {
+      throw err;
+    }
+    const res = await signUpWithPasswordToken({
+      email: opts.email,
+      password,
+      publicUserId: opts.publicUserId,
+      miroUserId: opts.miroUserId,
+      timeoutMs: 15000,
+    });
+    accessToken = res.accessToken;
+  }
+
+  const authUserId = await getAuthUserIdFromAccessToken(accessToken);
+  const linked = await postgrestRpcWithTimeout(
+    'link_auth_user',
+    accessToken,
+    {
+      p_public_user_id: opts.publicUserId,
+      p_auth_user_id: authUserId,
+    },
+    15000
+  );
+  if (linked !== true && linked !== 'true') {
+    throw new Error(`${opts.label}: link_auth_user did not return true`);
+  }
+
+  return { accessToken, authUserId };
+}
+
 function formatError(err: unknown): string {
   if (err instanceof Error) return err.message;
   if (typeof err === 'string') return err;
@@ -944,6 +1048,13 @@ export function DeveloperTools() {
   const [reportProgress, setReportProgress] = useState<string[]>([]);
   const [reportError, setReportError] = useState<string | null>(null);
   const reportLogRef = useRef<HTMLDivElement | null>(null);
+  const [isFullFlowRunning, setIsFullFlowRunning] = useState(false);
+  const [fullFlowDoWrites, setFullFlowDoWrites] = useState(false);
+  const [fullFlowIncludeSync, setFullFlowIncludeSync] = useState(false);
+  const [fullFlowExpanded, setFullFlowExpanded] = useState(true);
+  const [fullFlowProgress, setFullFlowProgress] = useState<string[]>([]);
+  const [fullFlowError, setFullFlowError] = useState<string | null>(null);
+  const fullFlowLogRef = useRef<HTMLDivElement | null>(null);
   const isSyncOpsActive = useMemo(
     () => isSyncOpsEnqueueing || isSyncOpsRunning || isSyncOpsCreating,
     [isSyncOpsCreating, isSyncOpsEnqueueing, isSyncOpsRunning]
@@ -978,6 +1089,496 @@ export function DeveloperTools() {
     if (!reportLogRef.current) return;
     reportLogRef.current.scrollTop = reportLogRef.current.scrollHeight;
   }, [reportProgress.length, reportExpanded]);
+
+  const addFullFlow = (message: string) => {
+    setFullFlowProgress((prev) => [...prev, message]);
+  };
+
+  useEffect(() => {
+    if (!fullFlowExpanded) return;
+    if (!fullFlowLogRef.current) return;
+    fullFlowLogRef.current.scrollTop = fullFlowLogRef.current.scrollHeight;
+  }, [fullFlowProgress.length, fullFlowExpanded]);
+
+  const runFullFlowE2E = async () => {
+    if (!authUser) {
+      setFullFlowError('Not authenticated. Please log in first.');
+      return;
+    }
+    if (authUser.role !== 'admin') {
+      setFullFlowError('Forbidden (admin only)');
+      return;
+    }
+
+    if (fullFlowDoWrites) {
+      const allow =
+        confirm(
+          '⚠️ Full Flow E2E vai CRIAR e DELETAR registros (project + deliverables + feedback) e vai gerar notificações.\n\nContinuar?'
+        ) &&
+        (!fullFlowIncludeSync ||
+          confirm(
+            'Este teste também vai rodar sync-worker com token do Miro e pode criar/atualizar itens no board.\n\nContinuar?'
+          ));
+      if (!allow) return;
+    }
+
+    setIsFullFlowRunning(true);
+    setFullFlowError(null);
+    setFullFlowProgress([]);
+
+    const startedAt = Date.now();
+    const created: {
+      projectId?: string;
+      deliverableId?: string;
+      feedbackId?: string;
+    } = {};
+
+    const cleanupNotificationIds = async (accessToken: string, label: string, ids: string[]) => {
+      if (ids.length === 0) return;
+      const unique = Array.from(new Set(ids));
+      const chunkSize = 20;
+      for (let i = 0; i < unique.length; i += chunkSize) {
+        const chunk = unique.slice(i, i + chunkSize);
+        const qs = `id=in.(${chunk.join(',')})`;
+        await postgrestDeleteWhereWithTimeout('notifications', accessToken, qs, 15000);
+      }
+      addFullFlow(`✓ Cleanup: deleted ${unique.length} notifications (${label})`);
+    };
+
+    try {
+      addFullFlow('▶ Full Flow E2E: starting...');
+      addFullFlow('▶ Getting Supabase access token (admin)...');
+      const adminAccessToken = await getAccessToken();
+      addFullFlow('✓ Admin access token: present');
+
+      const getMetrics = async () => {
+        const body = await postgrestRpcWithTimeout('get_dashboard_metrics', adminAccessToken, {}, 15000);
+        return parseDashboardMetricsRpc(body);
+      };
+
+      addFullFlow('▶ Reading dashboard metrics (before)...');
+      const before = await getMetrics();
+      addFullFlow(
+        `✓ Before: active=${before.active_projects} pending_reviews=${before.pending_reviews} overdue=${before.overdue_deliverables}`
+      );
+
+      if (!fullFlowDoWrites) {
+        addFullFlow('ℹ fullFlowDoWrites=off → read-only check finished.');
+        addFullFlow('✅ Full Flow E2E finished successfully');
+        return;
+      }
+
+      let boardId: string | null = null;
+      if (fullFlowIncludeSync) {
+        if (!isInMiro || !miro) throw new Error('Must be running inside a Miro board to include sync.');
+        addFullFlow('▶ Getting current board id...');
+        const boardInfo = await withTimeout(miro.board.getInfo(), 12000, 'miro.board.getInfo');
+        boardId = boardInfo.id;
+        addFullFlow(`✓ Board: ${boardId}`);
+      }
+
+      addFullFlow('▶ Resolving existing client + designer...');
+      const clientRes = await withTimeout(
+        supabaseRestQuery<{ id: string; email: string; miro_user_id: string | null }>('users', {
+          select: 'id,email,miro_user_id',
+          eq: { role: 'client' },
+          order: { column: 'created_at', ascending: true },
+          limit: 1,
+          maybeSingle: true,
+          authToken: adminAccessToken,
+        }),
+        12000,
+        'supabaseRestQuery(users:client)'
+      );
+      if (clientRes.error) throw new Error(clientRes.error.message || 'Failed to fetch client user');
+      const client = clientRes.data;
+      if (!client?.id || !client.email) {
+        throw new Error('No existing client user found. Create a client in Settings → Users.');
+      }
+
+      const designerRes = await withTimeout(
+        supabaseRestQuery<{ id: string; email: string; miro_user_id: string | null }>('users', {
+          select: 'id,email,miro_user_id',
+          eq: { role: 'designer' },
+          order: { column: 'created_at', ascending: true },
+          limit: 1,
+          maybeSingle: true,
+          authToken: adminAccessToken,
+        }),
+        12000,
+        'supabaseRestQuery(users:designer)'
+      );
+      if (designerRes.error) throw new Error(designerRes.error.message || 'Failed to fetch designer user');
+      const designer = designerRes.data;
+      if (!designer?.id || !designer.email) {
+        throw new Error('No existing designer user found. Create a designer in Settings → Users.');
+      }
+
+      addFullFlow(`✓ Client: ${client.email} (${client.id})`);
+      addFullFlow(`✓ Designer: ${designer.email} (${designer.id})`);
+
+      addFullFlow('▶ Creating client session (for RLS + notifications)...');
+      const clientSession = await ensureUserSessionForPublicUser({
+        label: 'Client',
+        publicUserId: client.id,
+        email: client.email,
+        miroUserId: client.miro_user_id,
+      });
+      addFullFlow('✓ Client session ready');
+
+      addFullFlow('▶ Creating designer session (for notifications)...');
+      const designerSession = await ensureUserSessionForPublicUser({
+        label: 'Designer',
+        publicUserId: designer.id,
+        email: designer.email,
+        miroUserId: designer.miro_user_id,
+      });
+      addFullFlow('✓ Designer session ready');
+
+      const nowIso = new Date().toISOString();
+      const projectName = `[E2E][FULL] ${nowIso}`;
+
+      addFullFlow('▶ Creating project as CLIENT (assigning designer)...');
+      const createProjectPayload = {
+        p_name: projectName,
+        p_client_id: client.id,
+        p_description: 'E2E full flow test project (client-created)',
+        p_status: 'in_progress',
+        p_priority: 'medium',
+        p_start_date: null,
+        p_due_date: null,
+        p_miro_board_id: boardId,
+        p_miro_board_url: boardId ? `https://miro.com/app/board/${boardId}/` : null,
+        p_briefing: {},
+        p_google_drive_url: null,
+        p_due_date_approved: true,
+        p_sync_status: boardId ? null : 'not_required',
+        p_designer_ids: [designer.id],
+      };
+
+      const createBody = await postgrestRpcWithTimeout(
+        'create_project_with_designers',
+        clientSession.accessToken,
+        createProjectPayload,
+        30000
+      );
+      const projectId = coerceUuidFromRpcBody(createBody, 'create_project_with_designers');
+      if (!projectId) throw new Error('create_project_with_designers returned invalid project id');
+      created.projectId = projectId;
+      addFullFlow(`✓ Project created: ${projectId}`);
+
+      addFullFlow('▶ Verifying notifications (project created)...');
+      const clientNotifs = await supabaseRestQuery<
+        { id: string; type: string; title: string; data: { projectId?: string } | null; created_at: string; is_read: boolean }[]
+      >('notifications', {
+        select: 'id,type,title,data,created_at,is_read',
+        order: { column: 'created_at', ascending: false },
+        limit: 50,
+        authToken: clientSession.accessToken,
+      });
+      if (clientNotifs.error) throw new Error(clientNotifs.error.message);
+      const clientSelfProjectNotifs =
+        (clientNotifs.data ?? []).filter((n) => (n.data?.projectId ?? '') === projectId && n.type === 'project_assigned');
+      if (clientSelfProjectNotifs.length > 0) {
+        throw new Error('Client received self-notification for project creation (should be excluded).');
+      }
+      addFullFlow('✓ OK: client did not receive self project notification');
+
+      const designerNotifs = await supabaseRestQuery<
+        { id: string; type: string; title: string; data: { projectId?: string } | null; created_at: string; is_read: boolean }[]
+      >('notifications', {
+        select: 'id,type,title,data,created_at,is_read',
+        order: { column: 'created_at', ascending: false },
+        limit: 50,
+        authToken: designerSession.accessToken,
+      });
+      if (designerNotifs.error) throw new Error(designerNotifs.error.message);
+      const designerProjectNotifs =
+        (designerNotifs.data ?? []).filter((n) => (n.data?.projectId ?? '') === projectId && n.type === 'project_assigned');
+      if (designerProjectNotifs.length === 0) {
+        addFullFlow('⚠️ Designer did not receive project_assigned notification (check notification triggers).');
+      } else {
+        addFullFlow('✓ Designer received project_assigned notification');
+      }
+
+      addFullFlow('▶ Creating deliverable as ADMIN (triggers deliverable_created)...');
+      const dueFuture = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
+      const deliverableName = `[E2E][FULL] Deliverable ${nowIso}`;
+      const insertedDeliverables = await postgrestInsertWithTimeout<Record<string, unknown>>(
+        'deliverables',
+        adminAccessToken,
+        {
+          project_id: projectId,
+          name: deliverableName,
+          description: null,
+          type: 'design',
+          status: 'in_review',
+          due_date: dueFuture,
+          count: 1,
+          bonus_count: 0,
+        },
+        30000
+      );
+      const deliverableId =
+        typeof (insertedDeliverables[0] as { id?: unknown } | undefined)?.id === 'string'
+          ? String((insertedDeliverables[0] as { id?: unknown }).id)
+          : '';
+      if (!deliverableId) throw new Error('Deliverable insert returned invalid id');
+      created.deliverableId = deliverableId;
+      addFullFlow(`✓ Deliverable created: ${deliverableId}`);
+
+      addFullFlow('▶ Verifying notifications (deliverable created)...');
+      const clientNotifs2 = await supabaseRestQuery<
+        { id: string; type: string; data: { projectId?: string; deliverableId?: string } | null }[]
+      >('notifications', {
+        select: 'id,type,data',
+        order: { column: 'created_at', ascending: false },
+        limit: 50,
+        authToken: clientSession.accessToken,
+      });
+      if (clientNotifs2.error) throw new Error(clientNotifs2.error.message);
+      const clientDeliverableNotifs =
+        (clientNotifs2.data ?? []).filter(
+          (n) => (n.data?.projectId ?? '') === projectId && n.type === 'deliverable_created'
+        );
+      if (clientDeliverableNotifs.length === 0) {
+        addFullFlow('⚠️ Client did not receive deliverable_created notification.');
+      } else {
+        addFullFlow('✓ Client received deliverable_created notification');
+      }
+
+      const designerNotifs2 = await supabaseRestQuery<
+        { id: string; type: string; data: { projectId?: string; deliverableId?: string } | null }[]
+      >('notifications', {
+        select: 'id,type,data',
+        order: { column: 'created_at', ascending: false },
+        limit: 50,
+        authToken: designerSession.accessToken,
+      });
+      if (designerNotifs2.error) throw new Error(designerNotifs2.error.message);
+      const designerDeliverableNotifs =
+        (designerNotifs2.data ?? []).filter(
+          (n) => (n.data?.projectId ?? '') === projectId && n.type === 'deliverable_created'
+        );
+      if (designerDeliverableNotifs.length === 0) {
+        addFullFlow('⚠️ Designer did not receive deliverable_created notification.');
+      } else {
+        addFullFlow('✓ Designer received deliverable_created notification');
+      }
+
+      addFullFlow('▶ Creating feedback as CLIENT (triggers feedback_received)...');
+      const feedbackInsert = await postgrestInsertWithTimeout<Record<string, unknown>>(
+        'deliverable_feedback',
+        clientSession.accessToken,
+        {
+          deliverable_id: deliverableId,
+          version_id: crypto.randomUUID(),
+          user_id: client.id,
+          content: `E2E feedback from client at ${nowIso}`,
+          status: 'pending',
+          miro_annotation_id: null,
+          position: null,
+        },
+        30000
+      );
+      const feedbackId =
+        typeof (feedbackInsert[0] as { id?: unknown } | undefined)?.id === 'string'
+          ? String((feedbackInsert[0] as { id?: unknown }).id)
+          : '';
+      if (!feedbackId) throw new Error('Feedback insert returned invalid id');
+      created.feedbackId = feedbackId;
+      addFullFlow(`✓ Feedback created: ${feedbackId}`);
+
+      addFullFlow('▶ Verifying notifications (feedback received)...');
+      const designerNotifs3 = await supabaseRestQuery<
+        { id: string; type: string; data: { projectId?: string; deliverableId?: string } | null }[]
+      >('notifications', {
+        select: 'id,type,data',
+        order: { column: 'created_at', ascending: false },
+        limit: 50,
+        authToken: designerSession.accessToken,
+      });
+      if (designerNotifs3.error) throw new Error(designerNotifs3.error.message);
+      const feedbackNotifs =
+        (designerNotifs3.data ?? []).filter((n) => (n.data?.projectId ?? '') === projectId && n.type === 'feedback_received');
+      if (feedbackNotifs.length === 0) {
+        addFullFlow('⚠️ Designer did not receive feedback_received notification.');
+      } else {
+        addFullFlow('✓ Designer received feedback_received notification');
+      }
+
+      addFullFlow('▶ Reading dashboard metrics (after)...');
+      const after = await getMetrics();
+      const dActive = after.active_projects - before.active_projects;
+      const dPending = after.pending_reviews - before.pending_reviews;
+      const dOverdue = after.overdue_deliverables - before.overdue_deliverables;
+      addFullFlow(
+        `✓ After: active=${after.active_projects} pending_reviews=${after.pending_reviews} overdue=${after.overdue_deliverables} (Δ +${dActive}/+${dPending}/+${dOverdue})`
+      );
+      if (dActive < 1) throw new Error('Dashboard metrics did not increase active_projects as expected (+1).');
+      if (dPending < 1) throw new Error('Dashboard metrics did not increase pending_reviews as expected (+1).');
+
+      if (fullFlowIncludeSync && boardId) {
+        addFullFlow('▶ Enqueueing project_sync job...');
+        const miroTokenClean = sanitizeMiroToken(miroTokenOverride);
+        const miroTokenRes = miroTokenClean ? { token: miroTokenClean } : await tryGetMiroAccessToken();
+        const miroAccessToken = miroTokenRes.token;
+        if (!miroAccessToken) {
+          throw new Error(
+            `Missing Miro access token: ${miroTokenRes.error ?? 'unknown'}. ` +
+              'Use "Miro token override" or run in a context that supports miro.board.getToken().'
+          );
+        }
+
+        const enqueueBody = await postgrestRpcWithTimeout(
+          'enqueue_sync_job',
+          adminAccessToken,
+          {
+            p_job_type: 'project_sync',
+            p_project_id: projectId,
+            p_board_id: boardId,
+            p_payload: { reason: 'full_flow_e2e' },
+            p_run_at: new Date().toISOString(),
+          },
+          15000
+        );
+        const jobId = coerceUuidFromRpcBody(enqueueBody, 'enqueue_sync_job');
+        if (!jobId) throw new Error(`Invalid job id from enqueue_sync_job: ${JSON.stringify(enqueueBody)}`);
+        addFullFlow(`✓ Job enqueued: ${jobId}`);
+
+        addFullFlow('▶ Running sync-worker (maxJobs=1)...');
+        const { ok, status, body } = await fetchJsonWithTimeout(
+          `${env.supabase.url}/functions/v1/sync-worker`,
+          {
+            method: 'POST',
+            headers: {
+              apikey: env.supabase.anonKey,
+              Authorization: `Bearer ${adminAccessToken}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ miroAccessToken, maxJobs: 1 }),
+          },
+          30000
+        );
+        if (!ok) throw new Error(`sync-worker failed (${status}): ${JSON.stringify(body)}`);
+        addFullFlow(`✓ sync-worker: ${JSON.stringify(body)}`);
+
+        addFullFlow('▶ Verifying project got linked Miro ids...');
+        const proj = await supabaseRestQuery<{ id: string; miro_card_id: string | null; sync_status: string | null }>('projects', {
+          select: 'id,miro_card_id,sync_status',
+          eq: { id: projectId },
+          maybeSingle: true,
+          authToken: adminAccessToken,
+        });
+        if (proj.error) throw new Error(proj.error.message);
+        if (!proj.data?.miro_card_id) throw new Error('Project miro_card_id not set after sync-worker run.');
+        addFullFlow(`✓ Project miro_card_id: ${proj.data.miro_card_id} (sync_status=${proj.data.sync_status ?? 'n/a'})`);
+      }
+
+      addFullFlow('✅ Full Flow E2E finished successfully');
+    } catch (err) {
+      logger.error('Full Flow E2E failed', err);
+      const msg = formatError(err);
+      setFullFlowError(msg);
+      addFullFlow(`✗ Full Flow E2E failed: ${msg}`);
+    } finally {
+      if (fullFlowDoWrites && created.projectId) {
+        addFullFlow('');
+        addFullFlow('🧹 Cleanup...');
+        try {
+          const adminAccessToken = await getAccessToken();
+          if (created.feedbackId) {
+            await postgrestDeleteWhereWithTimeout('deliverable_feedback', adminAccessToken, `id=eq.${created.feedbackId}`, 15000);
+            addFullFlow('✓ Cleanup: deleted feedback');
+          }
+        } catch (e) {
+          addFullFlow(`⚠️ Cleanup feedback failed: ${formatError(e)}`);
+        }
+        try {
+          const adminAccessToken = await getAccessToken();
+          if (created.deliverableId) {
+            await postgrestDeleteWhereWithTimeout('deliverables', adminAccessToken, `id=eq.${created.deliverableId}`, 15000);
+            addFullFlow('✓ Cleanup: deleted deliverable');
+          }
+        } catch (e) {
+          addFullFlow(`⚠️ Cleanup deliverable failed: ${formatError(e)}`);
+        }
+        try {
+          const adminAccessToken = await getAccessToken();
+          await postgrestDeleteWhereWithTimeout('projects', adminAccessToken, `id=eq.${created.projectId}`, 15000);
+          addFullFlow('✓ Cleanup: deleted project');
+        } catch (e) {
+          addFullFlow(`⚠️ Cleanup project failed: ${formatError(e)}`);
+        }
+
+        // Best-effort: delete related notifications created during the run (per-user, using their own token).
+        try {
+          const adminAccessToken = await getAccessToken();
+          const clientRes = await supabaseRestQuery<{ id: string; email: string; miro_user_id: string | null }>('users', {
+            select: 'id,email,miro_user_id',
+            eq: { role: 'client' },
+            order: { column: 'created_at', ascending: true },
+            limit: 1,
+            maybeSingle: true,
+            authToken: adminAccessToken,
+          });
+          const designerRes = await supabaseRestQuery<{ id: string; email: string; miro_user_id: string | null }>('users', {
+            select: 'id,email,miro_user_id',
+            eq: { role: 'designer' },
+            order: { column: 'created_at', ascending: true },
+            limit: 1,
+            maybeSingle: true,
+            authToken: adminAccessToken,
+          });
+          const client = clientRes.data;
+          const designer = designerRes.data;
+          if (client?.id && client.email && client.miro_user_id) {
+            const clientSession = await ensureUserSessionForPublicUser({
+              label: 'Client (cleanup)',
+              publicUserId: client.id,
+              email: client.email,
+              miroUserId: client.miro_user_id,
+            });
+            const { data } = await supabaseRestQuery<
+              { id: string; data: { projectId?: string } | null; created_at: string }[]
+            >('notifications', {
+              select: 'id,data,created_at',
+              order: { column: 'created_at', ascending: false },
+              limit: 50,
+              authToken: clientSession.accessToken,
+            });
+            const ids = (data ?? [])
+              .filter((n) => (n.data?.projectId ?? '') === created.projectId && new Date(n.created_at).getTime() >= startedAt - 120000)
+              .map((n) => n.id);
+            await cleanupNotificationIds(clientSession.accessToken, 'client', ids);
+          }
+          if (designer?.id && designer.email && designer.miro_user_id) {
+            const designerSession = await ensureUserSessionForPublicUser({
+              label: 'Designer (cleanup)',
+              publicUserId: designer.id,
+              email: designer.email,
+              miroUserId: designer.miro_user_id,
+            });
+            const { data } = await supabaseRestQuery<
+              { id: string; data: { projectId?: string } | null; created_at: string }[]
+            >('notifications', {
+              select: 'id,data,created_at',
+              order: { column: 'created_at', ascending: false },
+              limit: 50,
+              authToken: designerSession.accessToken,
+            });
+            const ids = (data ?? [])
+              .filter((n) => (n.data?.projectId ?? '') === created.projectId && new Date(n.created_at).getTime() >= startedAt - 120000)
+              .map((n) => n.id);
+            await cleanupNotificationIds(designerSession.accessToken, 'designer', ids);
+          }
+        } catch (e) {
+          addFullFlow(`⚠️ Cleanup notifications skipped: ${formatError(e)}`);
+        }
+      }
+      setIsFullFlowRunning(false);
+    }
+  };
 
   const runReportE2E = async () => {
     if (!authUser) {
@@ -2837,7 +3438,7 @@ export function DeveloperTools() {
         </label>
 
         {reportIncludeSync && (
-          <label className={styles.inputRow}>
+          <label className={styles.checkboxRow}>
             <span>Miro token override</span>
             <input
               type="password"
@@ -2845,7 +3446,6 @@ export function DeveloperTools() {
               onChange={(e) => setMiroTokenOverride(e.target.value)}
               placeholder="Opcional: cole aqui se miro.board.getToken() não estiver disponível"
               disabled={isReportE2ERunning}
-              className={styles.textInput}
               autoComplete="off"
               spellCheck={false}
             />
@@ -2876,6 +3476,83 @@ export function DeveloperTools() {
             {reportProgress.length > 0 && (
               <div ref={reportLogRef} className={styles.progressLog} aria-busy={isReportE2ERunning}>
                 {reportProgress.map((msg, i) => (
+                  <div key={i} className={styles.progressLine}>
+                    {msg}
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* Full Flow E2E Section */}
+      <div className={styles.section}>
+        <h3 className={styles.sectionTitle}>🧪 Full Flow E2E (Client → Project → Notifs → Deliverables → Feedback → Report → Sync)</h3>
+        <p className={styles.sectionDescription}>
+          Valida o fluxo completo com usuários existentes: o CLIENT cria projeto (com DESIGNER atribuído),
+          checa notificações (sem auto-notify), cria deliverable + feedback, valida métricas de report e opcionalmente roda sync.
+        </p>
+
+        <label className={styles.checkboxRow}>
+          <input
+            type="checkbox"
+            checked={fullFlowDoWrites}
+            onChange={(e) => setFullFlowDoWrites(e.target.checked)}
+            disabled={isFullFlowRunning}
+          />
+          <span>Modo E2E (cria/deleta project + deliverable + feedback)</span>
+        </label>
+
+        <label className={styles.checkboxRow}>
+          <input
+            type="checkbox"
+            checked={fullFlowIncludeSync}
+            onChange={(e) => setFullFlowIncludeSync(e.target.checked)}
+            disabled={isFullFlowRunning || !fullFlowDoWrites}
+          />
+          <span>Incluir Sync Jobs + sync-worker (cria item no Miro via REST)</span>
+        </label>
+
+        {fullFlowIncludeSync && (
+          <label className={styles.checkboxRow}>
+            <span>Miro token override</span>
+            <input
+              type="password"
+              value={miroTokenOverride}
+              onChange={(e) => setMiroTokenOverride(e.target.value)}
+              placeholder="Opcional: cole aqui se miro.board.getToken() não estiver disponível"
+              disabled={isFullFlowRunning}
+              autoComplete="off"
+              spellCheck={false}
+            />
+          </label>
+        )}
+
+        <Button
+          onClick={runFullFlowE2E}
+          isLoading={isFullFlowRunning}
+          variant="primary"
+          className={styles.primaryButton}
+        >
+          {isFullFlowRunning ? 'Running Full Flow E2E...' : '🧪 Run Full Flow E2E'}
+        </Button>
+
+        <label className={styles.checkboxRow}>
+          <input
+            type="checkbox"
+            checked={fullFlowExpanded}
+            onChange={(e) => setFullFlowExpanded(e.target.checked)}
+          />
+          <span>Mostrar output</span>
+        </label>
+
+        {fullFlowExpanded && (fullFlowError || fullFlowProgress.length > 0) && (
+          <>
+            {fullFlowError && <div className={styles.error}>{fullFlowError}</div>}
+            {fullFlowProgress.length > 0 && (
+              <div ref={fullFlowLogRef} className={styles.progressLog} aria-busy={isFullFlowRunning}>
+                {fullFlowProgress.map((msg, i) => (
                   <div key={i} className={styles.progressLine}>
                     {msg}
                   </div>
