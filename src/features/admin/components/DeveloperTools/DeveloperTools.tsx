@@ -1235,7 +1235,13 @@ export function DeveloperTools() {
         const miroTokenClean = sanitizeMiroToken(miroTokenOverride);
         const miroTokenRes = miroTokenClean ? { token: miroTokenClean } : await tryGetMiroAccessToken();
         const miroAccessToken = miroTokenRes.token;
-        if (!miroAccessToken) throw new Error(`Missing Miro access token: ${miroTokenRes.error ?? 'unknown'}`);
+        if (!miroAccessToken) {
+          throw new Error(
+            `Missing Miro access token: ${miroTokenRes.error ?? 'unknown'}. ` +
+              'In this context the Miro SDK cannot provide a token. ' +
+              'Use "Miro token override" (paste a valid token) or run the app in a board context that supports miro.board.getToken().'
+          );
+        }
 
         const enqueueBody = await postgrestRpcWithTimeout(
           'enqueue_sync_job',
@@ -2820,15 +2826,31 @@ export function DeveloperTools() {
         <span>Criar o projeto como CLIENT (valida que não auto-notifica)</span>
       </label>
 
-      <label className={styles.checkboxRow}>
-        <input
-          type="checkbox"
-          checked={reportIncludeSync}
+        <label className={styles.checkboxRow}>
+          <input
+            type="checkbox"
+            checked={reportIncludeSync}
             onChange={(e) => setReportIncludeSync(e.target.checked)}
             disabled={isReportE2ERunning || !reportDoWrites}
           />
           <span>Incluir Sync Jobs + sync-worker (cria item no Miro via REST)</span>
         </label>
+
+        {reportIncludeSync && (
+          <label className={styles.inputRow}>
+            <span>Miro token override</span>
+            <input
+              type="password"
+              value={miroTokenOverride}
+              onChange={(e) => setMiroTokenOverride(e.target.value)}
+              placeholder="Opcional: cole aqui se miro.board.getToken() não estiver disponível"
+              disabled={isReportE2ERunning}
+              className={styles.textInput}
+              autoComplete="off"
+              spellCheck={false}
+            />
+          </label>
+        )}
 
         <Button
           onClick={runReportE2E}
