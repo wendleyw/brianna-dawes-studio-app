@@ -10,6 +10,7 @@ export function NotificationBell() {
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const unreadNotifications = notifications.filter((n) => !n.isRead);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -60,11 +61,11 @@ export function NotificationBell() {
             )}
           </div>
 
-          {notifications.length === 0 ? (
-            <div className={styles.empty}>No notifications</div>
+          {unreadNotifications.length === 0 ? (
+            <div className={styles.empty}>No unread notifications</div>
           ) : (
             <div className={styles.list}>
-              {notifications.slice(0, 10).map((notification) => (
+              {unreadNotifications.slice(0, 10).map((notification) => (
                 <div
                   key={notification.id}
                   className={`${styles.item} ${!notification.isRead ? styles.itemUnread : ''}`}
