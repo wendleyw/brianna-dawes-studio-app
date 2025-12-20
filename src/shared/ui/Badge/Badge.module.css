@@ -2,47 +2,204 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: var(--space-1);
   font-family: var(--font-ui);
   font-weight: var(--font-medium);
   border-radius: var(--radius-full);
   white-space: nowrap;
+  line-height: 1;
 }
 
 /* Sizes */
-.sm {
+.size-xs {
+  height: 18px;
+  padding: 0 var(--space-2);
+  font-size: 10px;
+}
+
+.size-sm {
   height: 20px;
   padding: 0 var(--space-2);
   font-size: var(--text-xs);
 }
 
-.md {
+.size-md {
   height: 24px;
   padding: 0 var(--space-3);
   font-size: var(--text-sm);
 }
 
-/* Variants */
-.success {
-  background-color: var(--color-success-light);
-  color: var(--color-success-dark);
+.size-lg {
+  height: 28px;
+  padding: 0 var(--space-4);
+  font-size: var(--text-sm);
 }
 
-.warning {
-  background-color: var(--color-warning-light);
+/* Icon spacing */
+.withLeftIcon {
+  padding-left: var(--space-2);
+}
+
+.withRightIcon {
+  padding-right: var(--space-2);
+}
+
+.iconLeft,
+.iconRight {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Dot variant */
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  padding: 0;
+}
+
+/* Interactive states */
+.interactive {
+  cursor: pointer;
+  transition: transform 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.interactive:hover {
+  transform: translateY(-1px);
+}
+
+.interactive:active {
+  transform: translateY(0);
+}
+
+.interactive:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+/* ========== SOLID VARIANT ========== */
+
+/* Solid Primary */
+.variant-solid.color-primary {
+  background-color: var(--color-primary);
+  color: white;
+}
+
+/* Solid Success */
+.variant-solid.color-success {
+  background-color: var(--color-success);
+  color: white;
+}
+
+/* Solid Warning */
+.variant-solid.color-warning {
+  background-color: var(--color-warning);
+  color: white;
+}
+
+/* Solid Error */
+.variant-solid.color-error {
+  background-color: var(--color-error);
+  color: white;
+}
+
+/* Solid Info */
+.variant-solid.color-info {
+  background-color: var(--color-info);
+  color: white;
+}
+
+/* Solid Neutral */
+.variant-solid.color-neutral {
+  background-color: var(--color-gray-600);
+  color: white;
+}
+
+/* ========== OUTLINED VARIANT ========== */
+
+/* Outlined Primary */
+.variant-outlined.color-primary {
+  background: transparent;
+  border: 1px solid var(--color-primary);
+  color: var(--color-primary);
+}
+
+/* Outlined Success */
+.variant-outlined.color-success {
+  background: transparent;
+  border: 1px solid var(--color-success);
+  color: var(--color-success);
+}
+
+/* Outlined Warning */
+.variant-outlined.color-warning {
+  background: transparent;
+  border: 1px solid var(--color-warning);
   color: var(--color-warning-dark);
 }
 
-.error {
+/* Outlined Error */
+.variant-outlined.color-error {
+  background: transparent;
+  border: 1px solid var(--color-error);
+  color: var(--color-error);
+}
+
+/* Outlined Info */
+.variant-outlined.color-info {
+  background: transparent;
+  border: 1px solid var(--color-info);
+  color: var(--color-info);
+}
+
+/* Outlined Neutral */
+.variant-outlined.color-neutral {
+  background: transparent;
+  border: 1px solid var(--color-gray-400);
+  color: var(--color-gray-700);
+}
+
+/* ========== SOFT VARIANT ========== */
+
+/* Soft Primary */
+.variant-soft.color-primary {
+  background-color: var(--color-primary-light);
+  border: 1px solid transparent;
+  color: var(--color-primary);
+}
+
+/* Soft Success */
+.variant-soft.color-success {
+  background-color: var(--color-success-light);
+  border: 1px solid transparent;
+  color: var(--color-success-dark);
+}
+
+/* Soft Warning */
+.variant-soft.color-warning {
+  background-color: var(--color-warning-light);
+  border: 1px solid transparent;
+  color: var(--color-warning-dark);
+}
+
+/* Soft Error */
+.variant-soft.color-error {
   background-color: var(--color-error-light);
+  border: 1px solid transparent;
   color: var(--color-error-dark);
 }
 
-.info {
+/* Soft Info */
+.variant-soft.color-info {
   background-color: var(--color-info-light);
+  border: 1px solid transparent;
   color: var(--color-info-dark);
 }
 
-.neutral {
+/* Soft Neutral */
+.variant-soft.color-neutral {
   background-color: var(--color-gray-100);
+  border: 1px solid transparent;
   color: var(--color-gray-700);
 }

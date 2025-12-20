@@ -65,4 +65,37 @@
   --priority-high: #f59e0b;
   --priority-medium: #3b82f6;
   --priority-standard: #10b981;
+
+  /* === BRAND COLORS === */
+  --color-brand-gold: #D4A574; /* Used in client name - ProjectCard:183 */
+
+  /* === EXTENDED STATUS COLORS === */
+  --color-purple-500: #8B5CF6;
+  --color-purple-600: #7C3AED;
+  --color-purple-700: #6D28D9;
+
+  /* === GRADIENTS === */
+  --gradient-success: linear-gradient(135deg, #10B981 0%, #059669 100%);
+  --gradient-warning: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+  --gradient-purple: linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%);
+  --gradient-primary: linear-gradient(135deg, #050038 0%, #030025 100%);
+
+  /* === COMPONENT-SPECIFIC TOKENS === */
+  --color-project-card-border: var(--color-primary);
+  --color-badge-text: var(--color-text-inverse);
+  --color-modal-overlay: rgba(0, 0, 0, 0.5);
+
+  /* === ANIMATION TOKENS === */
+  --duration-fast: 150ms;
+  --duration-normal: 250ms;
+  --duration-slow: 350ms;
+  --easing-standard: cubic-bezier(0.4, 0.0, 0.2, 1);
+  --easing-decelerate: cubic-bezier(0.0, 0.0, 0.2, 1);
+  --easing-accelerate: cubic-bezier(0.4, 0.0, 1, 1);
+
+  /* === SHADOW TOKENS === */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
 }

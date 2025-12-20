@@ -1,0 +1,112 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.label {
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  color: var(--color-text-primary);
+}
+
+.textareaWrapper {
+  position: relative;
+}
+
+.textarea {
+  width: 100%;
+  min-height: 80px;
+  padding: var(--space-2);
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+  box-sizing: border-box;
+  resize: vertical;
+}
+
+.textarea.resizeNone {
+  resize: none;
+}
+
+.textarea.resizeVertical {
+  resize: vertical;
+}
+
+.textarea.resizeHorizontal {
+  resize: horizontal;
+}
+
+.textarea.resizeBoth {
+  resize: both;
+}
+
+.textarea.autoResize {
+  resize: none;
+  overflow: hidden;
+}
+
+.textarea::placeholder {
+  color: var(--color-text-tertiary);
+}
+
+.textarea:focus {
+  outline: none;
+  border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.textarea:disabled {
+  background-color: var(--color-gray-100);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.textarea.hasError {
+  border-color: var(--color-error);
+}
+
+.textarea.hasError:focus {
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+.footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+
+.helperText {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  flex: 1;
+}
+
+.errorText {
+  font-size: var(--text-xs);
+  color: var(--color-error);
+  flex: 1;
+}
+
+.counter {
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.counter.atLimit {
+  color: var(--color-warning);
+  font-weight: var(--font-medium);
+}
+
+.counter.overLimit {
+  color: var(--color-error);
+  font-weight: var(--font-medium);
+}

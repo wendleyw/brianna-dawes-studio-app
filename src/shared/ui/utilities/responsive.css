@@ -1,0 +1,207 @@
+/* ===========================================
+ * RESPONSIVE UTILITIES
+ * Container and visibility utilities for responsive layouts
+ * =========================================== */
+
+/* ===========================================
+ * CONTAINER UTILITIES
+ * Responsive max-width containers with padding
+ * =========================================== */
+
+.container {
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: var(--space-4);
+  padding-right: var(--space-4);
+}
+
+/* Responsive max-widths */
+@media (min-width: 640px) {
+  .container {
+    max-width: var(--container-sm);
+  }
+}
+
+@media (min-width: 768px) {
+  .container {
+    max-width: var(--container-md);
+  }
+}
+
+@media (min-width: 1024px) {
+  .container {
+    max-width: var(--container-lg);
+  }
+}
+
+@media (min-width: 1280px) {
+  .container {
+    max-width: var(--container-xl);
+  }
+}
+
+/* ===========================================
+ * VISIBILITY UTILITIES
+ * Show/hide elements at different breakpoints
+ * =========================================== */
+
+/* Small (sm: 640px+) */
+.hide-sm {
+  display: none !important;
+}
+
+@media (min-width: 640px) {
+  .hide-sm {
+    display: block !important;
+  }
+}
+
+.show-sm {
+  display: block !important;
+}
+
+@media (min-width: 640px) {
+  .show-sm {
+    display: none !important;
+  }
+}
+
+/* Medium (md: 768px+) */
+.hide-md {
+  display: none !important;
+}
+
+@media (min-width: 768px) {
+  .hide-md {
+    display: block !important;
+  }
+}
+
+.show-md {
+  display: block !important;
+}
+
+@media (min-width: 768px) {
+  .show-md {
+    display: none !important;
+  }
+}
+
+/* Large (lg: 1024px+) */
+.hide-lg {
+  display: none !important;
+}
+
+@media (min-width: 1024px) {
+  .hide-lg {
+    display: block !important;
+  }
+}
+
+.show-lg {
+  display: block !important;
+}
+
+@media (min-width: 1024px) {
+  .show-lg {
+    display: none !important;
+  }
+}
+
+/* Extra Large (xl: 1280px+) */
+.hide-xl {
+  display: none !important;
+}
+
+@media (min-width: 1280px) {
+  .hide-xl {
+    display: block !important;
+  }
+}
+
+.show-xl {
+  display: block !important;
+}
+
+@media (min-width: 1280px) {
+  .show-xl {
+    display: none !important;
+  }
+}
+
+/* ===========================================
+ * FLEXBOX UTILITIES
+ * Common responsive flex patterns
+ * =========================================== */
+
+.flex-col-sm {
+  flex-direction: column;
+}
+
+@media (min-width: 640px) {
+  .flex-col-sm {
+    flex-direction: row;
+  }
+}
+
+.flex-col-md {
+  flex-direction: column;
+}
+
+@media (min-width: 768px) {
+  .flex-col-md {
+    flex-direction: row;
+  }
+}
+
+.flex-col-lg {
+  flex-direction: column;
+}
+
+@media (min-width: 1024px) {
+  .flex-col-lg {
+    flex-direction: row;
+  }
+}
+
+/* ===========================================
+ * GRID UTILITIES
+ * Responsive grid columns
+ * =========================================== */
+
+.grid-cols-1 {
+  display: grid;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+@media (min-width: 640px) {
+  .grid-cols-sm-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 768px) {
+  .grid-cols-md-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .grid-cols-md-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .grid-cols-lg-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .grid-cols-lg-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .grid-cols-lg-4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}

@@ -1,0 +1,152 @@
+.tableContainer {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-2);
+  background: var(--color-bg);
+}
+
+.stickyHeader thead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--color-bg);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.table th {
+  padding: var(--space-3) var(--space-4);
+  text-align: left;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  background: var(--color-bg-subtle);
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+}
+
+.table td {
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.table tbody tr:hover {
+  background: var(--color-bg-hover);
+}
+
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Sortable columns */
+.sortable {
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.2s ease;
+}
+
+.sortable:hover {
+  background: var(--color-bg-hover);
+}
+
+.sortHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.sortIcon {
+  display: inline-flex;
+  flex-direction: column;
+  opacity: 0.3;
+  transition: opacity 0.2s ease;
+}
+
+.sortable:hover .sortIcon {
+  opacity: 0.6;
+}
+
+.sortIcon.active {
+  opacity: 1;
+}
+
+.sortArrow {
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+}
+
+.sortArrowUp {
+  border-bottom: 5px solid currentColor;
+  margin-bottom: 1px;
+}
+
+.sortArrowDown {
+  border-top: 5px solid currentColor;
+  margin-top: 1px;
+}
+
+/* Checkbox column */
+.checkboxCell {
+  width: 40px;
+  padding: var(--space-2);
+}
+
+.checkbox {
+  cursor: pointer;
+  width: 18px;
+  height: 18px;
+}
+
+/* Alignment */
+.alignLeft { text-align: left; }
+.alignCenter { text-align: center; }
+.alignRight { text-align: right; }
+
+/* Clickable rows */
+.clickableRow {
+  cursor: pointer;
+}
+
+.clickableRow:active {
+  background: var(--color-bg-active);
+}
+
+/* Selected row */
+.selectedRow {
+  background: var(--color-bg-selected);
+}
+
+.selectedRow:hover {
+  background: var(--color-bg-selected-hover);
+}
+
+/* Loading state */
+.loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* Empty state */
+.emptyState {
+  padding: var(--space-8);
+  text-align: center;
+  color: var(--color-text-secondary);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .table {
+    font-size: var(--text-xs);
+  }
+
+  .table th,
+  .table td {
+    padding: var(--space-2) var(--space-3);
+  }
+}

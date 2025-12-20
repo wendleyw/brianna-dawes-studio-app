@@ -1,0 +1,159 @@
+.radioGroupContainer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.radioGroupLabel {
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-1);
+}
+
+.radioGroup {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.radioGroup.vertical {
+  flex-direction: column;
+}
+
+.radioGroup.horizontal {
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+
+.radioGroup.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.container {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  cursor: pointer;
+}
+
+.container.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.radioWrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.circle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  transition: all var(--transition-fast);
+  box-sizing: border-box;
+}
+
+.circle.sm {
+  width: 16px;
+  height: 16px;
+}
+
+.circle.md {
+  width: 20px;
+  height: 20px;
+}
+
+.circle.lg {
+  width: 24px;
+  height: 24px;
+}
+
+.input:focus-visible + .circle {
+  outline: none;
+  border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.input:checked + .circle {
+  border-color: var(--color-accent);
+}
+
+.input:disabled + .circle {
+  background-color: var(--color-gray-100);
+  cursor: not-allowed;
+}
+
+.circle.error {
+  border-color: var(--color-error);
+}
+
+.input:focus-visible + .circle.error {
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+.dot {
+  background-color: var(--color-accent);
+  border-radius: var(--radius-full);
+  opacity: 0;
+  transform: scale(0);
+  transition: all var(--transition-fast);
+}
+
+.dot.sm {
+  width: 8px;
+  height: 8px;
+}
+
+.dot.md {
+  width: 10px;
+  height: 10px;
+}
+
+.dot.lg {
+  width: 12px;
+  height: 12px;
+}
+
+.input:checked ~ .dot {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.label {
+  font-size: var(--text-sm);
+  color: var(--color-text-primary);
+  user-select: none;
+}
+
+.label.sm {
+  font-size: var(--text-xs);
+}
+
+.label.md {
+  font-size: var(--text-sm);
+}
+
+.label.lg {
+  font-size: var(--text-base);
+}
+
+.errorText {
+  font-size: var(--text-xs);
+  color: var(--color-error);
+}

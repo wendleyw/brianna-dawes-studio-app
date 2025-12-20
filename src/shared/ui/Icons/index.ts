@@ -31,6 +31,38 @@ export {
   CodeIcon,
   ShieldIcon,
   BriefcaseIcon,
+
+  // Project Type Icons
+  SocialPostIcon,
+  EmailIcon,
+  HeroIcon,
+  AdIcon,
+  PrintIcon,
+
+  // Action Icons
+  FilterIcon,
+  SortIcon,
+  AttachIcon,
+
+  // Status Icons
+  CheckCircleIcon,
+  WarningCircleIcon,
+  ErrorCircleIcon,
+  InfoCircleIcon,
+  AlertCircleIcon,
+  AlertTriangleIcon,
+
+  // Navigation Icons
+  DashboardIcon,
+  ChartIcon,
+  ImageIcon,
+  VideoIcon,
+
+  // File Icons
+  DocumentIcon,
+  PDFIcon,
+  FolderIcon,
+
   // Aliases for semantic naming
   BoardIcon,
   ClientIcon,

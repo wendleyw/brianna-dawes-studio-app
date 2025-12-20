@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Icon Showcase - Brianna Dawes Studio</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+                'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+            background: #f9fafb;
+            color: #1f2937;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        h1 {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: #050038;
+        }
+
+        .subtitle {
+            font-size: 16px;
+            color: #6b7280;
+            margin-bottom: 24px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 32px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 250px;
+            max-width: 400px;
+            padding: 10px 16px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .search-box:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .size-controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .size-controls label {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .size-btn {
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+        .size-btn.active {
+            background: #2563eb;
+            color: white;
+            border-color: #2563eb;
+        }
+
+        .size-btn:hover:not(.active) {
+            background: #f3f4f6;
+        }
+
+        .categories {
+            display: grid;
+            gap: 32px;
+        }
+
+        .category {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .category-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #050038;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #f3f4f6;
+        }
+
+        .icon-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 20px;
+        }
+
+        .icon-item {
+            text-align: center;
+            padding: 16px;
+            border-radius: 8px;
+            transition: all 0.2s;
+            cursor: pointer;
+            background: #fafbfc;
+            border: 1px solid transparent;
+        }
+
+        .icon-item:hover {
+            background: #f0f1f5;
+            border-color: #d1d5db;
+            transform: translateY(-2px);
+        }
+
+        .icon-display {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 80px;
+            margin-bottom: 12px;
+            font-size: var(--icon-size, 24px);
+            color: #050038;
+        }
+
+        .icon-name {
+            font-size: 13px;
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 8px;
+            word-break: break-word;
+        }
+
+        .icon-code {
+            font-size: 11px;
+            color: #9ca3af;
+            font-family: 'Monaco', 'Courier New', monospace;
+            background: #f9fafb;
+            padding: 6px;
+            border-radius: 4px;
+            margin-top: 8px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .copy-btn {
+            display: none;
+            margin-top: 8px;
+            padding: 6px 12px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .copy-btn:hover {
+            background: #1d4ed8;
+        }
+
+        .icon-item:hover .copy-btn {
+            display: block;
+        }
+
+        .copy-feedback {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #10b981;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+        }
+
+        .copy-feedback.show {
+            opacity: 1;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 40px;
+            color: #9ca3af;
+        }
+
+        .no-results-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+
+        .legend {
+            margin-top: 40px;
+            padding: 20px;
+            background: #f0f9ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 8px;
+        }
+
+        .legend h3 {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: #0c4a6e;
+        }
+
+        .legend-items {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+            font-size: 13px;
+            color: #0c4a6e;
+        }
+
+        .legend-item {
+            padding: 8px;
+        }
+
+        .legend-item strong {
+            color: #0c4a6e;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #e5e7eb;
+            color: #9ca3af;
+            font-size: 13px;
+        }
+
+        @media (max-width: 768px) {
+            .icon-grid {
+                grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            }
+
+            .controls {
+                flex-direction: column;
+            }
+
+            .search-box {
+                max-width: 100%;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Icon Showcase</h1>
+            <p class="subtitle">Complete icon library for Brianna Dawes Studio Miro App</p>
+        </header>
+
+        <div class="controls">
+            <input
+                type="text"
+                class="search-box"
+                id="searchInput"
+                placeholder="Search icons... (e.g., 'user', 'upload', 'check')"
+            >
+            <div class="size-controls">
+                <label>Size:</label>
+                <button class="size-btn active" data-size="24">24px</button>
+                <button class="size-btn" data-size="32">32px</button>
+                <button class="size-btn" data-size="48">48px</button>
+            </div>
+        </div>
+
+        <div id="categories" class="categories"></div>
+
+        <div class="legend">
+            <h3>Legend</h3>
+            <div class="legend-items">
+                <div class="legend-item"><strong>Default size:</strong> 16px (customizable)</div>
+                <div class="legend-item"><strong>Icon style:</strong> Feather-style stroke icons</div>
+                <div class="legend-item"><strong>Color:</strong> currentColor (inherited from parent)</div>
+                <div class="legend-item"><strong>Viewbox:</strong> 24x24 for all icons</div>
+            </div>
+        </div>
+
+        <footer>
+            <p>For detailed documentation and usage examples, see <code>docs/icons.md</code></p>
+        </footer>
+    </div>
+
+    <div id="copyFeedback" class="copy-feedback">
+        Code copied to clipboard!
+    </div>
+
+    <script>
+        // Icon data structure
+        const icons = {
+            'User & Role Icons': [
+                { name: 'UserIcon', code: '<UserIcon size={20} />', aliases: ['ClientIcon'] },
+                { name: 'UsersIcon', code: '<UsersIcon size={20} />', aliases: ['TeamIcon'] },
+                { name: 'ShieldIcon', code: '<ShieldIcon size={20} />', aliases: ['AdminIcon'] },
+                { name: 'BriefcaseIcon', code: '<BriefcaseIcon size={20} />', aliases: ['DesignerIcon'] },
+            ],
+            'Navigation & Layout': [
+                { name: 'GridIcon', code: '<GridIcon size={20} />', aliases: ['BoardIcon', 'BoardsIcon'] },
+                { name: 'DashboardIcon', code: '<DashboardIcon size={20} />', description: 'Dashboard/overview' },
+                { name: 'ChartIcon', code: '<ChartIcon size={20} />', description: 'Analytics/reporting' },
+                { name: 'ChevronDownIcon', code: '<ChevronDownIcon size={18} isOpen={true} />', description: 'Expandable content' },
+                { name: 'ArrowLeftIcon', code: '<ArrowLeftIcon size={20} />', aliases: ['BackIcon'] },
+            ],
+            'File & Document Icons': [
+                { name: 'FileIcon', code: '<FileIcon size={20} />' },
+                { name: 'DocumentIcon', code: '<DocumentIcon size={20} />', description: 'With text lines' },
+                { name: 'PDFIcon', code: '<PDFIcon size={20} />', description: 'PDF files' },
+                { name: 'FolderIcon', code: '<FolderIcon size={20} />' },
+                { name: 'ImageIcon', code: '<ImageIcon size={20} />', description: 'Photos/media' },
+                { name: 'VideoIcon', code: '<VideoIcon size={20} />', description: 'Video content' },
+            ],
+            'Project Type Icons': [
+                { name: 'SocialPostIcon', code: '<SocialPostIcon size={20} />', description: 'Social media deliverables' },
+                { name: 'EmailIcon', code: '<EmailIcon size={20} />', description: 'Email templates' },
+                { name: 'HeroIcon', code: '<HeroIcon size={20} />', description: 'Hero/banner images' },
+                { name: 'AdIcon', code: '<AdIcon size={20} />', description: 'Advertisement' },
+                { name: 'PrintIcon', code: '<PrintIcon size={20} />', description: 'Print deliverables' },
+            ],
+            'Status Icons': [
+                { name: 'CheckCircleIcon', code: '<CheckCircleIcon size={20} style={{color: "#10B981"}} />', description: 'Success/Approved' },
+                { name: 'WarningCircleIcon', code: '<WarningCircleIcon size={20} style={{color: "#F59E0B"}} />', description: 'Warning' },
+                { name: 'ErrorCircleIcon', code: '<ErrorCircleIcon size={20} style={{color: "#EF4444"}} />', description: 'Error/Failed' },
+                { name: 'InfoCircleIcon', code: '<InfoCircleIcon size={20} style={{color: "#2563EB"}} />', description: 'Info/Neutral' },
+            ],
+            'Action Icons': [
+                { name: 'PlusIcon', code: '<PlusIcon size={20} />', description: 'Add/Create' },
+                { name: 'EditIcon', code: '<EditIcon size={20} />', description: 'Edit/Modify' },
+                { name: 'TrashIcon', code: '<TrashIcon size={20} />', description: 'Delete/Remove' },
+                { name: 'UploadIcon', code: '<UploadIcon size={20} />', description: 'Upload files' },
+                { name: 'DownloadIcon', code: '<DownloadIcon size={20} />', description: 'Download files' },
+                { name: 'SearchIcon', code: '<SearchIcon size={20} />', description: 'Search' },
+                { name: 'FilterIcon', code: '<FilterIcon size={20} />', description: 'Filter data' },
+                { name: 'SortIcon', code: '<SortIcon size={20} />', description: 'Sort data' },
+                { name: 'AttachIcon', code: '<AttachIcon size={20} />', description: 'Attachments' },
+                { name: 'RefreshIcon', code: '<RefreshIcon size={20} />', aliases: ['SyncIcon'] },
+                { name: 'ExternalLinkIcon', code: '<ExternalLinkIcon size={18} />', description: 'External links' },
+            ],
+            'Content & Communication': [
+                { name: 'MessageIcon', code: '<MessageIcon size={20} />', description: 'Comments/Messages' },
+                { name: 'BellIcon', code: '<BellIcon size={20} />', description: 'Notifications' },
+                { name: 'CalendarIcon', code: '<CalendarIcon size={20} />', description: 'Dates/Scheduling' },
+                { name: 'ClockIcon', code: '<ClockIcon size={20} />', description: 'Time/Duration' },
+            ],
+            'Utility Icons': [
+                { name: 'CheckIcon', code: '<CheckIcon size={16} />', description: 'Simple checkmark' },
+                { name: 'CloseIcon', code: '<CloseIcon size={18} />', description: 'Close/Cancel' },
+                { name: 'SettingsIcon', code: '<SettingsIcon size={20} />', description: 'Settings/Config' },
+                { name: 'EyeIcon', code: '<EyeIcon size={20} />', description: 'View/Visibility' },
+                { name: 'StarIcon', code: '<StarIcon size={20} filled={false} />', description: 'Favorites (outline)' },
+                { name: 'StarIcon (filled)', code: '<StarIcon size={20} filled={true} />', description: 'Favorites (filled)' },
+                { name: 'PackageIcon', code: '<PackageIcon size={20} />', description: 'Packages/Items' },
+                { name: 'TagIcon', code: '<TagIcon size={18} />', description: 'Tags/Labels' },
+                { name: 'ArchiveIcon', code: '<ArchiveIcon size={20} />', description: 'Archive' },
+            ],
+            'Special': [
+                { name: 'CodeIcon', code: '<CodeIcon size={20} />', aliases: ['DeveloperIcon'], description: 'Developer tools' },
+                { name: 'DriveIcon', code: '<DriveIcon size={20} />', description: 'Google Drive (filled)' },
+            ],
+        };
+
+        let currentSize = 24;
+
+        // Render categories and icons
+        function renderIcons(filterText = '') {
+            const categoriesDiv = document.getElementById('categories');
+            categoriesDiv.innerHTML = '';
+
+            let hasResults = false;
+
+            Object.entries(icons).forEach(([category, iconList]) => {
+                const filteredIcons = iconList.filter(icon => {
+                    const matchName = icon.name.toLowerCase().includes(filterText.toLowerCase());
+                    const matchCode = icon.code.toLowerCase().includes(filterText.toLowerCase());
+                    const matchAlias = icon.aliases?.some(a => a.toLowerCase().includes(filterText.toLowerCase()));
+                    return matchName || matchCode || matchAlias;
+                });
+
+                if (filteredIcons.length === 0) return;
+
+                hasResults = true;
+
+                const categoryDiv = document.createElement('div');
+                categoryDiv.className = 'category';
+
+                const title = document.createElement('div');
+                title.className = 'category-title';
+                title.textContent = category;
+                categoryDiv.appendChild(title);
+
+                const grid = document.createElement('div');
+                grid.className = 'icon-grid';
+
+                filteredIcons.forEach(icon => {
+                    const item = document.createElement('div');
+                    item.className = 'icon-item';
+
+                    const iconDisplay = document.createElement('div');
+                    iconDisplay.className = 'icon-display';
+                    iconDisplay.style.setProperty('--icon-size', currentSize + 'px');
+                    iconDisplay.innerHTML = getIconSVG(icon.name);
+                    item.appendChild(iconDisplay);
+
+                    const name = document.createElement('div');
+                    name.className = 'icon-name';
+                    name.textContent = icon.name;
+                    item.appendChild(name);
+
+                    if (icon.description) {
+                        const desc = document.createElement('div');
+                        desc.style.fontSize = '12px';
+                        desc.style.color = '#9ca3af';
+                        desc.style.marginBottom = '8px';
+                        desc.textContent = icon.description;
+                        item.appendChild(desc);
+                    }
+
+                    if (icon.aliases) {
+                        const aliases = document.createElement('div');
+                        aliases.style.fontSize = '11px';
+                        aliases.style.color = '#d1d5db';
+                        aliases.style.marginBottom = '8px';
+                        aliases.textContent = 'Aliases: ' + icon.aliases.join(', ');
+                        item.appendChild(aliases);
+                    }
+
+                    const code = document.createElement('div');
+                    code.className = 'icon-code';
+                    code.textContent = icon.code;
+                    item.appendChild(code);
+
+                    const copyBtn = document.createElement('button');
+                    copyBtn.className = 'copy-btn';
+                    copyBtn.textContent = 'Copy';
+                    copyBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        navigator.clipboard.writeText(`import { ${icon.name} } from '@shared/ui/Icons';\n\n${icon.code}`);
+                        showCopyFeedback();
+                    };
+                    item.appendChild(copyBtn);
+
+                    grid.appendChild(item);
+                });
+
+                categoryDiv.appendChild(grid);
+                categoriesDiv.appendChild(categoryDiv);
+            });
+
+            if (!hasResults) {
+                const noResults = document.createElement('div');
+                noResults.className = 'no-results';
+                noResults.innerHTML = `
+                    <div class="no-results-icon">🔍</div>
+                    <p>No icons found matching "${filterText}"</p>
+                    <p style="font-size: 12px; margin-top: 8px;">Try searching for icon names like 'user', 'upload', or 'check'</p>
+                `;
+                categoriesDiv.appendChild(noResults);
+            }
+        }
+
+        // Get icon SVG by name
+        function getIconSVG(iconName) {
+            const svgs = {
+                'UserIcon': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
+                'UsersIcon': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+                'ShieldIcon': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
+                'BriefcaseIcon': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>',
+                'GridIcon': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>',
+                'DashboardIcon': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>',
+                'ChartIcon': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="3" x2="3" y2="21"/><line x1="21" y1="3" x2="21" y2="21"/><polyline points="3 21 7 17 11 19 15 13 19 15 21 13"/></svg>',
+                'ChevronDownIcon': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>',
+                'ArrowLeftIcon': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>',
+                'FileIcon': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
+                'DocumentIcon': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 13h6M9 17h3M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
+                'PDFIcon': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
+                'FolderIcon': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>',
+                'ImageIcon': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>',
+                'VideoIcon': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>',
+                'SocialPostIcon': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2" ry="2"/><line x1="12" y1="20" x2="12" y2="20.01"/></svg>',
+                'EmailIcon': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2" ry="2"/><path d="M2 6l10 7.5L22 6"/></svg>',
+                'HeroIcon': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2" ry="2"/><path d="M8 10l4 4 4-4"/></svg>',
+                'AdIcon': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="15" x2="12" y2="15"/></svg>',
+                'PrintIcon': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="7" rx="1" ry="1"/><rect x="2" y="9" width="20" height="13" rx="2" ry="2"/><path d="M6 14v6M18 14v6"/></svg>',
+                'CheckCircleIcon': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="9 12 11 14 15 10"/></svg>',
+                'WarningCircleIcon': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>',
+                'ErrorCircleIcon': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>',
+                'InfoCircleIcon': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>',
+                'PlusIcon': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>',
+                'EditIcon': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>',
+                'TrashIcon': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>',
+                'UploadIcon': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>',
+                'DownloadIcon': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>',
+                'SearchIcon': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>',
+                'FilterIcon': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>',
+                'SortIcon': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="11 5 7 9 3 5"/><line x1="7" y1="19" x2="7" y2="9"/><polyline points="13 19 17 15 21 19"/><line x1="17" y1="5" x2="17" y2="15"/></svg>',
+                'AttachIcon': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19c-1.125 1.126-2.662 1.758-4.254 1.758-1.592 0-3.129-.632-4.254-1.758-1.125-1.125-1.758-2.662-1.758-4.254s.633-3.129 1.758-4.254l8.57-8.57"/><path d="M7.5 10L14.5 3M12 15l2.828-2.828"/></svg>',
+                'RefreshIcon': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>',
+                'ExternalLinkIcon': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>',
+                'MessageIcon': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
+                'BellIcon': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>',
+                'CalendarIcon': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
+                'ClockIcon': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+                'CheckIcon': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
+                'CloseIcon': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
+                'SettingsIcon': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>',
+                'EyeIcon': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>',
+                'StarIcon': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>',
+                'StarIcon (filled)': '<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>',
+                'PackageIcon': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16.5 9.4l-9-5.19M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>',
+                'TagIcon': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>',
+                'ArchiveIcon': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>',
+                'CodeIcon': '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>',
+                'DriveIcon': '<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M7.71 3.5L1.15 15l3.43 6 6.56-11.5L7.71 3.5zm1.44 0l6.56 11.5h6.56l-6.56-11.5H9.15zm7.41 12.5H3.44l3.43 6h13.12l-3.43-6z"/></svg>',
+            };
+
+            return svgs[iconName] || '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>';
+        }
+
+        // Show copy feedback
+        function showCopyFeedback() {
+            const feedback = document.getElementById('copyFeedback');
+            feedback.classList.add('show');
+            setTimeout(() => feedback.classList.remove('show'), 2000);
+        }
+
+        // Search functionality
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            renderIcons(e.target.value);
+        });
+
+        // Size controls
+        document.querySelectorAll('.size-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentSize = parseInt(btn.dataset.size);
+                renderIcons(document.getElementById('searchInput').value);
+            });
+        });
+
+        // Initial render
+        renderIcons();
+    </script>
+</body>
+</html>

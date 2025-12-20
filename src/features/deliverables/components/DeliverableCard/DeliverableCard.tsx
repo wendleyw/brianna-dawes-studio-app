@@ -7,12 +7,12 @@ import styles from './DeliverableCard.module.css';
 // formatDate replaced by formatDateShort from @shared/lib/dateFormat
 
 const STATUS_MAP = {
-  draft: { label: 'Draft', variant: 'neutral' as const },
-  in_progress: { label: 'In Progress', variant: 'info' as const },
-  in_review: { label: 'In Review', variant: 'warning' as const },
-  approved: { label: 'Approved', variant: 'success' as const },
-  rejected: { label: 'Rejected', variant: 'error' as const },
-  delivered: { label: 'Delivered', variant: 'info' as const },
+  draft: { label: 'Draft', color: 'neutral' as const },
+  in_progress: { label: 'In Progress', color: 'info' as const },
+  in_review: { label: 'In Review', color: 'warning' as const },
+  approved: { label: 'Approved', color: 'success' as const },
+  rejected: { label: 'Rejected', color: 'error' as const },
+  delivered: { label: 'Delivered', color: 'info' as const },
 };
 
 const TYPE_ICONS: Record<string, React.ReactElement> = {
@@ -66,7 +66,7 @@ export const DeliverableCard = memo(function DeliverableCard({ deliverable, onVi
           </div>
         )}
         <div className={styles.badge}>
-          <Badge variant={status.variant} size="sm">{status.label}</Badge>
+          <Badge color={status.color} size="sm">{status.label}</Badge>
         </div>
         {deliverable.versionsCount > 0 && (
           <span className={styles.version}>v{deliverable.versionsCount}</span>

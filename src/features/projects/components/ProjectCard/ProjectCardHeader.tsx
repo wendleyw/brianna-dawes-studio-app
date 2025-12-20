@@ -29,7 +29,7 @@ export const ProjectCardHeader = memo(function ProjectCardHeader() {
       {project.wasApproved && !isDone && (
         <div className={styles.approvedBanner}>
           <Badge
-            variant="neutral"
+            color="neutral"
             size="sm"
             style={{
               backgroundColor: BADGE_COLORS.SUCCESS,
@@ -49,7 +49,7 @@ export const ProjectCardHeader = memo(function ProjectCardHeader() {
       {project.wasReviewed && !isDone && !isInReview && !project.wasApproved && (
         <div className={styles.reviewedBanner}>
           <Badge
-            variant="neutral"
+            color="neutral"
             size="sm"
             style={{
               backgroundColor: BADGE_COLORS.PURPLE,
@@ -69,7 +69,7 @@ export const ProjectCardHeader = memo(function ProjectCardHeader() {
       {isArchived && (
         <div className={styles.archivedBanner}>
           <Badge
-            variant="neutral"
+            color="neutral"
             size="sm"
             style={{
               backgroundColor: BADGE_COLORS.NEUTRAL,
@@ -90,7 +90,7 @@ export const ProjectCardHeader = memo(function ProjectCardHeader() {
         {/* 1. Priority badge */}
         {priority && (
           <Badge
-            variant="neutral"
+            color="neutral"
             size="sm"
             style={{ backgroundColor: priority.color, color: '#fff', border: 'none' }}
           >
@@ -103,7 +103,7 @@ export const ProjectCardHeader = memo(function ProjectCardHeader() {
           const projectType = getProjectType(project);
           return projectType ? (
             <Badge
-              variant="neutral"
+              color="neutral"
               size="sm"
               style={{ backgroundColor: projectType.color, color: '#fff', border: 'none' }}
             >

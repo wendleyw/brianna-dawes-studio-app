@@ -690,7 +690,7 @@ export const ProjectCard = memo(function ProjectCard({
         {isDone && !isArchived && (
           <div className={styles.completedBanner}>
             <Badge
-              variant="neutral"
+              color="neutral"
               size="sm"
               style={{
                 backgroundColor: 'transparent',
@@ -715,7 +715,7 @@ export const ProjectCard = memo(function ProjectCard({
         {project.wasApproved && !isDone && (
           <div className={styles.approvedBanner}>
             <Badge
-              variant="neutral"
+              color="neutral"
               size="sm"
               style={{
                 backgroundColor: BADGE_COLORS.SUCCESS,
@@ -734,7 +734,7 @@ export const ProjectCard = memo(function ProjectCard({
         {project.wasReviewed && !isDone && !isInReview && !project.wasApproved && (
           <div className={styles.reviewedBanner}>
             <Badge
-              variant="neutral"
+              color="neutral"
               size="sm"
               style={{
                 backgroundColor: BADGE_COLORS.PURPLE,
@@ -753,7 +753,7 @@ export const ProjectCard = memo(function ProjectCard({
         {isArchived && (
           <div className={styles.archivedBanner}>
             <Badge
-              variant="neutral"
+              color="neutral"
               size="sm"
               style={{
                 backgroundColor: BADGE_COLORS.NEUTRAL,
@@ -773,7 +773,7 @@ export const ProjectCard = memo(function ProjectCard({
           {/* 1. Priority badge */}
           {priority && (
             <Badge
-              variant="neutral"
+              color="neutral"
               size="sm"
               style={{ backgroundColor: priority.color, color: '#fff', border: 'none' }}
             >
@@ -785,7 +785,7 @@ export const ProjectCard = memo(function ProjectCard({
             const projectType = getProjectType(project);
             return projectType ? (
               <Badge
-                variant="neutral"
+                color="neutral"
                 size="sm"
                 style={{ backgroundColor: projectType.color, color: '#fff', border: 'none' }}
               >

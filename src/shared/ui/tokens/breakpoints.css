@@ -1,0 +1,22 @@
+:root {
+  /* ===========================================
+   * RESPONSIVE BREAKPOINTS
+   * Mobile-first approach
+   * =========================================== */
+
+  /* Breakpoint values */
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+  --breakpoint-2xl: 1536px;
+
+  /* ===========================================
+   * CONTAINER MAX-WIDTHS
+   * Content width constraints at each breakpoint
+   * =========================================== */
+  --container-sm: 640px;
+  --container-md: 768px;
+  --container-lg: 1024px;
+  --container-xl: 1280px;
+}

@@ -59,7 +59,7 @@ export function ProjectDetailPage() {
               {statusColumn.label}
             </Badge>
             <Badge
-              variant="neutral"
+              color="neutral"
               style={{ backgroundColor: priority.color, color: '#fff', border: 'none' }}
             >
               {priority.label}
