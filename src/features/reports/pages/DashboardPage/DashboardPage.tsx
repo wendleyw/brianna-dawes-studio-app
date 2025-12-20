@@ -7,6 +7,7 @@ import { useProjects } from '@features/projects';
 import { projectKeys } from '@features/projects/services/projectKeys';
 import { zoomToProject, useMiro } from '@features/boards';
 import { useMasterBoardSettings } from '@features/boards/hooks/useMasterBoard';
+import { miroTimelineService } from '@features/boards/services/miroSdkService';
 import { supabase } from '@shared/lib/supabase';
 import { supabaseRestQuery, isInMiroIframe } from '@shared/lib/supabaseRest';
 import type { ProjectFilters as ProjectFiltersType } from '@features/projects/domain/project.types';
@@ -169,6 +170,41 @@ export function DashboardPage() {
 
   // Check if we're on the Master Board
   const isMasterBoard = !!(isInMiro && currentBoardId && masterBoardId && currentBoardId === masterBoardId);
+
+  // Initialize Master Timeline when opening the Master Board
+  useEffect(() => {
+    let isActive = true;
+
+    if (!isMasterBoard || !miro) {
+      return undefined;
+    }
+
+    (async () => {
+      try {
+        console.log('[DashboardPage] 🔵 Master Board detected, checking timeline initialization...');
+
+        const timelineState = miroTimelineService.getState();
+        console.log('[DashboardPage] 🔵 Timeline state:', timelineState);
+
+        if (!timelineState && isActive) {
+          console.log('[DashboardPage] 🔵 Timeline not initialized, initializing now...');
+          await miroTimelineService.initializeTimeline();
+          console.log('[DashboardPage] ✅ Timeline initialized successfully');
+        } else {
+          console.log('[DashboardPage] ✅ Timeline already initialized, ensuring Files/Chat column...');
+          // Even if timeline is initialized, try to ensure Files/Chat column exists
+          // This is handled inside initializeTimeline via the singleton check
+          await miroTimelineService.initializeTimeline();
+        }
+      } catch (error) {
+        console.error('[DashboardPage] ❌ Failed to initialize timeline:', error);
+      }
+    })();
+
+    return () => {
+      isActive = false;
+    };
+  }, [isMasterBoard, miro]);
 
   // IMPORTANT: Filter projects by current board for data isolation
   // Exception: On Master Board, load ALL projects (no board filter)
