@@ -111,14 +111,23 @@ async function findTimelineFrame(): Promise<MiroFrame | null> {
     );
 
     if (timelineTitleText) {
-      // Find frame that is directly below the title text (within X tolerance)
-      // The frame should be centered around the same X position
-      timelineFrame = existingFrames.find(f => {
-        const xMatch = Math.abs(f.x - timelineTitleText.x) < 200; // Title is offset to the left
-        const belowTitle = f.y > timelineTitleText.y; // Frame is below title
-        const isEmptyTitle = !f.title || f.title === '';
-        return xMatch && belowTitle && isEmptyTitle;
-      });
+      const candidates = existingFrames
+        .filter(f => {
+          const xMatch = Math.abs(f.x - timelineTitleText.x) < 200; // Title is offset to the left
+          const isEmptyTitle = !f.title || f.title === '';
+          const frameTop = f.y - (f.height || TIMELINE.FRAME_HEIGHT) / 2;
+          const belowTitle = frameTop > timelineTitleText.y;
+          return xMatch && belowTitle && isEmptyTitle;
+        })
+        .map(f => {
+          const frameTop = f.y - (f.height || TIMELINE.FRAME_HEIGHT) / 2;
+          return { frame: f, distance: frameTop - timelineTitleText.y };
+        })
+        .sort((a, b) => a.distance - b.distance);
+
+      if (candidates.length > 0 && candidates[0]) {
+        timelineFrame = candidates[0].frame;
+      }
 
       if (timelineFrame) {
         log('MiroTimeline', 'Found timeline frame by nearby title text', timelineFrame.id);
