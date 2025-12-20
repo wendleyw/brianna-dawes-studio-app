@@ -582,7 +582,7 @@ class MiroMasterTimelineService {
 
     let colX: number | null = null;
     let headerY: number | null = null;
-    let columnWidth = TIMELINE.COLUMN_WIDTH as number;
+    let columnWidth = (TIMELINE.COLUMN_WIDTH as number) * 2; // Double width for Files/Chat column
     let headerHeight = TIMELINE.HEADER_HEIGHT as number;
     let dropY: number | null = null;
     let columnHeight = TIMELINE.COLUMN_HEIGHT as number;
@@ -591,7 +591,8 @@ class MiroMasterTimelineService {
     const defaultDropZoneTopY = defaultHeaderY + TIMELINE.HEADER_HEIGHT / 2 + 5;
 
     if (doneHeader) {
-      columnWidth = doneHeader.width;
+      columnWidth = doneHeader.width * 2; // Double the width for Files/Chat column
+      log('MiroTimeline', '📏 Files/Chat column width set to 2x DONE column width', { doneWidth: doneHeader.width, filesChatWidth: columnWidth });
       headerHeight = doneHeader.height;
       headerY = doneHeader.y;
       const gapFromHeaders = reviewHeader
