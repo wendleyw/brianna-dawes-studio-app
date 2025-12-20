@@ -65,17 +65,23 @@ class MiroClient {
       fillColor?: string;
     }
   ) {
+    const payload: Record<string, unknown> = {
+      data: {
+        title: data.title,
+        format: 'custom',
+      },
+      position: { x: data.x, y: data.y },
+      geometry: { width: data.width, height: data.height },
+    };
+
+    // Only add style if fillColor is defined to avoid Miro API validation errors
+    if (data.fillColor !== undefined) {
+      payload.style = { fillColor: data.fillColor };
+    }
+
     return this.request<{ id: string }>(`/boards/${boardId}/frames`, {
       method: 'POST',
-      body: JSON.stringify({
-        data: {
-          title: data.title,
-          format: 'custom',
-        },
-        position: { x: data.x, y: data.y },
-        geometry: { width: data.width, height: data.height },
-        style: data.fillColor ? { fillColor: data.fillColor } : undefined,
-      }),
+      body: JSON.stringify(payload),
     });
   }
 
@@ -273,14 +279,29 @@ class MiroClient {
       };
     }
   ) {
+    // Build style object with only defined values to avoid Miro API validation errors
+    const style: Record<string, string> = {};
+    if (data.style?.color !== undefined) style.color = data.style.color;
+    if (data.style?.fontSize !== undefined) style.fontSize = data.style.fontSize;
+    if (data.style?.fontFamily !== undefined) style.fontFamily = data.style.fontFamily;
+    if (data.style?.textAlign !== undefined) style.textAlign = data.style.textAlign;
+
+    const payload: Record<string, unknown> = {
+      data: { content: data.content },
+      position: { x: data.x, y: data.y },
+    };
+
+    if (data.width !== undefined) {
+      payload.geometry = { width: data.width };
+    }
+
+    if (Object.keys(style).length > 0) {
+      payload.style = style;
+    }
+
     return this.request<{ id: string }>(`/boards/${boardId}/texts`, {
       method: 'POST',
-      body: JSON.stringify({
-        data: { content: data.content },
-        position: { x: data.x, y: data.y },
-        geometry: data.width ? { width: data.width } : undefined,
-        style: data.style,
-      }),
+      body: JSON.stringify(payload),
     });
   }
 
@@ -328,6 +349,14 @@ class MiroClient {
       };
     }
   ) {
+    // Build style object with only defined values to avoid Miro API validation errors
+    const style: Record<string, string | number> = {};
+    if (data.style?.fillColor !== undefined) style.fillColor = data.style.fillColor;
+    if (data.style?.borderColor !== undefined) style.borderColor = data.style.borderColor;
+    if (data.style?.borderWidth !== undefined) style.borderWidth = data.style.borderWidth;
+    if (data.style?.fontColor !== undefined) style.fontColor = data.style.fontColor;
+    if (data.style?.fontSize !== undefined) style.fontSize = data.style.fontSize;
+
     return this.request<{ id: string }>(`/boards/${boardId}/shapes`, {
       method: 'POST',
       body: JSON.stringify({
@@ -337,13 +366,7 @@ class MiroClient {
         },
         position: { x: data.x, y: data.y },
         geometry: { width: data.width, height: data.height },
-        style: {
-          fillColor: data.style?.fillColor,
-          borderColor: data.style?.borderColor,
-          borderWidth: data.style?.borderWidth,
-          fontColor: data.style?.fontColor,
-          fontSize: data.style?.fontSize,
-        },
+        ...(Object.keys(style).length > 0 ? { style } : {}),
       }),
     });
   }
