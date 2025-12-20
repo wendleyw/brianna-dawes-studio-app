@@ -208,7 +208,7 @@ class MiroMasterTimelineService {
   // Global sync lock to prevent race conditions when multiple projects sync concurrently
   private syncLock: Promise<void> = Promise.resolve();
   private static readonly FILES_CHAT_COLUMN = {
-    label: 'FILES / CHAT',
+    label: 'Files / Chat',
     color: '#000000',
   } as const;
 
@@ -508,6 +508,9 @@ class MiroMasterTimelineService {
     let dropY: number | null = null;
     let columnHeight = TIMELINE.COLUMN_HEIGHT;
 
+    const defaultHeaderY = frameTop + TIMELINE.PADDING + TIMELINE.HEADER_HEIGHT / 2;
+    const defaultDropZoneTopY = defaultHeaderY + TIMELINE.HEADER_HEIGHT / 2 + 5;
+
     if (doneHeader) {
       columnWidth = doneHeader.width;
       headerHeight = doneHeader.height;
@@ -532,17 +535,11 @@ class MiroMasterTimelineService {
       }
     }
 
-    if (colX === null || headerY === null) {
-      const startX = frameLeft + TIMELINE.PADDING;
-      headerY = frameTop + TIMELINE.PADDING + TIMELINE.HEADER_HEIGHT / 2;
-      const dropZoneTopY = headerY + TIMELINE.HEADER_HEIGHT / 2 + 5;
+    if (headerY === null) {
+      headerY = defaultHeaderY;
+    }
 
-      const columnIndex = TIMELINE_COLUMNS.length;
-      colX = startX + TIMELINE.COLUMN_WIDTH / 2 + columnIndex * (TIMELINE.COLUMN_WIDTH + TIMELINE.COLUMN_GAP);
-      if (colX + TIMELINE.COLUMN_WIDTH / 2 > frameRight - TIMELINE.PADDING) {
-        return;
-      }
-
+    if (dropY === null) {
       const columnSample = frameShapes.find((shape) => {
         const isRectangle = shape.shape === 'rectangle';
         const isColumnWidth = Math.abs(shape.width - TIMELINE.COLUMN_WIDTH) <= 10;
@@ -552,13 +549,22 @@ class MiroMasterTimelineService {
         return isRectangle && isColumnWidth && isTall && isDropZone;
       });
 
-      columnHeight = columnSample?.height ?? TIMELINE.COLUMN_HEIGHT;
-      dropY = dropZoneTopY + columnHeight / 2;
+      columnHeight = columnSample?.height ?? columnHeight;
+      dropY = defaultDropZoneTopY + columnHeight / 2;
       const maxDropY = frameBottom - TIMELINE.PADDING - columnHeight / 2;
       if (dropY > maxDropY) {
         dropY = maxDropY;
       }
     }
+
+    if (colX === null) {
+      colX = frameRight - TIMELINE.PADDING - columnWidth / 2;
+    }
+
+    const minColX = frameLeft + TIMELINE.PADDING + columnWidth / 2;
+    const maxColX = frameRight - TIMELINE.PADDING - columnWidth / 2;
+    if (colX < minColX) colX = minColX;
+    if (colX > maxColX) colX = maxColX;
 
     if (colX === null || headerY === null || dropY === null) return;
 
@@ -589,8 +595,8 @@ class MiroMasterTimelineService {
       height: columnHeight,
       style: {
         fillColor: '#FFFFFF',
-        borderColor: '#E5E7EB',
-        borderWidth: 1,
+        borderColor: '#3F3F3F',
+        borderWidth: 2,
       },
     });
   }
