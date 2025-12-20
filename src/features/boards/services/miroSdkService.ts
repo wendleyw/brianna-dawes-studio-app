@@ -91,6 +91,8 @@ function normalizeDateToYYYYMMDD(dateStr: string | null | undefined): string | u
 async function findTimelineFrame(): Promise<MiroFrame | null> {
   const miro = getMiroSDK();
   const existingFrames = await miro.board.get({ type: 'frame' }) as MiroFrame[];
+  const stripHtml = (value?: string) =>
+    value?.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim().toUpperCase() ?? '';
 
   // Strategy 1: Find frame with title containing "MASTER TIMELINE" or "Timeline Master"
   let timelineFrame = existingFrames.find(f =>
@@ -138,7 +140,60 @@ async function findTimelineFrame(): Promise<MiroFrame | null> {
     log('MiroTimeline', 'Error searching for timeline title text', e);
   }
 
-  // Strategy 3: Find frame at fixed position (0, 0) with empty title
+  // Strategy 3: Find frame containing timeline header shapes (OVERDUE..DONE)
+  try {
+    const headerLabels = new Set(['OVERDUE', 'URGENT', 'IN PROGRESS', 'REVIEW', 'DONE']);
+    const shapes = await miro.board.get({ type: 'shape' }) as Array<{
+      content?: string;
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+      shape?: string;
+    }>;
+    const headerShapes = shapes.filter((shape) => {
+      const label = stripHtml(shape.content);
+      const isHeader = headerLabels.has(label);
+      const isHeaderSize =
+        shape.width >= TIMELINE.COLUMN_WIDTH - 60 &&
+        shape.width <= TIMELINE.COLUMN_WIDTH + 60 &&
+        shape.height >= TIMELINE.HEADER_HEIGHT - 8 &&
+        shape.height <= TIMELINE.HEADER_HEIGHT + 8;
+      return isHeader && isHeaderSize;
+    });
+
+    if (headerShapes.length > 0) {
+      const frameCandidates = existingFrames
+        .filter(f => !f.title || f.title === '')
+        .map(f => {
+          const width = f.width || TIMELINE.FRAME_WIDTH;
+          const height = f.height || TIMELINE.FRAME_HEIGHT;
+          const left = f.x - width / 2;
+          const right = f.x + width / 2;
+          const top = f.y - height / 2;
+          const bottom = f.y + height / 2;
+          const count = headerShapes.filter(h =>
+            h.x >= left && h.x <= right && h.y >= top && h.y <= bottom
+          ).length;
+          return { frame: f, count, widthDelta: Math.abs(width - TIMELINE.FRAME_WIDTH) };
+        })
+        .filter(c => c.count > 0)
+        .sort((a, b) => {
+          if (b.count !== a.count) return b.count - a.count;
+          return a.widthDelta - b.widthDelta;
+        });
+
+      if (frameCandidates.length > 0 && frameCandidates[0]) {
+        timelineFrame = frameCandidates[0].frame;
+        log('MiroTimeline', 'Found timeline frame by header shapes', timelineFrame.id);
+        return timelineFrame;
+      }
+    }
+  } catch (e) {
+    log('MiroTimeline', 'Error searching for timeline header shapes', e);
+  }
+
+  // Strategy 4: Find frame at fixed position (0, 0) with empty title
   // Timeline is always created at origin with empty title
   timelineFrame = existingFrames.find(f => {
     const isAtOrigin = Math.abs(f.x) < 100 && Math.abs(f.y) < 200;
@@ -153,7 +208,7 @@ async function findTimelineFrame(): Promise<MiroFrame | null> {
     return timelineFrame;
   }
 
-  // Strategy 4: Find by dimensions alone (less reliable, frame may have been resized)
+  // Strategy 5: Find by dimensions alone (less reliable, frame may have been resized)
   timelineFrame = existingFrames.find(f =>
     f.width && f.height &&
     Math.abs(f.width - TIMELINE.FRAME_WIDTH) < 50 &&
