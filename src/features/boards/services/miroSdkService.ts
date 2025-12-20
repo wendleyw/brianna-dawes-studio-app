@@ -774,6 +774,14 @@ class MiroMasterTimelineService {
 
     timelineLogger.debug('Found timeline frame', { id: timelineFrame?.id, x: timelineFrame?.x, y: timelineFrame?.y, width: timelineFrame?.width, height: timelineFrame?.height });
 
+    if (timelineFrame) {
+      const frameWidth = timelineFrame.width ?? TIMELINE.FRAME_WIDTH;
+      const frameHeight = timelineFrame.height ?? TIMELINE.FRAME_HEIGHT;
+      const frameLeft = timelineFrame.x - frameWidth / 2;
+      const frameTop = timelineFrame.y - frameHeight / 2;
+      await this.ensureFilesChatColumn({ frameLeft, frameTop, frameWidth, frameHeight });
+    }
+
     // Calculate frame bounds
     // IMPORTANT: The frameTop should ALWAYS be at a FIXED position relative to origin
     // The timeline is created at Y=0 with height 500, so frameTop = 0 - 500/2 = -250
