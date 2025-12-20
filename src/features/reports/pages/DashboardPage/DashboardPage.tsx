@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Skeleton, Logo } from '@shared/ui';
 import { useAuth } from '@features/auth';
 import { useProjects } from '@features/projects';
@@ -110,6 +110,7 @@ export function DashboardPage() {
   const { isInMiro, boardId: currentBoardId, miro } = useMiro();
   const { boardId: masterBoardId } = useMasterBoardSettings();
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
+  const [boardCreatedAt, setBoardCreatedAt] = useState<string | null>(null);
   // Handler to open Admin Dashboard in modal
   const openAdminDashboard = useCallback(async (tab: AdminTab) => {
     if (miro && isInMiro) {
@@ -128,6 +129,33 @@ export function DashboardPage() {
     }
     navigate(`/admin?tab=${encodeURIComponent(tab)}`);
   }, [miro, isInMiro, navigate]);
+
+  useEffect(() => {
+    let isActive = true;
+
+    if (!miro || !isInMiro) {
+      setBoardCreatedAt(null);
+      return undefined;
+    }
+
+    (async () => {
+      try {
+        const info = await miro.board.getInfo() as { createdAt?: string; created_at?: string };
+        const createdAt = info.createdAt || info.created_at || null;
+        if (isActive) {
+          setBoardCreatedAt(createdAt);
+        }
+      } catch (error) {
+        console.warn('[DashboardPage] Failed to load board info', error);
+      }
+    })();
+
+    return () => {
+      isActive = false;
+    };
+  }, [miro, isInMiro, currentBoardId]);
+
+  const analyticsSince = boardCreatedAt ? formatDateMonthYear(boardCreatedAt) : null;
 
   // Debug log
   console.log('[DashboardPage] Render:', {
@@ -460,7 +488,12 @@ export function DashboardPage() {
 
       {/* Analytics */}
       <section className={styles.section}>
-        <h2 className={styles.sectionTitle}>Analytics</h2>
+        <h2 className={styles.sectionTitle}>
+          Analytics
+          {analyticsSince && (
+            <span className={styles.sectionTitleMeta}> | Since {analyticsSince}</span>
+          )}
+        </h2>
         <div className={styles.analyticsGrid}>
           <div className={styles.analyticsCard}>
             <span className={styles.analyticsValue}>{activeProjects}</span>
