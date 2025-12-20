@@ -156,7 +156,7 @@ class MiroReportService {
       width: REPORT.FRAME_WIDTH,
       height: REPORT.FRAME_HEIGHT,
       style: {
-        fillColor: 'var(--color-text-inverse)',
+        fillColor: '#FFFFFF',
       },
     });
 
@@ -236,8 +236,8 @@ class MiroReportService {
       width: contentWidth,
       height: 50,
       style: {
-        fillColor: 'var(--color-primary)',
-        color: 'var(--color-text-inverse)',
+        fillColor: '#000000',
+        color: '#FFFFFF',
         fontSize: 18,
         textAlign: 'center',
         textAlignVertical: 'middle',
@@ -253,7 +253,7 @@ class MiroReportService {
       style: {
         fontSize: 12,
         textAlign: 'center',
-        color: 'var(--color-gray-500)',
+        color: '#6B7280',
       },
     });
   }
@@ -270,10 +270,10 @@ class MiroReportService {
     const miro = getMiroSDK();
 
     const cards = [
-      { label: 'TOTAL PROJECTS', value: projectMetrics.total.toString(), color: 'var(--color-accent-light)' },
-      { label: 'COMPLETION RATE', value: `${projectMetrics.completionRate}%`, color: 'var(--color-success)' },
-      { label: 'DELIVERABLES', value: deliverableMetrics.total.toString(), color: 'var(--color-purple-500)' },
-      { label: 'OVERDUE', value: projectMetrics.overdueCount.toString(), color: projectMetrics.overdueCount > 0 ? 'var(--color-error)' : 'var(--color-gray-400)' },
+      { label: 'TOTAL PROJECTS', value: projectMetrics.total.toString(), color: '#3B82F6' },
+      { label: 'COMPLETION RATE', value: `${projectMetrics.completionRate}%`, color: '#10B981' },
+      { label: 'DELIVERABLES', value: deliverableMetrics.total.toString(), color: '#A855F7' },
+      { label: 'OVERDUE', value: projectMetrics.overdueCount.toString(), color: projectMetrics.overdueCount > 0 ? '#EF4444' : '#9CA3AF' },
     ];
 
     for (let i = 0; i < cards.length; i++) {
@@ -292,8 +292,8 @@ class MiroReportService {
         width: REPORT.CARD_WIDTH,
         height: REPORT.CARD_HEIGHT,
         style: {
-          fillColor: 'var(--color-gray-50)',
-          borderColor: 'var(--color-gray-200)',
+          fillColor: '#F9FAFB',
+          borderColor: '#E5E7EB',
           borderWidth: 1,
         },
       });
@@ -321,7 +321,7 @@ class MiroReportService {
         style: {
           fontSize: 32,
           textAlign: 'center',
-          color: 'var(--color-primary)',
+          color: '#000000',
         },
       });
 
@@ -334,7 +334,7 @@ class MiroReportService {
         style: {
           fontSize: 11,
           textAlign: 'center',
-          color: 'var(--color-gray-500)',
+          color: '#6B7280',
         },
       });
     }
@@ -360,7 +360,7 @@ class MiroReportService {
       style: {
         fontSize: 14,
         textAlign: 'left',
-        color: 'var(--color-gray-700)',
+        color: '#374151',
       },
     });
 
@@ -386,9 +386,9 @@ class MiroReportService {
         width: pillWidth,
         height: pillHeight,
         style: {
-          fillColor: count > 0 ? col.color : 'var(--color-gray-200)',
+          fillColor: count > 0 ? col.color : '#E5E7EB',
           borderWidth: 0,
-          color: count > 0 ? 'var(--color-text-inverse)' : 'var(--color-gray-400)',
+          color: count > 0 ? '#FFFFFF' : '#9CA3AF',
           fontSize: 11,
           textAlign: 'center',
           textAlignVertical: 'middle',
@@ -413,7 +413,7 @@ class MiroReportService {
         width: barWidth,
         height: barHeight,
         style: {
-          fillColor: 'var(--color-gray-200)',
+          fillColor: '#E5E7EB',
           borderWidth: 0,
         },
       });
@@ -462,7 +462,7 @@ class MiroReportService {
       style: {
         fontSize: 14,
         textAlign: 'left',
-        color: 'var(--color-gray-700)',
+        color: '#374151',
       },
     });
 
@@ -476,8 +476,8 @@ class MiroReportService {
       width: width,
       height: 30,
       style: {
-        fillColor: 'var(--color-gray-100)',
-        borderColor: 'var(--color-gray-200)',
+        fillColor: '#F3F4F6',
+        borderColor: '#E5E7EB',
         borderWidth: 1,
       },
     });
@@ -500,7 +500,7 @@ class MiroReportService {
         style: {
           fontSize: 10,
           textAlign: 'left',
-          color: 'var(--color-gray-500)',
+          color: '#6B7280',
         },
       });
     }
@@ -524,8 +524,8 @@ class MiroReportService {
         width: width,
         height: REPORT.ROW_HEIGHT - 2,
         style: {
-          fillColor: i % 2 === 0 ? 'var(--color-text-inverse)' : 'var(--color-gray-50)',
-          borderColor: 'var(--color-gray-200)',
+          fillColor: i % 2 === 0 ? '#FFFFFF' : '#F9FAFB',
+          borderColor: '#E5E7EB',
           borderWidth: 1,
         },
       });
@@ -539,7 +539,7 @@ class MiroReportService {
         style: {
           fontSize: 11,
           textAlign: 'left',
-          color: 'var(--color-primary)',
+          color: '#000000',
         },
       });
 
@@ -552,9 +552,9 @@ class MiroReportService {
         width: 90,
         height: 22,
         style: {
-          fillColor: statusCol?.color || 'var(--color-gray-500)',
+          fillColor: statusCol?.color || '#6B7280',
           borderWidth: 0,
-          color: 'var(--color-text-inverse)',
+          color: '#FFFFFF',
           fontSize: 9,
           textAlign: 'center',
           textAlignVertical: 'middle',
@@ -570,9 +570,9 @@ class MiroReportService {
         width: 70,
         height: 22,
         style: {
-          fillColor: priorityConfig?.color || 'var(--color-gray-500)',
+          fillColor: priorityConfig?.color || '#6B7280',
           borderWidth: 0,
-          color: 'var(--color-text-inverse)',
+          color: '#FFFFFF',
           fontSize: 9,
           textAlign: 'center',
           textAlignVertical: 'middle',
@@ -588,7 +588,7 @@ class MiroReportService {
         style: {
           fontSize: 11,
           textAlign: 'left',
-          color: 'var(--color-gray-500)',
+          color: '#6B7280',
         },
       });
 
@@ -605,7 +605,7 @@ class MiroReportService {
         width: progressWidth,
         height: 12,
         style: {
-          fillColor: 'var(--color-gray-200)',
+          fillColor: '#E5E7EB',
           borderWidth: 0,
         },
       });
@@ -621,7 +621,7 @@ class MiroReportService {
           width: fillWidth,
           height: 12,
           style: {
-            fillColor: progress === 100 ? 'var(--color-success)' : 'var(--color-accent-light)',
+            fillColor: progress === 100 ? '#10B981' : '#3B82F6',
             borderWidth: 0,
           },
         });
@@ -639,7 +639,7 @@ class MiroReportService {
         style: {
           fontSize: 11,
           textAlign: 'center',
-          color: 'var(--color-gray-400)',
+          color: '#9CA3AF',
         },
       });
     }
@@ -665,7 +665,7 @@ class MiroReportService {
       style: {
         fontSize: 14,
         textAlign: 'left',
-        color: 'var(--color-gray-700)',
+        color: '#374151',
       },
     });
 
@@ -674,10 +674,10 @@ class MiroReportService {
 
     // Summary cards
     const items = [
-      { label: 'Total', value: metrics.total, color: 'var(--color-accent-light)' },
-      { label: 'Approved', value: metrics.approved, color: 'var(--color-success)' },
-      { label: 'In Progress', value: metrics.inProgress, color: 'var(--color-warning)' },
-      { label: 'Pending', value: metrics.pending, color: 'var(--color-gray-500)' },
+      { label: 'Total', value: metrics.total, color: '#3B82F6' },
+      { label: 'Approved', value: metrics.approved, color: '#10B981' },
+      { label: 'In Progress', value: metrics.inProgress, color: '#F59E0B' },
+      { label: 'Pending', value: metrics.pending, color: '#6B7280' },
     ];
 
     const itemWidth = 120;
@@ -698,10 +698,10 @@ class MiroReportService {
         width: itemWidth,
         height: 60,
         style: {
-          fillColor: 'var(--color-text-inverse)',
+          fillColor: '#FFFFFF',
           borderColor: item.color,
           borderWidth: 2,
-          color: 'var(--color-gray-700)',
+          color: '#374151',
           fontSize: 12,
           textAlign: 'center',
           textAlignVertical: 'middle',
@@ -718,7 +718,7 @@ class MiroReportService {
       style: {
         fontSize: 14,
         textAlign: 'center',
-        color: metrics.completionRate >= 80 ? 'var(--color-success)' : metrics.completionRate >= 50 ? 'var(--color-warning)' : 'var(--color-error)',
+        color: metrics.completionRate >= 80 ? '#10B981' : metrics.completionRate >= 50 ? '#F59E0B' : '#EF4444',
       },
     });
   }

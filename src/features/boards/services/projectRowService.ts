@@ -71,7 +71,7 @@ class ProjectRowService {
       y: rowY,
       width: BRIEFING_FRAME_WIDTH,
       height: BRIEFING_FRAME_HEIGHT,
-      fillColor: 'var(--color-text-inverse)',
+      fillColor: '#FFFFFF',
     });
 
     // Create Process Versions Frame
@@ -81,7 +81,7 @@ class ProjectRowService {
       y: rowY,
       width: PROCESS_FRAME_WIDTH,
       height: PROCESS_FRAME_HEIGHT,
-      fillColor: 'var(--color-text-inverse)',
+      fillColor: '#FFFFFF',
     });
 
     // Create briefing header with status badge and info
@@ -150,8 +150,8 @@ class ProjectRowService {
         height: 25,
         content: 'URGENT',
         style: {
-          fillColor: 'var(--color-error)',
-          fontColor: 'var(--color-text-inverse)',
+          fillColor: '#EF4444',
+          fontColor: '#FFFFFF',
           fontSize: '10',
         },
       });
@@ -166,8 +166,8 @@ class ProjectRowService {
       height: 30,
       content: `⭐ Brianna D Studio`,
       style: {
-        fillColor: 'var(--color-brand-gold)',
-        fontColor: 'var(--color-text-inverse)',
+        fillColor: '#D4AF37',
+        fontColor: '#FFFFFF',
         fontSize: '11',
       },
     });
@@ -184,7 +184,7 @@ class ProjectRowService {
       width: BRIEFING_FRAME_WIDTH - 40,
       style: {
         fontSize: '10',
-        color: 'var(--color-gray-700)',
+        color: '#374151',
       },
     });
   }
@@ -232,9 +232,9 @@ class ProjectRowService {
         height: CELL_HEIGHT - 30,
         content: displayValue,
         style: {
-          fillColor: isEmpty ? 'var(--color-warning-light)' : 'var(--color-text-inverse)',
-          borderColor: isEmpty ? 'var(--color-warning)' : 'var(--color-gray-200)',
-          fontColor: isEmpty ? 'var(--color-warning-dark)' : 'var(--color-gray-700)',
+          fillColor: isEmpty ? 'var(--color-warning-light)' : '#FFFFFF',
+          borderColor: isEmpty ? '#F59E0B' : '#E5E7EB',
+          fontColor: isEmpty ? 'var(--color-warning-dark)' : '#374151',
           fontSize: '9',
         },
       });
@@ -270,8 +270,8 @@ class ProjectRowService {
       height: 30,
       content: 'CREATIVE DIRECTION',
       style: {
-        fillColor: 'var(--color-gray-200)',
-        fontColor: 'var(--color-gray-700)',
+        fillColor: '#E5E7EB',
+        fontColor: '#374151',
         fontSize: '11',
       },
     });
@@ -285,9 +285,9 @@ class ProjectRowService {
       height: 180,
       content: 'Drop images, mood boards, style references here',
       style: {
-        fillColor: 'var(--color-text-inverse)',
-        borderColor: 'var(--color-gray-200)',
-        fontColor: 'var(--color-gray-400)',
+        fillColor: '#FFFFFF',
+        borderColor: '#E5E7EB',
+        fontColor: '#9CA3AF',
         fontSize: '10',
       },
     });
@@ -313,8 +313,8 @@ class ProjectRowService {
       height: 30,
       content: 'FILE ASSETS',
       style: {
-        fillColor: 'var(--color-gray-200)',
-        fontColor: 'var(--color-gray-700)',
+        fillColor: '#E5E7EB',
+        fontColor: '#374151',
         fontSize: '11',
       },
     });
@@ -328,9 +328,9 @@ class ProjectRowService {
       height: 180,
       content: 'Drop product images, kits, logos, and other assets here',
       style: {
-        fillColor: 'var(--color-text-inverse)',
-        borderColor: 'var(--color-gray-200)',
-        fontColor: 'var(--color-gray-400)',
+        fillColor: '#FFFFFF',
+        borderColor: '#E5E7EB',
+        fontColor: '#9CA3AF',
         fontSize: '10',
       },
     });
@@ -358,8 +358,8 @@ class ProjectRowService {
       height: 35,
       content: '📋 PROCESS VERSIONS - Click + to add more frames',
       style: {
-        fillColor: 'var(--color-primary)',
-        fontColor: 'var(--color-text-inverse)',
+        fillColor: '#000000',
+        fontColor: '#FFFFFF',
         fontSize: '12',
       },
     });
@@ -376,8 +376,8 @@ class ProjectRowService {
         height: 30,
         content: `🎯 ${versionName}`,
         style: {
-          fillColor: 'var(--color-gray-700)',
-          fontColor: 'var(--color-text-inverse)',
+          fillColor: '#374151',
+          fontColor: '#FFFFFF',
           fontSize: '11',
         },
       });
@@ -391,9 +391,9 @@ class ProjectRowService {
         height: 150,
         content: `Add deliverables, mockups, and iterations for ${versionName}`,
         style: {
-          fillColor: 'var(--color-gray-50)',
-          borderColor: 'var(--color-gray-200)',
-          fontColor: 'var(--color-gray-400)',
+          fillColor: '#F9FAFB',
+          borderColor: '#E5E7EB',
+          fontColor: '#9CA3AF',
           fontSize: '10',
         },
       });
@@ -431,7 +431,7 @@ class ProjectRowService {
       height: 35,
       content: '',
       style: {
-        fillColor: 'var(--color-gray-700)',
+        fillColor: '#374151',
         borderColor: 'transparent',
         borderWidth: 0,
       },
@@ -447,8 +447,8 @@ class ProjectRowService {
       height: 70,
       content: '',
       style: {
-        fillColor: 'var(--color-text-inverse)',
-        borderColor: 'var(--color-gray-400)',
+        fillColor: '#FFFFFF',
+        borderColor: '#9CA3AF',
         borderWidth: 2,
       },
     });
@@ -461,7 +461,7 @@ class ProjectRowService {
       width: 100,
       style: {
         fontSize: '8',
-        color: 'var(--color-gray-500)',
+        color: '#6B7280',
         textAlign: 'center',
       },
     });
@@ -486,18 +486,18 @@ class ProjectRowService {
       width: 300,
       style: {
         fontSize: '10',
-        color: 'var(--color-gray-500)',
+        color: '#6B7280',
         textAlign: 'center',
       },
     });
 
     // Emoji faces - 5 options centered
     const emojis = [
-      { emoji: '😢', label: 'Very Unhappy', color: 'var(--color-error)' },
-      { emoji: '😟', label: 'Unhappy', color: 'var(--priority-high)' },
-      { emoji: '😐', label: 'Neutral', color: 'var(--color-warning)' },
-      { emoji: '🙂', label: 'Happy', color: 'var(--color-success)' },
-      { emoji: '😄', label: 'Very Happy', color: 'var(--color-success)' },
+      { emoji: '😢', label: 'Very Unhappy', color: '#EF4444' },
+      { emoji: '😟', label: 'Unhappy', color: '#F59E0B' },
+      { emoji: '😐', label: 'Neutral', color: '#F59E0B' },
+      { emoji: '🙂', label: 'Happy', color: '#10B981' },
+      { emoji: '😄', label: 'Very Happy', color: '#10B981' },
     ];
 
     const emojiStartX = sectionX - 120;
@@ -548,7 +548,7 @@ class ProjectRowService {
       width: 140,
       style: {
         fontSize: '8',
-        color: 'var(--color-gray-500)',
+        color: '#6B7280',
         textAlign: 'left',
       },
     });
@@ -578,8 +578,8 @@ class ProjectRowService {
     await miroClient.updateShape(this.boardId, item.miroItemId, {
       content: displayValue,
       style: {
-        fillColor: isEmpty ? 'var(--color-warning-light)' : 'var(--color-text-inverse)',
-        borderColor: isEmpty ? 'var(--color-warning)' : 'var(--color-gray-200)',
+        fillColor: isEmpty ? 'var(--color-warning-light)' : '#FFFFFF',
+        borderColor: isEmpty ? '#F59E0B' : '#E5E7EB',
       },
     });
   }

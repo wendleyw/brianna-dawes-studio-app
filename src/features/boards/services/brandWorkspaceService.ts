@@ -56,7 +56,7 @@ class BrandWorkspaceService {
         y: section.position.y,
         width: section.size.width,
         height: section.size.height,
-        fillColor: 'var(--color-text-inverse)',
+        fillColor: '#FFFFFF',
       });
 
       sections.push({
@@ -169,7 +169,7 @@ class BrandWorkspaceService {
       content: `${typography.fontFamily}\n${typography.weight} - ${typography.size}\n\n${typography.sample}`,
       x,
       y,
-      fillColor: 'var(--color-text-inverse)',
+      fillColor: '#FFFFFF',
     });
 
     return stickyNote.id;

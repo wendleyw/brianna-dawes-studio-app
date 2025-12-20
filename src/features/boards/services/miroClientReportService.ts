@@ -30,23 +30,23 @@ const REPORT = {
 
 // Chart Colors
 const CHART_COLORS = {
-  assets: 'var(--color-accent-light)',      // Blue
-  bonus: 'var(--color-purple-500)',       // Purple
-  approved: 'var(--color-success)',    // Green
-  inProgress: 'var(--color-warning)',  // Yellow
-  pending: 'var(--color-gray-500)',     // Gray
-  rejected: 'var(--color-error)',    // Red
-  primary: 'var(--color-primary)',     // Brand primary (dark navy)
-  accent: 'var(--color-accent)',      // Brand accent
+  assets: '#3B82F6',      // Blue
+  bonus: '#A855F7',       // Purple
+  approved: '#10B981',    // Green
+  inProgress: '#F59E0B',  // Yellow
+  pending: '#6B7280',     // Gray
+  rejected: '#EF4444',    // Red
+  primary: '#000000',     // Brand primary (dark navy)
+  accent: '#2563EB',      // Brand accent
 };
 
 // Satisfaction Levels with face icons (text-based faces for Miro compatibility)
 const SATISFACTION_FACES = [
-  { level: 1, label: 'Very Unhappy', color: 'var(--color-error)', face: '😞', bgColor: 'var(--color-error-light)' },
-  { level: 2, label: 'Unhappy', color: 'var(--priority-high)', face: '😕', bgColor: 'var(--color-warning-light)' },
-  { level: 3, label: 'Neutral', color: 'var(--color-warning)', face: '😐', bgColor: 'var(--color-warning-light)' },
-  { level: 4, label: 'Happy', color: 'var(--color-success)', face: '😊', bgColor: 'var(--color-success-light)' },
-  { level: 5, label: 'Very Happy', color: 'var(--color-success)', face: '😄', bgColor: 'var(--color-success-light)' },
+  { level: 1, label: 'Very Unhappy', color: '#EF4444', face: '😞', bgColor: '#FEE2E2' },
+  { level: 2, label: 'Unhappy', color: '#F59E0B', face: '😕', bgColor: 'var(--color-warning-light)' },
+  { level: 3, label: 'Neutral', color: '#F59E0B', face: '😐', bgColor: 'var(--color-warning-light)' },
+  { level: 4, label: 'Happy', color: '#10B981', face: '😊', bgColor: '#D1FAE5' },
+  { level: 5, label: 'Very Happy', color: '#10B981', face: '😄', bgColor: '#D1FAE5' },
 ];
 
 export interface PeriodData {
@@ -486,7 +486,7 @@ class MiroClientReportService {
       width: REPORT.FRAME_WIDTH,
       height: dynamicHeight,
       style: {
-        fillColor: 'var(--color-text-inverse)',
+        fillColor: '#FFFFFF',
       },
     });
 
@@ -541,7 +541,7 @@ class MiroClientReportService {
       height: 50,
       style: {
         fillColor: CHART_COLORS.primary,
-        color: 'var(--color-text-inverse)',
+        color: '#FFFFFF',
         fontSize: 22,
         textAlign: 'center',
         textAlignVertical: 'middle',
@@ -558,7 +558,7 @@ class MiroClientReportService {
       style: {
         fontSize: 12,
         textAlign: 'center',
-        color: 'var(--color-gray-500)',
+        color: '#6B7280',
       },
     });
   }
@@ -596,7 +596,7 @@ class MiroClientReportService {
         width: cardWidth,
         height: REPORT.CARD_HEIGHT,
         style: {
-          fillColor: 'var(--color-gray-50)',
+          fillColor: '#F9FAFB',
           borderColor: card.color,
           borderWidth: 2,
         },
@@ -624,7 +624,7 @@ class MiroClientReportService {
         style: {
           fontSize: 11,
           textAlign: 'center',
-          color: 'var(--color-gray-500)',
+          color: '#6B7280',
         },
       });
     }
@@ -646,7 +646,7 @@ class MiroClientReportService {
       style: {
         fontSize: 14,
         textAlign: 'left',
-        color: 'var(--color-primary)',
+        color: '#000000',
       },
     });
 
@@ -668,7 +668,7 @@ class MiroClientReportService {
         style: {
           fontSize: 14,
           textAlign: 'center',
-          color: 'var(--color-gray-400)',
+          color: '#9CA3AF',
         },
       });
       return;
@@ -695,7 +695,7 @@ class MiroClientReportService {
         style: {
           fontSize: 10,
           textAlign: 'right',
-          color: 'var(--color-gray-400)',
+          color: '#9CA3AF',
         },
       });
 
@@ -708,7 +708,7 @@ class MiroClientReportService {
         width: barAreaWidth,
         height: 8,
         style: {
-          fillColor: 'var(--color-gray-200)',
+          fillColor: '#E5E7EB',
           borderWidth: 0,
         },
       });
@@ -798,7 +798,7 @@ class MiroClientReportService {
         style: {
           fontSize: isMonthly ? 9 : 10,
           textAlign: 'center',
-          color: 'var(--color-gray-500)',
+          color: '#6B7280',
         },
       });
     }
@@ -822,7 +822,7 @@ class MiroClientReportService {
       x: startX + width - 140,
       y: legendY,
       width: 50,
-      style: { fontSize: 11, textAlign: 'left', color: 'var(--color-gray-700)' },
+      style: { fontSize: 11, textAlign: 'left', color: '#374151' },
     });
 
     await miro.board.createShape({
@@ -842,7 +842,7 @@ class MiroClientReportService {
       x: startX + width - 40,
       y: legendY,
       width: 50,
-      style: { fontSize: 11, textAlign: 'left', color: 'var(--color-gray-700)' },
+      style: { fontSize: 11, textAlign: 'left', color: '#374151' },
     });
   }
 
@@ -863,7 +863,7 @@ class MiroClientReportService {
       style: {
         fontSize: 14,
         textAlign: 'left',
-        color: 'var(--color-primary)',
+        color: '#000000',
       },
     });
 
@@ -886,7 +886,7 @@ class MiroClientReportService {
     const maxCount = sortedTypes.length > 0 ? Math.max(...sortedTypes.map(([, count]) => count)) : 1;
 
     // Default fallback for unknown types
-    const defaultTypeConfig = { label: 'Other', color: 'var(--color-gray-500)', icon: '📋' };
+    const defaultTypeConfig = { label: 'Other', color: '#6B7280', icon: '📋' };
 
     for (let i = 0; i < sortedTypes.length; i++) {
       const [typeKey, count] = sortedTypes[i]!;
@@ -922,7 +922,7 @@ class MiroClientReportService {
         style: {
           fontSize: 11,
           textAlign: 'left',
-          color: 'var(--color-text-inverse)',
+          color: '#FFFFFF',
         },
       });
     }
@@ -937,7 +937,7 @@ class MiroClientReportService {
         style: {
           fontSize: 12,
           textAlign: 'left',
-          color: 'var(--color-gray-400)',
+          color: '#9CA3AF',
         },
       });
     }
@@ -961,7 +961,7 @@ class MiroClientReportService {
       width: contentWidth,
       height: 35,
       style: {
-        fillColor: 'var(--color-gray-700)',
+        fillColor: '#374151',
         borderWidth: 0,
       },
     });
@@ -976,8 +976,8 @@ class MiroClientReportService {
       width: 60,
       height: 60,
       style: {
-        fillColor: 'var(--color-text-inverse)',
-        borderColor: 'var(--color-gray-400)',
+        fillColor: '#FFFFFF',
+        borderColor: '#9CA3AF',
         borderWidth: 2,
       },
     });
@@ -991,7 +991,7 @@ class MiroClientReportService {
       style: {
         fontSize: 8,
         textAlign: 'center',
-        color: 'var(--color-gray-500)',
+        color: '#6B7280',
       },
     });
 
@@ -1016,7 +1016,7 @@ class MiroClientReportService {
       style: {
         fontSize: 10,
         textAlign: 'center',
-        color: 'var(--color-gray-500)',
+        color: '#6B7280',
       },
     });
 
@@ -1083,7 +1083,7 @@ class MiroClientReportService {
       style: {
         fontSize: 9,
         textAlign: 'left',
-        color: 'var(--color-gray-500)',
+        color: '#6B7280',
       },
     });
   }
@@ -1104,7 +1104,7 @@ class MiroClientReportService {
       style: {
         fontSize: 14,
         textAlign: 'left',
-        color: 'var(--color-primary)',
+        color: '#000000',
       },
     });
 
@@ -1139,7 +1139,7 @@ class MiroClientReportService {
         style: {
           fontSize: 12,
           textAlign: 'center',
-          color: 'var(--color-text-inverse)',
+          color: '#FFFFFF',
         },
       });
       headerX += colWidth + 10;
@@ -1162,8 +1162,8 @@ class MiroClientReportService {
         width: width,
         height: rowHeight - 2,
         style: {
-          fillColor: i % 2 === 0 ? 'var(--color-text-inverse)' : 'var(--color-gray-50)',
-          borderColor: 'var(--color-gray-200)',
+          fillColor: i % 2 === 0 ? '#FFFFFF' : '#F9FAFB',
+          borderColor: '#E5E7EB',
           borderWidth: 1,
         },
       });
@@ -1179,7 +1179,7 @@ class MiroClientReportService {
       let cellX = startX + 20;
       for (let j = 0; j < rowData.length; j++) {
         const colWidth = colWidths[j] || 100;
-        const cellColor = j === 1 ? CHART_COLORS.assets : j === 2 ? CHART_COLORS.bonus : 'var(--color-gray-700)';
+        const cellColor = j === 1 ? CHART_COLORS.assets : j === 2 ? CHART_COLORS.bonus : '#374151';
 
         await miro.board.createText({
           content: j === 0 ? rowData[j] || '' : `<b>${rowData[j]}</b>`,
@@ -1206,7 +1206,7 @@ class MiroClientReportService {
       width: width,
       height: rowHeight,
       style: {
-        fillColor: 'var(--color-gray-100)',
+        fillColor: '#F3F4F6',
         borderColor: CHART_COLORS.primary,
         borderWidth: 2,
       },
