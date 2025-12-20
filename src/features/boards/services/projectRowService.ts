@@ -215,7 +215,7 @@ class ProjectRowService {
         width: CELL_WIDTH,
         style: {
           fontSize: '10',
-          color: 'var(--color-gray-900)',
+          color: '#111827',
         },
       });
 
@@ -232,9 +232,9 @@ class ProjectRowService {
         height: CELL_HEIGHT - 30,
         content: displayValue,
         style: {
-          fillColor: isEmpty ? 'var(--color-warning-light)' : '#FFFFFF',
+          fillColor: isEmpty ? '#FBBF24' : '#FFFFFF',
           borderColor: isEmpty ? '#F59E0B' : '#E5E7EB',
-          fontColor: isEmpty ? 'var(--color-warning-dark)' : '#374151',
+          fontColor: isEmpty ? '#D97706' : '#374151',
           fontSize: '9',
         },
       });
@@ -474,7 +474,7 @@ class ProjectRowService {
       width: 300,
       style: {
         fontSize: '14',
-        color: 'var(--color-gray-900)',
+        color: '#111827',
         textAlign: 'center',
       },
     });
@@ -578,7 +578,7 @@ class ProjectRowService {
     await miroClient.updateShape(this.boardId, item.miroItemId, {
       content: displayValue,
       style: {
-        fillColor: isEmpty ? 'var(--color-warning-light)' : '#FFFFFF',
+        fillColor: isEmpty ? '#FBBF24' : '#FFFFFF',
         borderColor: isEmpty ? '#F59E0B' : '#E5E7EB',
       },
     });

@@ -200,7 +200,7 @@ class BrandWorkspaceService {
       content,
       x,
       y,
-      fillColor: 'var(--color-warning-light)',
+      fillColor: '#FBBF24',
     });
 
     return stickyNote.id;

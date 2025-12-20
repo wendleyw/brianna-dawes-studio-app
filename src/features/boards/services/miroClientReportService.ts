@@ -43,8 +43,8 @@ const CHART_COLORS = {
 // Satisfaction Levels with face icons (text-based faces for Miro compatibility)
 const SATISFACTION_FACES = [
   { level: 1, label: 'Very Unhappy', color: '#EF4444', face: '😞', bgColor: '#FEE2E2' },
-  { level: 2, label: 'Unhappy', color: '#F59E0B', face: '😕', bgColor: 'var(--color-warning-light)' },
-  { level: 3, label: 'Neutral', color: '#F59E0B', face: '😐', bgColor: 'var(--color-warning-light)' },
+  { level: 2, label: 'Unhappy', color: '#F59E0B', face: '😕', bgColor: '#FBBF24' },
+  { level: 3, label: 'Neutral', color: '#F59E0B', face: '😐', bgColor: '#FBBF24' },
   { level: 4, label: 'Happy', color: '#10B981', face: '😊', bgColor: '#D1FAE5' },
   { level: 5, label: 'Very Happy', color: '#10B981', face: '😄', bgColor: '#D1FAE5' },
 ];
@@ -1004,7 +1004,7 @@ class MiroClientReportService {
       style: {
         fontSize: 14,
         textAlign: 'center',
-        color: 'var(--color-gray-900)',
+        color: '#111827',
       },
     });
 

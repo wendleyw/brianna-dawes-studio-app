@@ -1328,7 +1328,7 @@ class MasterBoardService {
         width: DIAGRAM.FLOW_BOX_WIDTH,
         height: DIAGRAM.FLOW_BOX_HEIGHT + 10,
         content: `${step.icon}\n<b>${step.label}</b>\n${step.desc}`,
-        style: { fillColor: 'var(--color-info-light)', borderColor: COLORS.client, fontSize: 9, textAlign: 'center', textAlignVertical: 'middle' },
+        style: { fillColor: '#93C5FD', borderColor: COLORS.client, fontSize: 9, textAlign: 'center', textAlignVertical: 'middle' },
       });
 
       if (i < projectSteps.length - 1) {
@@ -1442,7 +1442,7 @@ class MasterBoardService {
         width: DIAGRAM.FLOW_BOX_WIDTH,
         height: DIAGRAM.FLOW_BOX_HEIGHT + 10,
         content: `${step.icon}\n<b>${step.label}</b>\n${step.desc}`,
-        style: { fillColor: 'var(--color-warning-light)', borderColor: '#F59E0B', fontSize: 9, textAlign: 'center', textAlignVertical: 'middle' },
+        style: { fillColor: '#FBBF24', borderColor: '#F59E0B', fontSize: 9, textAlign: 'center', textAlignVertical: 'middle' },
       });
 
       if (i < reviewSteps.length - 1) {
@@ -1609,7 +1609,7 @@ class MasterBoardService {
         width: 180,
         height: 60,
         content: `<b>${element.name}</b>\n${element.desc}`,
-        style: { fillColor: 'var(--color-warning-light)', borderColor: COLORS.miro, fontSize: 8, textAlign: 'center', textAlignVertical: 'middle' },
+        style: { fillColor: '#FBBF24', borderColor: COLORS.miro, fontSize: 8, textAlign: 'center', textAlignVertical: 'middle' },
       });
     }
 
@@ -1696,7 +1696,7 @@ class MasterBoardService {
         width: 250,
         height: 55,
         content: `<b>${service.name}</b>\n${service.desc}`,
-        style: { fillColor: 'var(--color-info-light)', borderColor: '#3B82F6', fontSize: 9, textAlign: 'center', textAlignVertical: 'middle' },
+        style: { fillColor: '#93C5FD', borderColor: '#3B82F6', fontSize: 9, textAlign: 'center', textAlignVertical: 'middle' },
       });
     }
 
@@ -1736,7 +1736,7 @@ class MasterBoardService {
         x: startX + 400,
         y: currentY - 30 + i * 22,
         width: 750,
-        style: { fontSize: 10, textAlign: 'left', color: 'var(--color-gray-600)' },
+        style: { fontSize: 10, textAlign: 'left', color: '#4B5563' },
       });
     }
 
