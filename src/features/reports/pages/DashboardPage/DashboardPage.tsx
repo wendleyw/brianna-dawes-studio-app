@@ -488,10 +488,10 @@ export function DashboardPage() {
 
       {/* Analytics */}
       <section className={styles.section}>
-        <h2 className={styles.sectionTitle}>
-          Analytics
+        <h2 className={`${styles.sectionTitle} ${styles.analyticsTitle}`}>
+          <span>Analytics</span>
           {analyticsSince && (
-            <span className={styles.sectionTitleMeta}> | Since {analyticsSince}</span>
+            <span className={styles.sectionTitleMeta}>| Since {analyticsSince}</span>
           )}
         </h2>
         <div className={styles.analyticsGrid}>
@@ -507,9 +507,9 @@ export function DashboardPage() {
             <span className={styles.analyticsValue}>{totalDeliverables}</span>
             <span className={styles.analyticsLabel}>Deliverables Delivered</span>
             <span className={styles.assetsSub}>
-              Assets: {totalAssets}
+              <span>Assets: {totalAssets}</span>
               {totalBonusAssets > 0 && (
-                <span className={styles.bonusText}> • Bonus: +{totalBonusAssets}</span>
+                <span className={styles.bonusText}>Bonus: +{totalBonusAssets}</span>
               )}
             </span>
           </div>
