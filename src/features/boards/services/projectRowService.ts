@@ -71,7 +71,7 @@ class ProjectRowService {
       y: rowY,
       width: BRIEFING_FRAME_WIDTH,
       height: BRIEFING_FRAME_HEIGHT,
-      fillColor: '#FFFFFF',
+      fillColor: 'var(--color-text-inverse)',
     });
 
     // Create Process Versions Frame
@@ -81,7 +81,7 @@ class ProjectRowService {
       y: rowY,
       width: PROCESS_FRAME_WIDTH,
       height: PROCESS_FRAME_HEIGHT,
-      fillColor: '#FFFFFF',
+      fillColor: 'var(--color-text-inverse)',
     });
 
     // Create briefing header with status badge and info
@@ -150,8 +150,8 @@ class ProjectRowService {
         height: 25,
         content: 'URGENT',
         style: {
-          fillColor: '#DC2626',
-          fontColor: '#FFFFFF',
+          fillColor: 'var(--color-error)',
+          fontColor: 'var(--color-text-inverse)',
           fontSize: '10',
         },
       });
@@ -166,8 +166,8 @@ class ProjectRowService {
       height: 30,
       content: `⭐ Brianna D Studio`,
       style: {
-        fillColor: '#D4A574',
-        fontColor: '#FFFFFF',
+        fillColor: 'var(--color-brand-gold)',
+        fontColor: 'var(--color-text-inverse)',
         fontSize: '11',
       },
     });
@@ -184,7 +184,7 @@ class ProjectRowService {
       width: BRIEFING_FRAME_WIDTH - 40,
       style: {
         fontSize: '10',
-        color: '#374151',
+        color: 'var(--color-gray-700)',
       },
     });
   }
@@ -215,7 +215,7 @@ class ProjectRowService {
         width: CELL_WIDTH,
         style: {
           fontSize: '10',
-          color: '#111827',
+          color: 'var(--color-gray-900)',
         },
       });
 
@@ -232,9 +232,9 @@ class ProjectRowService {
         height: CELL_HEIGHT - 30,
         content: displayValue,
         style: {
-          fillColor: isEmpty ? '#FEF3C7' : '#FFFFFF',
-          borderColor: isEmpty ? '#F59E0B' : '#E5E7EB',
-          fontColor: isEmpty ? '#92400E' : '#374151',
+          fillColor: isEmpty ? 'var(--color-warning-light)' : 'var(--color-text-inverse)',
+          borderColor: isEmpty ? 'var(--color-warning)' : 'var(--color-gray-200)',
+          fontColor: isEmpty ? 'var(--color-warning-dark)' : 'var(--color-gray-700)',
           fontSize: '9',
         },
       });
@@ -270,8 +270,8 @@ class ProjectRowService {
       height: 30,
       content: 'CREATIVE DIRECTION',
       style: {
-        fillColor: '#E5E7EB',
-        fontColor: '#374151',
+        fillColor: 'var(--color-gray-200)',
+        fontColor: 'var(--color-gray-700)',
         fontSize: '11',
       },
     });
@@ -285,9 +285,9 @@ class ProjectRowService {
       height: 180,
       content: 'Drop images, mood boards, style references here',
       style: {
-        fillColor: '#FFFFFF',
-        borderColor: '#E5E7EB',
-        fontColor: '#9CA3AF',
+        fillColor: 'var(--color-text-inverse)',
+        borderColor: 'var(--color-gray-200)',
+        fontColor: 'var(--color-gray-400)',
         fontSize: '10',
       },
     });
@@ -313,8 +313,8 @@ class ProjectRowService {
       height: 30,
       content: 'FILE ASSETS',
       style: {
-        fillColor: '#E5E7EB',
-        fontColor: '#374151',
+        fillColor: 'var(--color-gray-200)',
+        fontColor: 'var(--color-gray-700)',
         fontSize: '11',
       },
     });
@@ -328,9 +328,9 @@ class ProjectRowService {
       height: 180,
       content: 'Drop product images, kits, logos, and other assets here',
       style: {
-        fillColor: '#FFFFFF',
-        borderColor: '#E5E7EB',
-        fontColor: '#9CA3AF',
+        fillColor: 'var(--color-text-inverse)',
+        borderColor: 'var(--color-gray-200)',
+        fontColor: 'var(--color-gray-400)',
         fontSize: '10',
       },
     });
@@ -358,8 +358,8 @@ class ProjectRowService {
       height: 35,
       content: '📋 PROCESS VERSIONS - Click + to add more frames',
       style: {
-        fillColor: '#000000',
-        fontColor: '#FFFFFF',
+        fillColor: 'var(--color-primary)',
+        fontColor: 'var(--color-text-inverse)',
         fontSize: '12',
       },
     });
@@ -376,8 +376,8 @@ class ProjectRowService {
         height: 30,
         content: `🎯 ${versionName}`,
         style: {
-          fillColor: '#374151',
-          fontColor: '#FFFFFF',
+          fillColor: 'var(--color-gray-700)',
+          fontColor: 'var(--color-text-inverse)',
           fontSize: '11',
         },
       });
@@ -391,9 +391,9 @@ class ProjectRowService {
         height: 150,
         content: `Add deliverables, mockups, and iterations for ${versionName}`,
         style: {
-          fillColor: '#F9FAFB',
-          borderColor: '#E5E7EB',
-          fontColor: '#9CA3AF',
+          fillColor: 'var(--color-gray-50)',
+          borderColor: 'var(--color-gray-200)',
+          fontColor: 'var(--color-gray-400)',
           fontSize: '10',
         },
       });
@@ -431,7 +431,7 @@ class ProjectRowService {
       height: 35,
       content: '',
       style: {
-        fillColor: '#374151',
+        fillColor: 'var(--color-gray-700)',
         borderColor: 'transparent',
         borderWidth: 0,
       },
@@ -447,8 +447,8 @@ class ProjectRowService {
       height: 70,
       content: '',
       style: {
-        fillColor: '#FFFFFF',
-        borderColor: '#9CA3AF',
+        fillColor: 'var(--color-text-inverse)',
+        borderColor: 'var(--color-gray-400)',
         borderWidth: 2,
       },
     });
@@ -461,7 +461,7 @@ class ProjectRowService {
       width: 100,
       style: {
         fontSize: '8',
-        color: '#6B7280',
+        color: 'var(--color-gray-500)',
         textAlign: 'center',
       },
     });
@@ -474,7 +474,7 @@ class ProjectRowService {
       width: 300,
       style: {
         fontSize: '14',
-        color: '#111827',
+        color: 'var(--color-gray-900)',
         textAlign: 'center',
       },
     });
@@ -486,18 +486,18 @@ class ProjectRowService {
       width: 300,
       style: {
         fontSize: '10',
-        color: '#6B7280',
+        color: 'var(--color-gray-500)',
         textAlign: 'center',
       },
     });
 
     // Emoji faces - 5 options centered
     const emojis = [
-      { emoji: '😢', label: 'Very Unhappy', color: '#EF4444' },
-      { emoji: '😟', label: 'Unhappy', color: '#F97316' },
-      { emoji: '😐', label: 'Neutral', color: '#EAB308' },
-      { emoji: '🙂', label: 'Happy', color: '#84CC16' },
-      { emoji: '😄', label: 'Very Happy', color: '#22C55E' },
+      { emoji: '😢', label: 'Very Unhappy', color: 'var(--color-error)' },
+      { emoji: '😟', label: 'Unhappy', color: 'var(--priority-high)' },
+      { emoji: '😐', label: 'Neutral', color: 'var(--color-warning)' },
+      { emoji: '🙂', label: 'Happy', color: 'var(--color-success)' },
+      { emoji: '😄', label: 'Very Happy', color: 'var(--color-success)' },
     ];
 
     const emojiStartX = sectionX - 120;
@@ -548,7 +548,7 @@ class ProjectRowService {
       width: 140,
       style: {
         fontSize: '8',
-        color: '#6B7280',
+        color: 'var(--color-gray-500)',
         textAlign: 'left',
       },
     });
@@ -578,8 +578,8 @@ class ProjectRowService {
     await miroClient.updateShape(this.boardId, item.miroItemId, {
       content: displayValue,
       style: {
-        fillColor: isEmpty ? '#FEF3C7' : '#FFFFFF',
-        borderColor: isEmpty ? '#F59E0B' : '#E5E7EB',
+        fillColor: isEmpty ? 'var(--color-warning-light)' : 'var(--color-text-inverse)',
+        borderColor: isEmpty ? 'var(--color-warning)' : 'var(--color-gray-200)',
       },
     });
   }

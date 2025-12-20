@@ -8,8 +8,8 @@
   padding: 16px;
   background: linear-gradient(
     135deg,
-    #ffffff 0%,
-    #f9fafb 100%
+    var(--color-text-inverse) 0%,
+    var(--color-gray-50) 100%
   );
 }
 
@@ -17,7 +17,7 @@
   width: 100%;
   max-width: 440px;
   padding: 32px;
-  background-color: #ffffff;
+  background-color: var(--color-text-inverse);
   border-radius: 16px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
 }
@@ -29,11 +29,11 @@
 
 .footerText {
   font-size: 12px;
-  color: #9ca3af;
+  color: var(--color-gray-400);
 }
 
 .footerLink {
-  color: #2563eb;
+  color: var(--color-accent);
   text-decoration: none;
 }
 

@@ -8,7 +8,7 @@
   justify-content: center;
   min-height: 100%;
   padding: 24px;
-  background: #fafafa;
+  background: var(--color-gray-50);
 }
 
 .card {
@@ -40,17 +40,17 @@
 
 .titleBlue {
   composes: title;
-  color: #2563eb;
+  color: var(--color-accent);
 }
 
 .titleWarning {
   composes: title;
-  color: #f59e0b;
+  color: var(--color-warning);
 }
 
 .subtitle {
   font-size: 14px;
-  color: #666666;
+  color: var(--color-gray-500);
   margin: 0;
 }
 
@@ -64,14 +64,14 @@
 
 .infoBoxBlue {
   composes: infoBox;
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
+  background: var(--color-info-light);
+  border: 1px solid var(--color-info-light);
 }
 
 .infoBoxWarning {
   composes: infoBox;
-  background: #fef3c7;
-  border: 1px solid #fcd34d;
+  background: var(--color-warning-light);
+  border: 1px solid var(--color-warning-light);
 }
 
 .iconCircle {
@@ -88,12 +88,12 @@
 
 .iconCircleBlue {
   composes: iconCircle;
-  background: #2563eb;
+  background: var(--color-accent);
 }
 
 .iconCircleWarning {
   composes: iconCircle;
-  background: #f59e0b;
+  background: var(--color-warning);
 }
 
 .infoTitle {
@@ -104,12 +104,12 @@
 
 .infoTitleBlue {
   composes: infoTitle;
-  color: #1e40af;
+  color: var(--color-info-dark);
 }
 
 .infoTitleWarning {
   composes: infoTitle;
-  color: #92400e;
+  color: var(--color-warning-dark);
 }
 
 .infoText {
@@ -119,12 +119,12 @@
 
 .infoTextBlue {
   composes: infoText;
-  color: #3b82f6;
+  color: var(--color-accent-light);
 }
 
 /* Miro ID display */
 .miroIdBox {
-  background: #f5f5f5;
+  background: var(--color-gray-100);
   padding: 12px;
   border-radius: 8px;
   margin-bottom: 20px;
@@ -133,27 +133,27 @@
 
 .miroIdLabel {
   font-size: 11px;
-  color: #888888;
+  color: var(--color-gray-400);
   margin: 0 0 4px 0;
 }
 
 .miroIdValue {
   font-size: 12px;
   font-family: monospace;
-  color: #000000;
+  color: var(--color-primary);
 }
 
 /* Help text box */
 .helpBox {
   padding: 16px;
-  background: #f9f9f9;
+  background: var(--color-gray-50);
   border-radius: 8px;
   margin-bottom: 20px;
 }
 
 .helpText {
   font-size: 12px;
-  color: #888888;
+  color: var(--color-gray-400);
   text-align: center;
   margin: 0;
   line-height: 1.5;
@@ -176,34 +176,34 @@
 
 .buttonPrimary {
   composes: button;
-  background-color: #000000;
+  background-color: var(--color-primary);
   color: white;
   margin-bottom: 12px;
 }
 
 .buttonPrimary:hover {
-  background-color: #0a0050;
+  background-color: var(--color-primary);
 }
 
 .buttonSecondary {
   composes: button;
   background-color: transparent;
-  color: #666666;
-  border: 1px solid #e0e0e0;
+  color: var(--color-gray-500);
+  border: 1px solid var(--color-gray-200);
 }
 
 .buttonSecondary:hover {
-  background-color: #f5f5f5;
+  background-color: var(--color-gray-100);
 }
 
 .buttonWarning {
   composes: button;
-  background-color: #f59e0b;
+  background-color: var(--color-warning);
   color: white;
 }
 
 .buttonWarning:hover {
-  background-color: #d97706;
+  background-color: var(--color-warning-dark);
 }
 
 /* Full route wrapper */

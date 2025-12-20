@@ -1,7 +1,7 @@
 .container {
   width: 100%;
   height: 100%;
-  background: #f8f9fa;
+  background: var(--color-gray-50);
   padding: 16px;
   overflow-y: auto;
   overflow-x: hidden;
@@ -31,28 +31,28 @@
   border: none;
   border-radius: 8px;
   background: white;
-  color: #666;
+  color: var(--color-gray-500);
   cursor: pointer;
   transition: all 0.2s;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 .backButton:hover {
-  background: #f5f5f5;
-  color: #050038;
+  background: var(--color-gray-100);
+  color: var(--color-primary);
 }
 
 .title {
   font-size: 28px;
   font-weight: 700;
-  color: #050038;
+  color: var(--color-primary);
   margin: 0;
   font-family: 'Playfair Display', serif;
 }
 
 .subtitle {
   font-size: 14px;
-  color: #666;
+  color: var(--color-gray-500);
   margin: 0;
 }
 
@@ -62,17 +62,17 @@
   gap: 8px;
   padding: 8px 16px;
   background: white;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--color-gray-200);
   border-radius: 8px;
   cursor: pointer;
   font-size: 14px;
-  color: #666;
+  color: var(--color-gray-500);
   transition: all 0.2s;
 }
 
 .refreshButton:hover {
-  background: #f5f5f5;
-  border-color: #ccc;
+  background: var(--color-gray-100);
+  border-color: var(--color-gray-300);
 }
 
 .refreshButton.spinning svg {
@@ -105,7 +105,7 @@
 
 .kpiLabel {
   font-size: 12px;
-  color: #666;
+  color: var(--color-gray-500);
   font-weight: 500;
   display: block;
   margin-bottom: 8px;
@@ -114,13 +114,13 @@
 .kpiValue {
   font-size: 28px;
   font-weight: 700;
-  color: #050038;
+  color: var(--color-primary);
   line-height: 1.2;
 }
 
 .kpiSubtext {
   font-size: 11px;
-  color: #888;
+  color: var(--color-gray-400);
   margin-top: 4px;
 }
 
@@ -139,13 +139,13 @@
 .sectionTitle {
   font-size: 18px;
   font-weight: 600;
-  color: #050038;
+  color: var(--color-primary);
   margin: 0;
 }
 
 .sectionAction {
   font-size: 14px;
-  color: #2563eb;
+  color: var(--color-accent);
   text-decoration: none;
   cursor: pointer;
 }
@@ -185,42 +185,42 @@
 }
 
 .statusCard.onTrack {
-  border-top: 3px solid #10b981;
+  border-top: 3px solid var(--color-success);
 }
 
 .statusCard.inProgress {
-  border-top: 3px solid #3b82f6;
+  border-top: 3px solid var(--color-accent-light);
 }
 
 .statusCard.review {
-  border-top: 3px solid #6366f1;
+  border-top: 3px solid var(--color-info);
 }
 
 .statusCard.urgent {
-  border-top: 3px solid #dc2626;
+  border-top: 3px solid var(--color-error);
 }
 
 .statusCard.overdue {
-  border-top: 3px solid #f97316;
+  border-top: 3px solid var(--priority-high);
 }
 
 .statusCard.done {
-  border-top: 3px solid #22c55e;
+  border-top: 3px solid var(--color-success);
 }
 
 .statusCard.archived {
-  border-top: 3px solid #111827;
+  border-top: 3px solid var(--color-gray-900);
 }
 
 .statusCount {
   font-size: 28px;
   font-weight: 700;
-  color: #050038;
+  color: var(--color-primary);
 }
 
 .statusLabel {
   font-size: 12px;
-  color: #666;
+  color: var(--color-gray-500);
   text-transform: capitalize;
 }
 
@@ -234,9 +234,9 @@
 
 .listHeader {
   padding: 16px 20px;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--color-gray-100);
   font-weight: 600;
-  color: #050038;
+  color: var(--color-primary);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -252,7 +252,7 @@
   align-items: center;
   gap: 12px;
   padding: 12px 20px;
-  border-bottom: 1px solid #f5f5f5;
+  border-bottom: 1px solid var(--color-gray-100);
   transition: background 0.2s;
 }
 
@@ -261,19 +261,19 @@
 }
 
 .listItem:hover {
-  background: #f9fafb;
+  background: var(--color-gray-50);
 }
 
 .avatar {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: #e5e7eb;
+  background: var(--color-gray-200);
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 600;
-  color: #4b5563;
+  color: var(--color-gray-600);
   font-size: 14px;
   flex-shrink: 0;
 }
@@ -292,7 +292,7 @@
 
 .itemName {
   font-weight: 500;
-  color: #050038;
+  color: var(--color-primary);
   font-size: 14px;
   white-space: nowrap;
   overflow: hidden;
@@ -301,7 +301,7 @@
 
 .itemMeta {
   font-size: 12px;
-  color: #666;
+  color: var(--color-gray-500);
 }
 
 .itemStats {
@@ -317,20 +317,20 @@
 
 .statValue {
   font-weight: 600;
-  color: #050038;
+  color: var(--color-primary);
   font-size: 14px;
 }
 
 .statLabel {
   font-size: 11px;
-  color: #888;
+  color: var(--color-gray-400);
 }
 
 /* Progress Bar */
 .progressBar {
   width: 100px;
   height: 6px;
-  background: #e5e7eb;
+  background: var(--color-gray-200);
   border-radius: 3px;
   overflow: hidden;
 }
@@ -342,15 +342,15 @@
 }
 
 .progressFill.low {
-  background: #10b981;
+  background: var(--color-success);
 }
 
 .progressFill.medium {
-  background: #f59e0b;
+  background: var(--color-warning);
 }
 
 .progressFill.high {
-  background: #ef4444;
+  background: var(--color-error);
 }
 
 /* Recent Projects */
@@ -359,7 +359,7 @@
   align-items: center;
   gap: 16px;
   padding: 16px 20px;
-  border-bottom: 1px solid #f5f5f5;
+  border-bottom: 1px solid var(--color-gray-100);
 }
 
 .projectItem:last-child {
@@ -373,14 +373,14 @@
 
 .projectName {
   font-weight: 500;
-  color: #050038;
+  color: var(--color-primary);
   font-size: 14px;
   margin-bottom: 4px;
 }
 
 .projectMeta {
   font-size: 12px;
-  color: #666;
+  color: var(--color-gray-500);
 }
 
 .statusBadge {
@@ -392,28 +392,28 @@
 }
 
 .statusBadge.draft {
-  background: #f3f4f6;
-  color: #4b5563;
+  background: var(--color-gray-100);
+  color: var(--color-gray-600);
 }
 
 .statusBadge.inProgress {
-  background: #dbeafe;
-  color: #1d4ed8;
+  background: var(--color-info-light);
+  color: var(--color-accent-dark);
 }
 
 .statusBadge.review {
-  background: #fef3c7;
-  color: #b45309;
+  background: var(--color-warning-light);
+  color: var(--color-warning-dark);
 }
 
 .statusBadge.done {
-  background: #d1fae5;
-  color: #047857;
+  background: var(--color-success-light);
+  color: var(--color-success-dark);
 }
 
 .statusBadge.archived {
-  background: #e5e7eb;
-  color: #6b7280;
+  background: var(--color-gray-200);
+  color: var(--color-gray-500);
 }
 
 /* Activity Feed */
@@ -421,7 +421,7 @@
   display: flex;
   gap: 12px;
   padding: 12px 20px;
-  border-bottom: 1px solid #f5f5f5;
+  border-bottom: 1px solid var(--color-gray-100);
 }
 
 .activityItem:last-child {
@@ -439,23 +439,23 @@
 }
 
 .activityIcon.project {
-  background: #ede9fe;
-  color: #7c3aed;
+  background: var(--color-purple-500);
+  color: var(--color-purple-600);
 }
 
 .activityIcon.deliverable {
-  background: #d1fae5;
-  color: #059669;
+  background: var(--color-success-light);
+  color: var(--color-success-dark);
 }
 
 .activityIcon.client {
-  background: #dbeafe;
-  color: #2563eb;
+  background: var(--color-info-light);
+  color: var(--color-accent);
 }
 
 .activityIcon.feedback {
-  background: #fce7f3;
-  color: #db2777;
+  background: var(--color-error-light);
+  color: var(--priority-high);
 }
 
 .activityContent {
@@ -464,13 +464,13 @@
 
 .activityText {
   font-size: 13px;
-  color: #050038;
+  color: var(--color-primary);
   margin-bottom: 4px;
 }
 
 .activityTime {
   font-size: 11px;
-  color: #888;
+  color: var(--color-gray-400);
 }
 
 /* Chart Container */
@@ -492,7 +492,7 @@
 .chartTitle {
   font-size: 16px;
   font-weight: 600;
-  color: #050038;
+  color: var(--color-primary);
   margin: 0;
 }
 
@@ -506,7 +506,7 @@
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  color: #666;
+  color: var(--color-gray-500);
 }
 
 .legendDot {
@@ -516,15 +516,15 @@
 }
 
 .legendDot.projects {
-  background: #7c3aed;
+  background: var(--color-purple-600);
 }
 
 .legendDot.deliverables {
-  background: #10b981;
+  background: var(--color-success);
 }
 
 .legendDot.clients {
-  background: #2563eb;
+  background: var(--color-accent);
 }
 
 /* Simple Bar Chart */
@@ -570,7 +570,7 @@
   transform: translateX(-50%);
   font-size: 10px;
   font-weight: 700;
-  color: #111827;
+  color: var(--color-gray-900);
   white-space: nowrap;
 }
 
@@ -581,16 +581,16 @@
 }
 
 .bar.projects {
-  background: #7c3aed;
+  background: var(--color-purple-600);
 }
 
 .bar.deliverables {
-  background: #10b981;
+  background: var(--color-success);
 }
 
 .barLabel {
   font-size: 11px;
-  color: #888;
+  color: var(--color-gray-400);
   white-space: nowrap;
 }
 
@@ -598,7 +598,7 @@
 .emptyState {
   padding: 40px 20px;
   text-align: center;
-  color: #888;
+  color: var(--color-gray-400);
   font-size: 14px;
 }
 
@@ -615,14 +615,14 @@
 .loadingSpinner {
   width: 40px;
   height: 40px;
-  border: 3px solid #e5e7eb;
-  border-top-color: #2563eb;
+  border: 3px solid var(--color-gray-200);
+  border-top-color: var(--color-accent);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
 
 .loadingText {
-  color: #666;
+  color: var(--color-gray-500);
   font-size: 14px;
 }
 
@@ -635,12 +635,12 @@
 .errorTitle {
   font-size: 18px;
   font-weight: 600;
-  color: #dc2626;
+  color: var(--color-error);
   margin-bottom: 8px;
 }
 
 .errorMessage {
-  color: #666;
+  color: var(--color-gray-500);
   font-size: 14px;
   margin-bottom: 16px;
 }
@@ -649,7 +649,7 @@
 .tabs {
   display: flex;
   gap: 4px;
-  background: #f3f4f6;
+  background: var(--color-gray-100);
   padding: 4px;
   border-radius: 8px;
   margin-bottom: 24px;
@@ -663,18 +663,18 @@
   border-radius: 6px;
   font-size: 14px;
   font-weight: 500;
-  color: #666;
+  color: var(--color-gray-500);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .tab:hover {
-  color: #050038;
+  color: var(--color-primary);
 }
 
 .tab.active {
   background: white;
-  color: #050038;
+  color: var(--color-primary);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 

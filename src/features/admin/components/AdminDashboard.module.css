@@ -10,7 +10,7 @@
 }
 
 .modal {
-  background: #ffffff;
+  background: var(--color-text-inverse);
   border-radius: 12px;
   width: 100%;
   max-width: 1400px;
@@ -26,8 +26,8 @@
   align-items: center;
   justify-content: space-between;
   padding: 20px 24px;
-  border-bottom: 1px solid #E5E7EB;
-  background: #F9FAFB;
+  border-bottom: 1px solid var(--color-gray-200);
+  background: var(--color-gray-50);
 }
 
 .headerTitle {
@@ -36,7 +36,7 @@
   gap: 12px;
   font-size: 20px;
   font-weight: 600;
-  color: #050038;
+  color: var(--color-primary);
 }
 
 .headerIcon {
@@ -52,13 +52,13 @@
   align-items: center;
   justify-content: center;
   border-radius: 4px;
-  color: #6B7280;
+  color: var(--color-gray-500);
   transition: all 0.2s;
 }
 
 .closeButton:hover {
-  background: #E5E7EB;
-  color: #050038;
+  background: var(--color-gray-200);
+  color: var(--color-primary);
 }
 
 .body {
@@ -69,8 +69,8 @@
 
 .sidebar {
   width: 220px;
-  background: #F9FAFB;
-  border-right: 1px solid #E5E7EB;
+  background: var(--color-gray-50);
+  border-right: 1px solid var(--color-gray-200);
   padding: 16px 0;
   overflow-y: auto;
 }
@@ -86,69 +86,69 @@
   cursor: pointer;
   font-size: 14px;
   font-weight: 500;
-  color: #6B7280;
+  color: var(--color-gray-500);
   text-align: left;
   transition: all 0.2s;
   border-left: 3px solid transparent;
 }
 
 .navButton:hover {
-  background: #F3F4F6;
-  color: #050038;
+  background: var(--color-gray-100);
+  color: var(--color-primary);
 }
 
 .navButton.active {
-  background: #EFF6FF;
-  color: #2563EB;
-  border-left-color: #2563EB;
+  background: var(--color-info-light);
+  color: var(--color-accent);
+  border-left-color: var(--color-accent);
 }
 
 .navButton.overviewActive {
-  background: #EFF6FF;
-  color: #2563EB;
-  border-left-color: #2563EB;
+  background: var(--color-info-light);
+  color: var(--color-accent);
+  border-left-color: var(--color-accent);
 }
 
 .navButton.analyticsActive {
-  background: #F5F3FF;
-  color: #8B5CF6;
-  border-left-color: #8B5CF6;
+  background: var(--color-purple-500);
+  color: var(--color-purple-500);
+  border-left-color: var(--color-purple-500);
 }
 
 .navButton.teamActive {
-  background: #ECFDF5;
-  color: #10B981;
-  border-left-color: #10B981;
+  background: var(--color-success-light);
+  color: var(--color-success);
+  border-left-color: var(--color-success);
 }
 
 .navButton.boardsActive {
-  background: #EFF6FF;
-  color: #3B82F6;
-  border-left-color: #3B82F6;
+  background: var(--color-info-light);
+  color: var(--color-accent-light);
+  border-left-color: var(--color-accent-light);
 }
 
 .navButton.projectsActive {
-  background: #FEF3C7;
-  color: #F59E0B;
-  border-left-color: #F59E0B;
+  background: var(--color-warning-light);
+  color: var(--color-warning);
+  border-left-color: var(--color-warning);
 }
 
 .navButton.activityActive {
-  background: #FEF2F2;
-  color: #EF4444;
-  border-left-color: #EF4444;
+  background: var(--color-error-light);
+  color: var(--color-error);
+  border-left-color: var(--color-error);
 }
 
 .navButton.systemActive {
-  background: #FDF4FF;
-  color: #A855F7;
-  border-left-color: #A855F7;
+  background: var(--color-purple-500);
+  color: var(--color-purple-500);
+  border-left-color: var(--color-purple-500);
 }
 
 .navButton.settingsActive {
-  background: #F3F4F6;
-  color: #6B7280;
-  border-left-color: #6B7280;
+  background: var(--color-gray-100);
+  color: var(--color-gray-500);
+  border-left-color: var(--color-gray-500);
 }
 
 .navIcon {
@@ -160,7 +160,7 @@
   flex: 1;
   overflow-y: auto;
   padding: 24px;
-  background: #ffffff;
+  background: var(--color-text-inverse);
 }
 
 .footer {
@@ -169,8 +169,8 @@
   justify-content: space-between;
   gap: 12px;
   padding: 16px 24px;
-  border-top: 1px solid #E5E7EB;
-  background: #F9FAFB;
+  border-top: 1px solid var(--color-gray-200);
+  background: var(--color-gray-50);
 }
 
 .quickActions {
@@ -180,12 +180,12 @@
 
 .quickActionButton {
   padding: 8px 16px;
-  background: #ffffff;
-  border: 1px solid #E5E7EB;
+  background: var(--color-text-inverse);
+  border: 1px solid var(--color-gray-200);
   border-radius: 6px;
   font-size: 13px;
   font-weight: 500;
-  color: #374151;
+  color: var(--color-gray-700);
   cursor: pointer;
   transition: all 0.2s;
   display: flex;
@@ -194,23 +194,23 @@
 }
 
 .quickActionButton:hover {
-  background: #F9FAFB;
-  border-color: #D1D5DB;
+  background: var(--color-gray-50);
+  border-color: var(--color-gray-300);
 }
 
 .quickActionButton.primary {
-  background: #2563EB;
-  color: #ffffff;
-  border-color: #2563EB;
+  background: var(--color-accent);
+  color: var(--color-text-inverse);
+  border-color: var(--color-accent);
 }
 
 .quickActionButton.primary:hover {
-  background: #1D4ED8;
+  background: var(--color-accent-dark);
 }
 
 .lastSyncInfo {
   font-size: 12px;
-  color: #6B7280;
+  color: var(--color-gray-500);
   display: flex;
   align-items: center;
   gap: 6px;
@@ -223,13 +223,13 @@
 }
 
 .syncStatus.healthy {
-  color: #10B981;
+  color: var(--color-success);
 }
 
 .syncStatus.warning {
-  color: #F59E0B;
+  color: var(--color-warning);
 }
 
 .syncStatus.error {
-  color: #EF4444;
+  color: var(--color-error);
 }

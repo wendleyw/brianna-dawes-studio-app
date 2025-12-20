@@ -41,7 +41,7 @@ export default function ProjectsTab() {
   if (projectsLoading || usersLoading) {
     return (
       <div className={styles.container}>
-        <div style={{ textAlign: 'center', padding: '48px', color: '#6B7280' }}>
+        <div style={{ textAlign: 'center', padding: '48px', color: 'var(--color-gray-500)' }}>
           Loading projects...
         </div>
       </div>

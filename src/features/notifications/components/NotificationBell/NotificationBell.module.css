@@ -9,17 +9,17 @@
   width: 40px;
   height: 40px;
   padding: 0;
-  background: #f3f4f6;
-  border: 1px solid #e5e7eb;
+  background: var(--color-gray-100);
+  border: 1px solid var(--color-gray-200);
   border-radius: 6px;
-  color: #111827;
+  color: var(--color-gray-900);
   cursor: pointer;
   transition: background-color var(--transition-fast), color var(--transition-fast);
 }
 
 .button:hover {
-  background-color: #e5e7eb;
-  color: #111827;
+  background-color: var(--color-gray-200);
+  color: var(--color-gray-900);
 }
 
 .icon {
@@ -42,7 +42,7 @@
   border-radius: var(--radius-full);
   font-size: 10px;
   font-weight: var(--font-bold);
-  color: #111827;
+  color: var(--color-gray-900);
 }
 
 .dropdown {
@@ -52,8 +52,8 @@
   margin-top: 8px;
   width: min(320px, calc(100vw - 24px));
   max-height: 480px;
-  background-color: #ffffff;
-  border: 1px solid #e5e7eb;
+  background-color: var(--color-text-inverse);
+  border: 1px solid var(--color-gray-200);
   border-radius: 12px;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
   overflow: hidden;
@@ -65,19 +65,19 @@
   align-items: center;
   justify-content: space-between;
   padding: 12px 16px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--color-gray-200);
 }
 
 .title {
   font-size: 14px;
   font-weight: 600;
-  color: #111827;
+  color: var(--color-gray-900);
   margin: 0;
 }
 
 .markAllRead {
   font-size: 12px;
-  color: #2563eb;
+  color: var(--color-accent);
   background: none;
   border: none;
   cursor: pointer;
@@ -165,19 +165,19 @@
 .empty {
   padding: 32px;
   text-align: center;
-  color: #6b7280;
+  color: var(--color-gray-500);
   font-size: 14px;
 }
 
 .footer {
   padding: 8px 16px;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid var(--color-gray-200);
   text-align: center;
 }
 
 .viewAll {
   font-size: 12px;
-  color: #2563eb;
+  color: var(--color-accent);
   text-decoration: none;
 }
 

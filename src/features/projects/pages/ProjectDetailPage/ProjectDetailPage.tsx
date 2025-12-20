@@ -54,13 +54,13 @@ export function ProjectDetailPage() {
         <div className={styles.titleSection}>
           <div className={styles.badges}>
             <Badge
-              style={{ backgroundColor: statusColumn.color, color: '#fff', border: 'none' }}
+              style={{ backgroundColor: statusColumn.color, color: 'var(--color-text-inverse)', border: 'none' }}
             >
               {statusColumn.label}
             </Badge>
             <Badge
               color="neutral"
-              style={{ backgroundColor: priority.color, color: '#fff', border: 'none' }}
+              style={{ backgroundColor: priority.color, color: 'var(--color-text-inverse)', border: 'none' }}
             >
               {priority.label}
             </Badge>

@@ -41,11 +41,11 @@ const MASTER_BOARD = {
 
 // Status columns matching main timeline (5 columns)
 const STATUS_COLUMNS = [
-  { id: 'overdue', label: 'OVERDUE', color: '#F97316' },
-  { id: 'urgent', label: 'URGENT', color: '#DC2626' },
-  { id: 'in_progress', label: 'IN PROGRESS', color: '#3B82F6' },
-  { id: 'review', label: 'REVIEW', color: '#6366F1' },
-  { id: 'done', label: 'DONE', color: '#22C55E' },
+  { id: 'overdue', label: 'OVERDUE', color: 'var(--priority-high)' },
+  { id: 'urgent', label: 'URGENT', color: 'var(--color-error)' },
+  { id: 'in_progress', label: 'IN PROGRESS', color: 'var(--color-accent-light)' },
+  { id: 'review', label: 'REVIEW', color: 'var(--color-info)' },
+  { id: 'done', label: 'DONE', color: 'var(--color-success)' },
 ] as const;
 
 // Map project status to kanban column (matching main timeline)
@@ -75,20 +75,20 @@ function getCardTheme(status: string): string {
   switch (status) {
     case 'critical':
     case 'overdue':
-      return '#F97316'; // Orange - OVERDUE
+      return 'var(--priority-high)'; // Orange - OVERDUE
     case 'urgent':
-      return '#DC2626'; // Red - URGENT
+      return 'var(--color-error)'; // Red - URGENT
     case 'in_progress':
     case 'on_track':
     case 'draft':
-      return '#3B82F6'; // Blue - IN PROGRESS
+      return 'var(--color-accent-light)'; // Blue - IN PROGRESS
     case 'review':
-      return '#6366F1'; // Indigo - REVIEW
+      return 'var(--color-info)'; // Indigo - REVIEW
     case 'done':
     case 'archived':
-      return '#22C55E'; // Green - DONE
+      return 'var(--color-success)'; // Green - DONE
     default:
-      return '#3B82F6'; // Blue - default
+      return 'var(--color-accent-light)'; // Blue - default
   }
 }
 
@@ -178,7 +178,7 @@ class MasterBoardService {
       style: {
         fontSize: '24',
         textAlign: 'center',
-        color: '#050038',
+        color: 'var(--color-primary)',
       },
     });
 
@@ -191,7 +191,7 @@ class MasterBoardService {
       style: {
         fontSize: '12',
         textAlign: 'center',
-        color: '#666666',
+        color: 'var(--color-gray-500)',
       },
     });
   }
@@ -455,7 +455,7 @@ class MasterBoardService {
         y: yPosition,
         width: MASTER_BOARD.FRAME_WIDTH,
         height: frameHeight,
-        fillColor: '#FFFFFF',
+        fillColor: 'var(--color-text-inverse)',
       });
       frameId = frame.id;
     }
@@ -518,7 +518,7 @@ class MasterBoardService {
       style: {
         fontSize: '18',
         textAlign: 'left',
-        color: '#050038',
+        color: 'var(--color-primary)',
       },
     });
 
@@ -532,7 +532,7 @@ class MasterBoardService {
       style: {
         fontSize: '12',
         textAlign: 'left',
-        color: '#666666',
+        color: 'var(--color-gray-500)',
       },
     });
   }
@@ -582,7 +582,7 @@ class MasterBoardService {
         content: `${column.label} (${columnProjects.length})`,
         style: {
           fillColor: column.color,
-          fontColor: '#FFFFFF',
+          fontColor: 'var(--color-text-inverse)',
           fontSize: '12',
         },
       });
@@ -773,7 +773,7 @@ class MasterBoardService {
       style: {
         fontSize: 24,
         textAlign: 'center',
-        color: '#050038',
+        color: 'var(--color-primary)',
       },
     });
 
@@ -786,7 +786,7 @@ class MasterBoardService {
       style: {
         fontSize: 12,
         textAlign: 'center',
-        color: '#6B7280',
+        color: 'var(--color-gray-500)',
       },
     });
   }
@@ -902,7 +902,7 @@ class MasterBoardService {
         style: {
           fontSize: 24,
           textAlign: 'center',
-          color: '#050038',
+          color: 'var(--color-primary)',
         },
       });
 
@@ -914,7 +914,7 @@ class MasterBoardService {
         style: {
           fontSize: 12,
           textAlign: 'center',
-          color: '#6B7280',
+          color: 'var(--color-gray-500)',
         },
       });
 
@@ -951,7 +951,7 @@ class MasterBoardService {
             style: {
               fontSize: 18,
               textAlign: 'left',
-              color: '#050038',
+              color: 'var(--color-primary)',
             },
           });
 
@@ -965,7 +965,7 @@ class MasterBoardService {
             style: {
               fontSize: 11,
               textAlign: 'left',
-              color: '#6B7280',
+              color: 'var(--color-gray-500)',
             },
           });
 
@@ -977,7 +977,7 @@ class MasterBoardService {
             width: MASTER_BOARD.FRAME_WIDTH,
             height: MASTER_BOARD.FRAME_HEIGHT,
             style: {
-              fillColor: '#FFFFFF',
+              fillColor: 'var(--color-text-inverse)',
             },
           });
 
@@ -1067,7 +1067,7 @@ class MasterBoardService {
           fillColor: column.color,
           borderColor: 'transparent',
           borderWidth: 0,
-          color: '#FFFFFF',
+          color: 'var(--color-text-inverse)',
           fontSize: 10,
           textAlign: 'center',
           textAlignVertical: 'middle',
@@ -1083,8 +1083,8 @@ class MasterBoardService {
         height: MASTER_BOARD.COLUMN_HEIGHT,
         content: '',
         style: {
-          fillColor: '#FFFFFF',
-          borderColor: '#E5E7EB',
+          fillColor: 'var(--color-text-inverse)',
+          borderColor: 'var(--color-gray-200)',
           borderWidth: 1,
         },
       });
@@ -1199,14 +1199,14 @@ class MasterBoardService {
 
     // Colors
     const COLORS = {
-      admin: '#DC2626',       // Red - Admin actions
-      client: '#3B82F6',      // Blue - Client actions
-      designer: '#8B5CF6',    // Purple - Designer actions
-      system: '#6B7280',      // Gray - System processes
-      supabase: '#22C55E',    // Green - Database
-      miro: '#F59E0B',        // Amber - Miro
-      success: '#10B981',     // Emerald - Success states
-      flow: '#0EA5E9',        // Sky - Flow arrows
+      admin: 'var(--color-error)',       // Red - Admin actions
+      client: 'var(--color-accent-light)',      // Blue - Client actions
+      designer: 'var(--color-purple-500)',    // Purple - Designer actions
+      system: 'var(--color-gray-500)',      // Gray - System processes
+      supabase: 'var(--color-success)',    // Green - Database
+      miro: 'var(--color-warning)',        // Amber - Miro
+      success: 'var(--color-success)',     // Emerald - Success states
+      flow: 'var(--color-accent)',        // Sky - Flow arrows
     };
 
     const startX = DIAGRAM.START_X;
@@ -1222,7 +1222,7 @@ class MasterBoardService {
       x: startX + 400,
       y: currentY,
       width: 800,
-      style: { fontSize: 32, textAlign: 'center', color: '#050038' },
+      style: { fontSize: 32, textAlign: 'center', color: 'var(--color-primary)' },
     });
 
     await miro.board.createText({
@@ -1230,7 +1230,7 @@ class MasterBoardService {
       x: startX + 400,
       y: currentY + 45,
       width: 800,
-      style: { fontSize: 14, textAlign: 'center', color: '#6B7280' },
+      style: { fontSize: 14, textAlign: 'center', color: 'var(--color-gray-500)' },
     });
 
     currentY += 120;
@@ -1243,7 +1243,7 @@ class MasterBoardService {
       width: 850,
       height: 40,
       content: '<b>1️⃣ CLIENT SETUP (Admin)</b>',
-      style: { fillColor: COLORS.admin, color: '#FFFFFF', fontSize: 16, textAlign: 'center', textAlignVertical: 'middle' },
+      style: { fillColor: COLORS.admin, color: 'var(--color-text-inverse)', fontSize: 16, textAlign: 'center', textAlignVertical: 'middle' },
     });
 
     currentY += 70;
@@ -1269,7 +1269,7 @@ class MasterBoardService {
         width: DIAGRAM.FLOW_BOX_WIDTH,
         height: DIAGRAM.FLOW_BOX_HEIGHT + 10,
         content: `${step.icon}\n<b>${step.label}</b>\n${step.desc}`,
-        style: { fillColor: '#FEE2E2', borderColor: COLORS.admin, fontSize: 9, textAlign: 'center', textAlignVertical: 'middle' },
+        style: { fillColor: 'var(--color-error-light)', borderColor: COLORS.admin, fontSize: 9, textAlign: 'center', textAlignVertical: 'middle' },
       });
 
       // Arrow between boxes
@@ -1303,7 +1303,7 @@ class MasterBoardService {
       width: 850,
       height: 40,
       content: '<b>2️⃣ PROJECT CREATION (Admin/Client)</b>',
-      style: { fillColor: COLORS.client, color: '#FFFFFF', fontSize: 16, textAlign: 'center', textAlignVertical: 'middle' },
+      style: { fillColor: COLORS.client, color: 'var(--color-text-inverse)', fontSize: 16, textAlign: 'center', textAlignVertical: 'middle' },
     });
 
     currentY += 70;
@@ -1328,7 +1328,7 @@ class MasterBoardService {
         width: DIAGRAM.FLOW_BOX_WIDTH,
         height: DIAGRAM.FLOW_BOX_HEIGHT + 10,
         content: `${step.icon}\n<b>${step.label}</b>\n${step.desc}`,
-        style: { fillColor: '#DBEAFE', borderColor: COLORS.client, fontSize: 9, textAlign: 'center', textAlignVertical: 'middle' },
+        style: { fillColor: 'var(--color-info-light)', borderColor: COLORS.client, fontSize: 9, textAlign: 'center', textAlignVertical: 'middle' },
       });
 
       if (i < projectSteps.length - 1) {
@@ -1360,7 +1360,7 @@ class MasterBoardService {
       width: 850,
       height: 40,
       content: '<b>3️⃣ WORK & DELIVERABLES (Designer)</b>',
-      style: { fillColor: COLORS.designer, color: '#FFFFFF', fontSize: 16, textAlign: 'center', textAlignVertical: 'middle' },
+      style: { fillColor: COLORS.designer, color: 'var(--color-text-inverse)', fontSize: 16, textAlign: 'center', textAlignVertical: 'middle' },
     });
 
     currentY += 70;
@@ -1385,7 +1385,7 @@ class MasterBoardService {
         width: DIAGRAM.FLOW_BOX_WIDTH,
         height: DIAGRAM.FLOW_BOX_HEIGHT + 10,
         content: `${step.icon}\n<b>${step.label}</b>\n${step.desc}`,
-        style: { fillColor: '#EDE9FE', borderColor: COLORS.designer, fontSize: 9, textAlign: 'center', textAlignVertical: 'middle' },
+        style: { fillColor: 'var(--color-purple-500)', borderColor: COLORS.designer, fontSize: 9, textAlign: 'center', textAlignVertical: 'middle' },
       });
 
       if (i < workSteps.length - 1) {
@@ -1417,7 +1417,7 @@ class MasterBoardService {
       width: 850,
       height: 40,
       content: '<b>4️⃣ REVIEW CYCLE (Client ↔ Designer)</b>',
-      style: { fillColor: '#F59E0B', color: '#FFFFFF', fontSize: 16, textAlign: 'center', textAlignVertical: 'middle' },
+      style: { fillColor: 'var(--color-warning)', color: 'var(--color-text-inverse)', fontSize: 16, textAlign: 'center', textAlignVertical: 'middle' },
     });
 
     currentY += 70;
@@ -1442,7 +1442,7 @@ class MasterBoardService {
         width: DIAGRAM.FLOW_BOX_WIDTH,
         height: DIAGRAM.FLOW_BOX_HEIGHT + 10,
         content: `${step.icon}\n<b>${step.label}</b>\n${step.desc}`,
-        style: { fillColor: '#FEF3C7', borderColor: '#F59E0B', fontSize: 9, textAlign: 'center', textAlignVertical: 'middle' },
+        style: { fillColor: 'var(--color-warning-light)', borderColor: 'var(--color-warning)', fontSize: 9, textAlign: 'center', textAlignVertical: 'middle' },
       });
 
       if (i < reviewSteps.length - 1) {
@@ -1462,7 +1462,7 @@ class MasterBoardService {
       x: startX + 400,
       y: currentY + 55,
       width: 500,
-      style: { fontSize: 10, textAlign: 'center', color: '#F59E0B' },
+      style: { fontSize: 10, textAlign: 'center', color: 'var(--color-warning)' },
     });
 
     currentY += 130;
@@ -1475,7 +1475,7 @@ class MasterBoardService {
       width: 850,
       height: 40,
       content: '<b>5️⃣ COMPLETION & REPORTS (Admin)</b>',
-      style: { fillColor: COLORS.success, color: '#FFFFFF', fontSize: 16, textAlign: 'center', textAlignVertical: 'middle' },
+      style: { fillColor: COLORS.success, color: 'var(--color-text-inverse)', fontSize: 16, textAlign: 'center', textAlignVertical: 'middle' },
     });
 
     currentY += 70;
@@ -1500,7 +1500,7 @@ class MasterBoardService {
         width: DIAGRAM.FLOW_BOX_WIDTH,
         height: DIAGRAM.FLOW_BOX_HEIGHT + 10,
         content: `${step.icon}\n<b>${step.label}</b>\n${step.desc}`,
-        style: { fillColor: '#D1FAE5', borderColor: COLORS.success, fontSize: 9, textAlign: 'center', textAlignVertical: 'middle' },
+        style: { fillColor: 'var(--color-success-light)', borderColor: COLORS.success, fontSize: 9, textAlign: 'center', textAlignVertical: 'middle' },
       });
 
       if (i < reportSteps.length - 1) {
@@ -1533,7 +1533,7 @@ class MasterBoardService {
       x: startX + 400,
       y: currentY,
       width: 800,
-      style: { fontSize: 28, textAlign: 'center', color: '#050038' },
+      style: { fontSize: 28, textAlign: 'center', color: 'var(--color-primary)' },
     });
 
     currentY += 80;
@@ -1546,7 +1546,7 @@ class MasterBoardService {
       width: 350,
       height: 40,
       content: '<b>🗄️ SUPABASE DATABASE</b>',
-      style: { fillColor: COLORS.supabase, color: '#FFFFFF', fontSize: 14, textAlign: 'center', textAlignVertical: 'middle' },
+      style: { fillColor: COLORS.supabase, color: 'var(--color-text-inverse)', fontSize: 14, textAlign: 'center', textAlignVertical: 'middle' },
     });
 
     await miro.board.createShape({
@@ -1556,7 +1556,7 @@ class MasterBoardService {
       width: 350,
       height: 40,
       content: '<b>🎨 MIRO BOARD ELEMENTS</b>',
-      style: { fillColor: COLORS.miro, color: '#FFFFFF', fontSize: 14, textAlign: 'center', textAlignVertical: 'middle' },
+      style: { fillColor: COLORS.miro, color: 'var(--color-text-inverse)', fontSize: 14, textAlign: 'center', textAlignVertical: 'middle' },
     });
 
     currentY += 60;
@@ -1583,7 +1583,7 @@ class MasterBoardService {
         width: 180,
         height: 60,
         content: `<b>${table.name}</b>\n${table.fields}`,
-        style: { fillColor: '#D1FAE5', borderColor: COLORS.supabase, fontSize: 8, textAlign: 'center', textAlignVertical: 'middle' },
+        style: { fillColor: 'var(--color-success-light)', borderColor: COLORS.supabase, fontSize: 8, textAlign: 'center', textAlignVertical: 'middle' },
       });
     }
 
@@ -1609,7 +1609,7 @@ class MasterBoardService {
         width: 180,
         height: 60,
         content: `<b>${element.name}</b>\n${element.desc}`,
-        style: { fillColor: '#FEF3C7', borderColor: COLORS.miro, fontSize: 8, textAlign: 'center', textAlignVertical: 'middle' },
+        style: { fillColor: 'var(--color-warning-light)', borderColor: COLORS.miro, fontSize: 8, textAlign: 'center', textAlignVertical: 'middle' },
       });
     }
 
@@ -1623,7 +1623,7 @@ class MasterBoardService {
       width: 850,
       height: 40,
       content: '<b>👥 USER ROLES & PERMISSIONS</b>',
-      style: { fillColor: '#374151', color: '#FFFFFF', fontSize: 16, textAlign: 'center', textAlignVertical: 'middle' },
+      style: { fillColor: 'var(--color-gray-700)', color: 'var(--color-text-inverse)', fontSize: 16, textAlign: 'center', textAlignVertical: 'middle' },
     });
 
     currentY += 70;
@@ -1670,7 +1670,7 @@ class MasterBoardService {
       width: 850,
       height: 40,
       content: '<b>⚙️ KEY SERVICES & HOOKS</b>',
-      style: { fillColor: '#6366F1', color: '#FFFFFF', fontSize: 16, textAlign: 'center', textAlignVertical: 'middle' },
+      style: { fillColor: 'var(--color-info)', color: 'var(--color-text-inverse)', fontSize: 16, textAlign: 'center', textAlignVertical: 'middle' },
     });
 
     currentY += 70;
@@ -1696,7 +1696,7 @@ class MasterBoardService {
         width: 250,
         height: 55,
         content: `<b>${service.name}</b>\n${service.desc}`,
-        style: { fillColor: '#E0E7FF', borderColor: '#6366F1', fontSize: 9, textAlign: 'center', textAlignVertical: 'middle' },
+        style: { fillColor: 'var(--color-info-light)', borderColor: 'var(--color-info)', fontSize: 9, textAlign: 'center', textAlignVertical: 'middle' },
       });
     }
 
@@ -1710,7 +1710,7 @@ class MasterBoardService {
       width: 850,
       height: 150,
       content: '',
-      style: { fillColor: '#F9FAFB', borderColor: '#E5E7EB', borderWidth: 2 },
+      style: { fillColor: 'var(--color-gray-50)', borderColor: 'var(--color-gray-200)', borderWidth: 2 },
     });
 
     await miro.board.createText({
@@ -1718,7 +1718,7 @@ class MasterBoardService {
       x: startX + 400,
       y: currentY - 50,
       width: 300,
-      style: { fontSize: 14, textAlign: 'center', color: '#374151' },
+      style: { fontSize: 14, textAlign: 'center', color: 'var(--color-gray-700)' },
     });
 
     const syncSteps = [
@@ -1736,7 +1736,7 @@ class MasterBoardService {
         x: startX + 400,
         y: currentY - 30 + i * 22,
         width: 750,
-        style: { fontSize: 10, textAlign: 'left', color: '#4B5563' },
+        style: { fontSize: 10, textAlign: 'left', color: 'var(--color-gray-600)' },
       });
     }
 

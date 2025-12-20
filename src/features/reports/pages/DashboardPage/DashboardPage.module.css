@@ -12,7 +12,7 @@
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
-  background-color: #ffffff;
+  background-color: var(--color-text-inverse);
 }
 
 .loading {
@@ -34,14 +34,14 @@
 .logo {
   width: 48px;
   height: 48px;
-  color: #111827;
+  color: var(--color-gray-900);
 }
 
 .brandName {
   font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.1em;
-  color: #000000;
+  color: var(--color-primary);
   margin: 0;
 }
 
@@ -49,7 +49,7 @@
   font-family: Inter, system-ui, -apple-system, sans-serif;
   font-size: 20px;
   font-weight: 700;
-  color: #111827;
+  color: var(--color-gray-900);
   margin: 0;
 }
 
@@ -73,13 +73,13 @@
 .sectionTitle {
   font-size: 14px;
   font-weight: 700;
-  color: #111827;
+  color: var(--color-gray-900);
   margin: 0;
 }
 
 .sectionTitleMeta {
   font-weight: 600;
-  color: #6b7280;
+  color: var(--color-gray-500);
 }
 
 /* Quick Actions */
@@ -95,15 +95,15 @@
   align-items: center;
   gap: 8px;
   padding: 12px;
-  background-color: #ffffff;
-  border: 1px solid #e5e7eb;
+  background-color: var(--color-text-inverse);
+  border: 1px solid var(--color-gray-200);
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .actionCard:hover {
-  border-color: #2563eb;
+  border-color: var(--color-accent);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
@@ -124,35 +124,35 @@
 
 .actionIconPrimary {
   composes: actionIcon;
-  background-color: #000000;
+  background-color: var(--color-primary);
 }
 
 .actionIconSecondary {
   composes: actionIcon;
-  background-color: #E5E7EB;
-  color: #000000;
+  background-color: var(--color-gray-200);
+  color: var(--color-primary);
 }
 
 .actionIconDark {
   composes: actionIcon;
-  background-color: #E5E7EB;
+  background-color: var(--color-gray-200);
 }
 
 .actionIconBlue {
   composes: actionIcon;
-  background-color: #2563EB;
+  background-color: var(--color-accent);
   color: white;
 }
 
 .actionLabel {
   font-size: 14px;
   font-weight: 600;
-  color: #111827;
+  color: var(--color-gray-900);
 }
 
 .actionSub {
   font-size: 10px;
-  color: #6b7280;
+  color: var(--color-gray-500);
 }
 
 /* Analytics Grid */
@@ -169,7 +169,7 @@
   justify-content: center;
   gap: 2px;
   padding: 12px;
-  background-color: #f9fafb;
+  background-color: var(--color-gray-50);
   border-radius: 8px;
   min-height: 70px;
   text-align: center;
@@ -179,7 +179,7 @@
   font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.05em;
-  color: #6b7280;
+  color: var(--color-gray-500);
   text-transform: uppercase;
   line-height: 1.3;
 }
@@ -187,18 +187,18 @@
 .analyticsValue {
   font-size: 24px;
   font-weight: 700;
-  color: #111827;
+  color: var(--color-gray-900);
   line-height: 1;
 }
 
 .analyticsValueSuccess {
   composes: analyticsValue;
-  color: #22C55E;
+  color: var(--color-success);
 }
 
 /* Delivered Card - highlighted */
 .deliveredCard {
-  background-color: #000000;
+  background-color: var(--color-primary);
   border: none;
 }
 
@@ -217,13 +217,13 @@
   gap: 6px;
   flex-wrap: wrap;
   font-size: 10px;
-  color: #9CA3AF;
+  color: var(--color-gray-400);
   margin-top: 2px;
   text-align: center;
 }
 
 .bonusText {
-  color: #22C55E;
+  color: var(--color-success);
   font-weight: 600;
 }
 
@@ -238,7 +238,7 @@
 
 /* Timeline */
 .timelineCard {
-  background-color: #f9fafb;
+  background-color: var(--color-gray-50);
   border-radius: 8px;
   padding: 12px;
   min-height: 280px;
@@ -254,7 +254,7 @@
   justify-content: center;
   margin-bottom: 12px;
   padding: 8px 12px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--color-gray-200);
 }
 
 .legendRow {
@@ -270,7 +270,7 @@
   align-items: center;
   gap: 3px;
   font-size: 8px;
-  color: #4b5563;
+  color: var(--color-gray-600);
   white-space: nowrap;
 }
 
@@ -292,7 +292,7 @@
   margin-bottom: 4px;
   /* Custom scrollbar styling */
   scrollbar-width: thin;
-  scrollbar-color: #e5e7eb transparent;
+  scrollbar-color: var(--color-gray-200) transparent;
 }
 
 .monthColumns::-webkit-scrollbar {
@@ -305,12 +305,12 @@
 }
 
 .monthColumns::-webkit-scrollbar-thumb {
-  background-color: #e5e7eb;
+  background-color: var(--color-gray-200);
   border-radius: 3px;
 }
 
 .monthColumns::-webkit-scrollbar-thumb:hover {
-  background-color: #6b7280;
+  background-color: var(--color-gray-500);
 }
 
 .monthColumn {
@@ -325,10 +325,10 @@
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.1em;
-  color: #4b5563;
+  color: var(--color-gray-600);
   text-transform: uppercase;
   padding: 8px 0;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--color-gray-200);
   text-align: center;
 }
 
@@ -380,7 +380,7 @@
 
 .emptyTimeline {
   font-size: 14px;
-  color: #6b7280;
+  color: var(--color-gray-500);
   text-align: center;
   padding: 24px;
   margin: 0;
@@ -392,7 +392,7 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: linear-gradient(135deg, #3B82F6 0%, #6366F1 100%);
+  background: linear-gradient(135deg, var(--color-accent-light) 0%, var(--color-info) 100%);
   color: white;
   padding: 8px 12px;
   border-radius: 9999px;
@@ -406,15 +406,15 @@
   align-items: center;
   gap: 12px;
   padding: 12px;
-  background-color: #f9fafb;
+  background-color: var(--color-gray-50);
   border-radius: 8px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--color-gray-200);
 }
 
 .filterLabel {
   font-size: 14px;
   font-weight: 500;
-  color: #4b5563;
+  color: var(--color-gray-600);
   white-space: nowrap;
 }
 
@@ -423,20 +423,20 @@
   padding: 8px 12px;
   font-size: 14px;
   font-weight: 500;
-  color: #111827;
-  background-color: #ffffff;
-  border: 1px solid #e5e7eb;
+  color: var(--color-gray-900);
+  background-color: var(--color-text-inverse);
+  border: 1px solid var(--color-gray-200);
   border-radius: 8px;
   cursor: pointer;
   transition: border-color 0.15s ease;
 }
 
 .clientSelect:hover {
-  border-color: #2563eb;
+  border-color: var(--color-accent);
 }
 
 .clientSelect:focus {
   outline: none;
-  border-color: #2563eb;
+  border-color: var(--color-accent);
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }

@@ -24,7 +24,7 @@ export function CreditBar({
   used,
   limit,
   planName,
-  planColor = '#2563EB',
+  planColor = 'var(--color-accent)',
   size = 'md',
   showLabels = true,
   animate = true,
@@ -46,8 +46,8 @@ export function CreditBar({
 
   // Determine color based on usage
   const getBarColor = () => {
-    if (isOverLimit) return '#EF4444'; // Red for over limit
-    if (isNearLimit) return '#F59E0B'; // Warning yellow
+    if (isOverLimit) return 'var(--color-error)'; // Red for over limit
+    if (isNearLimit) return 'var(--color-warning)'; // Warning yellow
     return planColor;
   };
 
@@ -62,7 +62,7 @@ export function CreditBar({
               </span>
             )}
           </div>
-          <span className={styles.usage} style={{ color: isOverLimit ? '#EF4444' : undefined }}>
+          <span className={styles.usage} style={{ color: isOverLimit ? 'var(--color-error)' : undefined }}>
             <strong>{used}</strong> / {limit}
           </span>
         </div>

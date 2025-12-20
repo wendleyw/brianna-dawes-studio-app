@@ -45,7 +45,7 @@
   font-size: var(--text-xs);
   font-weight: var(--font-bold);
   letter-spacing: var(--tracking-widest);
-  color: #000000;
+  color: var(--color-primary);
   margin: 0;
 }
 
@@ -193,8 +193,8 @@
 
 .noClients {
   padding: var(--space-2) var(--space-3);
-  background-color: var(--color-status-warning-bg, #FFFBEB);
-  border: 1px solid var(--color-status-warning, #F59E0B);
+  background-color: var(--color-status-warning-bg, var(--color-warning-light));
+  border: 1px solid var(--color-status-warning, var(--color-warning));
   border-radius: var(--radius-md);
   color: var(--color-text-primary);
   font-size: var(--text-sm);
@@ -273,7 +273,7 @@
 .projectTypeDays {
   font-size: var(--text-xs);
   color: var(--color-text-muted);
-  background-color: var(--color-bg-tertiary, #F3F4F6);
+  background-color: var(--color-bg-tertiary, var(--color-gray-100));
   padding: 2px 8px;
   border-radius: var(--radius-sm);
 }
@@ -309,8 +309,8 @@
 }
 
 .prioritySelected {
-  border-color: #000000;
-  background-color: #000000;
+  border-color: var(--color-primary);
+  background-color: var(--color-primary);
   color: white;
 }
 
@@ -363,11 +363,11 @@
   align-items: center;
   gap: var(--space-2);
   padding: var(--space-2) var(--space-3);
-  background-color: #f0f0f0;
+  background-color: var(--color-gray-100);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   font-size: var(--text-sm);
-  color: #666;
+  color: var(--color-gray-500);
 }
 
 .dueDateDisplay.hasValue {
@@ -378,7 +378,7 @@
 .dueDateIcon {
   width: 16px;
   height: 16px;
-  color: #888;
+  color: var(--color-gray-400);
 }
 
 .specificDateToggle {
@@ -394,20 +394,20 @@
 }
 
 .specificDateToggle:hover {
-  border-color: #050038;
-  background-color: #f8f8ff;
+  border-color: var(--color-primary);
+  background-color: var(--color-gray-100);
 }
 
 .specificDateToggle.active {
-  border-color: #050038;
+  border-color: var(--color-primary);
   border-style: solid;
-  background-color: #f0f0ff;
+  background-color: var(--color-gray-100);
 }
 
 .checkbox {
   width: 18px;
   height: 18px;
-  accent-color: #050038;
+  accent-color: var(--color-primary);
   cursor: pointer;
 }
 
@@ -426,7 +426,7 @@
 .specificDateInput {
   padding: var(--space-2);
   background-color: var(--color-bg-primary);
-  border: 2px solid #050038;
+  border: 2px solid var(--color-primary);
   border-radius: var(--radius-md);
   font-size: var(--text-sm);
   color: var(--color-text-primary);
@@ -442,11 +442,11 @@
   align-items: center;
   gap: var(--space-2);
   padding: var(--space-2) var(--space-3);
-  background-color: #FFF3CD;
-  border: 1px solid #FFC107;
+  background-color: var(--color-warning-light);
+  border: 1px solid var(--color-warning);
   border-radius: var(--radius-md);
   font-size: 11px;
-  color: #856404;
+  color: var(--color-warning-dark);
 }
 
 .approvalWarning svg {
@@ -459,8 +459,8 @@
 .boardMismatchWarning {
   margin-top: var(--space-3);
   padding: var(--space-3);
-  background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
-  border: 2px solid #F59E0B;
+  background: linear-gradient(135deg, var(--color-warning-light) 0%, var(--color-warning-light) 100%);
+  border: 2px solid var(--color-warning);
   border-radius: var(--radius-md);
 }
 
@@ -469,18 +469,18 @@
   align-items: center;
   gap: var(--space-2);
   margin-bottom: var(--space-2);
-  color: #92400E;
+  color: var(--color-warning-dark);
   font-weight: var(--font-bold);
   font-size: var(--text-sm);
 }
 
 .boardMismatchHeader svg {
-  color: #D97706;
+  color: var(--color-warning-dark);
 }
 
 .boardMismatchText {
   font-size: var(--text-xs);
-  color: #78350F;
+  color: var(--color-warning-dark);
   margin: 0 0 var(--space-3) 0;
   line-height: 1.4;
 }
@@ -505,17 +505,17 @@
 
 .boardChoice:hover {
   background-color: rgba(255, 255, 255, 0.9);
-  border-color: #D97706;
+  border-color: var(--color-warning-dark);
 }
 
 .boardChoice input[type="radio"] {
   margin-top: 2px;
-  accent-color: #D97706;
+  accent-color: var(--color-warning-dark);
 }
 
 .boardChoiceActive {
   background-color: rgba(255, 255, 255, 0.95);
-  border-color: #D97706;
+  border-color: var(--color-warning-dark);
   box-shadow: 0 0 0 2px rgba(217, 119, 6, 0.2);
 }
 
@@ -527,11 +527,11 @@
 
 .boardChoiceContent strong {
   font-size: var(--text-sm);
-  color: #78350F;
+  color: var(--color-warning-dark);
 }
 
 .boardChoiceContent span {
   font-size: 10px;
-  color: #92400E;
+  color: var(--color-warning-dark);
   line-height: 1.3;
 }

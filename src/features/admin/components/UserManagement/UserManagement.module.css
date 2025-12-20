@@ -187,7 +187,7 @@
   width: 56px;
   height: 56px;
   border-radius: var(--radius-md);
-  background-color: #D4A574;
+  background-color: var(--color-brand-gold);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -274,7 +274,7 @@
   width: 56px;
   height: 56px;
   border-radius: var(--radius-md);
-  background-color: #D4A574;
+  background-color: var(--color-brand-gold);
   display: flex;
   align-items: center;
   justify-content: center;

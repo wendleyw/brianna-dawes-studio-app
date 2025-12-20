@@ -3,7 +3,7 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  background-color: #F8F9FA;
+  background-color: var(--color-gray-50);
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   overflow: hidden;
 }
@@ -13,7 +13,7 @@
   align-items: center;
   justify-content: center;
   height: 100%;
-  color: #6B7280;
+  color: var(--color-gray-500);
   font-size: 13px;
   font-weight: 500;
 }
@@ -24,7 +24,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 12px 16px;
-  background-color: #111827;
+  background-color: var(--color-gray-900);
   flex-shrink: 0;
 }
 
@@ -37,13 +37,13 @@
 .headerTitle h1 {
   font-size: 14px;
   font-weight: 600;
-  color: #FFFFFF;
+  color: var(--color-text-inverse);
   margin: 0;
 }
 
 .headerSubtitle {
   font-size: 11px;
-  color: #6B7280;
+  color: var(--color-gray-500);
 }
 
 .closeBtn {
@@ -52,7 +52,7 @@
   border-radius: 6px;
   background-color: rgba(255, 255, 255, 0.08);
   border: none;
-  color: #6B7280;
+  color: var(--color-gray-500);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -62,7 +62,7 @@
 
 .closeBtn:hover {
   background-color: rgba(255, 255, 255, 0.12);
-  color: #FFFFFF;
+  color: var(--color-text-inverse);
 }
 
 /* Board - 5 equal columns, fit to screen */
@@ -78,19 +78,19 @@
 
 /* Column - stretch to fill */
 .column {
-  background-color: #FFFFFF;
+  background-color: var(--color-text-inverse);
   border-radius: 10px;
   display: flex;
   flex-direction: column;
   min-height: 0;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-  border: 1px solid #E5E7EB;
+  border: 1px solid var(--color-gray-200);
   overflow: hidden;
 }
 
 .columnDragOver {
-  background-color: #FEFCE8;
-  border-color: #D4A574;
+  background-color: var(--color-warning-light);
+  border-color: var(--color-brand-gold);
 }
 
 .columnHeader {
@@ -98,7 +98,7 @@
   align-items: center;
   gap: 6px;
   padding: 10px 12px;
-  border-bottom: 1px solid #F3F4F6;
+  border-bottom: 1px solid var(--color-gray-100);
   flex-shrink: 0;
 }
 
@@ -112,7 +112,7 @@
 .columnTitle {
   font-size: 10px;
   font-weight: 700;
-  color: #374151;
+  color: var(--color-gray-700);
   flex: 1;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -121,8 +121,8 @@
 
 .columnCount {
   font-size: 10px;
-  color: #6B7280;
-  background-color: #F3F4F6;
+  color: var(--color-gray-500);
+  background-color: var(--color-gray-100);
   padding: 2px 6px;
   border-radius: 10px;
   font-weight: 600;
@@ -149,13 +149,13 @@
 }
 
 .columnContent::-webkit-scrollbar-thumb {
-  background: #E5E7EB;
+  background: var(--color-gray-200);
   border-radius: 3px;
 }
 
 /* Cards - detailed view with all project info */
 .card {
-  background-color: #FFFFFF;
+  background-color: var(--color-text-inverse);
   border-radius: 8px;
   padding: 12px;
   display: flex;
@@ -163,14 +163,14 @@
   gap: 8px;
   cursor: grab;
   transition: all 0.12s ease;
-  border: 1px solid #E5E7EB;
+  border: 1px solid var(--color-gray-200);
   flex-shrink: 0;
 }
 
 .card:hover {
-  border-color: #D4A574;
+  border-color: var(--color-brand-gold);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  background-color: #FFFBF7;
+  background-color: var(--color-bg-primary);
 }
 
 .card:active {
@@ -193,7 +193,7 @@
 .cardTitle {
   font-size: 13px;
   font-weight: 600;
-  color: #111827;
+  color: var(--color-gray-900);
   margin: 0;
   line-height: 1.4;
   flex: 1;
@@ -223,23 +223,23 @@
 }
 
 .badgeApproved {
-  background-color: #DCFCE7;
-  color: #166534;
+  background-color: var(--color-success-light);
+  color: var(--color-success-dark);
 }
 
 .badgeReviewed {
-  background-color: #EDE9FE;
-  color: #5B21B6;
+  background-color: var(--color-purple-500);
+  color: var(--color-purple-700);
 }
 
 .badgeClientAction {
-  background-color: #FEF3C7;
-  color: #92400E;
+  background-color: var(--color-warning-light);
+  color: var(--color-warning-dark);
 }
 
 .badgeArchived {
-  background-color: #000000;
-  color: #FFFFFF;
+  background-color: var(--color-primary);
+  color: var(--color-text-inverse);
 }
 
 /* Card Row - Label + Value */
@@ -251,28 +251,28 @@
 }
 
 .cardLabel {
-  color: #9CA3AF;
+  color: var(--color-gray-400);
   font-weight: 500;
   min-width: 40px;
 }
 
 .cardDue {
-  color: #374151;
+  color: var(--color-gray-700);
   font-weight: 500;
 }
 
 .cardClient {
-  color: #D4A574;
+  color: var(--color-brand-gold);
   font-weight: 600;
 }
 
 .cardDesigners {
-  color: #6366F1;
+  color: var(--color-info);
   font-weight: 500;
 }
 
 .cardType {
-  color: #6B7280;
+  color: var(--color-gray-500);
   text-transform: capitalize;
 }
 
@@ -288,23 +288,23 @@
 
 /* Priority colors */
 .priorityUrgent {
-  background-color: #FEE2E2;
-  color: #DC2626;
+  background-color: var(--color-error-light);
+  color: var(--color-error);
 }
 
 .priorityHigh {
-  background-color: #FFEDD5;
-  color: #EA580C;
+  background-color: var(--color-warning-light);
+  color: var(--priority-high);
 }
 
 .priorityMedium {
-  background-color: #FEF3C7;
-  color: #D97706;
+  background-color: var(--color-warning-light);
+  color: var(--color-warning-dark);
 }
 
 .priorityLow {
-  background-color: #D1FAE5;
-  color: #059669;
+  background-color: var(--color-success-light);
+  color: var(--color-success-dark);
 }
 
 /* Empty Column - single line */
@@ -313,7 +313,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #D1D5DB;
+  color: var(--color-gray-300);
   font-size: 11px;
   white-space: nowrap;
 }

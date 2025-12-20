@@ -2,7 +2,7 @@
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  background: #f5f5f5;
+  background: var(--color-gray-100);
   padding: 0;
   overflow-y: auto;
 }
@@ -12,7 +12,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 12px 16px;
-  background: linear-gradient(135deg, #050038 0%, #0a0050 100%);
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary) 100%);
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   position: sticky;
   top: 0;
@@ -41,7 +41,7 @@
   font-family: 'Playfair Display', serif;
   font-size: 14px;
   font-weight: 600;
-  color: #fff;
+  color: var(--color-text-inverse);
   letter-spacing: 1px;
   margin: 0;
 }
@@ -67,15 +67,15 @@
 
 .projectName {
   padding: 16px;
-  background: #fff;
-  border-bottom: 1px solid #e5e7eb;
+  background: var(--color-text-inverse);
+  border-bottom: 1px solid var(--color-gray-200);
 }
 
 .projectName h2 {
   margin: 0;
   font-size: 18px;
   font-weight: 600;
-  color: #050038;
+  color: var(--color-primary);
 }
 
 .formWrapper {
@@ -101,6 +101,6 @@
 }
 
 .error p {
-  color: #6b7280;
+  color: var(--color-gray-500);
   font-size: 14px;
 }

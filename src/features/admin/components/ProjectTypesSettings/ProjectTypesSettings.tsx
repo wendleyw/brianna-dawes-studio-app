@@ -76,7 +76,7 @@ export function ProjectTypesSettings() {
       label: '',
       shortLabel: '',
       days: 5,
-      color: '#607D8B',
+      color: 'var(--color-gray-500)',
       icon: '',
       sortOrder: projectTypes.length + 1,
     });
@@ -124,7 +124,7 @@ export function ProjectTypesSettings() {
           label: editingType.label!,
           shortLabel: editingType.shortLabel!,
           days: editingType.days!,
-          color: editingType.color || '#607D8B',
+          color: editingType.color || 'var(--color-gray-500)',
           icon: editingType.icon || null,
           sortOrder: editingType.sortOrder ?? projectTypes.length + 1,
         };
@@ -282,12 +282,12 @@ export function ProjectTypesSettings() {
               <div className={styles.colorPicker}>
                 <input
                   type="color"
-                  value={editingType.color || '#607D8B'}
+                  value={editingType.color || 'var(--color-gray-500)'}
                   onChange={(e) => updateField('color', e.target.value)}
                 />
                 <input
                   type="text"
-                  value={editingType.color || '#607D8B'}
+                  value={editingType.color || 'var(--color-gray-500)'}
                   onChange={(e) => updateField('color', e.target.value)}
                   pattern="^#[0-9A-Fa-f]{6}$"
                 />

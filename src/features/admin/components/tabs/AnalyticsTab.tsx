@@ -20,7 +20,7 @@ export default function AnalyticsTab() {
   if (isLoading) {
     return (
       <div className={styles.container}>
-        <div style={{ textAlign: 'center', padding: '48px', color: '#6B7280' }}>
+        <div style={{ textAlign: 'center', padding: '48px', color: 'var(--color-gray-500)' }}>
           Loading analytics...
         </div>
       </div>
@@ -196,30 +196,30 @@ export default function AnalyticsTab() {
           <h4 className={styles.chartTitle}>Projects by Status</h4>
           <div className={styles.statusGrid}>
             {projectsByStatus?.overdue ? (
-              <div className={styles.statusCard} style={{ borderColor: '#EF4444' }}>
+              <div className={styles.statusCard} style={{ borderColor: 'var(--color-error)' }}>
                 <div className={styles.statusLabel}>🔴 Overdue</div>
                 <div className={styles.statusValue}>{projectsByStatus.overdue}</div>
               </div>
             ) : null}
             {projectsByStatus?.urgent ? (
-              <div className={styles.statusCard} style={{ borderColor: '#F59E0B' }}>
+              <div className={styles.statusCard} style={{ borderColor: 'var(--color-warning)' }}>
                 <div className={styles.statusLabel}>⚠️ Urgent</div>
                 <div className={styles.statusValue}>{projectsByStatus.urgent}</div>
               </div>
             ) : null}
-            <div className={styles.statusCard} style={{ borderColor: '#2563EB' }}>
+            <div className={styles.statusCard} style={{ borderColor: 'var(--color-accent)' }}>
               <div className={styles.statusLabel}>🔵 In Progress</div>
               <div className={styles.statusValue}>{projectsByStatus?.in_progress || 0}</div>
             </div>
-            <div className={styles.statusCard} style={{ borderColor: '#8B5CF6' }}>
+            <div className={styles.statusCard} style={{ borderColor: 'var(--color-purple-500)' }}>
               <div className={styles.statusLabel}>👁️ Review</div>
               <div className={styles.statusValue}>{projectsByStatus?.review || 0}</div>
             </div>
-            <div className={styles.statusCard} style={{ borderColor: '#10B981' }}>
+            <div className={styles.statusCard} style={{ borderColor: 'var(--color-success)' }}>
               <div className={styles.statusLabel}>✅ Done</div>
               <div className={styles.statusValue}>{projectsByStatus?.done || 0}</div>
             </div>
-            <div className={styles.statusCard} style={{ borderColor: '#6B7280' }}>
+            <div className={styles.statusCard} style={{ borderColor: 'var(--color-gray-500)' }}>
               <div className={styles.statusLabel}>📦 Archived</div>
               <div className={styles.statusValue}>{projectsByStatus?.archived || 0}</div>
             </div>

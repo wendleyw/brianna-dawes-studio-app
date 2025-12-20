@@ -204,23 +204,23 @@
 
 /* Colors */
 .color-primary.variant-border {
-  border-color: #2563eb;
+  border-color: var(--color-accent);
   border-top-color: transparent;
 }
 
 .color-primary .dot,
 .color-primary .bar {
-  background-color: #2563eb;
+  background-color: var(--color-accent);
 }
 
 .color-white.variant-border {
-  border-color: #ffffff;
+  border-color: var(--color-text-inverse);
   border-top-color: transparent;
 }
 
 .color-white .dot,
 .color-white .bar {
-  background-color: #ffffff;
+  background-color: var(--color-text-inverse);
 }
 
 .color-current.variant-border {

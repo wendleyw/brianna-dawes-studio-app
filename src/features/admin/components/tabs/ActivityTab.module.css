@@ -18,32 +18,32 @@
 
 .filterSelect {
   padding: 10px 16px;
-  border: 1px solid #E5E7EB;
+  border: 1px solid var(--color-gray-200);
   border-radius: 6px;
   font-size: 14px;
-  color: #374151;
-  background: #ffffff;
+  color: var(--color-gray-700);
+  background: var(--color-text-inverse);
   cursor: pointer;
   min-width: 140px;
 }
 
 .exportButton {
   padding: 10px 20px;
-  background: #ffffff;
-  border: 1px solid #E5E7EB;
+  background: var(--color-text-inverse);
+  border: 1px solid var(--color-gray-200);
   border-radius: 6px;
   font-size: 14px;
   font-weight: 500;
-  color: #374151;
+  color: var(--color-gray-700);
   cursor: pointer;
   transition: all 0.2s;
   white-space: nowrap;
 }
 
 .exportButton:hover {
-  background: #F9FAFB;
-  border-color: #2563EB;
-  color: #2563EB;
+  background: var(--color-gray-50);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
 }
 
 .timeline {
@@ -61,9 +61,9 @@
 .timelineDate {
   font-size: 16px;
   font-weight: 600;
-  color: #050038;
+  color: var(--color-primary);
   padding: 8px 0;
-  border-bottom: 2px solid #E5E7EB;
+  border-bottom: 2px solid var(--color-gray-200);
 }
 
 .timelineItems {
@@ -88,7 +88,7 @@
   top: 40px;
   bottom: -16px;
   width: 2px;
-  background: #E5E7EB;
+  background: var(--color-gray-200);
 }
 
 .timelineItem:last-child::before {
@@ -109,43 +109,43 @@
 }
 
 .typeUpload {
-  background: #DBEAFE;
-  color: #1E40AF;
+  background: var(--color-info-light);
+  color: var(--color-info-dark);
 }
 
 .typeStatusChange {
-  background: #E0E7FF;
-  color: #4F46E5;
+  background: var(--color-info-light);
+  color: var(--color-info);
 }
 
 .typeProject {
-  background: #ECFDF5;
-  color: #065F46;
+  background: var(--color-success-light);
+  color: var(--color-success-dark);
 }
 
 .typeSync {
-  background: #D1FAE5;
-  color: #047857;
+  background: var(--color-success-light);
+  color: var(--color-success-dark);
 }
 
 .typeSyncFailed {
-  background: #FEE2E2;
-  color: #991B1B;
+  background: var(--color-error-light);
+  color: var(--color-error-dark);
 }
 
 .typeUser {
-  background: #F3E8FF;
-  color: #6B21A8;
+  background: var(--color-purple-500);
+  color: var(--color-purple-700);
 }
 
 .typeApproved {
-  background: #D1FAE5;
-  color: #065F46;
+  background: var(--color-success-light);
+  color: var(--color-success-dark);
 }
 
 .typeComment {
-  background: #FEF3C7;
-  color: #92400E;
+  background: var(--color-warning-light);
+  color: var(--color-warning-dark);
 }
 
 .timelineContent {
@@ -157,23 +157,23 @@
 
 .timelineMessage {
   font-size: 14px;
-  color: #374151;
+  color: var(--color-gray-700);
   line-height: 1.5;
 }
 
 .timelineUser {
   font-weight: 600;
-  color: #050038;
+  color: var(--color-primary);
 }
 
 .timelineProject {
   font-weight: 500;
-  color: #2563EB;
+  color: var(--color-accent);
 }
 
 .timelineTime {
   font-size: 12px;
-  color: #9CA3AF;
+  color: var(--color-gray-400);
 }
 
 .loadMore {
@@ -184,18 +184,18 @@
 
 .loadMoreButton {
   padding: 10px 24px;
-  background: #ffffff;
-  border: 1px solid #E5E7EB;
+  background: var(--color-text-inverse);
+  border: 1px solid var(--color-gray-200);
   border-radius: 6px;
   font-size: 14px;
   font-weight: 500;
-  color: #374151;
+  color: var(--color-gray-700);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .loadMoreButton:hover {
-  background: #F9FAFB;
-  border-color: #2563EB;
-  color: #2563EB;
+  background: var(--color-gray-50);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
 }

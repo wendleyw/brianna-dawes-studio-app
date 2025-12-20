@@ -25,11 +25,11 @@ export interface StatusColumn {
 // The 5 status columns - single source of truth
 // Order: Most urgent first, Done always at the end for proper filtering/display
 export const STATUS_COLUMNS: StatusColumn[] = [
-  { id: 'overdue', label: 'OVERDUE', color: '#F97316', description: 'Past due date' },
-  { id: 'urgent', label: 'URGENT', color: '#DC2626', description: 'High priority, deadline approaching' },
-  { id: 'in_progress', label: 'IN PROGRESS', color: '#3B82F6', description: 'Actively being worked on' },
-  { id: 'review', label: 'REVIEW', color: '#6366F1', description: 'Awaiting client review/approval' },
-  { id: 'done', label: 'DONE', color: '#22C55E', description: 'Completed' },
+  { id: 'overdue', label: 'OVERDUE', color: 'var(--priority-high)', description: 'Past due date' },
+  { id: 'urgent', label: 'URGENT', color: 'var(--color-error)', description: 'High priority, deadline approaching' },
+  { id: 'in_progress', label: 'IN PROGRESS', color: 'var(--color-accent-light)', description: 'Actively being worked on' },
+  { id: 'review', label: 'REVIEW', color: 'var(--color-info)', description: 'Awaiting client review/approval' },
+  { id: 'done', label: 'DONE', color: 'var(--color-success)', description: 'Completed' },
 ];
 
 // Backward compatibility: TIMELINE_COLUMNS is an alias for STATUS_COLUMNS

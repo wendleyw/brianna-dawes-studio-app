@@ -8,7 +8,7 @@
   display: flex;
   gap: 4px;
   padding-bottom: 16px;
-  border-bottom: 2px solid #E5E7EB;
+  border-bottom: 2px solid var(--color-gray-200);
   margin-bottom: 24px;
 }
 
@@ -18,21 +18,21 @@
   padding: 8px 16px;
   font-size: 14px;
   font-weight: 500;
-  color: #6B7280;
+  color: var(--color-gray-500);
   cursor: pointer;
   border-radius: 6px;
   transition: all 0.2s;
 }
 
 .subNavButton:hover {
-  background: #F3F4F6;
-  color: #050038;
+  background: var(--color-gray-100);
+  color: var(--color-primary);
 }
 
 .subNavButtonActive {
   composes: subNavButton;
-  background: #EFF6FF;
-  color: #2563EB;
+  background: var(--color-info-light);
+  color: var(--color-accent);
 }
 
 .content {
@@ -47,8 +47,8 @@
 }
 
 .settingsGroup {
-  background: #ffffff;
-  border: 1px solid #E5E7EB;
+  background: var(--color-text-inverse);
+  border: 1px solid var(--color-gray-200);
   border-radius: 8px;
   padding: 24px;
 }
@@ -56,7 +56,7 @@
 .groupTitle {
   font-size: 16px;
   font-weight: 600;
-  color: #050038;
+  color: var(--color-primary);
   margin: 0 0 20px 0;
 }
 
@@ -80,32 +80,32 @@
   gap: 4px;
   font-size: 14px;
   font-weight: 500;
-  color: #050038;
+  color: var(--color-primary);
 }
 
 .settingDescription {
   font-size: 12px;
-  color: #6B7280;
+  color: var(--color-gray-500);
   font-weight: 400;
 }
 
 .settingInput {
   width: 280px;
   padding: 8px 12px;
-  border: 1px solid #E5E7EB;
+  border: 1px solid var(--color-gray-200);
   border-radius: 6px;
   font-size: 13px;
-  color: #374151;
+  color: var(--color-gray-700);
 }
 
 .settingSelect {
   width: 200px;
   padding: 8px 12px;
-  border: 1px solid #E5E7EB;
+  border: 1px solid var(--color-gray-200);
   border-radius: 6px;
   font-size: 13px;
-  color: #374151;
-  background: #ffffff;
+  color: var(--color-gray-700);
+  background: var(--color-text-inverse);
   cursor: pointer;
 }
 
@@ -120,7 +120,7 @@
   position: relative;
   width: 44px;
   height: 24px;
-  background: #E5E7EB;
+  background: var(--color-gray-200);
   border-radius: 12px;
   transition: all 0.3s;
 }
@@ -132,13 +132,13 @@
   left: 2px;
   width: 20px;
   height: 20px;
-  background: #ffffff;
+  background: var(--color-text-inverse);
   border-radius: 50%;
   transition: all 0.3s;
 }
 
 .toggle input[type="checkbox"]:checked + .toggleSlider {
-  background: #2563EB;
+  background: var(--color-accent);
 }
 
 .toggle input[type="checkbox"]:checked + .toggleSlider::after {
@@ -151,7 +151,7 @@
 
 .toggleLabel {
   font-size: 13px;
-  color: #374151;
+  color: var(--color-gray-700);
 }
 
 .settingsActions {
@@ -162,41 +162,41 @@
 
 .saveButton {
   padding: 10px 24px;
-  background: #2563EB;
+  background: var(--color-accent);
   border: none;
   border-radius: 6px;
   font-size: 14px;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--color-text-inverse);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .saveButton:hover {
-  background: #1D4ED8;
+  background: var(--color-accent-dark);
 }
 
 .cancelButton {
   padding: 10px 24px;
-  background: #ffffff;
-  border: 1px solid #E5E7EB;
+  background: var(--color-text-inverse);
+  border: 1px solid var(--color-gray-200);
   border-radius: 6px;
   font-size: 14px;
   font-weight: 500;
-  color: #374151;
+  color: var(--color-gray-700);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .cancelButton:hover {
-  background: #F9FAFB;
+  background: var(--color-gray-50);
 }
 
 /* Integrations specific styles */
 
 .integrationCard {
-  background: #ffffff;
-  border: 1px solid #E5E7EB;
+  background: var(--color-text-inverse);
+  border: 1px solid var(--color-gray-200);
   border-radius: 8px;
   padding: 20px;
   margin-bottom: 16px;
@@ -219,7 +219,7 @@
   width: 48px;
   height: 48px;
   border-radius: 8px;
-  background: #F9FAFB;
+  background: var(--color-gray-50);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -229,13 +229,13 @@
 .integrationName {
   font-size: 16px;
   font-weight: 600;
-  color: #050038;
+  color: var(--color-primary);
   margin-bottom: 4px;
 }
 
 .integrationDescription {
   font-size: 13px;
-  color: #6B7280;
+  color: var(--color-gray-500);
 }
 
 .statusConnected {
@@ -244,9 +244,9 @@
   gap: 6px;
   font-size: 13px;
   font-weight: 600;
-  color: #10B981;
+  color: var(--color-success);
   padding: 6px 12px;
-  background: #D1FAE5;
+  background: var(--color-success-light);
   border-radius: 12px;
 }
 
@@ -255,25 +255,25 @@
   gap: 8px;
   margin-bottom: 16px;
   padding-bottom: 16px;
-  border-bottom: 1px solid #E5E7EB;
+  border-bottom: 1px solid var(--color-gray-200);
 }
 
 .integrationButton {
   padding: 8px 16px;
-  background: #ffffff;
-  border: 1px solid #E5E7EB;
+  background: var(--color-text-inverse);
+  border: 1px solid var(--color-gray-200);
   border-radius: 6px;
   font-size: 13px;
   font-weight: 500;
-  color: #374151;
+  color: var(--color-gray-700);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .integrationButton:hover {
-  background: #F9FAFB;
-  border-color: #2563EB;
-  color: #2563EB;
+  background: var(--color-gray-50);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
 }
 
 .integrationButtonDanger {
@@ -281,8 +281,8 @@
 }
 
 .integrationButtonDanger:hover {
-  border-color: #EF4444;
-  color: #EF4444;
+  border-color: var(--color-error);
+  color: var(--color-error);
 }
 
 .integrationDetails {
@@ -305,12 +305,12 @@
 
 .detailLabel {
   font-size: 12px;
-  color: #9CA3AF;
+  color: var(--color-gray-400);
   font-weight: 500;
 }
 
 .detailValue {
   font-size: 13px;
-  color: #374151;
+  color: var(--color-gray-700);
   font-weight: 500;
 }

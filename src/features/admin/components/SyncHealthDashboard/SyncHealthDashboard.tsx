@@ -85,18 +85,18 @@ export function SyncHealthDashboard() {
   };
 
   const getHealthStatus = (): { label: string; color: string } => {
-    if (!metrics) return { label: 'Unknown', color: '#6B7280' };
+    if (!metrics) return { label: 'Unknown', color: 'var(--color-gray-500)' };
 
     if (metrics.errorCount > 0) {
-      return { label: 'Needs Attention', color: '#EF4444' };
+      return { label: 'Needs Attention', color: 'var(--color-error)' };
     }
     if (metrics.pendingCount > 0 || metrics.syncingCount > 0) {
-      return { label: 'Syncing', color: '#F59E0B' };
+      return { label: 'Syncing', color: 'var(--color-warning)' };
     }
     if (metrics.syncSuccessRate === 100) {
-      return { label: 'Healthy', color: '#22C55E' };
+      return { label: 'Healthy', color: 'var(--color-success)' };
     }
-    return { label: 'Good', color: '#84CC16' };
+    return { label: 'Good', color: 'var(--color-success)' };
   };
 
   if (isLoading) {
@@ -138,7 +138,7 @@ export function SyncHealthDashboard() {
         <span
           className={styles.connectionIndicator}
           style={{
-            backgroundColor: metrics?.miroAvailable ? '#22C55E' : '#EF4444',
+            backgroundColor: metrics?.miroAvailable ? 'var(--color-success)' : 'var(--color-error)',
           }}
         />
         <span>{metrics?.miroAvailable ? 'Connected' : 'Not Available'}</span>
@@ -157,10 +157,10 @@ export function SyncHealthDashboard() {
               width: `${metrics?.syncSuccessRate || 0}%`,
               backgroundColor:
                 (metrics?.syncSuccessRate || 0) >= 90
-                  ? '#22C55E'
+                  ? 'var(--color-success)'
                   : (metrics?.syncSuccessRate || 0) >= 70
-                  ? '#F59E0B'
-                  : '#EF4444',
+                  ? 'var(--color-warning)'
+                  : 'var(--color-error)',
             }}
           />
         </div>
@@ -228,10 +228,10 @@ export function SyncHealthDashboard() {
           <div className={styles.retryTitle}>Retry Results</div>
           <div className={styles.retryStats}>
             <span>Attempted: {retryResults.attempted}</span>
-            <span style={{ color: '#22C55E' }}>
+            <span style={{ color: 'var(--color-success)' }}>
               Succeeded: {retryResults.succeeded}
             </span>
-            <span style={{ color: '#EF4444' }}>
+            <span style={{ color: 'var(--color-error)' }}>
               Failed: {retryResults.failed}
             </span>
           </div>

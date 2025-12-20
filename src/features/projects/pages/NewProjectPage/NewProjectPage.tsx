@@ -699,7 +699,7 @@ ${formData.additionalNotes || needsAttention}
                     : 'Select project type first'}
                 </span>
                 {formData.projectType && !wantsSpecificDate && (
-                  <span style={{ marginLeft: 'auto', fontSize: '10px', color: '#888' }}>
+                  <span style={{ marginLeft: 'auto', fontSize: '10px', color: 'var(--color-gray-400)' }}>
                     Auto-calculated
                   </span>
                 )}

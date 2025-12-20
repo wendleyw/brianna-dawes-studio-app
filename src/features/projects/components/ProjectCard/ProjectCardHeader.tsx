@@ -33,7 +33,7 @@ export const ProjectCardHeader = memo(function ProjectCardHeader() {
             size="sm"
             style={{
               backgroundColor: BADGE_COLORS.SUCCESS,
-              color: '#fff',
+              color: 'var(--color-text-inverse)',
               border: 'none',
               fontWeight: 700,
               letterSpacing: '0.5px',
@@ -53,7 +53,7 @@ export const ProjectCardHeader = memo(function ProjectCardHeader() {
             size="sm"
             style={{
               backgroundColor: BADGE_COLORS.PURPLE,
-              color: '#fff',
+              color: 'var(--color-text-inverse)',
               border: 'none',
               fontWeight: 700,
               letterSpacing: '0.5px',
@@ -73,7 +73,7 @@ export const ProjectCardHeader = memo(function ProjectCardHeader() {
             size="sm"
             style={{
               backgroundColor: BADGE_COLORS.NEUTRAL,
-              color: '#fff',
+              color: 'var(--color-text-inverse)',
               border: 'none',
               fontWeight: 700,
               letterSpacing: '0.5px',
@@ -92,7 +92,7 @@ export const ProjectCardHeader = memo(function ProjectCardHeader() {
           <Badge
             color="neutral"
             size="sm"
-            style={{ backgroundColor: priority.color, color: '#fff', border: 'none' }}
+            style={{ backgroundColor: priority.color, color: 'var(--color-text-inverse)', border: 'none' }}
           >
             {priority.label}
           </Badge>
@@ -105,7 +105,7 @@ export const ProjectCardHeader = memo(function ProjectCardHeader() {
             <Badge
               color="neutral"
               size="sm"
-              style={{ backgroundColor: projectType.color, color: '#fff', border: 'none' }}
+              style={{ backgroundColor: projectType.color, color: 'var(--color-text-inverse)', border: 'none' }}
             >
               {projectType.label.toUpperCase()}
             </Badge>
@@ -117,7 +117,7 @@ export const ProjectCardHeader = memo(function ProjectCardHeader() {
           size="sm"
           style={{
             backgroundColor: isArchived ? BADGE_COLORS.NEUTRAL : statusColumn.color,
-            color: '#fff',
+            color: 'var(--color-text-inverse)',
             border: 'none'
           }}
         >

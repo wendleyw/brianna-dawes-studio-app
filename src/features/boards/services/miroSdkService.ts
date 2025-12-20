@@ -255,7 +255,7 @@ function getStatusConfig(status: ProjectStatus): { label: string; color: string 
     return { label: column.label, color: column.color };
   }
   // Default fallback
-  return { label: status.toUpperCase().replace('_', ' '), color: '#6B7280' };
+  return { label: status.toUpperCase().replace('_', ' '), color: 'var(--color-gray-500)' };
 }
 
 // getProjectTypeFromBriefing is now imported from miroHelpers
@@ -273,7 +273,7 @@ class MiroMasterTimelineService {
   private syncLock: Promise<void> = Promise.resolve();
   private static readonly FILES_CHAT_COLUMN = {
     label: 'Files / Chat',
-    color: '#000000',
+    color: 'var(--color-primary)',
   } as const;
 
   isInitialized(): boolean {
@@ -282,10 +282,10 @@ class MiroMasterTimelineService {
 
   async initializeTimeline(): Promise<MasterTimelineState> {
     // SINGLETON: Return existing if initialized in memory
-    if (this.initialized && this.state) {
+    if (this.initialized && this.state && this.state.frameId) {
       const miro = getMiroSDK();
       try {
-        const frame = await miro.board.getById(this.state.frameId) as MiroFrame | null;
+        const frame = await miro.board.getById(this.state.frameId!) as MiroFrame | null;
         if (frame) {
           const frameWidth = frame.width ?? TIMELINE.FRAME_WIDTH;
           const frameHeight = frame.height ?? TIMELINE.FRAME_HEIGHT;
@@ -377,7 +377,7 @@ class MiroMasterTimelineService {
       style: {
         fontSize: 12,
         textAlign: 'left',
-        color: '#6B7280', // Gray color
+        color: 'var(--color-gray-500)', // Gray color
       },
     });
 
@@ -391,7 +391,7 @@ class MiroMasterTimelineService {
       width: TIMELINE.FRAME_WIDTH,
       height: TIMELINE.FRAME_HEIGHT,
       style: {
-        fillColor: '#FFFFFF',
+        fillColor: 'var(--color-text-inverse)',
       },
     });
 
@@ -421,7 +421,7 @@ class MiroMasterTimelineService {
           fillColor: col.color,
           borderColor: 'transparent',
           borderWidth: 0,
-          color: '#FFFFFF',
+          color: 'var(--color-text-inverse)',
           fontSize: 8,
           textAlign: 'center',
           textAlignVertical: 'middle',
@@ -437,8 +437,8 @@ class MiroMasterTimelineService {
         width: TIMELINE.COLUMN_WIDTH,
         height: TIMELINE.COLUMN_HEIGHT,
         style: {
-          fillColor: '#FFFFFF',
-          borderColor: '#E5E7EB',
+          fillColor: 'var(--color-text-inverse)',
+          borderColor: 'var(--color-gray-200)',
           borderWidth: 1,
         },
       });
@@ -567,10 +567,10 @@ class MiroMasterTimelineService {
 
     let colX: number | null = null;
     let headerY: number | null = null;
-    let columnWidth = TIMELINE.COLUMN_WIDTH;
-    let headerHeight = TIMELINE.HEADER_HEIGHT;
+    let columnWidth = TIMELINE.COLUMN_WIDTH as number;
+    let headerHeight = TIMELINE.HEADER_HEIGHT as number;
     let dropY: number | null = null;
-    let columnHeight = TIMELINE.COLUMN_HEIGHT;
+    let columnHeight = TIMELINE.COLUMN_HEIGHT as number;
 
     const defaultHeaderY = frameTop + TIMELINE.PADDING + TIMELINE.HEADER_HEIGHT / 2;
     const defaultDropZoneTopY = defaultHeaderY + TIMELINE.HEADER_HEIGHT / 2 + 5;
@@ -583,7 +583,8 @@ class MiroMasterTimelineService {
         ? doneHeader.x - reviewHeader.x - (doneHeader.width + reviewHeader.width) / 2
         : TIMELINE.COLUMN_GAP;
       const gap = gapFromHeaders > 4 ? gapFromHeaders : TIMELINE.COLUMN_GAP;
-      colX = doneHeader.x + doneHeader.width + gap;
+      // Position X is CENTER of shape, so: done center + half done width + gap + half new column width
+      colX = doneHeader.x + doneHeader.width / 2 + gap + columnWidth / 2;
 
       const doneDropZone = frameShapes.find((shape) => {
         const isRectangle = shape.shape === 'rectangle';
@@ -659,7 +660,7 @@ class MiroMasterTimelineService {
       height: columnHeight,
       style: {
         fillColor: '#FFFFFF',
-        borderColor: '#3F3F3F',
+        borderColor: '#000000',
         borderWidth: 2,
       },
     });
@@ -1010,7 +1011,7 @@ class MiroMasterTimelineService {
           } else {
             delete (item as Partial<MiroCard>).dueDate;
           }
-          item.style = { cardTheme: isArchived ? '#000000' : column.color };
+          item.style = { cardTheme: isArchived ? 'var(--color-primary)' : column.color };
 
           if (itemInCorrectColumn) {
             // Card is already in correct column - keep its current position
@@ -1077,7 +1078,7 @@ class MiroMasterTimelineService {
         } else {
           delete (existingCardFinalCheck as Partial<MiroCard>).dueDate;
         }
-        existingCardFinalCheck.style = { cardTheme: isArchived ? '#000000' : column.color };
+        existingCardFinalCheck.style = { cardTheme: isArchived ? 'var(--color-primary)' : column.color };
 
         if (!finalCheckInCorrectColumn) {
           // Only update position if card is in a different column
@@ -1116,8 +1117,8 @@ class MiroMasterTimelineService {
     log('MiroTimeline', `Creating NEW card for "${project.name}" at position (${cardX}, ${cardY})`);
 
     // Create card with multi-line title (using \n for line breaks)
-    // Use black (#000000) for archived projects
-    const cardColor = isArchived ? '#000000' : column.color;
+    // Use black (var(--color-primary)) for archived projects
+    const cardColor = isArchived ? 'var(--color-primary)' : column.color;
     const newMiroCard = await miro.board.createCard({
       title: cardTitle,
       description, // Store projectId in description for cross-context discovery
@@ -1538,7 +1539,7 @@ class MiroProjectRowService {
       width: FRAME.WIDTH,
       height: FRAME.HEIGHT,
       style: {
-        fillColor: '#FFFFFF',
+        fillColor: 'var(--color-text-inverse)',
       },
     });
 
@@ -1556,7 +1557,7 @@ class MiroProjectRowService {
       width: FRAME.WIDTH,
       height: FRAME.HEIGHT,
       style: {
-        fillColor: '#FFFFFF',
+        fillColor: 'var(--color-text-inverse)',
       },
     });
 
@@ -1727,7 +1728,7 @@ class MiroProjectRowService {
       width: FRAME.WIDTH,
       height: FRAME.HEIGHT,
       style: {
-        fillColor: '#FFFFFF',
+        fillColor: 'var(--color-text-inverse)',
       },
     });
 
@@ -1774,10 +1775,10 @@ class MiroProjectRowService {
       width: contentWidth,
       height: 36,
       style: {
-        fillColor: '#000000',
+        fillColor: 'var(--color-primary)',
         borderColor: 'transparent',
         borderWidth: 0,
-        color: '#FFFFFF',
+        color: 'var(--color-text-inverse)',
         fontSize: 13,
         textAlign: 'center',
         textAlignVertical: 'middle',
@@ -1805,10 +1806,10 @@ class MiroProjectRowService {
       width: BADGE_WIDTHS.priority,
       height: BADGE_HEIGHT,
       style: {
-        fillColor: PRIORITY_COLORS[project.priority] || '#6B7280',
+        fillColor: PRIORITY_COLORS[project.priority] || 'var(--color-gray-500)',
         borderColor: 'transparent',
         borderWidth: 0,
-        color: '#FFFFFF',
+        color: 'var(--color-text-inverse)',
         fontSize: 10,
         textAlign: 'center',
         textAlignVertical: 'middle',
@@ -1828,10 +1829,10 @@ class MiroProjectRowService {
       width: BADGE_WIDTHS.type,
       height: BADGE_HEIGHT,
       style: {
-        fillColor: '#000000',
+        fillColor: 'var(--color-primary)',
         borderColor: 'transparent',
         borderWidth: 0,
-        color: '#FFFFFF',
+        color: 'var(--color-text-inverse)',
         fontSize: 10,
         textAlign: 'center',
         textAlignVertical: 'middle',
@@ -1854,7 +1855,7 @@ class MiroProjectRowService {
         fillColor: statusConfig.color,
         borderColor: 'transparent',
         borderWidth: 0,
-        color: '#FFFFFF',
+        color: 'var(--color-text-inverse)',
         fontSize: 10,
         textAlign: 'center',
         textAlignVertical: 'middle',
@@ -1873,10 +1874,10 @@ class MiroProjectRowService {
       width: BADGE_WIDTHS.date,
       height: BADGE_HEIGHT,
       style: {
-        fillColor: '#E5E7EB',
+        fillColor: 'var(--color-gray-200)',
         borderColor: 'transparent',
         borderWidth: 0,
-        color: '#374151',
+        color: 'var(--color-gray-700)',
         fontSize: 10,
         textAlign: 'center',
         textAlignVertical: 'middle',
@@ -1910,7 +1911,7 @@ class MiroProjectRowService {
         y: titleY,
         width: CELL_WIDTH,
         style: {
-          color: '#6B7280',
+          color: 'var(--color-gray-500)',
           fontSize: 9,
           textAlign: 'left',
         },
@@ -1926,10 +1927,10 @@ class MiroProjectRowService {
         width: CELL_WIDTH,
         height: frameHeight,
         style: {
-          fillColor: hasValue ? '#FFFFFF' : '#FEF2F2',
-          borderColor: '#E5E7EB',
+          fillColor: hasValue ? 'var(--color-text-inverse)' : 'var(--color-error-light)',
+          borderColor: 'var(--color-gray-200)',
           borderWidth: 1,
-          color: hasValue ? '#000000' : '#EF4444',
+          color: hasValue ? 'var(--color-primary)' : 'var(--color-error)',
           fontSize: 10,
           textAlign: hasValue ? 'left' : 'center',
           textAlignVertical: hasValue ? 'top' : 'middle',
@@ -1969,8 +1970,8 @@ class MiroProjectRowService {
       width: contentWidth - 10,
       height: sectionHeight - headerHeight - 10,
       style: {
-        fillColor: '#FFFFFF',
-        borderColor: '#E5E7EB',
+        fillColor: 'var(--color-text-inverse)',
+        borderColor: 'var(--color-gray-200)',
         borderWidth: 1,
       },
     });
@@ -1985,10 +1986,10 @@ class MiroProjectRowService {
       width: contentWidth,
       height: headerHeight,
       style: {
-        fillColor: '#F3F4F6',
-        borderColor: '#E5E7EB',
+        fillColor: 'var(--color-gray-100)',
+        borderColor: 'var(--color-gray-200)',
         borderWidth: 1,
-        color: '#374151',
+        color: 'var(--color-gray-700)',
         fontSize: 10,
         textAlign: 'center',
         textAlignVertical: 'middle',
@@ -2008,8 +2009,8 @@ class MiroProjectRowService {
       width: contentWidth - 10,
       height: sectionHeight - headerHeight - 10,
       style: {
-        fillColor: '#FFFFFF',
-        borderColor: '#E5E7EB',
+        fillColor: 'var(--color-text-inverse)',
+        borderColor: 'var(--color-gray-200)',
         borderWidth: 1,
       },
     });
@@ -2024,10 +2025,10 @@ class MiroProjectRowService {
       width: contentWidth,
       height: headerHeight,
       style: {
-        fillColor: '#F3F4F6',
-        borderColor: '#E5E7EB',
+        fillColor: 'var(--color-gray-100)',
+        borderColor: 'var(--color-gray-200)',
         borderWidth: 1,
-        color: '#374151',
+        color: 'var(--color-gray-700)',
         fontSize: 10,
         textAlign: 'center',
         textAlignVertical: 'middle',
@@ -2060,8 +2061,8 @@ class MiroProjectRowService {
       width: contentWidth - 10,
       height: workAreaHeight,
       style: {
-        fillColor: '#FFFFFF',
-        borderColor: '#E5E7EB',
+        fillColor: 'var(--color-text-inverse)',
+        borderColor: 'var(--color-gray-200)',
         borderWidth: 1,
       },
     });
@@ -2089,10 +2090,10 @@ class MiroProjectRowService {
       width: contentWidth,
       height: headerHeight,
       style: {
-        fillColor: '#F3F4F6',
-        borderColor: '#E5E7EB',
+        fillColor: 'var(--color-gray-100)',
+        borderColor: 'var(--color-gray-200)',
         borderWidth: 1,
-        color: '#374151',
+        color: 'var(--color-gray-700)',
         fontSize: 10,
         textAlign: 'center',
         textAlignVertical: 'middle',
@@ -2281,7 +2282,7 @@ class MiroProjectRowService {
       // Strategy 3: Find by unique status color (colors not shared with priority)
       if (!statusShape && badgeRow.length > 0) {
         // These colors are ONLY used by status badges, not priority badges
-        const uniqueStatusColors = ['#3B82F6', '#8B5CF6', '#6366F1', '#22C55E', '#DC2626'];
+        const uniqueStatusColors = ['var(--color-accent-light)', 'var(--color-purple-500)', 'var(--color-info)', 'var(--color-success)', 'var(--color-error)'];
         statusShape = badgeRow.find(s => {
           const fillColor = s.style?.fillColor?.toUpperCase();
           return fillColor && uniqueStatusColors.some(c => c.toUpperCase() === fillColor);
@@ -2387,7 +2388,7 @@ class MiroProjectRowService {
         width: frameWidth - 20, // Slightly smaller than frame
         height: frameHeight - 20,
         style: {
-          fillColor: '#9CA3AF', // Gray color (same as completed cards in panel)
+          fillColor: 'var(--color-gray-400)', // Gray color (same as completed cards in panel)
           fillOpacity: 0.3, // 30% opacity - visible but content still readable
           borderWidth: 0,
         } as { fillColor: string; fillOpacity: number; borderWidth: number },
@@ -2431,8 +2432,8 @@ class MiroProjectRowService {
             const isLarge = (s.width || 0) > frameWidth * 0.8 && (s.height || 0) > frameHeight * 0.8;
             const fillColor = s.style?.fillColor?.toUpperCase();
             // Check for both legacy green overlays and current gray overlay
-            const isGreen = fillColor === '#22C55E' || fillColor === '#DCFCE7' || fillColor === '#BBF7D0';
-            const isGray = fillColor === '#9CA3AF';
+            const isGreen = fillColor === 'var(--color-success)' || fillColor === 'var(--color-success-light)' || fillColor === 'var(--color-success-light)';
+            const isGray = fillColor === 'var(--color-gray-400)';
             return isAtFrameCenter && isLarge && (isGreen || isGray);
           });
 

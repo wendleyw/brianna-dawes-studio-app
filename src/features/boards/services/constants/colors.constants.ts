@@ -23,38 +23,38 @@ export const TIMELINE_COLUMNS: Array<{
   label: string;
   color: string;
 }> = [
-  { id: 'overdue', label: 'OVERDUE', color: '#F97316' },
-  { id: 'urgent', label: 'URGENT', color: '#DC2626' },
-  { id: 'in_progress', label: 'IN PROGRESS', color: '#3B82F6' },
-  { id: 'review', label: 'REVIEW', color: '#6366F1' },
-  { id: 'done', label: 'DONE', color: '#22C55E' },
+  { id: 'overdue', label: 'OVERDUE', color: 'var(--priority-high)' },
+  { id: 'urgent', label: 'URGENT', color: 'var(--color-error)' },
+  { id: 'in_progress', label: 'IN PROGRESS', color: 'var(--color-accent-light)' },
+  { id: 'review', label: 'REVIEW', color: 'var(--color-info)' },
+  { id: 'done', label: 'DONE', color: 'var(--color-success)' },
 ] as const;
 
 // ==================== PROJECT TYPE COLORS ====================
 
 /** Colors and config for project types */
 export const PROJECT_TYPE_CONFIG: Record<string, { label: string; color: string; icon: string }> = {
-  'social-post-design': { label: 'Social Post', color: '#E91E63', icon: '📱' },
-  'email-design': { label: 'Email', color: '#9C27B0', icon: '📧' },
-  'hero-section': { label: 'Hero Section', color: '#673AB7', icon: '🖼️' },
-  'ad-design': { label: 'Ad Design', color: '#3F51B5', icon: '📢' },
-  'marketing-campaign': { label: 'Marketing', color: '#2196F3', icon: '📣' },
-  'video-production': { label: 'Video', color: '#00BCD4', icon: '🎬' },
-  'gif-design': { label: 'GIF', color: '#009688', icon: '✨' },
-  'website-assets': { label: 'Web Assets', color: '#4CAF50', icon: '🧩' },
-  'website-ui-design': { label: 'Website UI', color: '#FF9800', icon: '🌐' },
-  'other': { label: 'Other', color: '#607D8B', icon: '📋' },
+  'social-post-design': { label: 'Social Post', color: 'var(--priority-high)', icon: '📱' },
+  'email-design': { label: 'Email', color: 'var(--color-purple-600)', icon: '📧' },
+  'hero-section': { label: 'Hero Section', color: 'var(--color-purple-700)', icon: '🖼️' },
+  'ad-design': { label: 'Ad Design', color: 'var(--color-info)', icon: '📢' },
+  'marketing-campaign': { label: 'Marketing', color: 'var(--color-accent-light)', icon: '📣' },
+  'video-production': { label: 'Video', color: 'var(--color-accent)', icon: '🎬' },
+  'gif-design': { label: 'GIF', color: 'var(--color-success)', icon: '✨' },
+  'website-assets': { label: 'Web Assets', color: 'var(--color-success)', icon: '🧩' },
+  'website-ui-design': { label: 'Website UI', color: 'var(--color-warning)', icon: '🌐' },
+  'other': { label: 'Other', color: 'var(--color-gray-500)', icon: '📋' },
 } as const;
 
 // ==================== SYNC STATUS COLORS ====================
 
 /** Colors for sync status indicators */
 export const SYNC_STATUS_COLORS = {
-  synced: '#22C55E',     // Green - successfully synced
-  pending: '#F59E0B',    // Yellow - waiting to sync
-  syncing: '#3B82F6',    // Blue - currently syncing
-  sync_error: '#EF4444', // Red - sync failed
-  unknown: '#6B7280',    // Gray - unknown/default
+  synced: 'var(--color-success)',     // Green - successfully synced
+  pending: 'var(--color-warning)',    // Yellow - waiting to sync
+  syncing: 'var(--color-accent-light)',    // Blue - currently syncing
+  sync_error: 'var(--color-error)', // Red - sync failed
+  unknown: 'var(--color-gray-500)',    // Gray - unknown/default
 } as const;
 
 /** Get color for a sync status */
@@ -66,12 +66,12 @@ export function getSyncStatusColor(status: string): string {
 
 /** Colors used for status badges in UI */
 export const BADGE_COLORS = {
-  SUCCESS: '#22C55E',    // Green - approved, done, success
-  WARNING: '#F59E0B',    // Yellow/amber - pending, warning
-  ERROR: '#EF4444',      // Red - error, urgent
-  INFO: '#3B82F6',       // Blue - in progress, info
-  PURPLE: '#8B5CF6',     // Purple - reviewed, special
-  NEUTRAL: '#374151',    // Gray - archived, neutral
+  SUCCESS: 'var(--color-success)',    // Green - approved, done, success
+  WARNING: 'var(--color-warning)',    // Yellow/amber - pending, warning
+  ERROR: 'var(--color-error)',      // Red - error, urgent
+  INFO: 'var(--color-accent-light)',       // Blue - in progress, info
+  PURPLE: 'var(--color-purple-500)',     // Purple - reviewed, special
+  NEUTRAL: 'var(--color-gray-700)',    // Gray - archived, neutral
 } as const;
 
 // ==================== UI COLORS ====================
@@ -79,21 +79,21 @@ export const BADGE_COLORS = {
 /** Common UI colors */
 export const UI_COLORS = {
   // Backgrounds
-  BG_WHITE: '#FFFFFF',
-  BG_DARK: '#000000',
-  BG_GRAY: '#F3F4F6',
+  BG_WHITE: 'var(--color-text-inverse)',
+  BG_DARK: 'var(--color-primary)',
+  BG_GRAY: 'var(--color-gray-100)',
 
   // Borders
-  BORDER_LIGHT: '#E5E7EB',
-  BORDER_DARK: '#374151',
+  BORDER_LIGHT: 'var(--color-gray-200)',
+  BORDER_DARK: 'var(--color-gray-700)',
 
   // Text
-  TEXT_WHITE: '#FFFFFF',
-  TEXT_DARK: '#374151',
-  TEXT_MUTED: '#6B7280',
+  TEXT_WHITE: 'var(--color-text-inverse)',
+  TEXT_DARK: 'var(--color-gray-700)',
+  TEXT_MUTED: 'var(--color-gray-500)',
 
   // Accent colors
-  ACCENT_BLUE: '#3B82F6',
-  ACCENT_INDIGO: '#6366F1',
-  ACCENT_PURPLE: '#8B5CF6',
+  ACCENT_BLUE: 'var(--color-accent-light)',
+  ACCENT_INDIGO: 'var(--color-info)',
+  ACCENT_PURPLE: 'var(--color-purple-500)',
 } as const;

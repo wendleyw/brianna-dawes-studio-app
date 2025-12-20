@@ -17,26 +17,26 @@ export interface RoleConfig {
 export const ROLE_CONFIG: Record<UserRole, RoleConfig> = {
   admin: {
     label: 'Admin',
-    color: '#7C3AED',    // Purple
-    bgColor: '#EDE9FE',  // Light purple
+    color: 'var(--color-purple-600)',    // Purple
+    bgColor: 'var(--color-purple-500)',  // Light purple
   },
   designer: {
     label: 'Designer',
-    color: '#0891B2',    // Cyan
-    bgColor: '#CFFAFE',  // Light cyan
+    color: 'var(--color-accent)',    // Cyan
+    bgColor: 'var(--color-info-light)',  // Light cyan
   },
   client: {
     label: 'Client',
-    color: '#D97706',    // Amber
-    bgColor: '#FEF3C7',  // Light amber
+    color: 'var(--color-warning-dark)',    // Amber
+    bgColor: 'var(--color-warning-light)',  // Light amber
   },
 };
 
 /** Role colors only (for components that just need colors) */
 export const ROLE_COLORS: Record<UserRole, { color: string; bg: string }> = {
-  admin: { color: '#7C3AED', bg: '#EDE9FE' },
-  designer: { color: '#0891B2', bg: '#CFFAFE' },
-  client: { color: '#D97706', bg: '#FEF3C7' },
+  admin: { color: 'var(--color-purple-600)', bg: 'var(--color-purple-500)' },
+  designer: { color: 'var(--color-accent)', bg: 'var(--color-info-light)' },
+  client: { color: 'var(--color-warning-dark)', bg: 'var(--color-warning-light)' },
 };
 
 /** Get role configuration by role */

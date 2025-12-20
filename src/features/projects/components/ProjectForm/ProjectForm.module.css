@@ -10,13 +10,13 @@
   background-color: rgba(239, 68, 68, 0.1);
   border: 1px solid rgba(239, 68, 68, 0.3);
   border-radius: var(--radius-md);
-  color: #DC2626;
+  color: var(--color-error);
   font-size: var(--text-sm);
 }
 
 .error {
   font-size: 10px;
-  color: #DC2626;
+  color: var(--color-error);
   margin-top: 2px;
 }
 
@@ -50,7 +50,7 @@
 
 .inputCompact:focus {
   outline: none;
-  border-color: #D4A574;
+  border-color: var(--color-brand-gold);
 }
 
 .inputCompact::placeholder {
@@ -104,40 +104,40 @@
 }
 
 .chip:hover {
-  border-color: #D4A574;
+  border-color: var(--color-brand-gold);
   color: var(--color-text-primary);
 }
 
 .chip.chipActive {
-  border-color: #D4A574;
+  border-color: var(--color-brand-gold);
   background-color: rgba(212, 165, 116, 0.15);
-  color: #D4A574;
+  color: var(--color-brand-gold);
   font-weight: var(--font-semibold);
 }
 
 /* Priority chips with colors */
 .chipPriority[data-priority="low"].chipActive {
-  border-color: #9CA3AF;
+  border-color: var(--color-gray-400);
   background-color: rgba(156, 163, 175, 0.15);
-  color: #6B7280;
+  color: var(--color-gray-500);
 }
 
 .chipPriority[data-priority="medium"].chipActive {
-  border-color: #3B82F6;
+  border-color: var(--color-accent-light);
   background-color: rgba(59, 130, 246, 0.15);
-  color: #3B82F6;
+  color: var(--color-accent-light);
 }
 
 .chipPriority[data-priority="high"].chipActive {
-  border-color: #F97316;
+  border-color: var(--priority-high);
   background-color: rgba(249, 115, 22, 0.15);
-  color: #F97316;
+  color: var(--priority-high);
 }
 
 .chipPriority[data-priority="urgent"].chipActive {
-  border-color: #EF4444;
+  border-color: var(--color-error);
   background-color: rgba(239, 68, 68, 0.15);
-  color: #EF4444;
+  color: var(--color-error);
 }
 
 /* Dates Row */
@@ -177,7 +177,7 @@
 
 .dateInputCompact:focus {
   outline: none;
-  border-color: #D4A574;
+  border-color: var(--color-brand-gold);
 }
 
 .dateSeparator {
@@ -201,7 +201,7 @@
 }
 
 .optionalSection[open] {
-  border-color: #D4A574;
+  border-color: var(--color-brand-gold);
 }
 
 .optionalSummary {
@@ -222,7 +222,7 @@
   content: '+';
   margin-right: 8px;
   font-weight: var(--font-bold);
-  color: #D4A574;
+  color: var(--color-brand-gold);
 }
 
 .optionalSection[open] .optionalSummary::before {

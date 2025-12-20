@@ -19,48 +19,48 @@
 
 .addButton {
   padding: 10px 20px;
-  background: #2563EB;
+  background: var(--color-accent);
   border: none;
   border-radius: 6px;
   font-size: 14px;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--color-text-inverse);
   cursor: pointer;
   transition: all 0.2s;
   white-space: nowrap;
 }
 
 .addButton:hover {
-  background: #1D4ED8;
+  background: var(--color-accent-dark);
 }
 
 .searchInput {
   flex: 1;
   padding: 10px 16px;
-  border: 1px solid #E5E7EB;
+  border: 1px solid var(--color-gray-200);
   border-radius: 6px;
   font-size: 14px;
-  color: #374151;
+  color: var(--color-gray-700);
 }
 
 .searchInput::placeholder {
-  color: #9CA3AF;
+  color: var(--color-gray-400);
 }
 
 .filterSelect {
   padding: 10px 16px;
-  border: 1px solid #E5E7EB;
+  border: 1px solid var(--color-gray-200);
   border-radius: 6px;
   font-size: 14px;
-  color: #374151;
-  background: #ffffff;
+  color: var(--color-gray-700);
+  background: var(--color-text-inverse);
   cursor: pointer;
   min-width: 140px;
 }
 
 .tableContainer {
-  background: #ffffff;
-  border: 1px solid #E5E7EB;
+  background: var(--color-text-inverse);
+  border: 1px solid var(--color-gray-200);
   border-radius: 8px;
   overflow: hidden;
 }
@@ -71,8 +71,8 @@
 }
 
 .table thead {
-  background: #F9FAFB;
-  border-bottom: 1px solid #E5E7EB;
+  background: var(--color-gray-50);
+  border-bottom: 1px solid var(--color-gray-200);
 }
 
 .table th {
@@ -80,7 +80,7 @@
   padding: 12px 16px;
   font-size: 12px;
   font-weight: 600;
-  color: #6B7280;
+  color: var(--color-gray-500);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -88,8 +88,8 @@
 .table td {
   padding: 16px;
   font-size: 14px;
-  color: #374151;
-  border-bottom: 1px solid #F3F4F6;
+  color: var(--color-gray-700);
+  border-bottom: 1px solid var(--color-gray-100);
 }
 
 .tableRow {
@@ -97,7 +97,7 @@
 }
 
 .tableRow:hover {
-  background: #F9FAFB;
+  background: var(--color-gray-50);
 }
 
 .tableRow:last-child td {
@@ -125,8 +125,8 @@
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #2563EB, #8B5CF6);
-  color: #ffffff;
+  background: linear-gradient(135deg, var(--color-accent), var(--color-purple-500));
+  color: var(--color-text-inverse);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -143,12 +143,12 @@
 
 .userName {
   font-weight: 500;
-  color: #050038;
+  color: var(--color-primary);
 }
 
 .userEmail {
   font-size: 12px;
-  color: #9CA3AF;
+  color: var(--color-gray-400);
 }
 
 .roleBadge {
@@ -161,27 +161,27 @@
 }
 
 .roleAdmin {
-  background: #FEE2E2;
-  color: #991B1B;
+  background: var(--color-error-light);
+  color: var(--color-error-dark);
 }
 
 .roleDesigner {
-  background: #DBEAFE;
-  color: #1E40AF;
+  background: var(--color-info-light);
+  color: var(--color-info-dark);
 }
 
 .roleClient {
-  background: #D1FAE5;
-  color: #065F46;
+  background: var(--color-success-light);
+  color: var(--color-success-dark);
 }
 
 .projectCount {
   font-weight: 600;
-  color: #050038;
+  color: var(--color-primary);
 }
 
 .lastActive {
-  color: #6B7280;
+  color: var(--color-gray-500);
   font-size: 13px;
 }
 
@@ -203,30 +203,30 @@
 }
 
 .statusActive {
-  background: #D1FAE5;
-  color: #065F46;
+  background: var(--color-success-light);
+  color: var(--color-success-dark);
 }
 
 .statusActive::before {
-  color: #10B981;
+  color: var(--color-success);
 }
 
 .statusPending {
-  background: #FEF3C7;
-  color: #92400E;
+  background: var(--color-warning-light);
+  color: var(--color-warning-dark);
 }
 
 .statusPending::before {
-  color: #F59E0B;
+  color: var(--color-warning);
 }
 
 .statusInactive {
-  background: #F3F4F6;
-  color: #6B7280;
+  background: var(--color-gray-100);
+  color: var(--color-gray-500);
 }
 
 .statusInactive::before {
-  color: #9CA3AF;
+  color: var(--color-gray-400);
 }
 
 .actionsCell {
@@ -254,15 +254,15 @@
   align-items: center;
   justify-content: space-between;
   padding: 16px;
-  background: #EFF6FF;
-  border: 1px solid #BFDBFE;
+  background: var(--color-info-light);
+  border: 1px solid var(--color-info-light);
   border-radius: 8px;
 }
 
 .bulkActionsLabel {
   font-size: 14px;
   font-weight: 600;
-  color: #1E40AF;
+  color: var(--color-info-dark);
 }
 
 .bulkActionsButtons {
@@ -272,18 +272,18 @@
 
 .bulkActionButton {
   padding: 8px 16px;
-  background: #ffffff;
-  border: 1px solid #E5E7EB;
+  background: var(--color-text-inverse);
+  border: 1px solid var(--color-gray-200);
   border-radius: 6px;
   font-size: 13px;
   font-weight: 500;
-  color: #374151;
+  color: var(--color-gray-700);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .bulkActionButton:hover {
-  background: #F9FAFB;
-  border-color: #2563EB;
-  color: #2563EB;
+  background: var(--color-gray-50);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
 }

@@ -56,7 +56,7 @@ class BrandWorkspaceService {
         y: section.position.y,
         width: section.size.width,
         height: section.size.height,
-        fillColor: '#FFFFFF',
+        fillColor: 'var(--color-text-inverse)',
       });
 
       sections.push({
@@ -169,7 +169,7 @@ class BrandWorkspaceService {
       content: `${typography.fontFamily}\n${typography.weight} - ${typography.size}\n\n${typography.sample}`,
       x,
       y,
-      fillColor: '#FFFFFF',
+      fillColor: 'var(--color-text-inverse)',
     });
 
     return stickyNote.id;
@@ -200,7 +200,7 @@ class BrandWorkspaceService {
       content,
       x,
       y,
-      fillColor: '#FEF3C7',
+      fillColor: 'var(--color-warning-light)',
     });
 
     return stickyNote.id;

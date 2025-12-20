@@ -22,12 +22,12 @@ export const DELIVERABLE_STATUSES = [
 
 /** Status colors for visual indicators */
 export const DELIVERABLE_STATUS_COLORS: Record<DeliverableStatus, string> = {
-  draft: '#6B7280',      // Gray
-  in_progress: '#3B82F6', // Blue
-  in_review: '#F59E0B',   // Yellow
-  approved: '#22C55E',    // Green
-  rejected: '#EF4444',    // Red
-  delivered: '#10B981',   // Emerald
+  draft: 'var(--color-gray-500)',      // Gray
+  in_progress: 'var(--color-accent-light)', // Blue
+  in_review: 'var(--color-warning)',   // Yellow
+  approved: 'var(--color-success)',    // Green
+  rejected: 'var(--color-error)',    // Red
+  delivered: 'var(--color-success)',   // Emerald
 };
 
 /** Get color for a deliverable status */

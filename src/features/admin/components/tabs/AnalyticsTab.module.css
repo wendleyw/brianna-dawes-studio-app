@@ -8,7 +8,7 @@
   display: flex;
   gap: 4px;
   padding-bottom: 16px;
-  border-bottom: 2px solid #E5E7EB;
+  border-bottom: 2px solid var(--color-gray-200);
   margin-bottom: 24px;
 }
 
@@ -18,21 +18,21 @@
   padding: 8px 16px;
   font-size: 14px;
   font-weight: 500;
-  color: #6B7280;
+  color: var(--color-gray-500);
   cursor: pointer;
   border-radius: 6px;
   transition: all 0.2s;
 }
 
 .subNavButton:hover {
-  background: #F3F4F6;
-  color: #050038;
+  background: var(--color-gray-100);
+  color: var(--color-primary);
 }
 
 .subNavButtonActive {
   composes: subNavButton;
-  background: #EFF6FF;
-  color: #2563EB;
+  background: var(--color-info-light);
+  color: var(--color-accent);
 }
 
 .content {
@@ -55,17 +55,17 @@
 .sectionTitle {
   font-size: 18px;
   font-weight: 600;
-  color: #050038;
+  color: var(--color-primary);
   margin: 0;
 }
 
 .dateRangeSelect {
   padding: 8px 12px;
-  border: 1px solid #E5E7EB;
+  border: 1px solid var(--color-gray-200);
   border-radius: 6px;
   font-size: 13px;
-  color: #374151;
-  background: #ffffff;
+  color: var(--color-gray-700);
+  background: var(--color-text-inverse);
   cursor: pointer;
 }
 
@@ -76,8 +76,8 @@
 }
 
 .chartCard {
-  background: #ffffff;
-  border: 1px solid #E5E7EB;
+  background: var(--color-text-inverse);
+  border: 1px solid var(--color-gray-200);
   border-radius: 8px;
   padding: 20px;
 }
@@ -85,7 +85,7 @@
 .chartTitle {
   font-size: 14px;
   font-weight: 600;
-  color: #050038;
+  color: var(--color-primary);
   margin: 0 0 16px 0;
 }
 
@@ -94,7 +94,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #F9FAFB;
+  background: var(--color-gray-50);
   border-radius: 6px;
   padding: 20px;
 }
@@ -109,7 +109,7 @@
 .pieSegment {
   padding: 12px 16px;
   border-radius: 6px;
-  color: #ffffff;
+  color: var(--color-text-inverse);
   font-size: 14px;
   font-weight: 600;
   text-align: center;
@@ -118,7 +118,7 @@
 .lineChart {
   text-align: center;
   font-size: 16px;
-  color: #6B7280;
+  color: var(--color-gray-500);
 }
 
 .heatmap {
@@ -133,7 +133,7 @@
   align-items: center;
   gap: 12px;
   font-size: 12px;
-  color: #6B7280;
+  color: var(--color-gray-500);
 }
 
 .heatmapRow > span {
@@ -151,19 +151,19 @@
   flex: 1;
   height: 24px;
   border-radius: 4px;
-  background: #E5E7EB;
+  background: var(--color-gray-200);
 }
 
 .heatmapCell[data-level="low"] {
-  background: #DBEAFE;
+  background: var(--color-info-light);
 }
 
 .heatmapCell[data-level="medium"] {
-  background: #93C5FD;
+  background: var(--color-info-light);
 }
 
 .heatmapCell[data-level="high"] {
-  background: #2563EB;
+  background: var(--color-accent);
 }
 
 .syncHealth {
@@ -176,14 +176,14 @@
 .syncHealthBar {
   width: 100%;
   height: 32px;
-  background: #E5E7EB;
+  background: var(--color-gray-200);
   border-radius: 16px;
   overflow: hidden;
 }
 
 .syncHealthFill {
   height: 100%;
-  background: linear-gradient(90deg, #10B981, #059669);
+  background: linear-gradient(90deg, var(--color-success), var(--color-success-dark));
   transition: width 0.3s;
 }
 
@@ -191,7 +191,7 @@
   text-align: center;
   font-size: 14px;
   font-weight: 600;
-  color: #10B981;
+  color: var(--color-success);
 }
 
 .emptyState {
@@ -201,7 +201,7 @@
   justify-content: center;
   padding: 60px 20px;
   text-align: center;
-  color: #6B7280;
+  color: var(--color-gray-500);
 }
 
 .emptyIcon {
@@ -213,18 +213,18 @@
   margin: 0;
   font-size: 16px;
   font-weight: 500;
-  color: #374151;
+  color: var(--color-gray-700);
 }
 
 .emptySubtext {
   margin-top: 8px !important;
   font-size: 14px !important;
-  color: #9CA3AF !important;
+  color: var(--color-gray-400) !important;
 }
 
 .settingsGroup {
-  background: #ffffff;
-  border: 1px solid #E5E7EB;
+  background: var(--color-text-inverse);
+  border: 1px solid var(--color-gray-200);
   border-radius: 8px;
   padding: 24px;
   margin-bottom: 20px;
@@ -233,7 +233,7 @@
 .settingsGroupTitle {
   font-size: 16px;
   font-weight: 600;
-  color: #050038;
+  color: var(--color-primary);
   margin: 0 0 20px 0;
   display: flex;
   align-items: center;
@@ -260,32 +260,32 @@
   gap: 4px;
   font-size: 14px;
   font-weight: 500;
-  color: #050038;
+  color: var(--color-primary);
 }
 
 .settingDescription {
   font-size: 12px;
-  color: #6B7280;
+  color: var(--color-gray-500);
   font-weight: 400;
 }
 
 .settingInput {
   width: 280px;
   padding: 8px 12px;
-  border: 1px solid #E5E7EB;
+  border: 1px solid var(--color-gray-200);
   border-radius: 6px;
   font-size: 13px;
-  color: #374151;
+  color: var(--color-gray-700);
 }
 
 .settingSelect {
   width: 200px;
   padding: 8px 12px;
-  border: 1px solid #E5E7EB;
+  border: 1px solid var(--color-gray-200);
   border-radius: 6px;
   font-size: 13px;
-  color: #374151;
-  background: #ffffff;
+  color: var(--color-gray-700);
+  background: var(--color-text-inverse);
   cursor: pointer;
 }
 
@@ -300,7 +300,7 @@
   align-items: center;
   gap: 8px;
   font-size: 13px;
-  color: #374151;
+  color: var(--color-gray-700);
   cursor: pointer;
 }
 
@@ -321,7 +321,7 @@
   position: relative;
   width: 44px;
   height: 24px;
-  background: #E5E7EB;
+  background: var(--color-gray-200);
   border-radius: 12px;
   transition: all 0.3s;
 }
@@ -333,13 +333,13 @@
   left: 2px;
   width: 20px;
   height: 20px;
-  background: #ffffff;
+  background: var(--color-text-inverse);
   border-radius: 50%;
   transition: all 0.3s;
 }
 
 .toggle input[type="checkbox"]:checked + .toggleSlider {
-  background: #2563EB;
+  background: var(--color-accent);
 }
 
 .toggle input[type="checkbox"]:checked + .toggleSlider::after {
@@ -352,24 +352,24 @@
 
 .toggleLabel {
   font-size: 13px;
-  color: #374151;
+  color: var(--color-gray-700);
 }
 
 .settingButton {
   padding: 8px 16px;
-  background: #ffffff;
-  border: 1px solid #E5E7EB;
+  background: var(--color-text-inverse);
+  border: 1px solid var(--color-gray-200);
   border-radius: 6px;
   font-size: 13px;
   font-weight: 500;
-  color: #374151;
+  color: var(--color-gray-700);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .settingButton:hover {
-  background: #F9FAFB;
-  border-color: #D1D5DB;
+  background: var(--color-gray-50);
+  border-color: var(--color-gray-300);
 }
 
 .settingsActions {
@@ -380,34 +380,34 @@
 
 .saveButton {
   padding: 10px 24px;
-  background: #2563EB;
+  background: var(--color-accent);
   border: none;
   border-radius: 6px;
   font-size: 14px;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--color-text-inverse);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .saveButton:hover {
-  background: #1D4ED8;
+  background: var(--color-accent-dark);
 }
 
 .cancelButton {
   padding: 10px 24px;
-  background: #ffffff;
-  border: 1px solid #E5E7EB;
+  background: var(--color-text-inverse);
+  border: 1px solid var(--color-gray-200);
   border-radius: 6px;
   font-size: 14px;
   font-weight: 500;
-  color: #374151;
+  color: var(--color-gray-700);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .cancelButton:hover {
-  background: #F9FAFB;
+  background: var(--color-gray-50);
 }
 
 /* KPI Grid */
@@ -419,8 +419,8 @@
 }
 
 .kpiCard {
-  background: #ffffff;
-  border: 1px solid #E5E7EB;
+  background: var(--color-text-inverse);
+  border: 1px solid var(--color-gray-200);
   border-radius: 12px;
   padding: 20px;
   display: flex;
@@ -447,7 +447,7 @@
 .kpiLabel {
   font-size: 13px;
   font-weight: 500;
-  color: #6B7280;
+  color: var(--color-gray-500);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -455,7 +455,7 @@
 .kpiValue {
   font-size: 32px;
   font-weight: 700;
-  color: #050038;
+  color: var(--color-primary);
   line-height: 1;
 }
 
@@ -467,30 +467,30 @@
 
 .kpiSubValue {
   font-size: 13px;
-  color: #6B7280;
+  color: var(--color-gray-500);
 }
 
 .kpiAlert {
   font-size: 13px;
-  color: #EF4444;
+  color: var(--color-error);
   font-weight: 500;
 }
 
 .kpiSuccess {
   font-size: 13px;
-  color: #10B981;
+  color: var(--color-success);
   font-weight: 500;
 }
 
 .kpiTrendUp {
   font-size: 13px;
-  color: #10B981;
+  color: var(--color-success);
   font-weight: 500;
 }
 
 .kpiTrendDown {
   font-size: 13px;
-  color: #EF4444;
+  color: var(--color-error);
   font-weight: 500;
 }
 
@@ -508,8 +508,8 @@
 }
 
 .statusCard {
-  background: #ffffff;
-  border: 2px solid #E5E7EB;
+  background: var(--color-text-inverse);
+  border: 2px solid var(--color-gray-200);
   border-radius: 12px;
   padding: 16px;
   display: flex;
@@ -527,14 +527,14 @@
 .statusLabel {
   font-size: 13px;
   font-weight: 600;
-  color: #6B7280;
+  color: var(--color-gray-500);
   text-align: center;
 }
 
 .statusValue {
   font-size: 28px;
   font-weight: 700;
-  color: #050038;
+  color: var(--color-primary);
 }
 
 /* Performers Section */
@@ -546,8 +546,8 @@
 }
 
 .performerColumn {
-  background: #ffffff;
-  border: 1px solid #E5E7EB;
+  background: var(--color-text-inverse);
+  border: 1px solid var(--color-gray-200);
   border-radius: 12px;
   padding: 20px;
 }
@@ -564,13 +564,13 @@
   align-items: center;
   justify-content: space-between;
   padding: 12px 16px;
-  background: #F9FAFB;
+  background: var(--color-gray-50);
   border-radius: 8px;
   transition: all 0.2s;
 }
 
 .performerCard:hover {
-  background: #F3F4F6;
+  background: var(--color-gray-100);
 }
 
 .performerInfo {
@@ -582,18 +582,18 @@
 .performerName {
   font-size: 14px;
   font-weight: 600;
-  color: #050038;
+  color: var(--color-primary);
 }
 
 .performerMeta {
   font-size: 12px;
-  color: #6B7280;
+  color: var(--color-gray-500);
 }
 
 .performerBadge {
   padding: 4px 12px;
-  background: #EFF6FF;
-  color: #2563EB;
+  background: var(--color-info-light);
+  color: var(--color-accent);
   border-radius: 12px;
   font-size: 12px;
   font-weight: 600;

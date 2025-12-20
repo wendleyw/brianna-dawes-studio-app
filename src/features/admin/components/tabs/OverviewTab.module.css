@@ -11,8 +11,8 @@
 }
 
 .statCard {
-  background: #ffffff;
-  border: 1px solid #E5E7EB;
+  background: var(--color-text-inverse);
+  border: 1px solid var(--color-gray-200);
   border-radius: 8px;
   padding: 20px;
   display: flex;
@@ -22,7 +22,7 @@
 }
 
 .statCard:hover {
-  border-color: #2563EB;
+  border-color: var(--color-accent);
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.1);
 }
 
@@ -33,7 +33,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #F9FAFB;
+  background: var(--color-gray-50);
   border-radius: 8px;
 }
 
@@ -44,14 +44,14 @@
 .statValue {
   font-size: 28px;
   font-weight: 700;
-  color: #050038;
+  color: var(--color-primary);
   line-height: 1;
   margin-bottom: 4px;
 }
 
 .statLabel {
   font-size: 13px;
-  color: #6B7280;
+  color: var(--color-gray-500);
   font-weight: 500;
 }
 
@@ -68,8 +68,8 @@
 }
 
 .section {
-  background: #ffffff;
-  border: 1px solid #E5E7EB;
+  background: var(--color-text-inverse);
+  border: 1px solid var(--color-gray-200);
   border-radius: 8px;
   padding: 20px;
 }
@@ -80,20 +80,20 @@
   justify-content: space-between;
   margin-bottom: 16px;
   padding-bottom: 12px;
-  border-bottom: 1px solid #E5E7EB;
+  border-bottom: 1px solid var(--color-gray-200);
 }
 
 .sectionTitle {
   font-size: 16px;
   font-weight: 600;
-  color: #050038;
+  color: var(--color-primary);
   margin: 0;
 }
 
 .sectionAction {
   background: transparent;
   border: none;
-  color: #2563EB;
+  color: var(--color-accent);
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
@@ -103,7 +103,7 @@
 }
 
 .sectionAction:hover {
-  background: #EFF6FF;
+  background: var(--color-info-light);
 }
 
 .activityFeed {
@@ -122,7 +122,7 @@
 }
 
 .activityItem:hover {
-  background: #F9FAFB;
+  background: var(--color-gray-50);
 }
 
 .activityIcon {
@@ -132,7 +132,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #F3F4F6;
+  background: var(--color-gray-100);
   border-radius: 6px;
   flex-shrink: 0;
 }
@@ -143,14 +143,14 @@
 
 .activityMessage {
   font-size: 14px;
-  color: #374151;
+  color: var(--color-gray-700);
   line-height: 1.5;
   margin-bottom: 4px;
 }
 
 .activityTime {
   font-size: 12px;
-  color: #9CA3AF;
+  color: var(--color-gray-400);
 }
 
 .alertsList {
@@ -166,18 +166,18 @@
 }
 
 .alertItem.warning {
-  background: #FFFBEB;
-  border-left-color: #F59E0B;
+  background: var(--color-warning-light);
+  border-left-color: var(--color-warning);
 }
 
 .alertItem.error {
-  background: #FEF2F2;
-  border-left-color: #EF4444;
+  background: var(--color-error-light);
+  border-left-color: var(--color-error);
 }
 
 .alertItem.info {
-  background: #EFF6FF;
-  border-left-color: #2563EB;
+  background: var(--color-info-light);
+  border-left-color: var(--color-accent);
 }
 
 .alertHeader {
@@ -194,13 +194,13 @@
 .alertTitle {
   font-size: 14px;
   font-weight: 600;
-  color: #050038;
+  color: var(--color-primary);
   flex: 1;
 }
 
 .alertBadge {
-  background: #050038;
-  color: #ffffff;
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
   font-size: 11px;
   font-weight: 700;
   padding: 2px 8px;
@@ -211,7 +211,7 @@
 
 .alertMessage {
   font-size: 13px;
-  color: #6B7280;
+  color: var(--color-gray-500);
   margin-bottom: 12px;
   line-height: 1.5;
 }
@@ -219,7 +219,7 @@
 .alertAction {
   background: transparent;
   border: none;
-  color: #2563EB;
+  color: var(--color-accent);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -250,12 +250,12 @@
   margin: 0;
   font-size: 20px;
   font-weight: 600;
-  color: #050038;
+  color: var(--color-primary);
 }
 
 .emptySubtext {
   margin-top: 12px !important;
   font-size: 16px !important;
   font-weight: 400 !important;
-  color: #6B7280 !important;
+  color: var(--color-gray-500) !important;
 }

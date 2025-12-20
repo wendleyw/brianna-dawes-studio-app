@@ -2,7 +2,7 @@
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: #fff;
+  background: var(--color-text-inverse);
 }
 
 .topbar {
@@ -12,7 +12,7 @@
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  background: #fff;
+  background: var(--color-text-inverse);
   position: sticky;
   top: 0;
   z-index: 10;
@@ -32,14 +32,14 @@
   padding: 4px 6px;
   cursor: pointer;
   border-radius: 6px;
-  color: #111827;
+  color: var(--color-gray-900);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .backButton:hover {
-  background: #f3f4f6;
+  background: var(--color-gray-100);
 }
 
 .backChevron {
@@ -55,7 +55,7 @@
 .title {
   font-size: 14px;
   font-weight: 700;
-  color: #111827;
+  color: var(--color-gray-900);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -70,20 +70,20 @@
 
 .navLink {
   font-size: 12px;
-  color: #374151;
+  color: var(--color-gray-700);
   padding: 6px 8px;
   border-radius: 6px;
   line-height: 1;
 }
 
 .navLink:hover {
-  background: #f3f4f6;
+  background: var(--color-gray-100);
   text-decoration: none;
 }
 
 .navLinkActive {
-  background: #eef2ff;
-  color: #050038;
+  background: var(--color-info-light);
+  color: var(--color-primary);
   font-weight: 600;
 }
 
@@ -109,8 +109,8 @@
   width: 40px;
   height: 40px;
   padding: 0;
-  background: #111827;
-  color: #ffffff;
+  background: var(--color-gray-900);
+  color: var(--color-text-inverse);
   border: none;
   border-radius: 6px;
   cursor: pointer;
@@ -118,7 +118,7 @@
 }
 
 .adminToggle:hover {
-  background: #374151;
+  background: var(--color-gray-700);
 }
 
 .adminToggle svg {
@@ -131,8 +131,8 @@
   top: calc(100% + 6px);
   right: 0;
   min-width: 160px;
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
+  background: var(--color-text-inverse);
+  border: 1px solid var(--color-gray-200);
   border-radius: 10px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
   padding: 6px;
@@ -147,7 +147,7 @@
   padding: 8px 10px;
   border: 0;
   background: transparent;
-  color: #111827;
+  color: var(--color-gray-900);
   border-radius: 8px;
   font-size: 12px;
   font-weight: 600;
@@ -155,7 +155,7 @@
 }
 
 .adminMenuItem:hover {
-  background: #f3f4f6;
+  background: var(--color-gray-100);
 }
 
 .adminMenuItem svg {
@@ -168,8 +168,8 @@
   align-items: center;
   gap: 4px;
   padding: 6px 10px;
-  background: #111827;
-  color: #ffffff;
+  background: var(--color-gray-900);
+  color: var(--color-text-inverse);
   border: none;
   border-radius: 6px;
   font-size: 11px;
@@ -179,7 +179,7 @@
 }
 
 .adminButton:hover {
-  background: #374151;
+  background: var(--color-gray-700);
 }
 
 .adminButton svg {
@@ -194,9 +194,9 @@
   width: 40px;
   height: 40px;
   padding: 0;
-  background: #f3f4f6;
-  color: #111827;
-  border: 1px solid #e5e7eb;
+  background: var(--color-gray-100);
+  color: var(--color-gray-900);
+  border: 1px solid var(--color-gray-200);
   border-radius: 6px;
   font-size: 11px;
   font-weight: 600;
@@ -205,8 +205,8 @@
 }
 
 .backToDashboard:hover {
-  background: #e5e7eb;
-  border-color: #d1d5db;
+  background: var(--color-gray-200);
+  border-color: var(--color-gray-300);
 }
 
 .backToDashboard svg {
@@ -229,15 +229,15 @@
 
 .avatar {
   object-fit: cover;
-  background: #f3f4f6;
+  background: var(--color-gray-100);
 }
 
 .avatarFallback {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #e5e7eb;
-  color: #111827;
+  background: var(--color-gray-200);
+  color: var(--color-gray-900);
   font-weight: 700;
   font-size: 12px;
 }
@@ -252,7 +252,7 @@
 .userName {
   font-size: 12px;
   font-weight: 600;
-  color: #111827;
+  color: var(--color-gray-900);
   max-width: 160px;
   white-space: nowrap;
   overflow: hidden;
