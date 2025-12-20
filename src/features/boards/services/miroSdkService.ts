@@ -207,6 +207,10 @@ class MiroMasterTimelineService {
   private syncingProjects: Set<string> = new Set();
   // Global sync lock to prevent race conditions when multiple projects sync concurrently
   private syncLock: Promise<void> = Promise.resolve();
+  private static readonly FILES_CHAT_COLUMN = {
+    label: 'FILES / CHAT',
+    color: '#000000',
+  } as const;
 
   isInitialized(): boolean {
     return this.initialized && this.state !== null;
@@ -249,6 +253,12 @@ class MiroMasterTimelineService {
         cards: [],
         lastSyncAt: new Date().toISOString(),
       };
+
+      const frameWidth = existingTimeline.width ?? TIMELINE.FRAME_WIDTH;
+      const frameHeight = existingTimeline.height ?? TIMELINE.FRAME_HEIGHT;
+      const frameLeft = existingTimeline.x - frameWidth / 2;
+      const frameTop = existingTimeline.y - frameHeight / 2;
+      await this.ensureFilesChatColumn({ frameLeft, frameTop, frameWidth, frameHeight });
 
       this.initialized = true;
       await miro.board.viewport.zoomTo([existingTimeline]);
@@ -366,6 +376,13 @@ class MiroMasterTimelineService {
       });
     }
 
+    await this.ensureFilesChatColumn({
+      frameLeft,
+      frameTop,
+      frameWidth: TIMELINE.FRAME_WIDTH,
+      frameHeight: TIMELINE.FRAME_HEIGHT,
+    });
+
     this.state = {
       frameId: frame.id,
       columns,
@@ -414,6 +431,92 @@ class MiroMasterTimelineService {
     }
 
     return columns;
+  }
+
+  private async ensureFilesChatColumn({
+    frameLeft,
+    frameTop,
+    frameWidth,
+    frameHeight,
+  }: {
+    frameLeft: number;
+    frameTop: number;
+    frameWidth: number;
+    frameHeight: number;
+  }): Promise<void> {
+    const miro = getMiroSDK();
+    const shapes = await miro.board.get({ type: 'shape' }) as Array<{
+      content?: string;
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+      shape?: string;
+    }>;
+
+    const label = MiroMasterTimelineService.FILES_CHAT_COLUMN.label;
+    const normalizedLabel = label.replace(/\s+/g, ' ').toLowerCase();
+    const existingHeader = shapes.find((shape) => {
+      const content = shape.content?.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').toLowerCase() ?? '';
+      return content.includes(normalizedLabel);
+    });
+
+    if (existingHeader) return;
+
+    const startX = frameLeft + TIMELINE.PADDING;
+    const statusHeaderY = frameTop + TIMELINE.PADDING + TIMELINE.HEADER_HEIGHT / 2;
+    const dropZoneTopY = statusHeaderY + TIMELINE.HEADER_HEIGHT / 2 + 5;
+
+    const frameRight = frameLeft + frameWidth;
+    const columnIndex = TIMELINE_COLUMNS.length;
+    const colX = startX + TIMELINE.COLUMN_WIDTH / 2 + columnIndex * (TIMELINE.COLUMN_WIDTH + TIMELINE.COLUMN_GAP);
+    if (colX + TIMELINE.COLUMN_WIDTH / 2 > frameRight - TIMELINE.PADDING) {
+      return;
+    }
+
+    const columnSample = shapes.find((shape) => {
+      const isRectangle = shape.shape === 'rectangle';
+      const isColumnWidth = Math.abs(shape.width - TIMELINE.COLUMN_WIDTH) <= 10;
+      const isTall = shape.height >= 200;
+      const shapeTop = shape.y - shape.height / 2;
+      const isDropZone = shapeTop > frameTop + TIMELINE.PADDING + TIMELINE.HEADER_HEIGHT - 20;
+      return isRectangle && isColumnWidth && isTall && isDropZone;
+    });
+
+    const columnHeight = columnSample?.height ?? TIMELINE.COLUMN_HEIGHT;
+    const dropY = dropZoneTopY + columnHeight / 2;
+
+    await miro.board.createShape({
+      shape: 'round_rectangle',
+      content: `<p><b>${label}</b></p>`,
+      x: colX,
+      y: statusHeaderY,
+      width: TIMELINE.COLUMN_WIDTH,
+      height: TIMELINE.HEADER_HEIGHT,
+      style: {
+        fillColor: MiroMasterTimelineService.FILES_CHAT_COLUMN.color,
+        borderColor: 'transparent',
+        borderWidth: 0,
+        color: '#FFFFFF',
+        fontSize: 8,
+        textAlign: 'center',
+        textAlignVertical: 'middle',
+      },
+    });
+
+    await miro.board.createShape({
+      shape: 'rectangle',
+      content: '',
+      x: colX,
+      y: dropY,
+      width: TIMELINE.COLUMN_WIDTH,
+      height: columnHeight,
+      style: {
+        fillColor: '#FFFFFF',
+        borderColor: '#E5E7EB',
+        borderWidth: 1,
+      },
+    });
   }
 
   async syncProject(project: Project, options?: { markAsReviewed?: boolean }): Promise<TimelineCard> {
