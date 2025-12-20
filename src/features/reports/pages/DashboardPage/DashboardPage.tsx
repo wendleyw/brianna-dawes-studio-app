@@ -497,19 +497,19 @@ export function DashboardPage() {
         <div className={styles.analyticsGrid}>
           <div className={styles.analyticsCard}>
             <span className={styles.analyticsValue}>{activeProjects}</span>
-            <span className={styles.analyticsLabel}>Active</span>
+            <span className={styles.analyticsLabel}>Projects Active</span>
           </div>
           <div className={styles.analyticsCard}>
             <span className={styles.analyticsValueSuccess}>{completedProjects}</span>
-            <span className={styles.analyticsLabel}>Done</span>
+            <span className={styles.analyticsLabel}>Projects Done</span>
           </div>
           <div className={`${styles.analyticsCard} ${styles.deliveredCard}`}>
             <span className={styles.analyticsValue}>{totalDeliverables}</span>
-            <span className={styles.analyticsLabel}>Delivered</span>
+            <span className={styles.analyticsLabel}>Deliverables Delivered</span>
             <span className={styles.assetsSub}>
-              {totalAssets} assets
+              Assets: {totalAssets}
               {totalBonusAssets > 0 && (
-                <span className={styles.bonusText}> +{totalBonusAssets}</span>
+                <span className={styles.bonusText}> • Bonus: +{totalBonusAssets}</span>
               )}
             </span>
           </div>
