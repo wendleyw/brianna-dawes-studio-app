@@ -1,2 +1,1 @@
-export { AdminSettingsPage } from './AdminSettingsPage';
 export { AdminDashboardPage } from './AdminDashboardPage';

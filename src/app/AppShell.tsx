@@ -1,7 +1,7 @@
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { NotificationBell } from '@features/notifications';
-import { ReportModal, AdminDashboard } from '@features/admin/components';
+import { ReportModal } from '@features/admin/components';
 import type { AdminTab } from '@features/admin/domain/types';
 import { useAuth } from '@features/auth';
 import { useMiro } from '@features/boards';
@@ -61,8 +61,6 @@ export function AppShell() {
   const { miro, isInMiro } = useMiro();
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [isAdminMenuOpen, setIsAdminMenuOpen] = useState(false);
-  const [isAdminDashboardOpen, setIsAdminDashboardOpen] = useState(false);
-  const [adminDashboardTab, setAdminDashboardTab] = useState<AdminTab>('overview');
   const adminMenuRef = useRef<HTMLDivElement | null>(null);
 
   const isAdmin = user?.role === 'admin';
@@ -122,9 +120,8 @@ export function AppShell() {
       }
       return;
     }
-    setAdminDashboardTab(tab);
-    setIsAdminDashboardOpen(true);
-  }, [miro, isInMiro]);
+    navigate(`/admin?tab=${encodeURIComponent(tab)}`);
+  }, [miro, isInMiro, navigate]);
 
   return (
     <div className={styles.shell}>
@@ -222,11 +219,6 @@ export function AppShell() {
         onClose={() => setIsReportModalOpen(false)}
       />
 
-      <AdminDashboard
-        isOpen={isAdminDashboardOpen}
-        onClose={() => setIsAdminDashboardOpen(false)}
-        defaultTab={adminDashboardTab}
-      />
     </div>
   );
 }

@@ -13,7 +13,6 @@ import type { ProjectFilters as ProjectFiltersType } from '@features/projects/do
 import { STATUS_COLUMNS, getStatusColumn } from '@shared/lib/timelineStatus';
 import { formatDateShort, formatDateMonthYear } from '@shared/lib/dateFormat';
 import { useRealtimeSubscription } from '@shared/hooks/useRealtimeSubscription';
-import { AdminDashboard } from '@features/admin/components';
 import type { AdminTab } from '@features/admin/domain/types';
 import styles from './DashboardPage.module.css';
 import type { ProjectStatus } from '@features/projects/domain/project.types';
@@ -117,9 +116,6 @@ export function DashboardPage() {
   const { isInMiro, boardId: currentBoardId, miro } = useMiro();
   const { boardId: masterBoardId } = useMasterBoardSettings();
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
-  const [isAdminDashboardOpen, setIsAdminDashboardOpen] = useState(false);
-  const [adminDashboardTab, setAdminDashboardTab] = useState<AdminTab>('analytics');
-
   // Handler to open Admin Dashboard in modal
   const openAdminDashboard = useCallback(async (tab: AdminTab) => {
     if (miro && isInMiro) {
@@ -136,9 +132,8 @@ export function DashboardPage() {
         // Fallback to modal
       }
     }
-    setAdminDashboardTab(tab);
-    setIsAdminDashboardOpen(true);
-  }, [miro, isInMiro]);
+    navigate(`/admin?tab=${encodeURIComponent(tab)}`);
+  }, [miro, isInMiro, navigate]);
 
   // Debug log
   console.log('[DashboardPage] Render:', {
@@ -556,11 +551,6 @@ export function DashboardPage() {
         </div>
       </section>
 
-      <AdminDashboard
-        isOpen={isAdminDashboardOpen}
-        onClose={() => setIsAdminDashboardOpen(false)}
-        defaultTab={adminDashboardTab}
-      />
     </div>
   );
 }

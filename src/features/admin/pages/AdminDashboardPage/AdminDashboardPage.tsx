@@ -21,8 +21,9 @@ export function AdminDashboardPage() {
       'settings',
     ];
     if (tab && allowedTabs.includes(tab as AdminTab)) return tab as AdminTab;
+    if (location.pathname === '/admin') return 'settings';
     return 'analytics';
-  }, [location.search]);
+  }, [location.search, location.pathname]);
 
   useEffect(() => {
     if (!isDashboardOpen) {

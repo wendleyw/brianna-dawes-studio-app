@@ -47,4 +47,4 @@ export { UserManagement, BoardManagement, ReportModal, AdminDashboard } from './
 export type { ReportModalProps } from './components';
 
 // Pages
-export { AdminSettingsPage, AdminDashboardPage } from './pages';
+export { AdminDashboardPage } from './pages';

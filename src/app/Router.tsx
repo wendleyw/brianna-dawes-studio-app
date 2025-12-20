@@ -25,9 +25,6 @@ const NewProjectPage = lazy(() =>
 const EditProjectPage = lazy(() =>
   import('@features/projects').then((module) => ({ default: module.EditProjectPage }))
 );
-const AdminSettingsPage = lazy(() =>
-  import('@features/admin').then((module) => ({ default: module.AdminSettingsPage }))
-);
 const AdminDashboardPage = lazy(() =>
   import('@features/admin').then((module) => ({ default: module.AdminDashboardPage }))
 );
@@ -131,7 +128,7 @@ export function Router() {
               path="admin/dashboard"
               element={
                 <ProtectedRoute allowedRoles={['admin']}>
-                  <AdminDashboardPage />
+                  <Navigate to="/admin?tab=analytics" replace />
                 </ProtectedRoute>
               }
             />
@@ -139,7 +136,7 @@ export function Router() {
               path="admin"
               element={
                 <ProtectedRoute allowedRoles={['admin']}>
-                  <AdminSettingsPage />
+                  <AdminDashboardPage />
                 </ProtectedRoute>
               }
             />
@@ -147,7 +144,7 @@ export function Router() {
               path="admin/settings"
               element={
                 <ProtectedRoute allowedRoles={['admin']}>
-                  <AdminSettingsPage />
+                  <Navigate to="/admin?tab=settings" replace />
                 </ProtectedRoute>
               }
             />
