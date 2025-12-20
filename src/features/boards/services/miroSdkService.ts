@@ -521,6 +521,7 @@ class MiroMasterTimelineService {
     frameWidth: number;
     frameHeight: number;
   }): Promise<void> {
+    log('MiroTimeline', '🔵 ensureFilesChatColumn called', { frameLeft, frameTop, frameWidth, frameHeight });
     const miro = getMiroSDK();
     const shapes = await miro.board.get({ type: 'shape' }) as Array<{
       content?: string;
@@ -538,6 +539,7 @@ class MiroMasterTimelineService {
       shape.y >= frameTop &&
       shape.y <= frameBottom
     );
+    log('MiroTimeline', `Found ${frameShapes.length} shapes in timeline frame`);
 
     const label = MiroMasterTimelineService.FILES_CHAT_COLUMN.label;
     const normalizedLabel = label.replace(/\s+/g, ' ').toLowerCase();
@@ -546,7 +548,11 @@ class MiroMasterTimelineService {
       return content.includes(normalizedLabel);
     });
 
-    if (existingHeader) return;
+    if (existingHeader) {
+      log('MiroTimeline', '✅ Files/Chat column already exists, skipping');
+      return;
+    }
+    log('MiroTimeline', '🔵 Files/Chat column not found, creating...');
 
     const stripHtml = (value?: string) =>
       value?.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim().toLowerCase() ?? '';
@@ -557,6 +563,7 @@ class MiroMasterTimelineService {
       const isHeaderWidth = shape.width >= TIMELINE.COLUMN_WIDTH - 40 && shape.width <= TIMELINE.COLUMN_WIDTH + 40;
       return content === 'done' && isHeaderHeight && isHeaderWidth;
     });
+    log('MiroTimeline', doneHeader ? '✅ Found DONE header' : '❌ DONE header not found', doneHeader ? { x: doneHeader.x, y: doneHeader.y, width: doneHeader.width, height: doneHeader.height } : null);
 
     const reviewHeader = frameShapes.find((shape) => {
       const content = stripHtml(shape.content);
@@ -564,6 +571,7 @@ class MiroMasterTimelineService {
       const isHeaderWidth = shape.width >= TIMELINE.COLUMN_WIDTH - 40 && shape.width <= TIMELINE.COLUMN_WIDTH + 40;
       return content === 'review' && isHeaderHeight && isHeaderWidth;
     });
+    log('MiroTimeline', reviewHeader ? '✅ Found REVIEW header' : '⚠️ REVIEW header not found');
 
     let colX: number | null = null;
     let headerY: number | null = null;
@@ -631,8 +639,14 @@ class MiroMasterTimelineService {
     if (colX < minColX) colX = minColX;
     if (colX > maxColX) colX = maxColX;
 
-    if (colX === null || headerY === null || dropY === null) return;
+    log('MiroTimeline', '📍 Final calculated position', { colX, headerY, dropY, columnWidth, columnHeight });
 
+    if (colX === null || headerY === null || dropY === null) {
+      log('MiroTimeline', '❌ Cannot create Files/Chat column - missing position data', { colX, headerY, dropY });
+      return;
+    }
+
+    log('MiroTimeline', '🎨 Creating Files/Chat header shape...');
     await miro.board.createShape({
       shape: 'round_rectangle',
       content: `<p><b>${label}</b></p>`,
@@ -651,6 +665,7 @@ class MiroMasterTimelineService {
       },
     });
 
+    log('MiroTimeline', '🎨 Creating Files/Chat drop zone shape...');
     await miro.board.createShape({
       shape: 'rectangle',
       content: '',
@@ -664,6 +679,7 @@ class MiroMasterTimelineService {
         borderWidth: 2,
       },
     });
+    log('MiroTimeline', '✅ Files/Chat column created successfully!');
   }
 
   async syncProject(project: Project, options?: { markAsReviewed?: boolean }): Promise<TimelineCard> {
