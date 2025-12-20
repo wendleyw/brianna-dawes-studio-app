@@ -65,23 +65,23 @@ class ProjectRowService {
     const rowY = this.nextRowY;
 
     // Create Briefing Frame
+    // Note: fillColor removed - Miro REST API v2 frames default to transparent/white
     const briefingFrame = await miroClient.createFrame(this.boardId, {
       title: `⭐ ${project.client?.name || 'Client'} - ${project.name} - BRIEFING - BRIANNA DAWES STUDIOS [${projectCode}]`,
       x: PROJECT_ROWS_START_X,
       y: rowY,
       width: BRIEFING_FRAME_WIDTH,
       height: BRIEFING_FRAME_HEIGHT,
-      fillColor: '#FFFFFF',
     });
 
     // Create Process Versions Frame
+    // Note: fillColor removed - Miro REST API v2 frames default to transparent/white
     const processFrame = await miroClient.createFrame(this.boardId, {
       title: `⭐ ${project.client?.name || 'Client'} - ${project.name} - PROCESS VERSIONS - BRIANNA DAWES STUDIOS [${projectCode}]`,
       x: PROJECT_ROWS_START_X + BRIEFING_FRAME_WIDTH + FRAME_GAP,
       y: rowY,
       width: PROCESS_FRAME_WIDTH,
       height: PROCESS_FRAME_HEIGHT,
-      fillColor: '#FFFFFF',
     });
 
     // Create briefing header with status badge and info
