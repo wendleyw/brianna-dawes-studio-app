@@ -12,7 +12,7 @@
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
-  background-color: var(--color-text-inverse);
+  background-color: #FFFFFF;
 }
 
 .loading {
