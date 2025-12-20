@@ -219,6 +219,19 @@ class MiroMasterTimelineService {
   async initializeTimeline(): Promise<MasterTimelineState> {
     // SINGLETON: Return existing if initialized in memory
     if (this.initialized && this.state) {
+      const miro = getMiroSDK();
+      try {
+        const frame = await miro.board.getById(this.state.frameId) as MiroFrame | null;
+        if (frame) {
+          const frameWidth = frame.width ?? TIMELINE.FRAME_WIDTH;
+          const frameHeight = frame.height ?? TIMELINE.FRAME_HEIGHT;
+          const frameLeft = frame.x - frameWidth / 2;
+          const frameTop = frame.y - frameHeight / 2;
+          await this.ensureFilesChatColumn({ frameLeft, frameTop, frameWidth, frameHeight });
+        }
+      } catch (error) {
+        log('MiroTimeline', 'Failed to ensure Files/Chat column on cached timeline', error);
+      }
       log('MiroTimeline', 'Already initialized in memory, reusing');
       return this.state;
     }
@@ -463,36 +476,93 @@ class MiroMasterTimelineService {
 
     if (existingHeader) return;
 
-    const startX = frameLeft + TIMELINE.PADDING;
-    const statusHeaderY = frameTop + TIMELINE.PADDING + TIMELINE.HEADER_HEIGHT / 2;
-    const dropZoneTopY = statusHeaderY + TIMELINE.HEADER_HEIGHT / 2 + 5;
+    const stripHtml = (value?: string) =>
+      value?.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim().toLowerCase() ?? '';
 
-    const frameRight = frameLeft + frameWidth;
-    const columnIndex = TIMELINE_COLUMNS.length;
-    const colX = startX + TIMELINE.COLUMN_WIDTH / 2 + columnIndex * (TIMELINE.COLUMN_WIDTH + TIMELINE.COLUMN_GAP);
-    if (colX + TIMELINE.COLUMN_WIDTH / 2 > frameRight - TIMELINE.PADDING) {
-      return;
-    }
-
-    const columnSample = shapes.find((shape) => {
-      const isRectangle = shape.shape === 'rectangle';
-      const isColumnWidth = Math.abs(shape.width - TIMELINE.COLUMN_WIDTH) <= 10;
-      const isTall = shape.height >= 200;
-      const shapeTop = shape.y - shape.height / 2;
-      const isDropZone = shapeTop > frameTop + TIMELINE.PADDING + TIMELINE.HEADER_HEIGHT - 20;
-      return isRectangle && isColumnWidth && isTall && isDropZone;
+    const doneHeader = shapes.find((shape) => {
+      const content = stripHtml(shape.content);
+      const isHeaderHeight = shape.height >= TIMELINE.HEADER_HEIGHT - 6 && shape.height <= TIMELINE.HEADER_HEIGHT + 6;
+      const isHeaderWidth = shape.width >= TIMELINE.COLUMN_WIDTH - 40 && shape.width <= TIMELINE.COLUMN_WIDTH + 40;
+      return content === 'done' && isHeaderHeight && isHeaderWidth;
     });
 
-    const columnHeight = columnSample?.height ?? TIMELINE.COLUMN_HEIGHT;
-    const dropY = dropZoneTopY + columnHeight / 2;
+    const reviewHeader = shapes.find((shape) => {
+      const content = stripHtml(shape.content);
+      const isHeaderHeight = shape.height >= TIMELINE.HEADER_HEIGHT - 6 && shape.height <= TIMELINE.HEADER_HEIGHT + 6;
+      const isHeaderWidth = shape.width >= TIMELINE.COLUMN_WIDTH - 40 && shape.width <= TIMELINE.COLUMN_WIDTH + 40;
+      return content === 'review' && isHeaderHeight && isHeaderWidth;
+    });
+
+    let colX: number | null = null;
+    let headerY: number | null = null;
+    let columnWidth = TIMELINE.COLUMN_WIDTH;
+    let headerHeight = TIMELINE.HEADER_HEIGHT;
+    let dropY: number | null = null;
+    let columnHeight = TIMELINE.COLUMN_HEIGHT;
+
+    if (doneHeader) {
+      columnWidth = doneHeader.width;
+      headerHeight = doneHeader.height;
+      headerY = doneHeader.y;
+      const gapFromHeaders = reviewHeader
+        ? doneHeader.x - reviewHeader.x - (doneHeader.width + reviewHeader.width) / 2
+        : TIMELINE.COLUMN_GAP;
+      const gap = gapFromHeaders > 4 ? gapFromHeaders : TIMELINE.COLUMN_GAP;
+      colX = doneHeader.x + doneHeader.width + gap;
+
+      const doneDropZone = shapes.find((shape) => {
+        const isRectangle = shape.shape === 'rectangle';
+        const isColumnWidth = Math.abs(shape.width - doneHeader.width) <= 10;
+        const isTall = shape.height >= 200;
+        const xAligned = Math.abs(shape.x - doneHeader.x) <= 6;
+        return isRectangle && isColumnWidth && isTall && xAligned;
+      });
+
+      if (doneDropZone) {
+        columnHeight = doneDropZone.height;
+        dropY = doneDropZone.y;
+      }
+    }
+
+    if (colX === null || headerY === null) {
+      const startX = frameLeft + TIMELINE.PADDING;
+      headerY = frameTop + TIMELINE.PADDING + TIMELINE.HEADER_HEIGHT / 2;
+      const dropZoneTopY = headerY + TIMELINE.HEADER_HEIGHT / 2 + 5;
+
+      const frameRight = frameLeft + frameWidth;
+      const frameBottom = frameTop + frameHeight;
+      const columnIndex = TIMELINE_COLUMNS.length;
+      colX = startX + TIMELINE.COLUMN_WIDTH / 2 + columnIndex * (TIMELINE.COLUMN_WIDTH + TIMELINE.COLUMN_GAP);
+      if (colX + TIMELINE.COLUMN_WIDTH / 2 > frameRight - TIMELINE.PADDING) {
+        return;
+      }
+
+      const columnSample = shapes.find((shape) => {
+        const isRectangle = shape.shape === 'rectangle';
+        const isColumnWidth = Math.abs(shape.width - TIMELINE.COLUMN_WIDTH) <= 10;
+        const isTall = shape.height >= 200;
+        const shapeTop = shape.y - shape.height / 2;
+        const isDropZone = shapeTop > frameTop + TIMELINE.PADDING + TIMELINE.HEADER_HEIGHT - 20;
+        return isRectangle && isColumnWidth && isTall && isDropZone;
+      });
+
+      columnHeight = columnSample?.height ?? TIMELINE.COLUMN_HEIGHT;
+      dropY = dropZoneTopY + columnHeight / 2;
+      const maxDropY = frameBottom - TIMELINE.PADDING - columnHeight / 2;
+      if (dropY > maxDropY) {
+        dropY = maxDropY;
+      }
+    }
+
+    if (colX === null || headerY === null || dropY === null) return;
 
     await miro.board.createShape({
       shape: 'round_rectangle',
       content: `<p><b>${label}</b></p>`,
       x: colX,
-      y: statusHeaderY,
-      width: TIMELINE.COLUMN_WIDTH,
-      height: TIMELINE.HEADER_HEIGHT,
+      y: headerY,
+      width: columnWidth,
+      height: headerHeight,
       style: {
         fillColor: MiroMasterTimelineService.FILES_CHAT_COLUMN.color,
         borderColor: 'transparent',
@@ -509,7 +579,7 @@ class MiroMasterTimelineService {
       content: '',
       x: colX,
       y: dropY,
-      width: TIMELINE.COLUMN_WIDTH,
+      width: columnWidth,
       height: columnHeight,
       style: {
         fillColor: '#FFFFFF',
