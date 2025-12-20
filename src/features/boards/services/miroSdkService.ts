@@ -466,10 +466,18 @@ class MiroMasterTimelineService {
       height: number;
       shape?: string;
     }>;
+    const frameRight = frameLeft + frameWidth;
+    const frameBottom = frameTop + frameHeight;
+    const frameShapes = shapes.filter((shape) =>
+      shape.x >= frameLeft &&
+      shape.x <= frameRight &&
+      shape.y >= frameTop &&
+      shape.y <= frameBottom
+    );
 
     const label = MiroMasterTimelineService.FILES_CHAT_COLUMN.label;
     const normalizedLabel = label.replace(/\s+/g, ' ').toLowerCase();
-    const existingHeader = shapes.find((shape) => {
+    const existingHeader = frameShapes.find((shape) => {
       const content = shape.content?.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').toLowerCase() ?? '';
       return content.includes(normalizedLabel);
     });
@@ -479,14 +487,14 @@ class MiroMasterTimelineService {
     const stripHtml = (value?: string) =>
       value?.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim().toLowerCase() ?? '';
 
-    const doneHeader = shapes.find((shape) => {
+    const doneHeader = frameShapes.find((shape) => {
       const content = stripHtml(shape.content);
       const isHeaderHeight = shape.height >= TIMELINE.HEADER_HEIGHT - 6 && shape.height <= TIMELINE.HEADER_HEIGHT + 6;
       const isHeaderWidth = shape.width >= TIMELINE.COLUMN_WIDTH - 40 && shape.width <= TIMELINE.COLUMN_WIDTH + 40;
       return content === 'done' && isHeaderHeight && isHeaderWidth;
     });
 
-    const reviewHeader = shapes.find((shape) => {
+    const reviewHeader = frameShapes.find((shape) => {
       const content = stripHtml(shape.content);
       const isHeaderHeight = shape.height >= TIMELINE.HEADER_HEIGHT - 6 && shape.height <= TIMELINE.HEADER_HEIGHT + 6;
       const isHeaderWidth = shape.width >= TIMELINE.COLUMN_WIDTH - 40 && shape.width <= TIMELINE.COLUMN_WIDTH + 40;
@@ -510,7 +518,7 @@ class MiroMasterTimelineService {
       const gap = gapFromHeaders > 4 ? gapFromHeaders : TIMELINE.COLUMN_GAP;
       colX = doneHeader.x + doneHeader.width + gap;
 
-      const doneDropZone = shapes.find((shape) => {
+      const doneDropZone = frameShapes.find((shape) => {
         const isRectangle = shape.shape === 'rectangle';
         const isColumnWidth = Math.abs(shape.width - doneHeader.width) <= 10;
         const isTall = shape.height >= 200;
@@ -529,15 +537,13 @@ class MiroMasterTimelineService {
       headerY = frameTop + TIMELINE.PADDING + TIMELINE.HEADER_HEIGHT / 2;
       const dropZoneTopY = headerY + TIMELINE.HEADER_HEIGHT / 2 + 5;
 
-      const frameRight = frameLeft + frameWidth;
-      const frameBottom = frameTop + frameHeight;
       const columnIndex = TIMELINE_COLUMNS.length;
       colX = startX + TIMELINE.COLUMN_WIDTH / 2 + columnIndex * (TIMELINE.COLUMN_WIDTH + TIMELINE.COLUMN_GAP);
       if (colX + TIMELINE.COLUMN_WIDTH / 2 > frameRight - TIMELINE.PADDING) {
         return;
       }
 
-      const columnSample = shapes.find((shape) => {
+      const columnSample = frameShapes.find((shape) => {
         const isRectangle = shape.shape === 'rectangle';
         const isColumnWidth = Math.abs(shape.width - TIMELINE.COLUMN_WIDTH) <= 10;
         const isTall = shape.height >= 200;
