@@ -279,12 +279,20 @@ class MiroClient {
       };
     }
   ) {
-    // Build style object with only defined values to avoid Miro API validation errors
+    // Build style object with only defined, non-empty values to avoid Miro API validation errors
     const style: Record<string, string> = {};
-    if (data.style?.color !== undefined) style.color = data.style.color;
-    if (data.style?.fontSize !== undefined) style.fontSize = data.style.fontSize;
-    if (data.style?.fontFamily !== undefined) style.fontFamily = data.style.fontFamily;
-    if (data.style?.textAlign !== undefined) style.textAlign = data.style.textAlign;
+    if (data.style?.color && data.style.color.trim() !== '') {
+      style.color = data.style.color;
+    }
+    if (data.style?.fontSize && data.style.fontSize.trim() !== '') {
+      style.fontSize = data.style.fontSize;
+    }
+    if (data.style?.fontFamily && data.style.fontFamily.trim() !== '') {
+      style.fontFamily = data.style.fontFamily;
+    }
+    if (data.style?.textAlign) {
+      style.textAlign = data.style.textAlign;
+    }
 
     const payload: Record<string, unknown> = {
       data: { content: data.content },
@@ -349,25 +357,39 @@ class MiroClient {
       };
     }
   ) {
-    // Build style object with only defined values to avoid Miro API validation errors
+    // Build style object with only defined, non-empty values to avoid Miro API validation errors
     const style: Record<string, string | number> = {};
-    if (data.style?.fillColor !== undefined) style.fillColor = data.style.fillColor;
-    if (data.style?.borderColor !== undefined) style.borderColor = data.style.borderColor;
-    if (data.style?.borderWidth !== undefined) style.borderWidth = data.style.borderWidth;
-    if (data.style?.fontColor !== undefined) style.fontColor = data.style.fontColor;
-    if (data.style?.fontSize !== undefined) style.fontSize = data.style.fontSize;
+    if (data.style?.fillColor && data.style.fillColor.trim() !== '') {
+      style.fillColor = data.style.fillColor;
+    }
+    if (data.style?.borderColor && data.style.borderColor.trim() !== '') {
+      style.borderColor = data.style.borderColor;
+    }
+    if (data.style?.borderWidth !== undefined) {
+      style.borderWidth = data.style.borderWidth;
+    }
+    if (data.style?.fontColor && data.style.fontColor.trim() !== '') {
+      style.fontColor = data.style.fontColor;
+    }
+    if (data.style?.fontSize && data.style.fontSize.trim() !== '') {
+      style.fontSize = data.style.fontSize;
+    }
+
+    const payload = {
+      data: {
+        shape: data.shape,
+        content: data.content,
+      },
+      position: { x: data.x, y: data.y },
+      geometry: { width: data.width, height: data.height },
+      ...(Object.keys(style).length > 0 ? { style } : {}),
+    };
+
+    console.log('[MiroClient] Creating shape:', { shape: data.shape, hasStyle: Object.keys(style).length > 0, style });
 
     return this.request<{ id: string }>(`/boards/${boardId}/shapes`, {
       method: 'POST',
-      body: JSON.stringify({
-        data: {
-          shape: data.shape,
-          content: data.content,
-        },
-        position: { x: data.x, y: data.y },
-        geometry: { width: data.width, height: data.height },
-        ...(Object.keys(style).length > 0 ? { style } : {}),
-      }),
+      body: JSON.stringify(payload),
     });
   }
 
