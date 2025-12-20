@@ -285,16 +285,23 @@ class MiroMasterTimelineService {
     if (this.initialized && this.state && this.state.frameId) {
       const miro = getMiroSDK();
       try {
+        log('MiroTimeline', '🔵 Singleton check: trying to ensure Files/Chat on cached timeline', { frameId: this.state.frameId });
         const frame = await miro.board.getById(this.state.frameId!) as MiroFrame | null;
         if (frame) {
           const frameWidth = frame.width ?? TIMELINE.FRAME_WIDTH;
           const frameHeight = frame.height ?? TIMELINE.FRAME_HEIGHT;
           const frameLeft = frame.x - frameWidth / 2;
           const frameTop = frame.y - frameHeight / 2;
+          log('MiroTimeline', '🔵 Frame found, calling ensureFilesChatColumn...', { frameWidth, frameHeight, frameLeft, frameTop });
           await this.ensureFilesChatColumn({ frameLeft, frameTop, frameWidth, frameHeight });
+          log('MiroTimeline', '✅ Files/Chat column ensured successfully on cached timeline');
+        } else {
+          log('MiroTimeline', '⚠️ Frame not found by ID, skipping Files/Chat column', { frameId: this.state.frameId });
         }
       } catch (error) {
-        log('MiroTimeline', 'Failed to ensure Files/Chat column on cached timeline', error);
+        log('MiroTimeline', '❌ ERROR ensuring Files/Chat column on cached timeline', error);
+        // Re-throw so we can see the error in console
+        console.error('[MiroTimeline] Failed to ensure Files/Chat column:', error);
       }
       log('MiroTimeline', 'Already initialized in memory, reusing');
       return this.state;
