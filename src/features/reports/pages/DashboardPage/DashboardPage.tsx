@@ -171,6 +171,14 @@ export function DashboardPage() {
   // Check if we're on the Master Board
   const isMasterBoard = !!(isInMiro && currentBoardId && masterBoardId && currentBoardId === masterBoardId);
 
+  console.log('[DashboardPage] 🔍 Master Board check:', {
+    isInMiro,
+    currentBoardId,
+    masterBoardId,
+    isMatch: currentBoardId === masterBoardId,
+    isMasterBoard
+  });
+
   // Initialize Master Timeline when opening the Master Board
   useEffect(() => {
     let isActive = true;
