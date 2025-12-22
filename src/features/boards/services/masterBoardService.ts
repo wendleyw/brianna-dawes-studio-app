@@ -1065,7 +1065,6 @@ class MasterBoardService {
         content: `<p><b>${column.label}</b></p>`,
         style: {
           fillColor: column.color,
-          borderColor: 'transparent',
           borderWidth: 0,
           color: '#FFFFFF',
           fontSize: 10,

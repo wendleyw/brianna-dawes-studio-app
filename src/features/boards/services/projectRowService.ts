@@ -1,6 +1,6 @@
-import { miroClient } from './miroClient';
 import type { ProjectBriefing, ProjectRowState } from '../domain/board.types';
 import type { Project } from '@features/projects/domain/project.types';
+import { miroClient } from './miroClient';
 
 // Layout constants
 const PROJECT_ROWS_START_X = 100;
@@ -52,6 +52,7 @@ class ProjectRowService {
 
   /**
    * Create a project row with briefing and process frames
+   * Uses Miro Web SDK to avoid REST API validation issues
    */
   async createProjectRow(
     project: Project,
@@ -61,27 +62,40 @@ class ProjectRowService {
       throw new Error('Board ID not set. Call setBoardId first.');
     }
 
+    // Check if Miro SDK is available
+    if (typeof miro === 'undefined') {
+      throw new Error('Miro Web SDK not available');
+    }
+
     const projectCode = `BDS-${new Date().getFullYear()}-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`;
     const rowY = this.nextRowY;
 
-    // Create Briefing Frame
-    // Note: fillColor removed - Miro REST API v2 frames default to transparent/white
-    const briefingFrame = await miroClient.createFrame(this.boardId, {
+    console.log('[ProjectRowService] Creating briefing frame using Web SDK');
+
+    // Create Briefing Frame using Web SDK
+    const briefingFrame = await miro.board.createFrame({
       title: `⭐ ${project.client?.name || 'Client'} - ${project.name} - BRIEFING - BRIANNA DAWES STUDIOS [${projectCode}]`,
       x: PROJECT_ROWS_START_X,
       y: rowY,
       width: BRIEFING_FRAME_WIDTH,
       height: BRIEFING_FRAME_HEIGHT,
+      style: {
+        fillColor: '#ffffff',
+      },
     });
 
-    // Create Process Versions Frame
-    // Note: fillColor removed - Miro REST API v2 frames default to transparent/white
-    const processFrame = await miroClient.createFrame(this.boardId, {
+    console.log('[ProjectRowService] Creating process frame using Web SDK');
+
+    // Create Process Versions Frame using Web SDK
+    const processFrame = await miro.board.createFrame({
       title: `⭐ ${project.client?.name || 'Client'} - ${project.name} - PROCESS VERSIONS - BRIANNA DAWES STUDIOS [${projectCode}]`,
       x: PROJECT_ROWS_START_X + BRIEFING_FRAME_WIDTH + FRAME_GAP,
       y: rowY,
       width: PROCESS_FRAME_WIDTH,
       height: PROCESS_FRAME_HEIGHT,
+      style: {
+        fillColor: '#ffffff',
+      },
     });
 
     // Create briefing header with status badge and info
@@ -432,7 +446,6 @@ class ProjectRowService {
       content: '',
       style: {
         fillColor: '#374151',
-        borderColor: 'transparent',
         borderWidth: 0,
       },
     });
@@ -519,7 +532,6 @@ class ProjectRowService {
         content: emojiData.emoji,
         style: {
           fillColor: emojiData.color,
-          borderColor: 'transparent',
           borderWidth: 0,
           fontSize: '18',
         },

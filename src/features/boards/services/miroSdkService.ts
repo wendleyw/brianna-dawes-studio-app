@@ -426,7 +426,6 @@ class MiroMasterTimelineService {
         height: TIMELINE.HEADER_HEIGHT,
         style: {
           fillColor: col.color,
-          borderColor: 'transparent',
           borderWidth: 0,
           color: '#FFFFFF',
           fontSize: 8,
