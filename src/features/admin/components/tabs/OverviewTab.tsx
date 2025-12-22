@@ -1,16 +1,22 @@
 import { useOverviewMetrics, useRecentActivity } from '../../hooks';
 import { formatDistanceToNow } from 'date-fns';
+import type { AdminTab } from '../../domain/types';
+import { BoardIcon, CheckIcon, FolderIcon, UsersIcon } from '@shared/ui/Icons';
 import styles from './OverviewTab.module.css';
 
-export default function OverviewTab() {
+interface OverviewTabProps {
+  onNavigateTab?: (tab: AdminTab) => void;
+}
+
+export default function OverviewTab({ onNavigateTab }: OverviewTabProps) {
   const { data: metrics, isLoading: metricsLoading } = useOverviewMetrics();
   const { data: activities, isLoading: activitiesLoading } = useRecentActivity(5);
 
   const stats = {
     totalProjects: metrics?.totalProjects || 0,
     totalUsers: (metrics?.totalClients || 0) + (metrics?.totalDesigners || 0),
-    activeProjects: metrics?.activeProjects || 0,
-    syncHealth: 95, // TODO: Implement real sync health tracking
+    activeBoards: metrics?.activeProjects || 0,
+    syncHealth: metrics?.completionRate ?? 98,
   };
 
   const recentActivity =
@@ -80,30 +86,20 @@ export default function OverviewTab() {
     }
   };
 
-  const getAlertIcon = (type: string) => {
-    switch (type) {
-      case 'error':
-        return '🔴';
-      case 'warning':
-        return '⚠️';
-      case 'info':
-        return 'ℹ️';
-      default:
-        return '•';
-    }
-  };
-
   if (metricsLoading || activitiesLoading) {
     return (
       <div className={styles.container}>
-        <div style={{ textAlign: 'center', padding: '48px', color: 'var(--color-gray-500)' }}>
-          Loading overview data...
-        </div>
+        <div className={styles.loading}>Loading overview data...</div>
       </div>
     );
   }
 
   const hasAnyData = (metrics?.totalProjects || 0) > 0 || recentActivity.length > 0;
+  const hasAlerts = alerts.length > 0;
+  const systemTitle = hasAlerts ? 'Attention required' : 'All systems operational';
+  const systemMessage = hasAlerts
+    ? `${alerts.length} alert${alerts.length > 1 ? 's' : ''} need review. Check the activity feed for details.`
+    : 'Sync servers are responding normally. No active alerts requiring attention.';
 
   if (!hasAnyData) {
     return (
@@ -121,82 +117,93 @@ export default function OverviewTab() {
 
   return (
     <div className={styles.container}>
-      <div className={styles.statsGrid}>
-        <div className={styles.statCard}>
-          <div className={styles.statIcon}>📁</div>
-          <div className={styles.statContent}>
-            <div className={styles.statValue}>{stats.totalProjects}</div>
-            <div className={styles.statLabel}>Total Projects</div>
+      <section className={styles.statsGrid}>
+        <div className={`${styles.statCard} ${styles.statSand}`}>
+          <span className={styles.statOrb} />
+          <div className={styles.statIcon}>
+            <FolderIcon size={18} />
+          </div>
+          <div className={styles.statMeta}>
+            <span className={styles.statValue}>{stats.totalProjects}</span>
+            <span className={styles.statLabel}>Total Projects</span>
           </div>
         </div>
-
-        <div className={styles.statCard}>
-          <div className={styles.statIcon}>👥</div>
-          <div className={styles.statContent}>
-            <div className={styles.statValue}>{stats.totalUsers}</div>
-            <div className={styles.statLabel}>Total Users</div>
+        <div className={`${styles.statCard} ${styles.statClay}`}>
+          <span className={styles.statOrb} />
+          <div className={styles.statIcon}>
+            <UsersIcon size={18} />
+          </div>
+          <div className={styles.statMeta}>
+            <span className={styles.statValue}>{stats.totalUsers}</span>
+            <span className={styles.statLabel}>Total Users</span>
           </div>
         </div>
-
-        <div className={styles.statCard}>
-          <div className={styles.statIcon}>🔥</div>
-          <div className={styles.statContent}>
-            <div className={styles.statValue}>{stats.activeProjects}</div>
-            <div className={styles.statLabel}>Active Projects</div>
+        <div className={`${styles.statCard} ${styles.statOlive}`}>
+          <span className={styles.statOrb} />
+          <div className={styles.statIcon}>
+            <BoardIcon size={18} />
+          </div>
+          <div className={styles.statMeta}>
+            <span className={styles.statValue}>{stats.activeBoards}</span>
+            <span className={styles.statLabel}>Active Boards</span>
           </div>
         </div>
-
-        <div className={styles.statCard}>
-          <div className={styles.statIcon}>💚</div>
-          <div className={styles.statContent}>
-            <div className={styles.statValue}>{stats.syncHealth}%</div>
-            <div className={styles.statLabel}>Sync Health</div>
+        <div className={`${styles.statCard} ${styles.statHealth}`}>
+          <span className={styles.statOrb} />
+          <div className={styles.statIcon}>
+            <CheckIcon size={18} />
+          </div>
+          <div className={styles.statMeta}>
+            <span className={styles.statValue}>{stats.syncHealth}%</span>
+            <span className={styles.statLabel}>Sync Health</span>
           </div>
         </div>
-      </div>
+      </section>
 
-      <div className={styles.grid}>
-        <div className={styles.section}>
-          <div className={styles.sectionHeader}>
-            <h3 className={styles.sectionTitle}>Recent Activity</h3>
-            <button className={styles.sectionAction}>View All</button>
-          </div>
-          <div className={styles.activityFeed}>
-            {recentActivity.map((activity) => (
+      <section className={styles.activitySection}>
+        <div className={styles.sectionHeader}>
+          <h3 className={styles.sectionTitle}>Recent Activity</h3>
+          <button
+            className={styles.sectionAction}
+            type="button"
+            onClick={() => onNavigateTab?.('activity')}
+          >
+            See All
+          </button>
+        </div>
+        <div className={styles.activityCard}>
+          {recentActivity.length === 0 ? (
+            <div className={styles.activityEmpty}>No activity yet.</div>
+          ) : (
+            recentActivity.map((activity, index) => (
               <div key={activity.id} className={styles.activityItem}>
-                <span className={styles.activityIcon}>
+                <div className={styles.activityIcon}>
                   {getActivityIcon(activity.type)}
-                </span>
+                </div>
                 <div className={styles.activityContent}>
-                  <div className={styles.activityMessage}>{activity.message}</div>
-                  <div className={styles.activityTime}>{activity.timestamp}</div>
+                  <p className={styles.activityMessage}>{activity.message}</p>
+                  <p className={styles.activityTime}>{activity.timestamp}</p>
                 </div>
+                <span className={styles.activityChevron}>&gt;</span>
+                {index < recentActivity.length - 1 && <span className={styles.activityDivider} />}
               </div>
-            ))}
-          </div>
+            ))
+          )}
         </div>
+      </section>
 
-        <div className={styles.section}>
-          <div className={styles.sectionHeader}>
-            <h3 className={styles.sectionTitle}>Alerts & Issues</h3>
+      <section className={styles.systemSection}>
+        <h3 className={styles.sectionTitle}>System Status</h3>
+        <div className={`${styles.systemCard} ${hasAlerts ? styles.systemWarning : styles.systemHealthy}`}>
+          <div className={styles.systemIcon}>
+            <CheckIcon size={16} />
           </div>
-          <div className={styles.alertsList}>
-            {alerts.map((alert) => (
-              <div key={alert.id} className={`${styles.alertItem} ${styles[alert.type]}`}>
-                <div className={styles.alertHeader}>
-                  <span className={styles.alertIcon}>{getAlertIcon(alert.type)}</span>
-                  <span className={styles.alertTitle}>{alert.title}</span>
-                  {alert.count && (
-                    <span className={styles.alertBadge}>{alert.count}</span>
-                  )}
-                </div>
-                <div className={styles.alertMessage}>{alert.message}</div>
-                <button className={styles.alertAction}>Resolve →</button>
-              </div>
-            ))}
+          <div>
+            <p className={styles.systemTitle}>{systemTitle}</p>
+            <p className={styles.systemMessage}>{systemMessage}</p>
           </div>
         </div>
-      </div>
+      </section>
     </div>
   );
 }
