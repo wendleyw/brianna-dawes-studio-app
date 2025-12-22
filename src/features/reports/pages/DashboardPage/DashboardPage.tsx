@@ -181,24 +181,10 @@ export function DashboardPage() {
   const { boardId: masterBoardId } = useMasterBoardSettings();
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [boardCreatedAt, setBoardCreatedAt] = useState<string | null>(null);
-  // Handler to open Admin Dashboard in modal
-  const openAdminDashboard = useCallback(async (tab: AdminTab) => {
-    if (miro && isInMiro) {
-      try {
-        await miro.board.ui.openModal({
-          url: `admin-modal.html?tab=${encodeURIComponent(tab)}`,
-          width: 1400,
-          height: 900,
-          fullscreen: false,
-        });
-        return;
-      } catch (error) {
-        console.error('Failed to open admin modal', error);
-        // Fallback to modal
-      }
-    }
+  // Handler to open Admin Dashboard in panel view
+  const openAdminDashboard = useCallback((tab: AdminTab) => {
     navigate(`/admin?tab=${encodeURIComponent(tab)}`);
-  }, [miro, isInMiro, navigate]);
+  }, [navigate]);
 
   useEffect(() => {
     let isActive = true;

@@ -107,22 +107,9 @@ export function AppShell() {
     }
   }, [miro, isInMiro]);
 
-  const openAdminDashboard = useCallback(async (tab: AdminTab) => {
-    if (miro && isInMiro) {
-      try {
-        await miro.board.ui.openModal({
-          url: `admin-modal.html?tab=${encodeURIComponent(tab)}`,
-          width: 1200,
-          height: 800,
-          fullscreen: false,
-        });
-      } catch (error) {
-        console.error('Failed to open admin modal', error);
-      }
-      return;
-    }
+  const openAdminDashboard = useCallback((tab: AdminTab) => {
     navigate(`/admin?tab=${encodeURIComponent(tab)}`);
-  }, [miro, isInMiro, navigate]);
+  }, [navigate]);
 
   return (
     <div className={styles.shell}>
