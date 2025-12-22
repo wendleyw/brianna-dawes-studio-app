@@ -40,6 +40,13 @@ const AlertIcon = () => (
   </svg>
 );
 
+const ArrowRightIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <line x1="5" y1="12" x2="19" y2="12" />
+    <polyline points="12 5 19 12 12 19" />
+  </svg>
+);
+
 interface ProjectBriefing {
   // Basic Info
   name: string;
@@ -180,6 +187,14 @@ export function NewProjectPage() {
     boardMismatch: !!boardMismatch,
     clients: clients.length
   });
+
+  const priorityLabels = useMemo(() => {
+    return PRIORITY_OPTIONS.reduce<Record<string, string>>((acc, option) => {
+      const label = option.label.toLowerCase();
+      acc[option.value] = label.charAt(0).toUpperCase() + label.slice(1);
+      return acc;
+    }, {});
+  }, []);
 
   const updateField = (field: keyof ProjectBriefing, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -420,9 +435,19 @@ ${formData.additionalNotes || needsAttention}
 
       {/* Form */}
       <div className={styles.form}>
+        <div className={styles.pageIntro}>
+          <h1 className={styles.pageTitle}>Create Project</h1>
+          <p className={styles.pageSubtitle}>
+            Fill in the details below to initialize a new workspace for your team.
+          </p>
+        </div>
+
         {/* Basic Information */}
         <section className={styles.section}>
-          <h2 className={styles.sectionTitle}>Basic Information</h2>
+          <div className={styles.sectionHeader}>
+            <span className={styles.sectionStep}>1</span>
+            <h2 className={styles.sectionTitle}>Basic Information</h2>
+          </div>
 
           {/* Client/Owner Selection - First field for admin */}
           {isAdmin && (
@@ -536,7 +561,10 @@ ${formData.additionalNotes || needsAttention}
 
         {/* Project Details */}
         <section className={styles.section}>
-          <h2 className={styles.sectionTitle}>Project Details</h2>
+          <div className={styles.sectionHeader}>
+            <span className={styles.sectionStep}>2</span>
+            <h2 className={styles.sectionTitle}>Project Details</h2>
+          </div>
 
           <div className={styles.field}>
             <label className={styles.label}>
@@ -586,7 +614,10 @@ ${formData.additionalNotes || needsAttention}
 
         {/* Content & Copy */}
         <section className={styles.section}>
-          <h2 className={styles.sectionTitle}>Content & Copy</h2>
+          <div className={styles.sectionHeader}>
+            <span className={styles.sectionStep}>3</span>
+            <h2 className={styles.sectionTitle}>Content & Copy</h2>
+          </div>
 
           <div className={styles.field}>
             <label className={styles.label}>
@@ -622,7 +653,10 @@ ${formData.additionalNotes || needsAttention}
 
         {/* Resources & References */}
         <section className={styles.section}>
-          <h2 className={styles.sectionTitle}>Resources & References</h2>
+          <div className={styles.sectionHeader}>
+            <span className={styles.sectionStep}>4</span>
+            <h2 className={styles.sectionTitle}>Resources & References</h2>
+          </div>
 
           <div className={styles.field}>
             <label className={styles.label}>RESOURCE LINKS / ASSETS</label>
@@ -679,7 +713,10 @@ ${formData.additionalNotes || needsAttention}
 
         {/* Timeline & Priority */}
         <section className={styles.section}>
-          <h2 className={styles.sectionTitle}>Timeline & Priority</h2>
+          <div className={styles.sectionHeader}>
+            <span className={styles.sectionStep}>5</span>
+            <h2 className={styles.sectionTitle}>Timeline & Priority</h2>
+          </div>
 
           <div className={styles.field}>
             <label className={styles.label}>
@@ -761,7 +798,8 @@ ${formData.additionalNotes || needsAttention}
                     className={styles.priorityDot}
                     style={{ backgroundColor: option.color }}
                   />
-                  {option.label}
+                  <span className={styles.priorityLabel}>{priorityLabels[option.value] || option.label}</span>
+                  <span className={styles.priorityCheck} aria-hidden="true">✓</span>
                 </button>
               ))}
             </div>
@@ -772,11 +810,13 @@ ${formData.additionalNotes || needsAttention}
         <div className={styles.actions}>
           {error && <div className={styles.actionError}>{error}</div>}
           <div className={styles.actionButtons}>
-            <Button variant="ghost" onClick={() => navigate(-1)}>
+            <Button variant="ghost" className={styles.cancelButton} onClick={() => navigate(-1)}>
               Cancel
             </Button>
             <Button
               variant="primary"
+              className={styles.submitButton}
+              rightIcon={<ArrowRightIcon />}
               onClick={handleSubmit}
               isLoading={isSubmitting}
               disabled={authLoading || (isAdmin && usersLoading)}

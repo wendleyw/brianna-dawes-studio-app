@@ -23,7 +23,7 @@ export interface PriorityColumn {
 export const PRIORITY_COLUMNS: PriorityColumn[] = [
   { id: 'urgent', label: 'URGENT', color: 'var(--color-error)', description: 'Immediate attention required' },
   { id: 'high', label: 'HIGH', color: 'var(--priority-high)', description: 'High priority, needs attention soon' },
-  { id: 'medium', label: 'MEDIUM', color: 'var(--color-warning)', description: 'Normal priority' },
+  { id: 'medium', label: 'MEDIUM', color: 'var(--color-accent-light)', description: 'Normal priority' },
   { id: 'low', label: 'STANDARD', color: 'var(--color-success)', description: 'Standard timeline' },
 ];
 
@@ -31,7 +31,7 @@ export const PRIORITY_COLUMNS: PriorityColumn[] = [
 export const PRIORITY_CONFIG: Record<ProjectPriority, { label: string; color: string }> = {
   urgent: { label: 'URGENT', color: 'var(--color-error)' },
   high: { label: 'HIGH', color: 'var(--priority-high)' },
-  medium: { label: 'MEDIUM', color: 'var(--color-warning)' },
+  medium: { label: 'MEDIUM', color: 'var(--color-accent-light)' },
   low: { label: 'STANDARD', color: 'var(--color-success)' },
 } as const;
 
@@ -39,7 +39,7 @@ export const PRIORITY_CONFIG: Record<ProjectPriority, { label: string; color: st
 export const PRIORITY_COLORS: Record<ProjectPriority, string> = {
   urgent: 'var(--color-error)',
   high: 'var(--priority-high)',
-  medium: 'var(--color-warning)',
+  medium: 'var(--color-accent-light)',
   low: 'var(--color-success)',
 } as const;
 
