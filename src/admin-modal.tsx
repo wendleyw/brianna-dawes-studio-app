@@ -15,7 +15,7 @@ import { ErrorBoundary } from '@shared/components';
 import { AdminDashboardPage } from '@features/admin';
 import '@shared/ui/styles/global.css';
 
-function AdminModalApp() {
+export function AdminModalApp() {
   return (
     <ErrorBoundary>
       <BrowserRouter>

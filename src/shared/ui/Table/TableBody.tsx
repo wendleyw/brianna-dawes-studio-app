@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import type { Column } from './Table.types';
 import { TableRow } from './TableRow';
 import { TableCell } from './TableCell';
@@ -13,7 +14,7 @@ interface TableBodyProps<T> {
   rowKey: keyof T | ((row: T) => string);
 }
 
-export function TableBody<T extends Record<string, any>>({
+export function TableBody<T extends Record<string, unknown>>({
   data,
   columns,
   selectable,
@@ -26,11 +27,19 @@ export function TableBody<T extends Record<string, any>>({
     return typeof rowKey === 'function' ? rowKey(row) : String(row[rowKey]);
   };
 
-  const getCellValue = (row: T, column: Column<T>) => {
+  const getCellValue = (row: T, column: Column<T>): ReactNode => {
     if (typeof column.accessor === 'function') {
       return column.accessor(row);
     }
-    return row[column.accessor];
+    const value = row[column.accessor];
+    if (value === null || value === undefined) return null;
+    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+      return value;
+    }
+    if (value instanceof Date) {
+      return value.toLocaleString();
+    }
+    return String(value);
   };
 
   return (

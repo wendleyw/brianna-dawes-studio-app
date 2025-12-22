@@ -32,7 +32,7 @@ function getModalMode(): { mode: string; projectId: string | null } {
   return { mode, projectId };
 }
 
-function ModalRouter() {
+export function ModalRouter() {
   const { mode, projectId } = getModalMode();
 
   if (mode === 'project' && projectId) {

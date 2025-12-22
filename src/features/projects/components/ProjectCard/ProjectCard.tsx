@@ -127,16 +127,16 @@ export const ProjectCard = memo(function ProjectCard({
 
   // Fetch deliverables for this project
   const { data: deliverablesData } = useDeliverables({ filters: { projectId: project.id } });
-  const deliverables = deliverablesData?.data || [];
+  const deliverables = useMemo(() => deliverablesData?.data ?? [], [deliverablesData?.data]);
 
   // Fetch all users to get designers
   const { data: usersData } = useUsers();
-  const allUsers = usersData || [];
-  const designers = allUsers.filter((u: { role: string }) => u.role === 'designer');
+  const allUsers = useMemo(() => usersData ?? [], [usersData]);
+  const designers = useMemo(() => allUsers.filter((u: { role: string }) => u.role === 'designer'), [allUsers]);
 
   // Fetch all projects to calculate designer workload (skip role filter for this)
   const { data: allProjectsData } = useProjects({ skipRoleFilter: true });
-  const allProjects = allProjectsData?.data || [];
+  const allProjects = useMemo(() => allProjectsData?.data ?? [], [allProjectsData?.data]);
 
   // Calculate total assets and bonus assets from deliverables
   const assetTotals = useMemo(() => {

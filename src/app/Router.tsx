@@ -10,6 +10,9 @@ import styles from './Router.module.css';
 const LoginPage = lazy(() =>
   import('@features/auth').then((module) => ({ default: module.LoginPage }))
 );
+const MiroOAuthCallbackPage = lazy(() =>
+  import('@features/auth').then((module) => ({ default: module.MiroOAuthCallbackPage }))
+);
 const DashboardPage = lazy(() =>
   import('@features/reports').then((module) => ({ default: module.DashboardPage }))
 );
@@ -85,6 +88,7 @@ export function Router() {
         <Routes>
           {/* Public routes */}
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/auth/miro/oauth/callback" element={<MiroOAuthCallbackPage />} />
 
           {/* Protected layout */}
           <Route

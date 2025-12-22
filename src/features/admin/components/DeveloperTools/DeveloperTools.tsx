@@ -12,6 +12,7 @@ import { supabaseRestQuery } from '@shared/lib/supabaseRest';
 import { createLogger } from '@shared/lib/logger';
 import { env } from '@shared/config/env';
 import { callEdgeFunction } from '@shared/lib/edgeFunctions';
+import { miroOAuthService } from '@features/auth/services/miroOAuthService';
 import type { CreateProjectInput, ProjectBriefing, ProjectStatus, ProjectPriority, ProjectType } from '@features/projects/domain/project.types';
 import type { DeliverableType, DeliverableStatus } from '@features/deliverables/domain/deliverable.types';
 import styles from './DeveloperTools.module.css';
@@ -1048,7 +1049,7 @@ const TEST_PROJECTS: TestProjectData[] = [
 ];
 
 export function DeveloperTools() {
-  const { isInMiro, miro } = useMiro();
+  const { isInMiro, miro, boardId } = useMiro();
   const { user: authUser, session: authSession } = useAuth();
   const queryClient = useQueryClient();
   const [isCreating, setIsCreating] = useState(false);
@@ -1065,6 +1066,8 @@ export function DeveloperTools() {
   const [isSyncOpsEnqueueing, setIsSyncOpsEnqueueing] = useState(false);
   const [isSyncOpsCreating, setIsSyncOpsCreating] = useState(false);
   const [miroTokenOverride, setMiroTokenOverride] = useState('');
+  const [isMiroOauthStarting, setIsMiroOauthStarting] = useState(false);
+  const [miroOauthError, setMiroOauthError] = useState<string | null>(null);
   const [lastOpsProjectId, setLastOpsProjectId] = useState<string | null>(null);
   const [lastOpsJobId, setLastOpsJobId] = useState<string | null>(null);
   const [progress, setProgress] = useState<string[]>([]);
@@ -2560,6 +2563,27 @@ export function DeveloperTools() {
     }
   };
 
+  const startMiroOAuth = async () => {
+    if (!authUser) {
+      setMiroOauthError('Not authenticated. Please log in first.');
+      return;
+    }
+    setIsMiroOauthStarting(true);
+    setMiroOauthError(null);
+
+    try {
+      const result = await miroOAuthService.start(boardId);
+      if (!result?.authUrl) {
+        throw new Error('Missing OAuth URL');
+      }
+      window.location.href = result.authUrl;
+    } catch (err) {
+      setMiroOauthError(formatError(err));
+    } finally {
+      setIsMiroOauthStarting(false);
+    }
+  };
+
   const createLinkedProjectAndEnqueue = async () => {
     if (!authUser) {
       setError('Not authenticated. Please log in first.');
@@ -3444,6 +3468,33 @@ export function DeveloperTools() {
           className={styles.primaryButton}
         >
           {isSmokeRunning ? 'Running Smoke Tests...' : '✅ Run Smoke Tests'}
+        </Button>
+      </div>
+
+      <div className={styles.section}>
+        <h3 className={styles.sectionTitle}>🔐 Miro OAuth (Server Sync)</h3>
+        <p className={styles.sectionDescription}>
+          Conecta o board atual ao Supabase para sync server-side e webhooks (token com refresh).
+        </p>
+
+        <div className={styles.status}>
+          <span>Board: </span>
+          <span className={boardId ? styles.connected : styles.disconnected}>
+            {boardId ?? 'Not detected'}
+          </span>
+        </div>
+
+        {miroOauthError && (
+          <div className={styles.error}>{miroOauthError}</div>
+        )}
+
+        <Button
+          onClick={startMiroOAuth}
+          isLoading={isMiroOauthStarting}
+          variant="primary"
+          className={styles.primaryButton}
+        >
+          {isMiroOauthStarting ? 'Connecting...' : '🔗 Connect Miro OAuth'}
         </Button>
       </div>
 

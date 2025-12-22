@@ -4,7 +4,7 @@ import { TableHeader } from './TableHeader';
 import { TableBody } from './TableBody';
 import styles from './Table.module.css';
 
-export function Table<T extends Record<string, any>>({
+export function Table<T extends Record<string, unknown>>({
   data,
   columns,
   loading = false,

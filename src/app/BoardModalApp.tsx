@@ -22,6 +22,7 @@ import type { Project, ProjectStatus } from '@features/projects/domain/project.t
 import styles from './BoardModalApp.module.css';
 
 const logger = createLogger('BoardModal');
+const EMPTY_PROJECTS: Project[] = [];
 
 // Icons
 const CloseIcon = () => (
@@ -48,7 +49,7 @@ export function BoardModalApp() {
   const { updateProject } = useProjectMutations();
   const { initializeBoard, syncProject, syncAllProjects, isInitialized, isSyncing } = useMiroBoardSync();
 
-  const projects = projectsData?.data || [];
+  const projects = useMemo(() => projectsData?.data ?? EMPTY_PROJECTS, [projectsData?.data]);
 
   const [draggingProject, setDraggingProject] = useState<Project | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<ProjectStatus | null>(null);

@@ -25,8 +25,13 @@ cp .env.example .env.local
 VITE_SUPABASE_URL=https://seu-projeto.supabase.co
 VITE_SUPABASE_ANON_KEY=sua-anon-key
 VITE_MIRO_CLIENT_ID=seu-miro-client-id
-VITE_MIRO_CLIENT_SECRET=seu-miro-client-secret
-VITE_MIRO_REDIRECT_URI=http://localhost:5173/miro/callback
+
+# Miro OAuth (configure como secrets no Supabase)
+MIRO_CLIENT_ID=seu-miro-client-id
+MIRO_CLIENT_SECRET=seu-miro-client-secret
+MIRO_REDIRECT_URI=http://localhost:5173/auth/miro/oauth/callback
+MIRO_WEBHOOK_SECRET=seu-miro-webhook-secret
+MIRO_TOKEN_ENCRYPTION_KEY=sua-chave-32-bytes
 ```
 
 ### 1.3 Configuração do Supabase

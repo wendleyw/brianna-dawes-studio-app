@@ -43,6 +43,7 @@ import {
 import { getProjectTypeFromBriefing } from './miroHelpers';
 import { createLogger } from '@shared/lib/logger';
 import { miroAdapter } from '@shared/lib/miroAdapter';
+import { registerMiroItem } from './miroItemRegistry';
 
 // Create namespaced loggers for different services
 const timelineLogger = createLogger('MiroTimeline');
@@ -1113,6 +1114,11 @@ class MiroMasterTimelineService {
         }
 
         await miro.board.sync(existingCardFinalCheck);
+        await registerMiroItem({
+          projectId: project.id,
+          itemType: 'timeline_card',
+          miroItemId: existingCardFinalCheck.id,
+        });
 
         // Use ACTUAL position from card (not calculated) to preserve existing position
         const updatedCard: TimelineCard = {
@@ -1150,6 +1156,11 @@ class MiroMasterTimelineService {
       width: TIMELINE.CARD_WIDTH,
       ...(normalizedDueDate ? { dueDate: normalizedDueDate } : {}),
       style: { cardTheme: cardColor },
+    });
+    await registerMiroItem({
+      projectId: project.id,
+      itemType: 'timeline_card',
+      miroItemId: newMiroCard.id,
     });
 
     const newCard: TimelineCard = {
@@ -1584,6 +1595,32 @@ class MiroProjectRowService {
       },
     });
 
+    await registerMiroItem({
+      projectId: project.id,
+      itemType: 'briefing_frame',
+      miroItemId: briefingFrame.id,
+    });
+
+    await registerMiroItem({
+      projectId: project.id,
+      itemType: 'version_frame',
+      miroItemId: version1Frame.id,
+      versionNumber: 1,
+    });
+
+    await Promise.all(
+      briefingItems
+        .filter((item) => item.miroItemId)
+        .map((item) =>
+          registerMiroItem({
+            projectId: project.id,
+            itemType: 'briefing_field',
+            miroItemId: item.miroItemId as string,
+            fieldKey: item.fieldKey,
+          })
+        )
+    );
+
     await this.createVersionContent(version1X, version1Y, 1);
 
     // Update Y for next project
@@ -1753,6 +1790,12 @@ class MiroProjectRowService {
       style: {
         fillColor: '#FFFFFF',
       },
+    });
+    await registerMiroItem({
+      projectId,
+      itemType: 'version_frame',
+      miroItemId: frame.id,
+      versionNumber: num,
     });
 
     await this.createVersionContent(x, y, num);

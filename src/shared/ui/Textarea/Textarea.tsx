@@ -1,4 +1,4 @@
-import { useId, useRef, useEffect, useState } from 'react';
+import { useId, useRef, useEffect, useState, useCallback } from 'react';
 import type { TextareaProps } from './Textarea.types';
 import styles from './Textarea.module.css';
 
@@ -29,21 +29,19 @@ export function Textarea({
   const currentValue = isControlled ? value : internalValue;
 
   // Auto-resize functionality
-  const adjustHeight = () => {
+  const adjustHeight = useCallback(() => {
     if (!autoResize || !textareaRef.current) return;
 
     // Reset height to auto to get the correct scrollHeight
     textareaRef.current.style.height = 'auto';
     // Set height to scrollHeight
     textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
-  };
+  }, [autoResize]);
 
   // Adjust height when value changes or component mounts
   useEffect(() => {
-    if (autoResize) {
-      adjustHeight();
-    }
-  }, [currentValue, autoResize]);
+    adjustHeight();
+  }, [currentValue, adjustHeight]);
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newValue = e.target.value;

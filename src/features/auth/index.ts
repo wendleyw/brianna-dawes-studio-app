@@ -30,4 +30,4 @@ export { AccessDenied, LoginForm } from './components';
 export type { AccessDeniedProps, LoginFormProps, LoginFormData } from './components';
 
 // Pages
-export { LoginPage } from './pages';
+export { LoginPage, MiroOAuthCallbackPage } from './pages';

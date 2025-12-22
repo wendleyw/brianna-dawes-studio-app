@@ -5,6 +5,7 @@ import type { Project } from '@features/projects/domain';
 import styles from './ProjectsTab.module.css';
 
 type ViewMode = 'kanban' | 'table';
+const EMPTY_PROJECTS: Project[] = [];
 
 export default function ProjectsTab() {
   const [viewMode, setViewMode] = useState<ViewMode>('kanban');
@@ -14,8 +15,8 @@ export default function ProjectsTab() {
   const { data: projectsResponse, isLoading: projectsLoading } = useProjects();
   const { data: users, isLoading: usersLoading } = useUsers();
 
-  const allProjects = projectsResponse?.data || [];
-  const designers = users?.filter((u) => u.role === 'designer') || [];
+  const allProjects = useMemo(() => projectsResponse?.data ?? EMPTY_PROJECTS, [projectsResponse?.data]);
+  const designers = useMemo(() => (users ?? []).filter((u) => u.role === 'designer'), [users]);
 
   const projects = useMemo(() => {
     if (!allProjects) return { overdue: [], urgent: [], in_progress: [], review: [], done: [] };

@@ -10,13 +10,15 @@ import { useMasterBoardSettings } from '@features/boards/hooks/useMasterBoard';
 import { miroTimelineService } from '@features/boards/services/miroSdkService';
 import { supabase } from '@shared/lib/supabase';
 import { supabaseRestQuery, isInMiroIframe } from '@shared/lib/supabaseRest';
-import type { ProjectFilters as ProjectFiltersType } from '@features/projects/domain/project.types';
+import type { Project, ProjectFilters as ProjectFiltersType } from '@features/projects/domain/project.types';
 import { STATUS_COLUMNS, getStatusColumn } from '@shared/lib/timelineStatus';
 import { formatDateShort, formatDateMonthYear } from '@shared/lib/dateFormat';
 import { useRealtimeSubscription } from '@shared/hooks/useRealtimeSubscription';
 import type { AdminTab } from '@features/admin/domain/types';
 import styles from './DashboardPage.module.css';
 import type { ProjectStatus } from '@features/projects/domain/project.types';
+
+const EMPTY_PROJECTS: Project[] = [];
 
 // Icons
 const PlusIcon = () => (
@@ -397,7 +399,7 @@ export function DashboardPage() {
   const canCreateProjects = isAdmin || isClient;
 
   // Get projects array from response
-  const projectsList = projectsData?.data || [];
+  const projectsList = useMemo(() => projectsData?.data ?? EMPTY_PROJECTS, [projectsData?.data]);
 
   // Calculate stats (memoized to prevent recalculation on every render)
   const { activeProjects, completedProjects } = useMemo(() => ({

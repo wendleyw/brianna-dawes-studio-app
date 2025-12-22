@@ -231,10 +231,11 @@ export function NewProjectPage() {
 
   // Auto-set clientId based on context
   const clientFromBoardId = clientFromBoard?.id;
+  const clientFromBoardName = clientFromBoard?.name ?? null;
   useEffect(() => {
     // For admin users: prefer client detected from board
     if (isAdmin && clientFromBoardId && !formData.clientId) {
-      logger.debug('Auto-selecting client from board', { client: clientFromBoard?.name });
+      logger.debug('Auto-selecting client from board', { client: clientFromBoardName });
       setFormData(prev => ({ ...prev, clientId: clientFromBoardId }));
       return;
     }
@@ -243,7 +244,7 @@ export function NewProjectPage() {
     if (!isAdmin && user?.id && !formData.clientId) {
       setFormData(prev => ({ ...prev, clientId: user.id }));
     }
-  }, [isAdmin, user?.id, formData.clientId, clientFromBoardId]);
+  }, [isAdmin, user?.id, formData.clientId, clientFromBoardId, clientFromBoardName]);
 
   const scrollToTop = () => {
     containerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });

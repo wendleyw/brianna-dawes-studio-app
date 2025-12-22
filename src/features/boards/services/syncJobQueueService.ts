@@ -1,7 +1,7 @@
 import { supabase } from '@shared/lib/supabase';
 import { env } from '@shared/config/env';
 
-export type SyncJobType = 'project_sync' | 'master_board_sync';
+export type SyncJobType = 'project_sync' | 'master_board_sync' | 'miro_item_sync';
 
 export const syncJobQueueService = {
   async enqueue(jobType: SyncJobType, args: { projectId?: string; boardId?: string; payload?: unknown } = {}) {
@@ -21,4 +21,3 @@ export const syncJobQueueService = {
     return data as string;
   },
 };
-

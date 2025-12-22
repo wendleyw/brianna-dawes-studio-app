@@ -8,10 +8,11 @@
 
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
+import { getMiroAccessToken } from '../_shared/miroTokens.ts';
 
 type SyncJob = {
   id: string;
-  job_type: 'project_sync' | 'master_board_sync';
+  job_type: 'project_sync' | 'master_board_sync' | 'miro_item_sync';
   status: 'queued' | 'running' | 'succeeded' | 'failed' | 'canceled';
   project_id: string | null;
   board_id: string | null;
@@ -262,26 +263,115 @@ async function miroUpdateCard(
   return miroRequest<{ id: string }>(accessToken, 'PATCH', `/boards/${enc(boardId)}/cards/${enc(cardId)}`, data);
 }
 
+async function miroGetItem(accessToken: string, boardId: string, itemId: string) {
+  return miroRequest<Record<string, unknown>>(accessToken, 'GET', `/boards/${enc(boardId)}/items/${enc(itemId)}`);
+}
+
+async function miroCreateText(
+  accessToken: string,
+  boardId: string,
+  args: { content: string; x: number; y: number; width?: number; style?: { color?: string; fontSize?: string; textAlign?: 'left' | 'center' | 'right' } }
+) {
+  const style: Record<string, string> = {};
+  if (args.style?.color) style.color = args.style.color;
+  if (args.style?.fontSize) style.fontSize = args.style.fontSize;
+  if (args.style?.textAlign) style.textAlign = args.style.textAlign;
+
+  const payload: Record<string, unknown> = {
+    data: { content: args.content },
+    position: { x: args.x, y: args.y },
+  };
+
+  if (args.width !== undefined) payload.geometry = { width: args.width };
+  if (Object.keys(style).length) payload.style = style;
+
+  return miroRequest<{ id: string }>(accessToken, 'POST', `/boards/${enc(boardId)}/texts`, payload);
+}
+
+async function miroCreateShape(
+  accessToken: string,
+  boardId: string,
+  args: { shape: 'rectangle' | 'round_rectangle'; content?: string; x: number; y: number; width: number; height: number; style?: { fillColor?: string; borderColor?: string; borderWidth?: number; fontColor?: string; fontSize?: number | string; textAlign?: 'left' | 'center' | 'right' } }
+) {
+  const payload: Record<string, unknown> = {
+    data: { shape: args.shape, content: args.content ?? '' },
+    position: { x: args.x, y: args.y },
+    geometry: { width: args.width, height: args.height },
+  };
+
+  if (args.style) payload.style = args.style;
+
+  return miroRequest<{ id: string }>(accessToken, 'POST', `/boards/${enc(boardId)}/shapes`, payload);
+}
+
+async function miroUpdateShape(
+  accessToken: string,
+  boardId: string,
+  shapeId: string,
+  args: { content?: string; x?: number; y?: number; width?: number; height?: number; style?: { fillColor?: string; borderColor?: string; borderWidth?: number; fontColor?: string; fontSize?: number | string; textAlign?: 'left' | 'center' | 'right' } }
+) {
+  const payload: Record<string, unknown> = {};
+  if (args.content !== undefined) payload.data = { content: args.content };
+  if (args.x !== undefined || args.y !== undefined) payload.position = { x: args.x, y: args.y };
+  if (args.width !== undefined || args.height !== undefined) payload.geometry = { width: args.width, height: args.height };
+  if (args.style) payload.style = args.style;
+
+  return miroRequest<{ id: string }>(accessToken, 'PATCH', `/boards/${enc(boardId)}/shapes/${enc(shapeId)}`, payload);
+}
+
 type TimelineStatus = 'overdue' | 'urgent' | 'in_progress' | 'review' | 'done';
 const TIMELINE = {
-  FRAME_WIDTH: 2400,
-  FRAME_HEIGHT: 800,
-  COLUMN_WIDTH: 350,
-  COLUMN_GAP: 20,
-  HEADER_HEIGHT: 32,
-  TITLE_HEIGHT: 44,
-  CARD_WIDTH: 320,
-  CARD_HEIGHT: 120,
-  CARD_GAP: 24,
-  PADDING: 20,
+  FRAME_WIDTH: 1000,
+  FRAME_HEIGHT: 600,
+  COLUMN_WIDTH: 130,
+  COLUMN_HEIGHT: 480,
+  COLUMN_GAP: 10,
+  HEADER_HEIGHT: 28,
+  TITLE_HEIGHT: 35,
+  CARD_WIDTH: 120,
+  CARD_HEIGHT: 80,
+  CARD_GAP: 15,
+  PADDING: 15,
+  GAP_TO_PROJECTS: 50,
 } as const;
 
+const FRAME = {
+  WIDTH: 800,
+  HEIGHT: 720,
+  GAP: 30,
+  ROW_GAP: 50,
+} as const;
+
+const BRIEFING = {
+  PADDING: 20,
+  HEADER_HEIGHT: 50,
+  FORM: {
+    COLS: 3,
+    ROWS: 3,
+    CELL_WIDTH: 240,
+    CELL_HEIGHT: 80,
+    CELL_GAP: 10,
+  },
+} as const;
+
+const BRIEFING_FIELDS: Array<{ key: string; label: string; col: number; row: number }> = [
+  { key: 'projectOverview', label: 'Overview', col: 0, row: 0 },
+  { key: 'targetAudience', label: 'Audience', col: 1, row: 0 },
+  { key: 'goals', label: 'Goals', col: 2, row: 0 },
+  { key: 'finalMessaging', label: 'Messaging', col: 0, row: 1 },
+  { key: 'deliverables', label: 'Deliverables', col: 1, row: 1 },
+  { key: 'resourceLinks', label: 'Resources', col: 2, row: 1 },
+  { key: 'inspirations', label: 'Inspirations', col: 0, row: 2 },
+  { key: 'styleNotes', label: 'Style', col: 1, row: 2 },
+  { key: 'additionalNotes', label: 'Notes', col: 2, row: 2 },
+];
+
 const TIMELINE_COLUMNS: Array<{ id: TimelineStatus; label: string; color: string }> = [
-  { id: 'overdue', label: 'OVERDUE', color: '#F97316' },
-  { id: 'urgent', label: 'URGENT', color: '#DC2626' },
-  { id: 'in_progress', label: 'IN PROGRESS', color: '#3B82F6' },
-  { id: 'review', label: 'REVIEW', color: '#6366F1' },
-  { id: 'done', label: 'DONE', color: '#22C55E' },
+  { id: 'overdue', label: 'OVERDUE', color: '#F59E0B' },
+  { id: 'urgent', label: 'URGENT', color: '#EF4444' },
+  { id: 'in_progress', label: 'IN PROGRESS', color: '#60A5FA' },
+  { id: 'review', label: 'REVIEW', color: '#60A5FA' },
+  { id: 'done', label: 'DONE', color: '#10B981' },
 ];
 
 function mapProjectToTimelineStatus(project: { status: string; due_date?: string | null; due_date_approved?: boolean | null }): TimelineStatus {
@@ -317,16 +407,329 @@ function extractCardPosition(card: MiroCard): { x: number; y: number } {
   return { x: Number(card.position?.x ?? 0), y: Number(card.position?.y ?? 0) };
 }
 
-function computeColumnX(colIndex: number): number {
-  const frameLeft = 0 - TIMELINE.FRAME_WIDTH / 2;
+function computeColumnX(colIndex: number, frameCenterX = 0): number {
+  const frameLeft = frameCenterX - TIMELINE.FRAME_WIDTH / 2;
   const startX = frameLeft + TIMELINE.PADDING;
   return startX + TIMELINE.COLUMN_WIDTH / 2 + colIndex * (TIMELINE.COLUMN_WIDTH + TIMELINE.COLUMN_GAP);
 }
 
-function computeFirstCardY(): number {
-  const frameTop = 0 - TIMELINE.FRAME_HEIGHT / 2;
+function computeFirstCardY(frameCenterY = 0): number {
+  const frameTop = frameCenterY - TIMELINE.FRAME_HEIGHT / 2;
   const dropZoneTop = frameTop + TIMELINE.PADDING + TIMELINE.TITLE_HEIGHT + TIMELINE.HEADER_HEIGHT + 10;
   return dropZoneTop + TIMELINE.CARD_HEIGHT / 2 + 10;
+}
+
+function stripHtml(value: string | undefined | null): string {
+  if (!value) return '';
+  return value.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+function extractProjectIdFromDescription(description?: string | null): string | null {
+  if (!description) return null;
+  const match = description.match(/projectId:([a-f0-9-]+)/i);
+  return match?.[1] ?? null;
+}
+
+function inferStatusFromCardX(x: number, frameCenterX = 0): TimelineStatus {
+  const candidates = TIMELINE_COLUMNS.map((col, index) => ({
+    id: col.id,
+    dist: Math.abs(x - computeColumnX(index, frameCenterX)),
+  }));
+  candidates.sort((a, b) => a.dist - b.dist);
+  return candidates[0]?.id ?? 'in_progress';
+}
+
+async function upsertMiroItemMap(
+  supabase: ReturnType<typeof createClient>,
+  args: {
+    boardId: string;
+    projectId: string;
+    itemType: string;
+    miroItemId: string;
+    fieldKey?: string | null;
+    versionNumber?: number | null;
+  }
+) {
+  const { error } = await supabase.from('miro_item_map').upsert(
+    {
+      board_id: args.boardId,
+      project_id: args.projectId,
+      item_type: args.itemType,
+      miro_item_id: args.miroItemId,
+      field_key: args.fieldKey ?? null,
+      version_number: args.versionNumber ?? null,
+    },
+    { onConflict: 'board_id,miro_item_id' }
+  );
+
+  if (error) {
+    throw new Error(`miro_item_map_upsert_failed:${error.message}`);
+  }
+}
+
+async function getMappedItem(
+  supabase: ReturnType<typeof createClient>,
+  boardId: string,
+  miroItemId: string
+) {
+  const { data, error } = await supabase
+    .from('miro_item_map')
+    .select('project_id, item_type, field_key, version_number')
+    .eq('board_id', boardId)
+    .eq('miro_item_id', miroItemId)
+    .maybeSingle();
+
+  if (error) throw new Error(`miro_item_map_lookup_failed:${error.message}`);
+  return data;
+}
+
+async function getProjectMappingItems(
+  supabase: ReturnType<typeof createClient>,
+  projectId: string
+) {
+  const { data, error } = await supabase
+    .from('miro_item_map')
+    .select('miro_item_id, item_type, field_key, version_number')
+    .eq('project_id', projectId);
+  if (error) throw new Error(`miro_item_map_list_failed:${error.message}`);
+  return data ?? [];
+}
+
+async function syncProjectRow(args: {
+  supabase: ReturnType<typeof createClient>;
+  accessToken: string;
+  boardId: string;
+  project: {
+    id: string;
+    name: string;
+    status: string;
+    briefing?: Record<string, unknown> | null;
+  };
+  frames: MiroFrame[];
+  timelineFrame: MiroFrame | null;
+}) {
+  const { supabase, accessToken, boardId, project, frames, timelineFrame } = args;
+  const mappingItems = await getProjectMappingItems(supabase, project.id);
+
+  const briefingMap = mappingItems.find((item) => item.item_type === 'briefing_frame');
+  const versionMap = mappingItems.find((item) => item.item_type === 'version_frame' && item.version_number === 1);
+  const briefingFields = mappingItems.filter((item) => item.item_type === 'briefing_field');
+
+  const normalizedName = project.name.trim().toLowerCase();
+  let briefingFrameId = briefingMap?.miro_item_id ?? null;
+  let versionFrameId = versionMap?.miro_item_id ?? null;
+
+  if (!briefingFrameId) {
+    const existingBriefing = frames.find((f) => {
+      const title = f.data?.title?.toLowerCase() ?? '';
+      return title.includes('briefing') && title.startsWith(normalizedName);
+    });
+    if (existingBriefing) briefingFrameId = existingBriefing.id;
+  }
+
+  if (!versionFrameId) {
+    const existingVersion = frames.find((f) => {
+      const title = f.data?.title?.toLowerCase() ?? '';
+      return title.includes('version') && title.startsWith(normalizedName);
+    });
+    if (existingVersion) versionFrameId = existingVersion.id;
+  }
+
+  if (briefingFrameId && !briefingMap) {
+    await upsertMiroItemMap(supabase, {
+      boardId,
+      projectId: project.id,
+      itemType: 'briefing_frame',
+      miroItemId: briefingFrameId,
+    });
+  }
+
+  if (versionFrameId && !versionMap) {
+    await upsertMiroItemMap(supabase, {
+      boardId,
+      projectId: project.id,
+      itemType: 'version_frame',
+      miroItemId: versionFrameId,
+      versionNumber: 1,
+    });
+  }
+
+  const frameWidth = timelineFrame?.geometry?.width ?? TIMELINE.FRAME_WIDTH;
+  const frameHeight = timelineFrame?.geometry?.height ?? TIMELINE.FRAME_HEIGHT;
+  const timelineCenterX = timelineFrame?.position?.x ?? 0;
+  const timelineCenterY = timelineFrame?.position?.y ?? 0;
+  const timelineRightEdge = timelineCenterX + frameWidth / 2;
+  const timelineTopY = timelineCenterY - frameHeight / 2;
+
+  const baseX = timelineRightEdge + TIMELINE.GAP_TO_PROJECTS + FRAME.WIDTH / 2;
+
+  let nextY = timelineTopY + FRAME.HEIGHT / 2;
+  const briefingFrames = frames.filter((f) => (f.data?.title ?? '').includes('BRIEFING'));
+  if (briefingFrames.length > 0) {
+    const lowestBottom = Math.max(
+      ...briefingFrames.map((f) => {
+        const height = f.geometry?.height ?? FRAME.HEIGHT;
+        const centerY = f.position?.y ?? 0;
+        return centerY + height / 2;
+      })
+    );
+    nextY = lowestBottom + FRAME.ROW_GAP + FRAME.HEIGHT / 2;
+  }
+
+  if (!briefingFrameId) {
+    if (briefingFrames.length === 0) {
+      await miroCreateText(accessToken, boardId, {
+        content: '<b>Projects Overview</b>',
+        x: baseX,
+        y: nextY - 40,
+        width: 220,
+        style: { fontSize: '18', textAlign: 'left' },
+      });
+    }
+
+    const existingCount = briefingFrames.length;
+    const now = new Date();
+    const projectTag = `[PROJ-${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(existingCount + 1).padStart(3, '0')}]`;
+
+    const briefingRes = await miroCreateFrame(accessToken, boardId, {
+      title: `${project.name} - BRIEFING ${projectTag}`,
+      x: baseX,
+      y: nextY,
+      width: FRAME.WIDTH,
+      height: FRAME.HEIGHT,
+    });
+
+    const versionRes = await miroCreateFrame(accessToken, boardId, {
+      title: `${project.name} - VERSION 1 ${projectTag}`,
+      x: baseX + FRAME.WIDTH + FRAME.GAP,
+      y: nextY,
+      width: FRAME.WIDTH,
+      height: FRAME.HEIGHT,
+    });
+
+    briefingFrameId = briefingRes.data.id;
+    versionFrameId = versionRes.data.id;
+
+    await upsertMiroItemMap(supabase, {
+      boardId,
+      projectId: project.id,
+      itemType: 'briefing_frame',
+      miroItemId: briefingFrameId,
+    });
+
+    await upsertMiroItemMap(supabase, {
+      boardId,
+      projectId: project.id,
+      itemType: 'version_frame',
+      miroItemId: versionFrameId,
+      versionNumber: 1,
+    });
+
+    const briefing = (project.briefing ?? {}) as Record<string, unknown>;
+    const top = nextY - FRAME.HEIGHT / 2;
+    const headerY = top + BRIEFING.PADDING + BRIEFING.HEADER_HEIGHT / 2;
+
+    await miroCreateShape(accessToken, boardId, {
+      shape: 'rectangle',
+      content: `<p><b>${escapeHtml(project.name.toUpperCase())} - BRIEFING</b></p>`,
+      x: baseX,
+      y: headerY,
+      width: FRAME.WIDTH - BRIEFING.PADDING * 2,
+      height: BRIEFING.HEADER_HEIGHT,
+      style: {
+        fillColor: '#000000',
+        borderColor: 'transparent',
+        borderWidth: 0,
+        fontColor: '#FFFFFF',
+        fontSize: 11,
+      },
+    });
+
+    const { COLS, CELL_WIDTH, CELL_HEIGHT, CELL_GAP } = BRIEFING.FORM;
+    const gridWidth = COLS * CELL_WIDTH + (COLS - 1) * CELL_GAP;
+    const gridStartX = baseX - gridWidth / 2 + CELL_WIDTH / 2;
+    const formStartY = headerY + BRIEFING.HEADER_HEIGHT / 2 + 20;
+
+    for (const field of BRIEFING_FIELDS) {
+      const cellX = gridStartX + field.col * (CELL_WIDTH + CELL_GAP);
+      const cellY = formStartY + field.row * (CELL_HEIGHT + CELL_GAP) + CELL_HEIGHT / 2;
+      const rawValue = briefing[field.key];
+      const value = typeof rawValue === 'string' ? rawValue.trim() : '';
+      const hasValue = Boolean(value);
+      const display = hasValue ? escapeHtml(value) : 'NEEDS ATTENTION!';
+
+      await miroCreateText(accessToken, boardId, {
+        content: `<b>${escapeHtml(field.label)}</b>`,
+        x: cellX,
+        y: cellY - CELL_HEIGHT / 2 - 10,
+        width: CELL_WIDTH,
+        style: { color: '#6B7280', fontSize: '9', textAlign: 'left' },
+      });
+
+      const shapeRes = await miroCreateShape(accessToken, boardId, {
+        shape: 'rectangle',
+        content: hasValue ? `<p>${display}</p>` : `<p><b>${display}</b></p>`,
+        x: cellX,
+        y: cellY,
+        width: CELL_WIDTH,
+        height: CELL_HEIGHT - 10,
+        style: {
+          fillColor: hasValue ? '#FFFFFF' : '#FEE2E2',
+          borderColor: '#E5E7EB',
+          borderWidth: 1,
+          fontColor: hasValue ? '#000000' : '#EF4444',
+          fontSize: 10,
+          textAlign: hasValue ? 'left' : 'center',
+        },
+      });
+
+      await upsertMiroItemMap(supabase, {
+        boardId,
+        projectId: project.id,
+        itemType: 'briefing_field',
+        miroItemId: shapeRes.data.id,
+        fieldKey: field.key,
+      });
+    }
+
+    await miroCreateText(accessToken, boardId, {
+      content: '<b>VERSION 1</b>',
+      x: baseX + FRAME.WIDTH + FRAME.GAP,
+      y: headerY,
+      width: 200,
+      style: { fontSize: '12', textAlign: 'center' },
+    });
+  } else if (briefingFields.length > 0) {
+    const briefing = (project.briefing ?? {}) as Record<string, unknown>;
+    for (const field of briefingFields) {
+      const rawValue = briefing[field.field_key ?? ''] ?? '';
+      const value = typeof rawValue === 'string' ? rawValue.trim() : '';
+      const hasValue = Boolean(value);
+      const display = hasValue ? escapeHtml(value) : 'NEEDS ATTENTION!';
+      try {
+        await miroUpdateShape(accessToken, boardId, field.miro_item_id, {
+          content: hasValue ? `<p>${display}</p>` : `<p><b>${display}</b></p>`,
+          style: {
+            fillColor: hasValue ? '#FFFFFF' : '#FEE2E2',
+            borderColor: '#E5E7EB',
+            borderWidth: 1,
+            fontColor: hasValue ? '#000000' : '#EF4444',
+            fontSize: 10,
+            textAlign: hasValue ? 'left' : 'center',
+          },
+        });
+      } catch {
+        // Best-effort updates; ignore missing items.
+      }
+    }
+  }
 }
 
 function normalizeClaimResult(raw: unknown): SyncJob | null {
@@ -359,6 +762,9 @@ serve(async (req) => {
   const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
   const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
   const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
+  const miroClientId = Deno.env.get('MIRO_CLIENT_ID') ?? '';
+  const miroClientSecret = Deno.env.get('MIRO_CLIENT_SECRET') ?? '';
+  const miroEncryptionKey = Deno.env.get('MIRO_TOKEN_ENCRYPTION_KEY') ?? '';
   if (!supabaseUrl || !serviceRoleKey || !anonKey) {
     return json({ error: 'missing_env' }, { status: 500, headers: corsHeaders() });
   }
@@ -445,7 +851,7 @@ serve(async (req) => {
 
         const { data: project, error: projErr } = await supabase
           .from('projects')
-          .select('id, name, status, priority, due_date, due_date_approved, miro_board_id, miro_card_id, sync_status')
+          .select('id, name, status, priority, due_date, due_date_approved, miro_board_id, miro_card_id, sync_status, briefing')
           .eq('id', typedJob.project_id)
           .maybeSingle();
         if (projErr || !project) {
@@ -465,7 +871,24 @@ serve(async (req) => {
         }
 
         const jobToken = safeString((typedJob.payload ?? ({} as Record<string, unknown>)).miroAccessToken);
-        const miroAccessToken = jobToken ?? requestMiroToken;
+        let miroAccessToken = jobToken ?? requestMiroToken;
+        if (!miroAccessToken && boardId && miroClientId && miroClientSecret && miroEncryptionKey) {
+          try {
+            const tokenRes = await getMiroAccessToken(supabase, {
+              boardId,
+              clientId: miroClientId,
+              clientSecret: miroClientSecret,
+              encryptionKey: miroEncryptionKey,
+            });
+            miroAccessToken = tokenRes.accessToken;
+          } catch (err) {
+            const msg = err instanceof Error ? err.message : String(err);
+            const delay = retryDelaySeconds(typedJob.attempt_count);
+            await rpcOrThrow(supabase, 'fail_sync_job', { p_job_id: typedJob.id, p_error: msg, p_retry_delay_seconds: delay });
+            results.push({ jobId: typedJob.id, type: typedJob.job_type, projectId: project.id, boardId, result: 'requeued', details: msg });
+            continue;
+          }
+        }
         if (!miroAccessToken) {
           const msg = 'missing_miro_access_token';
           const delay = retryDelaySeconds(typedJob.attempt_count);
@@ -498,18 +921,16 @@ serve(async (req) => {
 
         // Ensure timeline frame exists (best-effort)
         const framesRes = await miroListFrames(miroAccessToken, boardId);
-        if (framesRes.ok) {
-          const frames = framesRes.data.data ?? [];
-          const timeline = findTimelineFrame(frames);
-          if (!timeline) {
-            await miroCreateFrame(miroAccessToken, boardId, {
-              title: 'MASTER TIMELINE',
-              x: 0,
-              y: 0,
-              width: TIMELINE.FRAME_WIDTH,
-              height: TIMELINE.FRAME_HEIGHT,
-            });
-          }
+        const frames = framesRes.ok ? (framesRes.data.data ?? []) : [];
+        const timeline = framesRes.ok ? findTimelineFrame(frames) : null;
+        if (framesRes.ok && !timeline) {
+          await miroCreateFrame(miroAccessToken, boardId, {
+            title: 'MASTER TIMELINE',
+            x: 0,
+            y: 0,
+            width: TIMELINE.FRAME_WIDTH,
+            height: TIMELINE.FRAME_HEIGHT,
+          });
         }
 
         const status = mapProjectToTimelineStatus({
@@ -544,8 +965,10 @@ serve(async (req) => {
         const description = marker;
         const dueDate = normalizeDateToYYYYMMDD(project.due_date as string | null);
 
-        const targetX = computeColumnX(colIndex);
-        let targetY = computeFirstCardY();
+        const frameCenterX = timeline?.position?.x ?? 0;
+        const frameCenterY = timeline?.position?.y ?? 0;
+        const targetX = computeColumnX(colIndex, frameCenterX);
+        let targetY = computeFirstCardY(frameCenterY);
 
         // If updating an existing card in the same column, keep its Y.
         if (existingByMarker) {
@@ -638,6 +1061,38 @@ serve(async (req) => {
           miroOp = 'created';
         }
 
+        await upsertMiroItemMap(supabase, {
+          boardId,
+          projectId: project.id as string,
+          itemType: 'timeline_card',
+          miroItemId: cardId,
+        });
+
+        try {
+          await syncProjectRow({
+            supabase,
+            accessToken: miroAccessToken,
+            boardId,
+            project: {
+              id: project.id as string,
+              name: project.name as string,
+              status: project.status as string,
+              briefing: (project.briefing as Record<string, unknown> | null) ?? {},
+            },
+            frames,
+            timelineFrame: timeline,
+          });
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          const msg = `miro_project_row_failed:${message}`;
+          if (syncLogId) await rpcOrThrow(supabase, 'complete_sync_log', { p_sync_id: syncLogId, p_status: 'error', p_error_message: msg, p_error_category: 'miro_api_error' });
+          await supabase.from('projects').update({ sync_status: 'sync_error', sync_error_message: msg, last_sync_attempt: nowIso() }).eq('id', project.id);
+          const delay = retryDelaySeconds(typedJob.attempt_count);
+          await rpcOrThrow(supabase, 'fail_sync_job', { p_job_id: typedJob.id, p_error: msg, p_retry_delay_seconds: delay });
+          results.push({ jobId: typedJob.id, type: typedJob.job_type, projectId: project.id, boardId, result: 'requeued', details: msg });
+          continue;
+        }
+
         await supabase
           .from('projects')
           .update({
@@ -646,6 +1101,7 @@ serve(async (req) => {
             sync_status: 'synced',
             last_synced_at: nowIso(),
             last_sync_attempt: nowIso(),
+            last_miro_outbound_at: nowIso(),
             sync_error_message: null,
             sync_retry_count: 0,
           })
@@ -667,6 +1123,189 @@ serve(async (req) => {
 
         await rpcOrThrow(supabase, 'complete_sync_job', { p_job_id: typedJob.id, p_success: true, p_error: null });
         results.push({ jobId: typedJob.id, type: typedJob.job_type, projectId: project.id, boardId, result: 'succeeded', details: `miro:${miroOp}:${cardId}` });
+        continue;
+      }
+
+      if (typedJob.job_type === 'miro_item_sync') {
+        const boardId = typedJob.board_id;
+        if (!boardId) {
+          const msg = 'miro_item_sync_missing_board_id';
+          await rpcOrThrow(supabase, 'complete_sync_job', { p_job_id: typedJob.id, p_success: false, p_error: msg });
+          results.push({ jobId: typedJob.id, type: typedJob.job_type, projectId: null, boardId: null, result: 'failed', details: msg });
+          continue;
+        }
+
+        if (!miroClientId || !miroClientSecret || !miroEncryptionKey) {
+          const msg = 'missing_miro_oauth_env';
+          const delay = retryDelaySeconds(typedJob.attempt_count);
+          await rpcOrThrow(supabase, 'fail_sync_job', { p_job_id: typedJob.id, p_error: msg, p_retry_delay_seconds: delay });
+          results.push({ jobId: typedJob.id, type: typedJob.job_type, projectId: null, boardId, result: 'requeued', details: msg });
+          continue;
+        }
+
+        let miroAccessToken: string;
+        try {
+          const tokenRes = await getMiroAccessToken(supabase, {
+            boardId,
+            clientId: miroClientId,
+            clientSecret: miroClientSecret,
+            encryptionKey: miroEncryptionKey,
+          });
+          miroAccessToken = tokenRes.accessToken;
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          const delay = retryDelaySeconds(typedJob.attempt_count);
+          await rpcOrThrow(supabase, 'fail_sync_job', { p_job_id: typedJob.id, p_error: msg, p_retry_delay_seconds: delay });
+          results.push({ jobId: typedJob.id, type: typedJob.job_type, projectId: null, boardId, result: 'requeued', details: msg });
+          continue;
+        }
+
+        const payload = (typedJob.payload ?? {}) as Record<string, unknown>;
+        const itemId = safeString(payload.itemId ?? payload.item_id ?? payload.itemID ?? null);
+        const itemType = safeString(payload.itemType ?? payload.item_type ?? null);
+        const eventType = safeString(payload.eventType ?? payload.event_type ?? payload.type ?? null);
+        const eventAt = safeString(payload.eventAt ?? payload.event_time ?? payload.eventTime ?? null) ?? nowIso();
+
+        if (!itemId) {
+          await rpcOrThrow(supabase, 'complete_sync_job', { p_job_id: typedJob.id, p_success: true, p_error: 'missing_item_id' });
+          results.push({ jobId: typedJob.id, type: typedJob.job_type, projectId: null, boardId, result: 'skipped', details: 'missing_item_id' });
+          continue;
+        }
+
+        const isDeleteEvent = eventType?.includes('delete') ?? false;
+        let itemDetails: Record<string, unknown> | null = null;
+
+        if (!isDeleteEvent) {
+          const res = await miroGetItem(miroAccessToken, boardId, itemId);
+          if (!res.ok && res.status === 404) {
+            itemDetails = null;
+          } else if (!res.ok) {
+            const msg = `miro_item_fetch_failed:${res.status}:${res.message}`;
+            const delay = retryDelaySeconds(typedJob.attempt_count);
+            await rpcOrThrow(supabase, 'fail_sync_job', { p_job_id: typedJob.id, p_error: msg, p_retry_delay_seconds: delay });
+            results.push({ jobId: typedJob.id, type: typedJob.job_type, projectId: null, boardId, result: 'requeued', details: msg });
+            continue;
+          } else {
+            itemDetails = res.data;
+          }
+        }
+
+        const itemData = (itemDetails?.data ?? {}) as Record<string, unknown>;
+        const itemPos = (itemDetails?.position ?? {}) as Record<string, unknown>;
+        const description = typeof itemData.description === 'string' ? itemData.description : '';
+        const inferredProjectId = extractProjectIdFromDescription(description);
+
+        let projectId = inferredProjectId;
+        let mappedItem: { project_id: string; item_type: string; field_key: string | null } | null = null;
+        if (!projectId) {
+          try {
+            const mapping = await getMappedItem(supabase, boardId, itemId);
+            if (mapping) {
+              projectId = mapping.project_id as string;
+              mappedItem = {
+                project_id: mapping.project_id as string,
+                item_type: mapping.item_type as string,
+                field_key: mapping.field_key as string | null,
+              };
+            }
+          } catch {
+            // ignore mapping lookup failures
+          }
+        }
+
+        if (!projectId) {
+          await rpcOrThrow(supabase, 'complete_sync_job', { p_job_id: typedJob.id, p_success: true, p_error: null });
+          results.push({ jobId: typedJob.id, type: typedJob.job_type, projectId: null, boardId, result: 'skipped', details: 'unknown_item' });
+          continue;
+        }
+
+        const { data: projectRow, error: projectErr } = await supabase
+          .from('projects')
+          .select('id, status, priority, due_date, briefing, last_miro_outbound_at')
+          .eq('id', projectId)
+          .maybeSingle();
+
+        if (projectErr || !projectRow) {
+          await rpcOrThrow(supabase, 'complete_sync_job', { p_job_id: typedJob.id, p_success: true, p_error: 'project_not_found' });
+          results.push({ jobId: typedJob.id, type: typedJob.job_type, projectId, boardId, result: 'skipped', details: 'project_not_found' });
+          continue;
+        }
+
+        const outboundAt = projectRow.last_miro_outbound_at as string | null;
+        if (outboundAt) {
+          const outboundMs = new Date(outboundAt).getTime();
+          const eventMs = new Date(eventAt).getTime();
+          if (!Number.isNaN(outboundMs) && !Number.isNaN(eventMs) && eventMs <= outboundMs + 10000) {
+            await rpcOrThrow(supabase, 'complete_sync_job', { p_job_id: typedJob.id, p_success: true, p_error: null });
+            results.push({ jobId: typedJob.id, type: typedJob.job_type, projectId, boardId, result: 'skipped', details: 'echo_event' });
+            continue;
+          }
+        }
+
+        if (isDeleteEvent || !itemDetails) {
+          await supabase
+            .from('projects')
+            .update({ miro_card_id: null, sync_status: 'pending', sync_error_message: 'Miro item deleted', last_miro_inbound_at: nowIso() })
+            .eq('id', projectId);
+          await supabase.from('miro_item_map').delete().eq('board_id', boardId).eq('miro_item_id', itemId);
+          await rpcOrThrow(supabase, 'complete_sync_job', { p_job_id: typedJob.id, p_success: true, p_error: null });
+          results.push({ jobId: typedJob.id, type: typedJob.job_type, projectId, boardId, result: 'succeeded', details: 'deleted_item_handled' });
+          continue;
+        }
+
+        const inferredType = itemType ?? (itemDetails?.type as string | undefined) ?? '';
+        if (inferredType === 'card') {
+          const x = Number(itemPos.x ?? 0);
+          const timelineFrameRes = await miroListFrames(miroAccessToken, boardId);
+          const timelineFrame = timelineFrameRes.ok ? findTimelineFrame(timelineFrameRes.data.data ?? []) : null;
+          const centerX = timelineFrame?.position?.x ?? 0;
+          const status = inferStatusFromCardX(x, centerX);
+          const dueDateRaw = typeof itemData.dueDate === 'string' ? itemData.dueDate : null;
+          const dueDateIso = normalizeDueDateToIso(dueDateRaw);
+
+          await supabase
+            .from('projects')
+            .update({
+              status,
+              due_date: dueDateIso,
+              due_date_approved: true,
+              miro_card_id: itemId,
+              sync_status: 'synced',
+              sync_error_message: null,
+              last_miro_inbound_at: nowIso(),
+            })
+            .eq('id', projectId);
+
+          try {
+            await upsertMiroItemMap(supabase, {
+              boardId,
+              projectId,
+              itemType: 'timeline_card',
+              miroItemId: itemId,
+            });
+          } catch {
+            // Mapping is best-effort for inbound updates.
+          }
+
+          await rpcOrThrow(supabase, 'complete_sync_job', { p_job_id: typedJob.id, p_success: true, p_error: null });
+          results.push({ jobId: typedJob.id, type: typedJob.job_type, projectId, boardId, result: 'succeeded', details: 'card_update' });
+          continue;
+        }
+
+        const mapping = mappedItem ?? (await getMappedItem(supabase, boardId, itemId));
+        if (mapping && mapping.item_type === 'briefing_field') {
+          const content = stripHtml(typeof itemData.content === 'string' ? itemData.content : '');
+          const briefing = (projectRow.briefing ?? {}) as Record<string, unknown>;
+          if (mapping.field_key) briefing[mapping.field_key] = content || null;
+
+          await supabase
+            .from('projects')
+            .update({ briefing, last_miro_inbound_at: nowIso() })
+            .eq('id', projectId);
+        }
+
+        await rpcOrThrow(supabase, 'complete_sync_job', { p_job_id: typedJob.id, p_success: true, p_error: null });
+        results.push({ jobId: typedJob.id, type: typedJob.job_type, projectId, boardId, result: 'succeeded', details: 'item_update' });
         continue;
       }
 

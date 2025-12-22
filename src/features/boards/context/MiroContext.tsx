@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { supabase } from '@shared/lib/supabase';
 // Logger removed - using console.log for debug visibility in Miro panel

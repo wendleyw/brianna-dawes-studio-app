@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
 import { supabase } from '@shared/lib/supabase';
 import { useAuth } from '@features/auth';

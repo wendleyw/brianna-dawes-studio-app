@@ -28,6 +28,7 @@ interface BoardClientInfo {
 }
 
 const logger = createLogger('ProjectsPage');
+const EMPTY_PROJECTS: Project[] = [];
 
 // Project types for filtering (matching NewProjectPage)
 const PROJECT_TYPES = [
@@ -262,7 +263,7 @@ export function ProjectsPage() {
     }
 
     fetchBoardClient();
-  }, [miro, user?.id, user?.role]);
+  }, [miro, isInMiro, user?.id, user?.role]);
 
   // Get selected project from URL
   const selectedProjectId = searchParams.get('selected');
@@ -317,7 +318,7 @@ export function ProjectsPage() {
   // Sort priority:
   // - Admin/Creative Director: CLIENT APPROVED first (action needed), then urgency, DONE last
   // - Client: REVIEW first (action needed), then urgency, DONE last
-  const allProjects = projectsData?.data || [];
+  const allProjects = useMemo(() => projectsData?.data ?? EMPTY_PROJECTS, [projectsData?.data]);
   const projects = useMemo(() => {
     let filtered = allProjects;
 

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef, ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { AuthContext } from './AuthContext';
 import { authService } from '../services/authService';
@@ -79,6 +79,11 @@ interface AuthProviderProps {
 export function AuthProvider({ children }: AuthProviderProps) {
   const [state, setState] = useState<AuthState>(initialState);
   const queryClient = useQueryClient();
+  const userRef = useRef<AuthUser | null>(null);
+
+  useEffect(() => {
+    userRef.current = state.user;
+  }, [state.user]);
 
   useEffect(() => {
     const initializeAuth = async () => {
@@ -246,7 +251,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         if (session) {
           // SECURITY: Re-validate user role on token refresh
           // This ensures that if an admin removes a user's role, they lose access
-          const currentUser = state.user;
+          const currentUser = userRef.current;
           if (currentUser) {
             const userCheck = await verifyUserExists(currentUser.id);
 

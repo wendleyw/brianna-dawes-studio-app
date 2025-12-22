@@ -10,6 +10,7 @@ import { projectKeys } from '../services/projectKeys';
 import { useMiro } from '@features/boards';
 import { miroTimelineService, miroProjectRowService } from '@features/boards/services/miroSdkService';
 import { projectSyncOrchestrator } from '@features/boards/services/projectSyncOrchestrator';
+import { syncJobQueueService } from '@features/boards/services/syncJobQueueService';
 import { MiroNotifications } from '@shared/lib/miroNotifications';
 import { createLogger } from '@shared/lib/logger';
 import type { CreateProjectInput, UpdateProjectInput, Project, ProjectBriefing } from '../domain/project.types';
@@ -71,6 +72,15 @@ export function useCreateProjectWithMiro() {
           id: project.id,
           miroBoardId: project.miroBoardId,
         });
+        try {
+          await syncJobQueueService.enqueue('project_sync', {
+            projectId: project.id,
+            payload: { source: 'db_create_skip' },
+            ...(project.miroBoardId ? { boardId: project.miroBoardId } : {}),
+          });
+        } catch (err) {
+          logger.warn('Failed to enqueue sync job after DB create (skip)', err);
+        }
         await MiroNotifications.showInfo(`Project created! It will appear on the client's board when you open it.`);
         return project;
       }
@@ -110,6 +120,16 @@ export function useCreateProjectWithMiro() {
       logger.debug('Not in Miro environment, creating project in DB only');
       const project = await projectService.createProject({ ...projectInput, briefing });
       logger.info('Project created in DB (no Miro sync)', { id: project.id });
+
+      try {
+        await syncJobQueueService.enqueue('project_sync', {
+          projectId: project.id,
+          payload: { source: 'db_create' },
+          ...(project.miroBoardId ? { boardId: project.miroBoardId } : {}),
+        });
+      } catch (err) {
+        logger.warn('Failed to enqueue sync job after DB create', err);
+      }
 
       return project;
     },
@@ -168,6 +188,16 @@ export function useUpdateProjectWithMiro() {
       // Not in Miro - just update in database
       logger.debug('Not in Miro, updating project in DB only');
       const project = await projectService.updateProject(id, input);
+
+      try {
+        await syncJobQueueService.enqueue('project_sync', {
+          projectId: project.id,
+          payload: { source: 'db_update' },
+          ...(project.miroBoardId ? { boardId: project.miroBoardId } : {}),
+        });
+      } catch (err) {
+        logger.warn('Failed to enqueue sync job after DB update', err);
+      }
 
       return project;
     },

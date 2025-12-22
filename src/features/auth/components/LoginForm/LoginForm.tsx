@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Logo } from '@shared/ui';
 import { useAuth } from '../../hooks/useAuth';
@@ -25,15 +25,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
   // Use ref to track if auth has been attempted (prevents infinite loop)
   const authAttempted = useRef(false);
 
-  // Auto-authenticate when running inside Miro (only once)
-  useEffect(() => {
-    if (miroReady && isInMiro && !authAttempted.current) {
-      authAttempted.current = true;
-      handleMiroAuth();
-    }
-  }, [miroReady, isInMiro]);
-
-  const handleMiroAuth = async () => {
+  const handleMiroAuth = useCallback(async () => {
     setIsAuthenticating(true);
     setAuthError(null);
     setAccessDenied(false);
@@ -79,7 +71,15 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
       setAuthError(errorMessage);
       setIsAuthenticating(false);
     }
-  };
+  }, [authenticateFromMiro, currentBoardId, navigate, onSuccess]);
+
+  // Auto-authenticate when running inside Miro (only once)
+  useEffect(() => {
+    if (miroReady && isInMiro && !authAttempted.current) {
+      authAttempted.current = true;
+      handleMiroAuth();
+    }
+  }, [miroReady, isInMiro, handleMiroAuth]);
 
   const handleMiroOAuth = async () => {
     try {
