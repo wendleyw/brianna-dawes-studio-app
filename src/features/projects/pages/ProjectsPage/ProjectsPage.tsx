@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { SplashScreen } from '@shared/ui';
+import { DashboardIcon, FilterIcon, SearchIcon } from '@shared/ui/Icons';
 import { useAuth } from '@features/auth';
 import logoImage from '../../../../assets/brand/logo-brianna.png';
 import { useMiro, zoomToProject, addVersionToProject } from '@features/boards';
@@ -15,7 +16,7 @@ import { onProjectChange, broadcastProjectChange } from '@shared/lib/projectBroa
 import { useRealtimeSubscription } from '@shared/hooks/useRealtimeSubscription';
 import { projectService } from '../../services/projectService';
 import { supabase } from '@shared/lib/supabase';
-import { env, SYNC_TIMING, UI_TIMING } from '@shared/config';
+import { SYNC_TIMING, UI_TIMING } from '@shared/config';
 import type { ProjectFilters as ProjectFiltersType, Project, ProjectStatus, UpdateProjectInput } from '../../domain/project.types';
 import styles from './ProjectsPage.module.css';
 
@@ -57,12 +58,15 @@ export function ProjectsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [timelineFilter, setTimelineFilter] = useState<TimelineStatus | ''>('');
   const [projectTypeFilter, setProjectTypeFilter] = useState<string>('');
+  const [dueThisWeekOnly, setDueThisWeekOnly] = useState(false);
   // Initialize selectedClientId from URL param (passed from Dashboard)
   const [selectedClientId, setSelectedClientId] = useState<string | null>(() => {
     return searchParams.get('clientId');
   });
   const [boardClient, setBoardClient] = useState<BoardClientInfo | null>(null);
   const [currentBoardId, setCurrentBoardId] = useState<string | null>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const filtersRef = useRef<HTMLDivElement>(null);
 
   // Splash screen state - only show once per session
   const [showSplash, setShowSplash] = useState(() => {
@@ -332,6 +336,17 @@ export function ProjectsPage() {
       filtered = filtered.filter(p => p.briefing?.projectType === projectTypeFilter);
     }
 
+    if (dueThisWeekOnly) {
+      const now = new Date();
+      const end = new Date();
+      end.setDate(now.getDate() + 7);
+      filtered = filtered.filter((project) => {
+        if (!project.dueDate || project.dueDateApproved === false) return false;
+        const due = new Date(project.dueDate);
+        return due >= now && due <= end;
+      });
+    }
+
     const isAdmin = user?.role === 'admin';
     const isClient = user?.role === 'client';
 
@@ -400,7 +415,8 @@ export function ProjectsPage() {
       // Otherwise sort by updatedAt (most recent first)
       return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
     });
-  }, [allProjects, timelineFilter, projectTypeFilter, user?.role]);
+
+  }, [allProjects, timelineFilter, projectTypeFilter, dueThisWeekOnly, user?.role]);
 
   const totalProjects = projects.length;
 
@@ -708,45 +724,61 @@ export function ProjectsPage() {
 
       {/* Header */}
       <header className={styles.header}>
-        {hasClientBranding ? (
-          // Personalized client header: [Client Logo] [Client Name] | [Brianna Video Logo]
-          <>
-            <div className={styles.headerLeft}>
-              {boardClient.companyLogoUrl ? (
-                <img
-                  src={boardClient.companyLogoUrl}
-                  alt={boardClient.companyName || 'Company'}
-                  className={styles.clientLogo}
-                />
-              ) : (
-                <div className={styles.clientLogoPlaceholder}>
-                  {(boardClient.companyName || boardClient.name || 'C').charAt(0).toUpperCase()}
-                </div>
-              )}
-              <div className={styles.headerInfo}>
-                <h1 className={styles.brandName}>{boardClient.companyName?.toUpperCase() || boardClient.name?.toUpperCase()}</h1>
-                <span className={styles.projectCount}>{totalProjects} projects</span>
-              </div>
-            </div>
-            <div className={styles.headerDivider} />
-            <div className={styles.headerRight}>
-              <video
-                src={env.brand.logoVideoUrl}
-                autoPlay
-                muted
-                playsInline
-                className={styles.partnerLogoVideo}
-              />
-            </div>
-          </>
-        ) : (
-          <div className={styles.headerLeft}>
-            <div className={styles.headerInfo}>
-              <h1 className={styles.brandName}>Projects</h1>
-              <span className={styles.projectCount}>{totalProjects} projects</span>
-            </div>
+        <div className={styles.headerTop}>
+          <button
+            className={styles.iconButton}
+            type="button"
+            aria-label="Back to dashboard"
+            onClick={() => navigate('/dashboard')}
+          >
+            <DashboardIcon size={18} />
+          </button>
+          <div className={styles.headerBrand}>
+            {hasClientBranding ? (
+              <>
+                {boardClient.companyLogoUrl ? (
+                  <img
+                    src={boardClient.companyLogoUrl}
+                    alt={boardClient.companyName || 'Company'}
+                    className={styles.clientLogo}
+                  />
+                ) : (
+                  <div className={styles.clientLogoPlaceholder}>
+                    {(boardClient.companyName || boardClient.name || 'C').charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <span className={styles.brandName}>
+                  {boardClient.companyName || boardClient.name}
+                </span>
+              </>
+            ) : (
+              <span className={styles.brandName}>BD Studios</span>
+            )}
           </div>
-        )}
+          <button
+            className={styles.iconButton}
+            type="button"
+            aria-label="Search projects"
+            onClick={() => searchInputRef.current?.focus()}
+          >
+            <SearchIcon size={18} />
+          </button>
+        </div>
+        <div className={styles.headerBottom}>
+          <div className={styles.titleGroup}>
+            <h1 className={styles.pageTitle}>Dashboard</h1>
+            <p className={styles.pageSubtitle}>Overview of active initiatives</p>
+            <span className={styles.projectCount}>{totalProjects} projects</span>
+          </div>
+          <button
+            className={styles.iconButtonPrimary}
+            type="button"
+            aria-label="Jump to filters"
+            onClick={() => filtersRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+          >
+            <FilterIcon size={18} />
+          </button>
+        </div>
       </header>
 
       {/* Master Board Badge - show when on Master Board OR when filtering by client */}
@@ -759,11 +791,21 @@ export function ProjectsPage() {
         </div>
       )}
 
-      {/* Client Filter (on Master Board OR when filtering by client) */}
-      {(isMasterBoard || selectedClientId) && clientsForFilter && clientsForFilter.length > 0 && (
-        <div className={styles.clientFilterRow}>
+      <div className={styles.searchRow}>
+        <input
+          ref={searchInputRef}
+          type="text"
+          className={styles.searchInput}
+          placeholder="Search projects..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+      </div>
+
+      <div className={styles.filters} ref={filtersRef}>
+        {(isMasterBoard || selectedClientId) && clientsForFilter && clientsForFilter.length > 0 && (
           <select
-            className={styles.clientSelect}
+            className={styles.filterSelect}
             value={selectedClientId || ''}
             onChange={(e) => setSelectedClientId(e.target.value || null)}
           >
@@ -774,20 +816,9 @@ export function ProjectsPage() {
               </option>
             ))}
           </select>
-        </div>
-      )}
-
-      {/* Search and Filter */}
-      <div className={styles.searchBar}>
-        <input
-          type="text"
-          className={styles.searchInput}
-          placeholder="Search projects..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
+        )}
         <select
-          className={styles.statusSelect}
+          className={styles.filterSelect}
           value={timelineFilter}
           onChange={(e) => setTimelineFilter(e.target.value as TimelineStatus | '')}
         >
@@ -797,7 +828,7 @@ export function ProjectsPage() {
           ))}
         </select>
         <select
-          className={styles.statusSelect}
+          className={styles.filterSelect}
           value={projectTypeFilter}
           onChange={(e) => setProjectTypeFilter(e.target.value)}
         >
@@ -806,6 +837,13 @@ export function ProjectsPage() {
             <option key={type.value} value={type.value}>{type.label}</option>
           ))}
         </select>
+        <button
+          className={`${styles.filterChip} ${dueThisWeekOnly ? styles.filterChipActive : ''}`}
+          type="button"
+          onClick={() => setDueThisWeekOnly((prev) => !prev)}
+        >
+          Due this week
+        </button>
       </div>
 
       {/* Project Cards */}

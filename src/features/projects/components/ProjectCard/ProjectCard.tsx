@@ -1,10 +1,6 @@
 import { useState, useMemo, memo, useRef, useCallback } from 'react';
 import { Badge, Dialog, Input, Button, useToast } from '@shared/ui';
 import {
-  ClientIcon,
-  CalendarIcon,
-  PackageIcon,
-  EyeIcon,
   BoardIcon,
   CheckIcon,
   EditIcon,
@@ -14,7 +10,6 @@ import {
   StarIcon,
   PlusIcon,
   ExternalLinkIcon,
-  ChevronDownIcon,
   TrashIcon,
 } from '@shared/ui/Icons';
 import { useAuth } from '@features/auth';
@@ -45,6 +40,20 @@ const DriveIconImg = ({ hasLink }: { hasLink?: boolean }) => (
     style={{ opacity: hasLink ? 1 : 0.4 }}
   />
 );
+
+const ArrowRightIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <line x1="5" y1="12" x2="19" y2="12" />
+    <polyline points="12 5 19 12 12 19" />
+  </svg>
+);
+
+function toTitleCase(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
 
 /**
  * ProjectCard - Displays a project with expandable details and admin actions
@@ -138,13 +147,6 @@ export const ProjectCard = memo(function ProjectCard({
   const { data: allProjectsData } = useProjects({ skipRoleFilter: true });
   const allProjects = useMemo(() => allProjectsData?.data ?? [], [allProjectsData?.data]);
 
-  // Calculate total assets and bonus assets from deliverables
-  const assetTotals = useMemo(() => {
-    const totalAssets = deliverables.reduce((sum, d) => sum + (d.count || 0), 0);
-    const totalBonus = deliverables.reduce((sum, d) => sum + (d.bonusCount || 0), 0);
-    return { totalAssets, totalBonus };
-  }, [deliverables]);
-
   // Calculate designer workload
   const designersWithWorkload = useMemo(() => {
     return designers.map((designer: { id: string; name: string; email: string; avatarUrl?: string | null }) => {
@@ -176,11 +178,15 @@ export const ProjectCard = memo(function ProjectCard({
 
   // Get status column info (status is now direct from DB, uses color directly)
   const statusColumn = getStatusColumn(project.status);
+  const projectType = getProjectType(project);
 
   // Debug: log status
   logger.debug('Status mapping', { name: project.name, dbStatus: project.status, badge: statusColumn.label });
 
   const priority = PRIORITY_CONFIG[project.priority];
+  const statusColor = isArchived ? BADGE_COLORS.NEUTRAL : statusColumn.color;
+  const statusLabel = isArchived ? 'Archived' : toTitleCase(statusColumn.label);
+  const priorityLabel = toTitleCase(priority.label);
 
   // Calculate days left/overdue - memoized to avoid recalculation on every render
   const daysInfo = useMemo(() => {
@@ -196,6 +202,31 @@ export const ProjectCard = memo(function ProjectCard({
     if (diff === 0) return { text: 'Due today', isOverdue: false, isPending: false };
     return { text: `${diff} days left`, isOverdue: false, isPending: false };
   }, [project.dueDate, project.dueDateApproved]);
+
+  const daysMeta = useMemo(() => {
+    if (project.status === 'done') {
+      return { value: '✓', label: 'Completed', state: 'done' as const };
+    }
+    if (daysInfo?.isPending) {
+      return { value: '—', label: 'Pending', state: 'pending' as const };
+    }
+    if (!daysInfo) {
+      return { value: '—', label: 'Days Left', state: 'default' as const };
+    }
+    if (daysInfo.text.includes('today')) {
+      return { value: '0', label: 'Days Left', state: 'default' as const };
+    }
+    const number = daysInfo.text.match(/\d+/)?.[0] || '0';
+    if (daysInfo.isOverdue) {
+      return { value: number, label: 'Overdue', state: 'overdue' as const };
+    }
+    return { value: number, label: 'Days Left', state: 'default' as const };
+  }, [daysInfo, project.status]);
+
+  const cardStyle = {
+    '--status-color': statusColor,
+    '--priority-color': priority.color,
+  } as React.CSSProperties;
 
   // Calculate progress based on project status using centralized function - memoized
   const progress = useMemo(() => getStatusProgress(project.status), [project.status]);
@@ -682,7 +713,7 @@ export const ProjectCard = memo(function ProjectCard({
       className={`${styles.card} ${isSelected ? styles.selected : ''} ${isDone ? styles.done : ''}`}
       data-project-id={project.id}
       onClick={handleCardClick}
-      style={{ cursor: 'pointer' }}
+      style={{ cursor: 'pointer', ...cardStyle }}
     >
       {/* Header */}
       <div className={styles.header}>
@@ -768,104 +799,65 @@ export const ProjectCard = memo(function ProjectCard({
             </Badge>
           </div>
         )}
-        {/* Badges row: Priority | Type | Status */}
-        <div className={styles.badges}>
-          {/* 1. Priority badge */}
-          {priority && (
-            <Badge
-              color="neutral"
-              size="sm"
-              style={{ backgroundColor: priority.color, color: 'var(--color-text-inverse)', border: 'none' }}
-            >
-              {priority.label}
-            </Badge>
-          )}
-          {/* 2. Project Type badge */}
-          {(() => {
-            const projectType = getProjectType(project);
-            return projectType ? (
-              <Badge
-                color="neutral"
-                size="sm"
-                style={{ backgroundColor: projectType.color, color: 'var(--color-text-inverse)', border: 'none' }}
-              >
-                {projectType.label.toUpperCase()}
-              </Badge>
-            ) : null;
-          })()}
-          {/* 3. Status badge - uses exact color from timeline config, or ARCHIVED if archived */}
-          <Badge
-            size="sm"
-            style={{
-              backgroundColor: isArchived ? BADGE_COLORS.NEUTRAL : statusColumn.color,
-              color: 'var(--color-text-inverse)',
-              border: 'none'
-            }}
-          >
-            {isArchived ? 'ARCHIVED' : statusColumn.label}
-          </Badge>
-        </div>
       </div>
 
-      {/* Title */}
-      <h3 className={styles.title}>{project.name}</h3>
-
-      {/* Client */}
-      {project.client && (
-        <div className={styles.clientRow}>
-          <ClientIcon size={14} />
-          <span className={styles.clientName}>{project.client.name}</span>
+      <div className={styles.cardTop}>
+        <div className={styles.titleGroup}>
+          <h3 className={styles.title}>{project.name}</h3>
+          {(project.client || projectType) && (
+            <div className={styles.metaRow}>
+              {project.client && (
+                <span className={styles.clientName}>{project.client.name}</span>
+              )}
+              {projectType && (
+                <span className={styles.projectType}>{projectType.label}</span>
+              )}
+            </div>
+          )}
         </div>
-      )}
+        <span className={styles.progressPill}>{progress}%</span>
+      </div>
 
       {/* Progress Bar */}
-      <div className={styles.progressSection}>
-        <span className={styles.progressLabel}>Progress</span>
-        <span className={styles.progressValue}>{progress}%</span>
-      </div>
       <div className={styles.progressBar}>
         <div className={styles.progressFill} style={{ width: `${progress}%` }} />
       </div>
 
       {/* Stats */}
-      <div className={styles.stats}>
-        <div className={styles.statDeliverables}>
-          {deliverables.length > 0 ? (
-            <button
-              className={styles.statClickable}
-              onClick={(e) => { e.stopPropagation(); setShowDeliverables(!showDeliverables); }}
-            >
-              <PackageIcon />
-              <span className={styles.statValue}>{deliverables.length}</span>
-              <span className={styles.statLabel}>DELIVERABLES</span>
-              <ChevronDownIcon isOpen={showDeliverables} />
-            </button>
-          ) : (
-            <div className={styles.stat}>
-              <PackageIcon />
-              <span className={styles.statValue}>{project.deliverablesCount || 0}</span>
-              <span className={styles.statLabel}>DELIVERABLES</span>
-            </div>
-          )}
-          {assetTotals.totalAssets > 0 && (
-            <div className={styles.assetsRow}>
-              <span className={styles.assetsCount}>{assetTotals.totalAssets} assets</span>
-            </div>
-          )}
-        </div>
-        <div className={`${styles.stat} ${daysInfo?.isOverdue && project.status !== 'done' ? styles.overdue : ''} ${project.status === 'done' ? styles.completed : ''} ${daysInfo?.isPending ? styles.isPending : ''}`}>
-          {project.status === 'done' ? (
+      <div className={styles.statsGrid}>
+        {deliverables.length > 0 ? (
+          <button
+            className={`${styles.statCard} ${styles.statCardButton}`}
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowDeliverables(!showDeliverables);
+            }}
+          >
+            <span className={styles.statValue}>{deliverables.length}</span>
+            <span className={styles.statLabel}>Deliverables</span>
+          </button>
+        ) : (
+          <div className={styles.statCard}>
+            <span className={styles.statValue}>{project.deliverablesCount || 0}</span>
+            <span className={styles.statLabel}>Deliverables</span>
+          </div>
+        )}
+        <div
+          className={`${styles.statCard} ${
+            daysMeta.state === 'overdue' ? styles.statOverdue : ''
+          } ${daysMeta.state === 'pending' ? styles.statPending : ''} ${
+            daysMeta.state === 'done' ? styles.statDone : ''
+          }`}
+        >
+          {daysInfo?.isPending ? (
             <>
-              <CheckIcon />
-              <span className={styles.statLabel}>COMPLETED</span>
-            </>
-          ) : daysInfo?.isPending ? (
-            <>
-              <CalendarIcon size={14} />
               <div className={styles.pendingDateInfo}>
-                <span className={styles.pendingLabel}>PENDING</span>
+                <span className={styles.pendingLabel}>{daysMeta.label}</span>
                 <span className={styles.pendingDate}>
-                  {project.dueDate ? new Date(project.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}
+                  {project.dueDate
+                    ? new Date(project.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                    : ''}
                 </span>
               </div>
               {isAdmin && (
@@ -889,18 +881,22 @@ export const ProjectCard = memo(function ProjectCard({
             </>
           ) : (
             <>
-              <CalendarIcon size={14} />
-              <span className={styles.statValue}>
-                {daysInfo
-                  ? (daysInfo.isOverdue
-                      ? daysInfo.text.match(/\d+/)?.[0] || '0'
-                      : daysInfo.text.match(/\d+/)?.[0] || '—')
-                  : '—'}
-              </span>
-              <span className={styles.statLabel}>{daysInfo?.isOverdue ? 'OVERDUE' : 'DAYS LEFT'}</span>
+              <span className={styles.statValue}>{daysMeta.value}</span>
+              <span className={styles.statLabel}>{daysMeta.label}</span>
             </>
           )}
         </div>
+      </div>
+
+      <div className={styles.badges}>
+        <span className={styles.badge} style={{ '--badge-color': statusColor } as React.CSSProperties}>
+          <span className={styles.badgeDot} />
+          {statusLabel}
+        </span>
+        <span className={styles.badge} style={{ '--badge-color': priority.color } as React.CSSProperties}>
+          <span className={styles.badgeDot} />
+          {priorityLabel}
+        </span>
       </div>
 
       
@@ -969,27 +965,35 @@ export const ProjectCard = memo(function ProjectCard({
         </div>
       )}
 
-      {/* Quick Actions */}
-      <div className={styles.quickActions}>
-        <button className={styles.actionBtn} onClick={handleViewDetails}>
-          <EyeIcon />
-          <span>View Details</span>
-        </button>
-        <button className={styles.actionBtn} onClick={handleViewBoard}>
-          <BoardIcon />
-          <span>View Board</span>
-        </button>
-        {/* Google Drive - Admin always sees it, clients only if link exists */}
-        {(isAdmin || project.googleDriveUrl) && (
+      <div className={styles.cardFooter}>
+        <div className={styles.iconActions}>
           <button
-            className={`${styles.actionBtnIcon} ${project.googleDriveUrl ? styles.hasLink : ''}`}
-            onClick={handleGoogleDrive}
-            title={project.googleDriveUrl ? 'Open Google Drive' : 'Add Google Drive link'}
+            className={styles.iconButton}
+            type="button"
+            onClick={handleViewBoard}
+            title="View Board"
+            aria-label="View Board"
           >
-            <DriveIconImg hasLink={!!project.googleDriveUrl} />
+            <BoardIcon size={18} />
           </button>
-        )}
-              </div>
+          {/* Google Drive - Admin always sees it, clients only if link exists */}
+          {(isAdmin || project.googleDriveUrl) && (
+            <button
+              className={styles.iconButton}
+              type="button"
+              onClick={handleGoogleDrive}
+              title={project.googleDriveUrl ? 'Open Google Drive' : 'Add Google Drive link'}
+              aria-label={project.googleDriveUrl ? 'Open Google Drive' : 'Add Google Drive link'}
+            >
+              <DriveIconImg hasLink={!!project.googleDriveUrl} />
+            </button>
+          )}
+        </div>
+        <button className={styles.viewDetailsButton} type="button" onClick={handleViewDetails}>
+          <span>View Details</span>
+          <ArrowRightIcon />
+        </button>
+      </div>
 
       {/* Expanded Section */}
       {isExpanded && (
