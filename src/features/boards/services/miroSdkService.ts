@@ -51,6 +51,56 @@ const projectLogger = createLogger('MiroProject');
 
 // ==================== HELPER FUNCTIONS ====================
 
+const MIRO_COLOR_FALLBACKS: Record<string, string> = {
+  '--color-error': '#EF4444',
+  '--color-warning': '#F59E0B',
+  '--color-success': '#10B981',
+  '--color-info': '#60A5FA',
+  '--color-accent-light': '#60A5FA',
+  '--priority-high': '#F59E0B',
+  '--priority-urgent': '#EF4444',
+  '--priority-medium': '#60A5FA',
+  '--priority-standard': '#10B981',
+};
+
+function normalizeMiroColor(value: string | undefined, fallback: string): string {
+  if (!value) return fallback;
+  let candidate = value.trim();
+
+  if (candidate.startsWith('var(')) {
+    const match = candidate.match(/^var\((--[^, )]+)(?:,\s*([^)]+))?\)$/);
+    if (match) {
+      const varName = match[1];
+      if (!varName) return fallback;
+      const cssFallback = match[2]?.trim();
+      const resolved =
+        typeof document !== 'undefined'
+          ? getComputedStyle(document.documentElement).getPropertyValue(varName).trim()
+          : '';
+      candidate = resolved || cssFallback || MIRO_COLOR_FALLBACKS[varName] || fallback;
+    }
+  }
+
+  if (/^#([0-9a-fA-F]{6})$/.test(candidate)) return candidate;
+  if (/^#([0-9a-fA-F]{3})$/.test(candidate)) {
+    const hex = candidate.slice(1).split('').map((c) => c + c).join('');
+    return `#${hex}`;
+  }
+
+  const rgbMatch = candidate.match(/^rgba?\(([^)]+)\)$/i);
+  if (rgbMatch) {
+    const parts = rgbMatch[1]?.split(',').map((p) => p.trim()) ?? [];
+    if (parts.length >= 3) {
+      const rgb = parts.slice(0, 3).map((p) => Number.parseInt(p, 10));
+      if (rgb.length === 3 && rgb.every((n) => Number.isFinite(n))) {
+        return `#${rgb.map((n) => n.toString(16).padStart(2, '0')).join('')}`.toUpperCase();
+      }
+    }
+  }
+
+  return fallback;
+}
+
 /** Prefixed logger for Miro services - uses unified logger */
 function log(prefix: string, message: string, data?: unknown): void {
   const logger = prefix === 'MiroTimeline' ? timelineLogger : projectLogger;
@@ -253,7 +303,7 @@ function getTimelineStatus(project: { status: ProjectStatus; dueDate?: string | 
 function getStatusConfig(status: ProjectStatus): { label: string; color: string } {
   const column = TIMELINE_COLUMNS.find(c => c.id === status);
   if (column) {
-    return { label: column.label, color: column.color };
+    return { label: column.label, color: normalizeMiroColor(column.color, '#6B7280') };
   }
   // Default fallback
   return { label: status.toUpperCase().replace('_', ' '), color: '#6B7280' };
@@ -416,6 +466,7 @@ class MiroMasterTimelineService {
       if (!col) continue;
 
       const colX = startX + TIMELINE.COLUMN_WIDTH / 2 + i * (TIMELINE.COLUMN_WIDTH + TIMELINE.COLUMN_GAP);
+      const columnColor = normalizeMiroColor(col.color, '#6B7280');
 
       // Header with color (no border)
       await miro.board.createShape({
@@ -426,7 +477,7 @@ class MiroMasterTimelineService {
         width: TIMELINE.COLUMN_WIDTH,
         height: TIMELINE.HEADER_HEIGHT,
         style: {
-          fillColor: col.color,
+          fillColor: columnColor,
           borderWidth: 0,
           color: '#FFFFFF',
           fontSize: 8,
@@ -453,7 +504,7 @@ class MiroMasterTimelineService {
       columns.push({
         id: col.id,
         label: col.label,
-        color: col.color,
+        color: columnColor,
         x: colX,
         y: dropZoneTopY, // Store TOP of drop zone for card placement
         width: TIMELINE.COLUMN_WIDTH,
@@ -504,10 +555,11 @@ class MiroMasterTimelineService {
       if (!col) continue;
 
       const colX = startX + TIMELINE.COLUMN_WIDTH / 2 + i * (TIMELINE.COLUMN_WIDTH + TIMELINE.COLUMN_GAP);
+      const columnColor = normalizeMiroColor(col.color, '#6B7280');
       columns.push({
         id: col.id,
         label: col.label,
-        color: col.color,
+        color: columnColor,
         x: colX,
         y: dropZoneTopY, // TOP of drop zone
         width: TIMELINE.COLUMN_WIDTH,
@@ -729,6 +781,7 @@ class MiroMasterTimelineService {
     const status = getTimelineStatus(project);
     const column = this.state.columns.find(c => c.id === status);
     if (!column) throw new Error(`Column ${status} not found`);
+    const columnColor = normalizeMiroColor(column.color, '#6B7280');
 
     timelineLogger.debug('Syncing project', { name: project.name, id: project.id, status });
 
@@ -1035,7 +1088,7 @@ class MiroMasterTimelineService {
           } else {
             delete (item as Partial<MiroCard>).dueDate;
           }
-          item.style = { cardTheme: isArchived ? '#000000' : column.color };
+          item.style = { cardTheme: isArchived ? '#000000' : columnColor };
 
           if (itemInCorrectColumn) {
             // Card is already in correct column - keep its current position
@@ -1102,7 +1155,7 @@ class MiroMasterTimelineService {
         } else {
           delete (existingCardFinalCheck as Partial<MiroCard>).dueDate;
         }
-        existingCardFinalCheck.style = { cardTheme: isArchived ? '#000000' : column.color };
+        existingCardFinalCheck.style = { cardTheme: isArchived ? '#000000' : columnColor };
 
         if (!finalCheckInCorrectColumn) {
           // Only update position if card is in a different column
@@ -1147,7 +1200,7 @@ class MiroMasterTimelineService {
 
     // Create card with multi-line title (using \n for line breaks)
     // Use black (var(--color-primary)) for archived projects
-    const cardColor = isArchived ? '#000000' : column.color;
+    const cardColor = isArchived ? '#000000' : columnColor;
     const newMiroCard = await miro.board.createCard({
       title: cardTitle,
       description, // Store projectId in description for cross-context discovery
@@ -1872,7 +1925,7 @@ class MiroProjectRowService {
       width: BADGE_WIDTHS.priority,
       height: BADGE_HEIGHT,
       style: {
-        fillColor: PRIORITY_COLORS[project.priority] || '#6B7280',
+        fillColor: normalizeMiroColor(PRIORITY_COLORS[project.priority], '#6B7280'),
         borderColor: 'transparent',
         borderWidth: 0,
         color: '#FFFFFF',
