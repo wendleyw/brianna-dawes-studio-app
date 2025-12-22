@@ -1,6 +1,5 @@
 import type { ProjectBriefing, ProjectRowState } from '../domain/board.types';
 import type { Project } from '@features/projects/domain/project.types';
-import { miroClient } from './miroClient';
 
 // Layout constants
 const PROJECT_ROWS_START_X = 100;
@@ -156,7 +155,7 @@ class ProjectRowService {
 
     // Status badge (URGENT in red if urgent)
     if (project.priority === 'urgent') {
-      await miroClient.createShape(this.boardId, {
+      await miro.board.createShape({
         shape: 'round_rectangle',
         x: headerX + 40,
         y: headerY,
@@ -165,14 +164,14 @@ class ProjectRowService {
         content: 'URGENT',
         style: {
           fillColor: '#EF4444',
-          fontColor: '#FFFFFF',
-          fontSize: '10',
+          color: '#FFFFFF',
+          fontSize: 10,
         },
       });
     }
 
     // Header bar (golden/yellow)
-    await miroClient.createShape(this.boardId, {
+    await miro.board.createShape({
       shape: 'rectangle',
       x: PROJECT_ROWS_START_X + BRIEFING_FRAME_WIDTH / 2,
       y: headerY + 25,
@@ -181,8 +180,8 @@ class ProjectRowService {
       content: `⭐ Brianna D Studio`,
       style: {
         fillColor: '#D4AF37',
-        fontColor: '#FFFFFF',
-        fontSize: '11',
+        color: '#FFFFFF',
+        fontSize: 11,
       },
     });
 
@@ -191,13 +190,13 @@ class ProjectRowService {
       ? new Date(project.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
       : 'No deadline';
 
-    await miroClient.createText(this.boardId, {
+    await miro.board.createText({
       content: `📌 PROJECT NAME - Starting Date: ${project.startDate ? new Date(project.startDate).toLocaleDateString() : 'TBD'} | Due Date: ${dueDate}`,
       x: PROJECT_ROWS_START_X + BRIEFING_FRAME_WIDTH / 2,
       y: headerY + 60,
       width: BRIEFING_FRAME_WIDTH - 40,
       style: {
-        fontSize: '10',
+        fontSize: 10,
         color: '#374151',
       },
     });
@@ -222,13 +221,13 @@ class ProjectRowService {
       const cellY = gridStartY + field.row * (CELL_HEIGHT + CELL_GAP);
 
       // Field label
-      await miroClient.createText(this.boardId, {
+      await miro.board.createText({
         content: field.label,
         x: cellX,
         y: cellY,
         width: CELL_WIDTH,
         style: {
-          fontSize: '10',
+          fontSize: 10,
           color: '#111827',
         },
       });
@@ -238,7 +237,7 @@ class ProjectRowService {
       const displayValue = value || '⚠️ Needs attention';
       const isEmpty = !value;
 
-      const valueItem = await miroClient.createShape(this.boardId, {
+      const valueItem = await miro.board.createShape({
         shape: 'rectangle',
         x: cellX,
         y: cellY + 25,
@@ -248,8 +247,8 @@ class ProjectRowService {
         style: {
           fillColor: isEmpty ? '#FBBF24' : '#FFFFFF',
           borderColor: isEmpty ? '#F59E0B' : '#E5E7EB',
-          fontColor: isEmpty ? '#D97706' : '#374151',
-          fontSize: '9',
+          color: isEmpty ? '#D97706' : '#374151',
+          fontSize: 9,
         },
       });
 
@@ -276,7 +275,7 @@ class ProjectRowService {
     const sectionX = PROJECT_ROWS_START_X + BRIEFING_FRAME_WIDTH / 2;
 
     // Section header
-    await miroClient.createShape(this.boardId, {
+    await miro.board.createShape({
       shape: 'rectangle',
       x: sectionX,
       y: sectionY,
@@ -285,13 +284,13 @@ class ProjectRowService {
       content: 'CREATIVE DIRECTION',
       style: {
         fillColor: '#E5E7EB',
-        fontColor: '#374151',
-        fontSize: '11',
+        color: '#374151',
+        fontSize: 11,
       },
     });
 
     // Drop zone area for creative direction
-    await miroClient.createShape(this.boardId, {
+    await miro.board.createShape({
       shape: 'rectangle',
       x: sectionX,
       y: sectionY + 130,
@@ -301,8 +300,8 @@ class ProjectRowService {
       style: {
         fillColor: '#FFFFFF',
         borderColor: '#E5E7EB',
-        fontColor: '#9CA3AF',
-        fontSize: '10',
+        color: '#9CA3AF',
+        fontSize: 10,
       },
     });
 
@@ -319,7 +318,7 @@ class ProjectRowService {
     const sectionX = PROJECT_ROWS_START_X + BRIEFING_FRAME_WIDTH / 2;
 
     // Section header
-    await miroClient.createShape(this.boardId, {
+    await miro.board.createShape({
       shape: 'rectangle',
       x: sectionX,
       y: sectionY,
@@ -328,13 +327,13 @@ class ProjectRowService {
       content: 'FILE ASSETS',
       style: {
         fillColor: '#E5E7EB',
-        fontColor: '#374151',
-        fontSize: '11',
+        color: '#374151',
+        fontSize: 11,
       },
     });
 
     // Drop zone area for file assets
-    await miroClient.createShape(this.boardId, {
+    await miro.board.createShape({
       shape: 'rectangle',
       x: sectionX,
       y: sectionY + 130,
@@ -344,8 +343,8 @@ class ProjectRowService {
       style: {
         fillColor: '#FFFFFF',
         borderColor: '#E5E7EB',
-        fontColor: '#9CA3AF',
-        fontSize: '10',
+        color: '#9CA3AF',
+        fontSize: 10,
       },
     });
   }
@@ -364,7 +363,7 @@ class ProjectRowService {
     const versionX = PROJECT_ROWS_START_X + BRIEFING_FRAME_WIDTH + FRAME_GAP + PROCESS_FRAME_WIDTH / 2;
 
     // Process Versions header
-    await miroClient.createShape(this.boardId, {
+    await miro.board.createShape({
       shape: 'rectangle',
       x: versionX,
       y: versionStartY,
@@ -373,8 +372,8 @@ class ProjectRowService {
       content: '📋 PROCESS VERSIONS - Click + to add more frames',
       style: {
         fillColor: '#000000',
-        fontColor: '#FFFFFF',
-        fontSize: '12',
+        color: '#FFFFFF',
+        fontSize: 12,
       },
     });
 
@@ -382,7 +381,7 @@ class ProjectRowService {
     let currentY = versionStartY + 60;
     for (const versionName of DEFAULT_VERSIONS) {
       // Version header
-      const versionHeader = await miroClient.createShape(this.boardId, {
+      const versionHeader = await miro.board.createShape({
         shape: 'rectangle',
         x: versionX,
         y: currentY,
@@ -391,13 +390,13 @@ class ProjectRowService {
         content: `🎯 ${versionName}`,
         style: {
           fillColor: '#374151',
-          fontColor: '#FFFFFF',
-          fontSize: '11',
+          color: '#FFFFFF',
+          fontSize: 11,
         },
       });
 
       // Version content area
-      await miroClient.createShape(this.boardId, {
+      await miro.board.createShape({
         shape: 'rectangle',
         x: versionX,
         y: currentY + 110,
@@ -407,8 +406,8 @@ class ProjectRowService {
         style: {
           fillColor: '#F9FAFB',
           borderColor: '#E5E7EB',
-          fontColor: '#9CA3AF',
-          fontSize: '10',
+          color: '#9CA3AF',
+          fontSize: 10,
         },
       });
 
@@ -437,7 +436,7 @@ class ProjectRowService {
     const sectionWidth = PROCESS_FRAME_WIDTH - 40;
 
     // Dark header bar
-    await miroClient.createShape(this.boardId, {
+    await miro.board.createShape({
       shape: 'rectangle',
       x: sectionX,
       y: sectionY,
@@ -452,7 +451,7 @@ class ProjectRowService {
 
     // Left side - Circle for drag and drop feedback
     const circleX = sectionX - sectionWidth / 2 + 60;
-    await miroClient.createShape(this.boardId, {
+    await miro.board.createShape({
       shape: 'circle',
       x: circleX,
       y: sectionY + 70,
@@ -467,38 +466,38 @@ class ProjectRowService {
     });
 
     // Label for circle
-    await miroClient.createText(this.boardId, {
+    await miro.board.createText({
       content: 'Drag Circle over for your feedback',
       x: circleX,
       y: sectionY + 120,
       width: 100,
       style: {
-        fontSize: '8',
+        fontSize: 8,
         color: '#6B7280',
         textAlign: 'center',
       },
     });
 
     // Center - Title and subtitle
-    await miroClient.createText(this.boardId, {
+    await miro.board.createText({
       content: '<b>HOW WAS YOUR EXPERIENCE?</b>',
       x: sectionX,
       y: sectionY + 45,
       width: 300,
       style: {
-        fontSize: '14',
+        fontSize: 14,
         color: '#111827',
         textAlign: 'center',
       },
     });
 
-    await miroClient.createText(this.boardId, {
+    await miro.board.createText({
       content: 'Select a face to share your feedback',
       x: sectionX,
       y: sectionY + 65,
       width: 300,
       style: {
-        fontSize: '10',
+        fontSize: 10,
         color: '#6B7280',
         textAlign: 'center',
       },
@@ -523,7 +522,7 @@ class ProjectRowService {
       const emojiX = emojiStartX + i * emojiGap;
 
       // Emoji circle background
-      await miroClient.createShape(this.boardId, {
+      await miro.board.createShape({
         shape: 'circle',
         x: emojiX,
         y: emojiY,
@@ -533,18 +532,18 @@ class ProjectRowService {
         style: {
           fillColor: emojiData.color,
           borderWidth: 0,
-          fontSize: '18',
+          fontSize: 18,
         },
       });
 
       // Emoji label
-      await miroClient.createText(this.boardId, {
+      await miro.board.createText({
         content: emojiData.label,
         x: emojiX,
         y: emojiY + 35,
         width: 60,
         style: {
-          fontSize: '7',
+          fontSize: 7,
           color: emojiData.color,
           textAlign: 'center',
         },
@@ -553,13 +552,13 @@ class ProjectRowService {
 
     // Right side - Feedback text area
     const feedbackX = sectionX + sectionWidth / 2 - 80;
-    await miroClient.createText(this.boardId, {
+    await miro.board.createText({
       content: 'Add specific notes of feedback - whether good or critical we always want to work to improve your experience.',
       x: feedbackX,
       y: sectionY + 70,
       width: 140,
       style: {
-        fontSize: '8',
+        fontSize: 8,
         color: '#6B7280',
         textAlign: 'left',
       },
@@ -587,13 +586,17 @@ class ProjectRowService {
     const isEmpty = !value;
     const displayValue = value || '(Not provided)';
 
-    await miroClient.updateShape(this.boardId, item.miroItemId, {
-      content: displayValue,
-      style: {
+    // Get the shape and update it
+    const shape = await miro.board.getById(item.miroItemId);
+    if (shape && 'content' in shape) {
+      shape.content = displayValue;
+      shape.style = {
+        ...shape.style,
         fillColor: isEmpty ? '#FBBF24' : '#FFFFFF',
         borderColor: isEmpty ? '#F59E0B' : '#E5E7EB',
-      },
-    });
+      };
+      await miro.board.sync(shape);
+    }
   }
 
   /**
@@ -614,10 +617,12 @@ class ProjectRowService {
 
     // Delete frames (this should cascade delete items inside)
     if (projectRow.briefingFrameId) {
-      await miroClient.deleteFrame(this.boardId, projectRow.briefingFrameId);
+      const briefingFrame = await miro.board.getById(projectRow.briefingFrameId);
+      if (briefingFrame) await miro.board.remove(briefingFrame);
     }
     if (projectRow.processFrameId) {
-      await miroClient.deleteFrame(this.boardId, projectRow.processFrameId);
+      const processFrame = await miro.board.getById(projectRow.processFrameId);
+      if (processFrame) await miro.board.remove(processFrame);
     }
 
     this.projectRows.delete(projectId);
