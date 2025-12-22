@@ -2576,6 +2576,22 @@ export function DeveloperTools() {
       if (!result?.authUrl) {
         throw new Error('Missing OAuth URL');
       }
+      let isEmbedded = false;
+      try {
+        isEmbedded = window.self !== window.top;
+      } catch {
+        isEmbedded = true;
+      }
+
+      if (isInMiro || isEmbedded) {
+        const popup = window.open(result.authUrl, '_blank', 'noopener,noreferrer');
+        if (!popup) {
+          throw new Error('Popup blocked. Please allow popups and try again.');
+        }
+        popup.focus();
+        return;
+      }
+
       window.location.href = result.authUrl;
     } catch (err) {
       setMiroOauthError(formatError(err));

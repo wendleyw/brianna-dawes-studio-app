@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Skeleton, Logo } from '@shared/ui';
+import { Skeleton } from '@shared/ui';
 import { useAuth } from '@features/auth';
 import { useProjects } from '@features/projects';
 import { projectKeys } from '@features/projects/services/projectKeys';
@@ -10,21 +10,35 @@ import { useMasterBoardSettings } from '@features/boards/hooks/useMasterBoard';
 import { miroTimelineService } from '@features/boards/services/miroSdkService';
 import { supabase } from '@shared/lib/supabase';
 import { supabaseRestQuery, isInMiroIframe } from '@shared/lib/supabaseRest';
-import type { Project, ProjectFilters as ProjectFiltersType } from '@features/projects/domain/project.types';
-import { STATUS_COLUMNS, getStatusColumn } from '@shared/lib/timelineStatus';
+import type { Project, ProjectFilters as ProjectFiltersType, ProjectStatus } from '@features/projects/domain/project.types';
+import { STATUS_COLUMNS, getStatusColumn, getStatusProgress, getTimelineStatus } from '@shared/lib/timelineStatus';
 import { formatDateShort, formatDateMonthYear } from '@shared/lib/dateFormat';
 import { useRealtimeSubscription } from '@shared/hooks/useRealtimeSubscription';
 import type { AdminTab } from '@features/admin/domain/types';
 import styles from './DashboardPage.module.css';
-import type { ProjectStatus } from '@features/projects/domain/project.types';
 
 const EMPTY_PROJECTS: Project[] = [];
+
+const STATUS_BADGES: Record<ProjectStatus, { label: string; accent: string; soft: string }> = {
+  overdue: { label: 'Overdue', accent: '#b91c1c', soft: 'rgba(185, 28, 28, 0.12)' },
+  urgent: { label: 'Urgent', accent: '#c2410c', soft: 'rgba(194, 65, 12, 0.12)' },
+  in_progress: { label: 'On Track', accent: '#ba7a68', soft: 'rgba(186, 122, 104, 0.12)' },
+  review: { label: 'In Review', accent: '#788775', soft: 'rgba(120, 135, 117, 0.12)' },
+  done: { label: 'Done', accent: '#0f766e', soft: 'rgba(15, 118, 110, 0.12)' },
+};
 
 // Icons
 const PlusIcon = () => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
     <line x1="12" y1="5" x2="12" y2="19"/>
     <line x1="5" y1="12" x2="19" y2="12"/>
+  </svg>
+);
+
+const SearchIcon = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <circle cx="11" cy="11" r="7" />
+    <line x1="16.65" y1="16.65" x2="21" y2="21" />
   </svg>
 );
 
@@ -45,6 +59,59 @@ const DashboardIcon = () => (
     <rect x="3" y="13" width="8" height="8" rx="1"/>
   </svg>
 );
+
+const CalendarIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+    <line x1="16" y1="2" x2="16" y2="6" />
+    <line x1="8" y1="2" x2="8" y2="6" />
+    <line x1="3" y1="10" x2="21" y2="10" />
+  </svg>
+);
+
+const HomeIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M3 9l9-7 9 7" />
+    <path d="M9 22V12h6v10" />
+    <path d="M21 22H3" />
+  </svg>
+);
+
+const FolderIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M3 7h5l2 3h11v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+  </svg>
+);
+
+const TeamIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M17 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+    <circle cx="9" cy="7" r="4" />
+    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+  </svg>
+);
+
+const BellIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
+    <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+  </svg>
+);
+
+const SettingsIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <circle cx="12" cy="12" r="3" />
+    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+  </svg>
+);
+
+function getInitials(name?: string | null): string {
+  if (!name) return 'BD';
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return 'BD';
+  return parts.slice(0, 2).map(part => part[0]?.toUpperCase() || '').join('');
+}
 
 
 // STATUS_COLORS replaced by STATUS_COLUMNS from @shared/lib/timelineStatus
@@ -400,6 +467,18 @@ export function DashboardPage() {
 
   // Get projects array from response
   const projectsList = useMemo(() => projectsData?.data ?? EMPTY_PROJECTS, [projectsData?.data]);
+  const userInitials = useMemo(() => getInitials(user?.name), [user?.name]);
+
+  const activeDeliverables = useMemo(() => {
+    return projectsList
+      .filter((project) => project.status !== 'done')
+      .sort((a, b) => {
+        const aDate = a.dueDate ? new Date(a.dueDate).getTime() : Number.POSITIVE_INFINITY;
+        const bDate = b.dueDate ? new Date(b.dueDate).getTime() : Number.POSITIVE_INFINITY;
+        return aDate - bDate;
+      })
+      .slice(0, 3);
+  }, [projectsList]);
 
   // Calculate stats (memoized to prevent recalculation on every render)
   const { activeProjects, completedProjects } = useMemo(() => ({
@@ -443,26 +522,45 @@ export function DashboardPage() {
 
   return (
     <div className={styles.container}>
-      {/* Branding Header */}
-      <header className={styles.header}>
-        <div className={styles.logo}>
-          <Logo size="lg" animated />
+      <header className={styles.topbar}>
+        <span className={styles.topbarTitle}>BD Studios</span>
+        <div className={styles.topbarActions}>
+          <button
+            className={styles.iconButton}
+            type="button"
+            aria-label="Search projects"
+            onClick={() => navigate('/projects')}
+          >
+            <SearchIcon />
+          </button>
+          <button className={styles.avatarButton} type="button" aria-label="Account">
+            {user?.avatarUrl ? (
+              <img src={user.avatarUrl} alt={user.name} className={styles.avatarImage} />
+            ) : (
+              <span className={styles.avatarFallback}>{userInitials}</span>
+            )}
+          </button>
         </div>
-        <p className={styles.brandName}>BRIANNA DAWES STUDIOS</p>
+      </header>
+
+      <section className={styles.hero}>
+        <div className={styles.heroMark} aria-hidden="true">
+          <span className={styles.heroMarkDot} />
+          <span className={styles.heroMarkBean} />
+        </div>
+        <p className={styles.brandName}>Brianna Dawes Studios</p>
         {isMasterBoard ? (
-          <h1 className={styles.welcome}>
-            <span className={styles.masterBoardBadge}>📊 Master Overview</span>
-          </h1>
+          <div className={styles.masterBoardBadge}>Master Overview</div>
         ) : (
           <h1 className={styles.welcome}>
             Welcome, <span className={styles.userName}>{user?.name?.split(' ')[0] || 'User'}</span>
           </h1>
         )}
-      </header>
+      </section>
 
       {/* Client Filter - Only on Master Board */}
       {isMasterBoard && clientsData && (
-        <section className={styles.section}>
+        <section className={`${styles.section} ${styles.sectionDelay1}`}>
           <div className={styles.clientFilterRow}>
             <label className={styles.filterLabel}>Filter by Client:</label>
             <select
@@ -482,7 +580,7 @@ export function DashboardPage() {
       )}
 
       {/* Quick Actions */}
-      <section className={styles.section}>
+      <section className={`${styles.section} ${styles.sectionDelay2}`}>
         <h2 className={styles.sectionTitle}>Quick Actions</h2>
         <div className={styles.quickActions}>
           {canCreateProjects && (
@@ -532,8 +630,90 @@ export function DashboardPage() {
         </div>
       </section>
 
+      {/* Active Deliverables */}
+      <section className={`${styles.section} ${styles.sectionDelay3}`}>
+        <div className={styles.sectionHeader}>
+          <h2 className={styles.sectionTitle}>Active Deliverables</h2>
+          <button
+            className={styles.sectionLink}
+            type="button"
+            onClick={() => navigate('/projects')}
+          >
+            See all
+          </button>
+        </div>
+        <div className={styles.deliverablesList}>
+          {activeDeliverables.length === 0 ? (
+            <div className={styles.emptyDeliverables}>No active deliverables yet.</div>
+          ) : (
+            activeDeliverables.map((project) => {
+              const displayStatus = getTimelineStatus(project);
+              const statusMeta = STATUS_BADGES[displayStatus];
+              const progress = getStatusProgress(displayStatus);
+              const designers = project.designers || [];
+              const visibleDesigners = designers.slice(0, 2);
+              const extraDesigners = designers.length - visibleDesigners.length;
+              const dueLabel = project.dueDate ? formatDateShort(project.dueDate) : 'No due date';
+              return (
+                <div key={project.id} className={styles.deliverableCard}>
+                  <span
+                    className={styles.deliverableAccent}
+                    style={{ backgroundColor: statusMeta.accent }}
+                  />
+                  <div className={styles.deliverableHeader}>
+                    <div>
+                      <span className={styles.deliverableMeta}>
+                        {project.client?.name || 'Project'}
+                      </span>
+                      <h3 className={styles.deliverableTitle}>{project.name}</h3>
+                    </div>
+                    <span
+                      className={styles.statusBadge}
+                      style={{ color: statusMeta.accent, backgroundColor: statusMeta.soft }}
+                    >
+                      {statusMeta.label}
+                    </span>
+                  </div>
+                  <div className={styles.deliverableFooter}>
+                    <div className={styles.deliverableLeft}>
+                      <div className={styles.deliverableDate}>
+                        <CalendarIcon />
+                        <span>{dueLabel}</span>
+                      </div>
+                      <div className={styles.avatarGroup}>
+                        {visibleDesigners.map((designer) => (
+                          <span key={designer.id} className={styles.avatarChip}>
+                            {designer.avatarUrl ? (
+                              <img src={designer.avatarUrl} alt={designer.name} />
+                            ) : (
+                              getInitials(designer.name)
+                            )}
+                          </span>
+                        ))}
+                        {extraDesigners > 0 && (
+                          <span className={styles.avatarChip}>+{extraDesigners}</span>
+                        )}
+                      </div>
+                    </div>
+                    <div className={styles.progressWrap}>
+                      <span className={styles.progressValue}>{progress}%</span>
+                      <div className={styles.progressBar}>
+                        <span
+                          className={styles.progressFill}
+                          style={{ width: `${progress}%`, backgroundColor: statusMeta.accent }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </section>
+
       {/* Analytics */}
-      <section className={styles.section}>
+      <section className={`${styles.section} ${styles.sectionDelay4}`}>
         <h2 className={`${styles.sectionTitle} ${styles.analyticsTitle}`}>
           <span>Analytics</span>
           {analyticsSince && (
@@ -563,7 +743,7 @@ export function DashboardPage() {
       </section>
 
       {/* Project Timeline */}
-      <section className={`${styles.section} ${styles.timelineSection}`}>
+      <section className={`${styles.section} ${styles.sectionDelay5} ${styles.timelineSection}`}>
         <h2 className={styles.sectionTitle}>Project Timeline</h2>
         <div className={styles.timelineCard}>
           {/* Legend - all 5 status in one row */}
@@ -612,6 +792,67 @@ export function DashboardPage() {
         </div>
       </section>
 
+      <nav className={styles.bottomNav} aria-label="Primary">
+        <button
+          type="button"
+          className={`${styles.navButton} ${styles.navButtonActive}`}
+          onClick={() => navigate('/dashboard')}
+          aria-current="page"
+        >
+          <span className={styles.navIcon}>
+            <HomeIcon />
+          </span>
+          <span>Home</span>
+        </button>
+        <button
+          type="button"
+          className={styles.navButton}
+          onClick={() => navigate('/projects')}
+        >
+          <span className={styles.navIcon}>
+            <FolderIcon />
+          </span>
+          <span>Projects</span>
+        </button>
+        <button
+          type="button"
+          className={`${styles.navButton} ${!isAdmin ? styles.navButtonDisabled : ''}`}
+          onClick={() => {
+            if (isAdmin) navigate('/admin?tab=users');
+          }}
+          aria-disabled={!isAdmin}
+          disabled={!isAdmin}
+        >
+          <span className={styles.navIcon}>
+            <TeamIcon />
+          </span>
+          <span>Team</span>
+        </button>
+        <button
+          type="button"
+          className={styles.navButton}
+          onClick={() => navigate('/notifications')}
+        >
+          <span className={styles.navIcon}>
+            <BellIcon />
+          </span>
+          <span>Notifications</span>
+        </button>
+        <button
+          type="button"
+          className={`${styles.navButton} ${!isAdmin ? styles.navButtonDisabled : ''}`}
+          onClick={() => {
+            if (isAdmin) navigate('/admin?tab=settings');
+          }}
+          aria-disabled={!isAdmin}
+          disabled={!isAdmin}
+        >
+          <span className={styles.navIcon}>
+            <SettingsIcon />
+          </span>
+          <span>Settings</span>
+        </button>
+      </nav>
     </div>
   );
 }

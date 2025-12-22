@@ -66,6 +66,7 @@ export function AppShell() {
   const isAdmin = user?.role === 'admin';
   const isProjectsRoute = location.pathname.startsWith('/projects');
   const isNotificationsRoute = location.pathname.startsWith('/notifications');
+  const isDashboardRoute = location.pathname === '/' || location.pathname === '/dashboard';
   const showBackButton = isProjectsRoute || isNotificationsRoute;
 
   useEffect(() => {
@@ -125,90 +126,92 @@ export function AppShell() {
 
   return (
     <div className={styles.shell}>
-      <header className={styles.topbar}>
-        <div className={styles.left}>
-          {showBackButton && (
-            <button
-              className={styles.backToDashboard}
-              onClick={() => {
-                if (isProjectsRoute) navigate('/dashboard');
-                else navigate(-1);
-              }}
-              title={isProjectsRoute ? 'Back to Dashboard' : 'Back'}
-              aria-label={isProjectsRoute ? 'Back to Dashboard' : 'Back'}
-              type="button"
-            >
-              <BackIcon />
-            </button>
-          )}
-        </div>
-        <div className={styles.right}>
-          {isAdmin && (
-            <div className={styles.adminMenuWrap} ref={adminMenuRef}>
+      {!isDashboardRoute && (
+        <header className={styles.topbar}>
+          <div className={styles.left}>
+            {showBackButton && (
               <button
-                className={styles.adminToggle}
-                onClick={() => setIsAdminMenuOpen(v => !v)}
-                aria-label="Admin quick actions"
-                aria-expanded={isAdminMenuOpen}
+                className={styles.backToDashboard}
+                onClick={() => {
+                  if (isProjectsRoute) navigate('/dashboard');
+                  else navigate(-1);
+                }}
+                title={isProjectsRoute ? 'Back to Dashboard' : 'Back'}
+                aria-label={isProjectsRoute ? 'Back to Dashboard' : 'Back'}
                 type="button"
-                title="Admin"
               >
-                <AdminMenuIcon />
+                <BackIcon />
               </button>
-              {isAdminMenuOpen && (
-                <div className={styles.adminMenu} role="menu" aria-label="Admin quick actions">
-                  <button
-                    className={styles.adminMenuItem}
-                    onClick={async () => {
-                      setIsAdminMenuOpen(false);
-                      await handleOpenBoardModal();
-                    }}
-                    type="button"
-                    role="menuitem"
-                  >
-                    <GridIcon />
-                    <span>Status</span>
-                  </button>
-                  <button
-                    className={styles.adminMenuItem}
-                    onClick={() => {
-                      setIsAdminMenuOpen(false);
-                      setIsReportModalOpen(true);
-                    }}
-                    type="button"
-                    role="menuitem"
-                  >
-                    <ReportIcon />
-                    <span>Report</span>
-                  </button>
-                  <button
-                    className={styles.adminMenuItem}
-                    onClick={async () => {
-                      setIsAdminMenuOpen(false);
-                      await openAdminDashboard('settings');
-                    }}
-                    type="button"
-                    role="menuitem"
-                  >
-                    <SettingsIcon />
-                    <span>Settings</span>
-                  </button>
-                </div>
-              )}
-              <button
-                className={styles.adminToggle}
-                onClick={() => openAdminDashboard('analytics')}
-                aria-label="Analytics"
-                type="button"
-                title="Analytics"
-              >
-                <AnalyticsIcon />
-              </button>
-            </div>
-          )}
-          <NotificationBell />
-        </div>
-      </header>
+            )}
+          </div>
+          <div className={styles.right}>
+            {isAdmin && (
+              <div className={styles.adminMenuWrap} ref={adminMenuRef}>
+                <button
+                  className={styles.adminToggle}
+                  onClick={() => setIsAdminMenuOpen(v => !v)}
+                  aria-label="Admin quick actions"
+                  aria-expanded={isAdminMenuOpen}
+                  type="button"
+                  title="Admin"
+                >
+                  <AdminMenuIcon />
+                </button>
+                {isAdminMenuOpen && (
+                  <div className={styles.adminMenu} role="menu" aria-label="Admin quick actions">
+                    <button
+                      className={styles.adminMenuItem}
+                      onClick={async () => {
+                        setIsAdminMenuOpen(false);
+                        await handleOpenBoardModal();
+                      }}
+                      type="button"
+                      role="menuitem"
+                    >
+                      <GridIcon />
+                      <span>Status</span>
+                    </button>
+                    <button
+                      className={styles.adminMenuItem}
+                      onClick={() => {
+                        setIsAdminMenuOpen(false);
+                        setIsReportModalOpen(true);
+                      }}
+                      type="button"
+                      role="menuitem"
+                    >
+                      <ReportIcon />
+                      <span>Report</span>
+                    </button>
+                    <button
+                      className={styles.adminMenuItem}
+                      onClick={async () => {
+                        setIsAdminMenuOpen(false);
+                        await openAdminDashboard('settings');
+                      }}
+                      type="button"
+                      role="menuitem"
+                    >
+                      <SettingsIcon />
+                      <span>Settings</span>
+                    </button>
+                  </div>
+                )}
+                <button
+                  className={styles.adminToggle}
+                  onClick={() => openAdminDashboard('analytics')}
+                  aria-label="Analytics"
+                  type="button"
+                  title="Analytics"
+                >
+                  <AnalyticsIcon />
+                </button>
+              </div>
+            )}
+            <NotificationBell />
+          </div>
+        </header>
+      )}
 
       <main className={styles.content}>
         <Outlet />
