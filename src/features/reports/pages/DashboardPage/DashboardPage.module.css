@@ -156,6 +156,16 @@
 
 .heroLogo {
   margin-bottom: 2px;
+  position: relative;
+}
+
+.heroLogo::before {
+  content: '';
+  position: absolute;
+  inset: -20px;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.8) 0%, transparent 70%);
+  z-index: -1;
+  pointer-events: none;
 }
 
 .heroMark {

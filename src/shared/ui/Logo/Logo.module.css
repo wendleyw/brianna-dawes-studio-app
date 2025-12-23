@@ -2,11 +2,23 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  position: relative;
+}
+
+.container::before {
+  content: '';
+  position: absolute;
+  inset: -12px;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.9) 0%, transparent 65%);
+  z-index: -1;
+  pointer-events: none;
 }
 
 .video {
   object-fit: contain;
   background: transparent;
+  position: relative;
+  z-index: 1;
 }
 
 .staticLogo {
