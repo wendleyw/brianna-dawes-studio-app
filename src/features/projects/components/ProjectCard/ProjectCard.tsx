@@ -1187,14 +1187,6 @@ export const ProjectCard = memo(function ProjectCard({
             <div className={styles.adminActions}>
               <h4 className={styles.actionsTitle}>YOUR ACTIONS</h4>
               <div className={styles.actionsGrid}>
-                {/* Version - available for assigned client, hidden when Done */}
-                {!isDone && (
-                  <button className={styles.adminBtn} onClick={handleVersionClick}>
-                    <div className={styles.adminBtnIcon}><PlusIcon /></div>
-                    <span>Version</span>
-                  </button>
-                )}
-
                 {/* Urgent - available for assigned client, hidden when Done */}
                 {!isDone && !isInReview && project.status !== 'urgent' && project.status !== 'overdue' && (
                   <button className={`${styles.adminBtn} ${styles.danger}`} onClick={handleClientCriticalClick}>

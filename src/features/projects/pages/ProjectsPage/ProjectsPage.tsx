@@ -383,12 +383,18 @@ export function ProjectsPage() {
 
     if (dueThisWeekOnly) {
       const now = new Date();
-      const end = new Date();
-      end.setDate(now.getDate() + 7);
+      const startOfWeek = new Date(now);
+      const dayOfWeek = startOfWeek.getDay();
+      const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+      startOfWeek.setDate(startOfWeek.getDate() + mondayOffset);
+      startOfWeek.setHours(0, 0, 0, 0);
+      const endOfWeek = new Date(startOfWeek);
+      endOfWeek.setDate(startOfWeek.getDate() + 6);
+      endOfWeek.setHours(23, 59, 59, 999);
       filtered = filtered.filter((project) => {
         if (!project.dueDate || project.dueDateApproved === false) return false;
         const due = new Date(project.dueDate);
-        return due >= now && due <= end;
+        return due >= startOfWeek && due <= endOfWeek;
       });
     }
 
