@@ -146,8 +146,6 @@ export const BoardManagement = memo(function BoardManagement() {
     return <Skeleton height={300} />;
   }
 
-  const currentBoard = selectedBoard ? boardsWithMembers.find(b => b.boardId === selectedBoard) : null;
-
   return (
     <div className={styles.container}>
       {/* Header with search */}
@@ -201,147 +199,143 @@ export const BoardManagement = memo(function BoardManagement() {
         </div>
       )}
 
-      <div className={styles.layout}>
-        {/* Board List */}
-        <div className={styles.boardList}>
-          <h3 className={styles.sectionTitle}>Boards ({filteredBoards.length})</h3>
-          {filteredBoards.length === 0 ? (
-            <div className={styles.emptyState}>
-              <BoardIcon />
-              <p>{searchQuery ? 'No boards match your search' : 'No boards yet'}</p>
-              <span>{searchQuery ? 'Try a different search' : 'Add your first board to get started'}</span>
-            </div>
-          ) : (
-            filteredBoards.map((board) => (
-              <button
-                key={board.boardId}
-                className={`${styles.boardItem} ${selectedBoard === board.boardId ? styles.selected : ''}`}
-                onClick={() => setSelectedBoard(board.boardId)}
-              >
-                <div className={styles.boardIcon}>
-                  <BoardIcon />
-                </div>
-                <div className={styles.boardInfo}>
-                  <span className={styles.boardName}>{board.boardName}</span>
-                  <span className={styles.boardMeta}>
-                    {board.members.length} member{board.members.length !== 1 ? 's' : ''}
-                  </span>
-                </div>
-              </button>
-            ))
-          )}
-        </div>
-
-        {/* Board Details */}
-        <div className={styles.boardDetails}>
-          {selectedBoard && currentBoard ? (
-            <>
-              <div className={styles.detailsHeader}>
-                <div>
-                  <h3 className={styles.detailsTitle}>{currentBoard.boardName}</h3>
-                  <div className={styles.boardIdRow}>
-                    <span className={styles.boardId}>{currentBoard.boardId}</span>
-                    <button
-                      className={styles.openBoardButton}
-                      onClick={() => openBoardInMiro(currentBoard.boardId)}
-                      title="Open in Miro"
-                    >
-                      <ExternalLinkIcon /> Open in Miro
-                    </button>
+      <div className={styles.boardsContainer}>
+        <h3 className={styles.sectionTitle}>Boards ({filteredBoards.length})</h3>
+        {filteredBoards.length === 0 ? (
+          <div className={styles.emptyState}>
+            <BoardIcon />
+            <p>{searchQuery ? 'No boards match your search' : 'No boards yet'}</p>
+            <span>{searchQuery ? 'Try a different search' : 'Add your first board to get started'}</span>
+          </div>
+        ) : (
+          <div className={styles.boardsList}>
+            {filteredBoards.map((board) => {
+              const isExpanded = selectedBoard === board.boardId;
+              return (
+                <div key={board.boardId} className={`${styles.boardCard} ${isExpanded ? styles.expanded : ''}`}>
+                  {/* Board Header - Always Visible */}
+                  <div className={styles.boardCardHeader} onClick={() => setSelectedBoard(isExpanded ? null : board.boardId)}>
+                    <div className={styles.boardIcon}>
+                      <BoardIcon />
+                    </div>
+                    <div className={styles.boardInfo}>
+                      <span className={styles.boardName}>{board.boardName}</span>
+                      <span className={styles.boardMeta}>
+                        {board.members.length} member{board.members.length !== 1 ? 's' : ''}
+                      </span>
+                    </div>
+                    <div className={styles.boardActions}>
+                      <button
+                        className={styles.openBoardButton}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openBoardInMiro(board.boardId);
+                        }}
+                        title="Open in Miro"
+                      >
+                        <ExternalLinkIcon />
+                      </button>
+                      <button
+                        className={styles.expandButton}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedBoard(isExpanded ? null : board.boardId);
+                        }}
+                        aria-label={isExpanded ? 'Collapse' : 'Expand'}
+                      >
+                        <span className={styles.chevron}>{isExpanded ? '−' : '+'}</span>
+                      </button>
+                    </div>
                   </div>
-                </div>
-                <Button size="sm" onClick={() => setShowAddMember(true)}>
-                  <PlusIcon /> Add Member
-                </Button>
-              </div>
 
-              <div className={styles.membersSection}>
-                <h4 className={styles.membersTitle}>Assigned Members</h4>
-                {currentBoard.members.length === 0 ? (
-                  <p className={styles.noMembers}>No members assigned yet</p>
-                ) : (
-                  <div className={styles.membersList}>
-                    {currentBoard.members.map(({ user, isPrimary }) => (
-                      <div key={user.id} className={`${styles.memberCard} ${isPrimary ? styles.primary : ''}`}>
-                        <div
-                          className={styles.memberAvatar}
-                          style={{ backgroundColor: user.companyLogoUrl || user.avatarUrl ? 'white' : ROLE_COLORS[user.role].color }}
-                        >
-                          {user.companyLogoUrl ? (
-                            <img src={user.companyLogoUrl} alt={user.companyName || user.name} />
-                          ) : user.avatarUrl ? (
-                            <img src={user.avatarUrl} alt={user.name} />
-                          ) : (
-                            <span>{(user.companyName || user.name)?.charAt(0).toUpperCase()}</span>
-                          )}
-                        </div>
-                        <div className={styles.memberInfo}>
-                          <span className={styles.memberName}>
-                            {user.role === 'client' && user.companyName ? user.companyName : user.name}
-                            <span
-                              className={styles.roleBadge}
-                              style={{
-                                backgroundColor: ROLE_COLORS[user.role]?.bg,
-                                color: ROLE_COLORS[user.role]?.color,
-                              }}
-                            >
-                              {user.role}
-                            </span>
-                            {isPrimary && <span className={styles.primaryBadge}>Primary</span>}
-                          </span>
-                          <span className={styles.memberEmail}>{user.email}</span>
-                        </div>
-                        <div className={styles.memberActions}>
-                          {user.role === 'client' && !isPrimary && (
-                            <button
-                              className={styles.actionButton}
-                              onClick={() => handleSetPrimary(currentBoard.boardId, user.id)}
-                              title="Set as primary (shows logo in dashboard)"
-                            >
-                              <StarIcon />
-                            </button>
-                          )}
-                          {isPrimary && (
-                            <button
-                              className={`${styles.actionButton} ${styles.primaryStar}`}
-                              title="Primary client (logo shown)"
-                              disabled
-                            >
-                              <StarIcon filled />
-                            </button>
-                          )}
-                          <button
-                            className={`${styles.actionButton} ${styles.danger}`}
-                            onClick={() => handleRemoveMember(currentBoard.boardId, user.id)}
-                            title="Remove from board"
-                          >
-                            <TrashIcon />
-                          </button>
-                        </div>
+                  {/* Board Details - Expandable */}
+                  {isExpanded && (
+                    <div className={styles.boardCardContent}>
+                      <div className={styles.boardIdRow}>
+                        <span className={styles.boardIdLabel}>Board ID:</span>
+                        <span className={styles.boardId}>{board.boardId}</span>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </>
-          ) : selectedBoard && !currentBoard ? (
-            // New board being added
-            <div className={styles.detailsHeader}>
-              <div>
-                <h3 className={styles.detailsTitle}>{newBoardName || 'New Board'}</h3>
-                <span className={styles.boardId}>{selectedBoard}</span>
-              </div>
-              <Button size="sm" onClick={() => setShowAddMember(true)}>
-                <PlusIcon /> Add Member
-              </Button>
-            </div>
-          ) : (
-            <div className={styles.selectPrompt}>
-              <BoardIcon />
-              <p>Select a board to manage its members</p>
-            </div>
-          )}
-        </div>
+
+                      <div className={styles.membersSection}>
+                        <div className={styles.membersSectionHeader}>
+                          <h4 className={styles.membersTitle}>Assigned Members</h4>
+                          <Button size="sm" onClick={() => { setSelectedBoard(board.boardId); setShowAddMember(true); }}>
+                            <PlusIcon /> Add Member
+                          </Button>
+                        </div>
+                        {board.members.length === 0 ? (
+                          <p className={styles.noMembers}>No members assigned yet</p>
+                        ) : (
+                          <div className={styles.membersList}>
+                            {board.members.map(({ user, isPrimary }) => (
+                              <div key={user.id} className={`${styles.memberCard} ${isPrimary ? styles.primary : ''}`}>
+                                <div
+                                  className={styles.memberAvatar}
+                                  style={{ backgroundColor: user.companyLogoUrl || user.avatarUrl ? 'white' : ROLE_COLORS[user.role].color }}
+                                >
+                                  {user.companyLogoUrl ? (
+                                    <img src={user.companyLogoUrl} alt={user.companyName || user.name} />
+                                  ) : user.avatarUrl ? (
+                                    <img src={user.avatarUrl} alt={user.name} />
+                                  ) : (
+                                    <span>{(user.companyName || user.name)?.charAt(0).toUpperCase()}</span>
+                                  )}
+                                </div>
+                                <div className={styles.memberInfo}>
+                                  <span className={styles.memberName}>
+                                    {user.role === 'client' && user.companyName ? user.companyName : user.name}
+                                    <span
+                                      className={styles.roleBadge}
+                                      style={{
+                                        backgroundColor: ROLE_COLORS[user.role]?.bg,
+                                        color: ROLE_COLORS[user.role]?.color,
+                                      }}
+                                    >
+                                      {user.role}
+                                    </span>
+                                    {isPrimary && <span className={styles.primaryBadge}>Primary</span>}
+                                  </span>
+                                  <span className={styles.memberEmail}>{user.email}</span>
+                                </div>
+                                <div className={styles.memberActions}>
+                                  {user.role === 'client' && !isPrimary && (
+                                    <button
+                                      className={styles.actionButton}
+                                      onClick={() => handleSetPrimary(board.boardId, user.id)}
+                                      title="Set as primary (shows logo in dashboard)"
+                                    >
+                                      <StarIcon />
+                                    </button>
+                                  )}
+                                  {isPrimary && (
+                                    <button
+                                      className={`${styles.actionButton} ${styles.primaryStar}`}
+                                      title="Primary client (logo shown)"
+                                      disabled
+                                    >
+                                      <StarIcon filled />
+                                    </button>
+                                  )}
+                                  <button
+                                    className={`${styles.actionButton} ${styles.danger}`}
+                                    onClick={() => handleRemoveMember(board.boardId, user.id)}
+                                    title="Remove from board"
+                                  >
+                                    <TrashIcon />
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Add Member Modal */}
