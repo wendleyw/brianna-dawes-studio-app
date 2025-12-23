@@ -257,6 +257,7 @@
 }
 
 .sectionTitleMeta {
+  font-size: 12px;
   font-weight: 600;
   color: #94a3b8;
 }
@@ -592,10 +593,10 @@
 .analyticsTitle {
   display: flex;
   align-items: baseline;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 6px;
   flex-wrap: wrap;
-  text-align: center;
+  text-align: left;
 }
 
 .timelineSection {
