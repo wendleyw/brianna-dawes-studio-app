@@ -31,6 +31,11 @@
   color: #1e293b;
 }
 
+.bottomSpacer {
+  height: calc(var(--dash-nav-height, 140px) + env(safe-area-inset-bottom));
+  width: 100%;
+}
+
 .navCollapsed {
   --dash-nav-height: 86px;
 }

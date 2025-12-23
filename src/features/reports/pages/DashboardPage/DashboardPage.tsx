@@ -488,7 +488,7 @@ export function DashboardPage() {
 
     const updateNavHeight = () => {
       const height = nav.getBoundingClientRect().height;
-      container.style.setProperty('--dash-nav-height', `${height + 32}px`);
+      container.style.setProperty('--dash-nav-height', `${height + 64}px`);
     };
 
     updateNavHeight();
@@ -858,6 +858,7 @@ export function DashboardPage() {
           </button>
         </div>
       </nav>
+      <div className={styles.bottomSpacer} aria-hidden="true" />
     </div>
   );
 }
