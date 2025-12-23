@@ -35,13 +35,6 @@ const PlusIcon = () => (
   </svg>
 );
 
-const SearchIcon = () => (
-  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <circle cx="11" cy="11" r="7" />
-    <line x1="16.65" y1="16.65" x2="21" y2="21" />
-  </svg>
-);
-
 const GridIcon = () => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
     <rect x="3" y="3" width="7" height="7"/>
@@ -453,8 +446,6 @@ export function DashboardPage() {
 
   // Get projects array from response
   const projectsList = useMemo(() => projectsData?.data ?? EMPTY_PROJECTS, [projectsData?.data]);
-  const userInitials = useMemo(() => getInitials(user?.name), [user?.name]);
-
   const activeDeliverables = useMemo(() => {
     return projectsList
       .filter((project) => project.status !== 'done')
@@ -508,27 +499,6 @@ export function DashboardPage() {
 
   return (
     <div className={styles.container}>
-      <header className={styles.topbar}>
-        <span className={styles.topbarTitle}>BD Studios</span>
-        <div className={styles.topbarActions}>
-          <button
-            className={styles.iconButton}
-            type="button"
-            aria-label="Search projects"
-            onClick={() => navigate('/projects')}
-          >
-            <SearchIcon />
-          </button>
-          <button className={styles.avatarButton} type="button" aria-label="Account">
-            {user?.avatarUrl ? (
-              <img src={user.avatarUrl} alt={user.name} className={styles.avatarImage} />
-            ) : (
-              <span className={styles.avatarFallback}>{userInitials}</span>
-            )}
-          </button>
-        </div>
-      </header>
-
       <section className={styles.hero}>
         <div className={styles.heroMark} aria-hidden="true">
           <span className={styles.heroMarkDot} />
