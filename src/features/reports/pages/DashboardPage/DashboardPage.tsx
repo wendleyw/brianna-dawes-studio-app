@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { Skeleton } from '@shared/ui';
 import { useAuth } from '@features/auth';
 import { useProjects } from '@features/projects';
@@ -452,6 +452,8 @@ export function DashboardPage() {
   const isClient = user?.role === 'client';
   const canCreateProjects = isAdmin || isClient;
   const [isNavCollapsed, setIsNavCollapsed] = useState(false);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const navRef = useRef<HTMLElement | null>(null);
 
   // Get projects array from response
   const projectsList = useMemo(() => projectsData?.data ?? EMPTY_PROJECTS, [projectsData?.data]);
@@ -478,6 +480,24 @@ export function DashboardPage() {
     totalAssets: deliverablesData?.reduce((sum, d) => sum + ((d.count as number) || 0), 0) || 0,
     totalBonusAssets: deliverablesData?.reduce((sum, d) => sum + ((d.bonus_count as number) || 0), 0) || 0,
   }), [deliverablesData]);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    const nav = navRef.current;
+    if (!container || !nav) return;
+
+    const updateNavHeight = () => {
+      const height = nav.getBoundingClientRect().height;
+      container.style.setProperty('--dash-nav-height', `${height + 16}px`);
+    };
+
+    updateNavHeight();
+
+    if (typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(updateNavHeight);
+    observer.observe(nav);
+    return () => observer.disconnect();
+  }, [isNavCollapsed]);
 
   // Get projects for timeline (ALL statuses, organized by date) - memoized
   const timelineProjects = useMemo(() =>
@@ -507,7 +527,10 @@ export function DashboardPage() {
   }
 
   return (
-    <div className={`${styles.container} ${isNavCollapsed ? styles.navCollapsed : ''}`}>
+    <div
+      ref={containerRef}
+      className={`${styles.container} ${isNavCollapsed ? styles.navCollapsed : ''}`}
+    >
       <section className={styles.hero}>
         <div className={styles.heroMark} aria-hidden="true">
           <span className={styles.heroMarkDot} />
@@ -758,6 +781,7 @@ export function DashboardPage() {
       </section>
 
       <nav
+        ref={navRef}
         className={`${styles.bottomNav} ${isNavCollapsed ? styles.bottomNavCollapsed : ''}`}
         aria-label="Primary"
       >
