@@ -15,7 +15,7 @@
   display: flex;
   flex-direction: column;
   gap: 24px;
-  padding: 0 18px calc(120px + env(safe-area-inset-bottom));
+  padding: 0 18px calc(var(--dash-nav-height, 140px) + env(safe-area-inset-bottom));
   width: 100%;
   height: 100%;
   box-sizing: border-box;
@@ -28,6 +28,10 @@
     radial-gradient(circle at 85% 8%, rgba(186, 122, 104, 0.14), transparent 45%);
   font-family: 'Manrope', 'Segoe UI', sans-serif;
   color: #1e293b;
+}
+
+.navCollapsed {
+  --dash-nav-height: 86px;
 }
 
 .loading {
@@ -775,18 +779,64 @@
 
 .bottomNav {
   position: fixed;
-  left: 0;
-  right: 0;
+  left: 12px;
+  right: auto;
   bottom: 0;
   z-index: 30;
   display: flex;
-  justify-content: space-around;
+  justify-content: flex-start;
   align-items: center;
-  gap: 6px;
+  gap: 10px;
   padding: 10px 16px calc(18px + env(safe-area-inset-bottom));
-  background: rgba(255, 255, 255, 0.86);
+  background: rgba(255, 255, 255, 0.9);
   border-top: 1px solid rgba(148, 163, 184, 0.2);
   backdrop-filter: blur(14px);
+  border-radius: 24px;
+  width: calc(100% - 24px);
+  overflow: hidden;
+  transition: width 0.25s ease, padding 0.25s ease;
+  box-shadow: 0 14px 24px -20px rgba(15, 23, 42, 0.45);
+}
+
+.bottomNavCollapsed {
+  width: 64px;
+  padding: 10px 10px calc(14px + env(safe-area-inset-bottom));
+}
+
+.navItems {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  flex: 1;
+  gap: 6px;
+  transition: opacity 0.2s ease, transform 0.2s ease, max-width 0.25s ease;
+  max-width: 100%;
+}
+
+.bottomNavCollapsed .navItems {
+  opacity: 0;
+  transform: translateX(-8px);
+  pointer-events: none;
+  max-width: 0;
+}
+
+.navToggle {
+  border: none;
+  background: rgba(15, 23, 42, 0.08);
+  color: var(--dash-primary);
+  width: 38px;
+  height: 38px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.navToggle:hover {
+  background: rgba(15, 23, 42, 0.14);
+  transform: translateY(-1px);
 }
 
 .navButton {

@@ -99,6 +99,14 @@ const SettingsIcon = () => (
   </svg>
 );
 
+const MenuIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M4 7h16" />
+    <path d="M4 12h16" />
+    <path d="M4 17h16" />
+  </svg>
+);
+
 function getInitials(name?: string | null): string {
   if (!name) return 'BD';
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -443,6 +451,7 @@ export function DashboardPage() {
   const isAdmin = user?.role === 'admin';
   const isClient = user?.role === 'client';
   const canCreateProjects = isAdmin || isClient;
+  const [isNavCollapsed, setIsNavCollapsed] = useState(false);
 
   // Get projects array from response
   const projectsList = useMemo(() => projectsData?.data ?? EMPTY_PROJECTS, [projectsData?.data]);
@@ -498,7 +507,7 @@ export function DashboardPage() {
   }
 
   return (
-    <div className={styles.container}>
+    <div className={`${styles.container} ${isNavCollapsed ? styles.navCollapsed : ''}`}>
       <section className={styles.hero}>
         <div className={styles.heroMark} aria-hidden="true">
           <span className={styles.heroMarkDot} />
@@ -748,66 +757,82 @@ export function DashboardPage() {
         </div>
       </section>
 
-      <nav className={styles.bottomNav} aria-label="Primary">
+      <nav
+        className={`${styles.bottomNav} ${isNavCollapsed ? styles.bottomNavCollapsed : ''}`}
+        aria-label="Primary"
+      >
         <button
           type="button"
-          className={`${styles.navButton} ${styles.navButtonActive}`}
-          onClick={() => navigate('/dashboard')}
-          aria-current="page"
+          className={styles.navToggle}
+          aria-label={isNavCollapsed ? 'Expand menu' : 'Collapse menu'}
+          aria-expanded={!isNavCollapsed}
+          onClick={() => setIsNavCollapsed((prev) => !prev)}
         >
           <span className={styles.navIcon}>
-            <HomeIcon />
+            <MenuIcon />
           </span>
-          <span>Home</span>
         </button>
-        <button
-          type="button"
-          className={styles.navButton}
-          onClick={() => navigate('/projects')}
-        >
-          <span className={styles.navIcon}>
-            <FolderIcon />
-          </span>
-          <span>Projects</span>
-        </button>
-        <button
-          type="button"
-          className={`${styles.navButton} ${!isAdmin ? styles.navButtonDisabled : ''}`}
-          onClick={() => {
-            if (isAdmin) navigate('/admin?tab=users');
-          }}
-          aria-disabled={!isAdmin}
-          disabled={!isAdmin}
-        >
-          <span className={styles.navIcon}>
-            <TeamIcon />
-          </span>
-          <span>Team</span>
-        </button>
-        <button
-          type="button"
-          className={styles.navButton}
-          onClick={() => navigate('/notifications')}
-        >
-          <span className={styles.navIcon}>
-            <BellIcon />
-          </span>
-          <span>Notifications</span>
-        </button>
-        <button
-          type="button"
-          className={`${styles.navButton} ${!isAdmin ? styles.navButtonDisabled : ''}`}
-          onClick={() => {
-            if (isAdmin) navigate('/admin?tab=settings');
-          }}
-          aria-disabled={!isAdmin}
-          disabled={!isAdmin}
-        >
-          <span className={styles.navIcon}>
-            <SettingsIcon />
-          </span>
-          <span>Settings</span>
-        </button>
+        <div className={styles.navItems}>
+          <button
+            type="button"
+            className={`${styles.navButton} ${styles.navButtonActive}`}
+            onClick={() => navigate('/dashboard')}
+            aria-current="page"
+          >
+            <span className={styles.navIcon}>
+              <HomeIcon />
+            </span>
+            <span>Home</span>
+          </button>
+          <button
+            type="button"
+            className={styles.navButton}
+            onClick={() => navigate('/projects')}
+          >
+            <span className={styles.navIcon}>
+              <FolderIcon />
+            </span>
+            <span>Projects</span>
+          </button>
+          <button
+            type="button"
+            className={`${styles.navButton} ${!isAdmin ? styles.navButtonDisabled : ''}`}
+            onClick={() => {
+              if (isAdmin) navigate('/admin?tab=users');
+            }}
+            aria-disabled={!isAdmin}
+            disabled={!isAdmin}
+          >
+            <span className={styles.navIcon}>
+              <TeamIcon />
+            </span>
+            <span>Team</span>
+          </button>
+          <button
+            type="button"
+            className={styles.navButton}
+            onClick={() => navigate('/notifications')}
+          >
+            <span className={styles.navIcon}>
+              <BellIcon />
+            </span>
+            <span>Notifications</span>
+          </button>
+          <button
+            type="button"
+            className={`${styles.navButton} ${!isAdmin ? styles.navButtonDisabled : ''}`}
+            onClick={() => {
+              if (isAdmin) navigate('/admin?tab=settings');
+            }}
+            aria-disabled={!isAdmin}
+            disabled={!isAdmin}
+          >
+            <span className={styles.navIcon}>
+              <SettingsIcon />
+            </span>
+            <span>Settings</span>
+          </button>
+        </div>
       </nav>
     </div>
   );
