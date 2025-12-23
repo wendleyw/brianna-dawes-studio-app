@@ -19,9 +19,10 @@
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
-  background-color: var(--projects-bg);
+  background-color: #ffffff;
+  background-image: linear-gradient(to bottom, #ffffff 0%, #ffffff 140px, var(--projects-bg) 100%);
   padding: 18px;
-  gap: 14px;
+  gap: 18px;
   font-family: 'Manrope', system-ui, sans-serif;
   color: var(--projects-primary);
 }
@@ -29,7 +30,7 @@
 .header {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
 }
 
 .headerTop {
