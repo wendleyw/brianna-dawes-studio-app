@@ -9,6 +9,17 @@ import { env } from '@shared/config/env';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const debugEnabled = import.meta.env.DEV || import.meta.env.VITE_DEBUG === 'true';
+const debugLog = (...args: unknown[]) => {
+  if (debugEnabled) {
+    console.log(...args);
+  }
+};
+const debugError = (...args: unknown[]) => {
+  if (debugEnabled) {
+    console.error(...args);
+  }
+};
 
 if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables');
@@ -96,18 +107,18 @@ export async function supabaseRestQuery<T = unknown>(
     headers['Prefer'] = 'count=exact';
   }
 
-  console.log(`[SupabaseRest] GET ${table}`, { select, eq, inFilters, order, limit });
+  debugLog(`[SupabaseRest] GET ${table}`, { select, eq, inFilters, order, limit });
 
   try {
     const startTime = Date.now();
     const response = await fetch(url.toString(), { headers });
     const elapsed = Date.now() - startTime;
 
-    console.log(`[SupabaseRest] Response in ${elapsed}ms, status: ${response.status}`);
+    debugLog(`[SupabaseRest] Response in ${elapsed}ms, status: ${response.status}`);
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`[SupabaseRest] Error:`, errorText);
+      debugError(`[SupabaseRest] Error:`, errorText);
       return {
         data: null,
         error: { message: errorText, code: String(response.status) },
@@ -155,7 +166,7 @@ export async function supabaseRestQuery<T = unknown>(
     if (count !== undefined) result.count = count;
     return result;
   } catch (error) {
-    console.error(`[SupabaseRest] Fetch error:`, error);
+    debugError(`[SupabaseRest] Fetch error:`, error);
     return {
       data: null,
       error: { message: error instanceof Error ? error.message : 'Unknown error' },

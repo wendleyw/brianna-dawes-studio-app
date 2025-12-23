@@ -23,7 +23,7 @@ export function SplashScreen({
   displayDuration = 1500,
   animationDuration = 600,
   onComplete,
-  videoSrc = '/logo-animation.mp4',
+  videoSrc = '/logo-animation.webm',
   staticLogoSrc,
   brandText = 'BRIANNA DAWES STUDIOS',
 }: SplashScreenProps) {
@@ -101,7 +101,7 @@ export function SplashScreen({
             autoPlay
             loop={false}
           >
-            <source src={videoSrc} type="video/mp4" />
+            <source src={videoSrc} type="video/webm" />
             <img
               src={staticLogoSrc}
               alt="Logo"

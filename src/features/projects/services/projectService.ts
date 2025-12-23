@@ -51,12 +51,12 @@ class ProjectService {
    * @returns Paginated project list with total count
    */
   async getProjects(params: ProjectsQueryParams = {}): Promise<ProjectsResponse> {
-    console.log('[ProjectService] getProjects called with params:', params);
+    logger.debug('getProjects called', params);
     const { filters = {}, sort = { field: 'createdAt', direction: 'desc' }, page = 1, pageSize = 10 } = params;
 
     // In Miro iframe, use direct REST API to avoid Supabase client hanging
     if (isInMiroIframe()) {
-      console.log('[ProjectService] Using REST API (Miro iframe context)');
+      logger.debug('Using REST API (Miro iframe context)');
       return this.getProjectsViaRest(params);
     }
 
@@ -128,33 +128,33 @@ class ProjectService {
     const to = from + pageSize - 1;
     query = query.range(from, to);
 
-    console.log('[ProjectService] Executing query...', { timestamp: new Date().toISOString() });
+    logger.debug('Executing query', { timestamp: new Date().toISOString() });
 
     const startTime = Date.now();
 
     let data, error, count;
     try {
-      console.log('[ProjectService] Starting Supabase query...');
+      logger.debug('Starting Supabase query');
       const result = await query;
       const elapsed = Date.now() - startTime;
-      console.log('[ProjectService] Query returned in', elapsed, 'ms');
+      logger.debug('Query returned', { elapsedMs: elapsed });
       data = result.data;
       error = result.error;
       count = result.count;
     } catch (queryError) {
       const elapsed = Date.now() - startTime;
-      console.error('[ProjectService] Query failed after', elapsed, 'ms:', queryError);
+      logger.error('Query failed', { elapsedMs: elapsed, error: queryError });
       throw queryError;
     }
 
-    console.log('[ProjectService] Query complete:', { dataCount: data?.length, error: error?.message, count });
+    logger.debug('Query complete', { dataCount: data?.length, error: error?.message, count });
 
     if (error) throw error;
 
     const projects = (data || []).map(this.mapProjectFromDB);
     const total = count || 0;
 
-    console.log('[ProjectService] Returning', projects.length, 'projects');
+    logger.debug('Returning projects', { count: projects.length });
     return {
       data: projects,
       total,
@@ -217,7 +217,7 @@ class ProjectService {
       authToken = null;
     }
 
-    console.log('[ProjectService] REST query with:', { eq, inFilters, sort: sortColumn });
+    logger.debug('REST query', { eq, inFilters, sort: sortColumn });
 
     const result = await supabaseRestQuery<Record<string, unknown>[]>('projects', {
       select: '*',
@@ -230,12 +230,12 @@ class ProjectService {
     });
 
     if (result.error) {
-      console.error('[ProjectService] REST query error:', result.error);
+      logger.error('REST query error', result.error);
       throw new Error(result.error.message);
     }
 
     const data = result.data || [];
-    console.log('[ProjectService] REST query returned', data.length, 'projects');
+    logger.debug('REST query returned', { count: data.length });
 
     // Map data - note: REST doesn't do joins, so client/designers will be null
     const projects = data.map(this.mapProjectFromDB);
@@ -321,7 +321,7 @@ class ProjectService {
   async getProject(id: string): Promise<Project> {
     // In Miro iframe, use direct REST API to avoid Supabase client hanging/406 errors
     if (isInMiroIframe()) {
-      console.log('[ProjectService] getProject using REST API (Miro iframe context)');
+      logger.debug('getProject using REST API (Miro iframe context)');
       return this.getProjectViaRest(id);
     }
 
@@ -352,7 +352,7 @@ class ProjectService {
     });
 
     if (result.error) {
-      console.error('[ProjectService] REST getProject error:', result.error);
+      logger.error('REST getProject error', result.error);
       throw new Error(result.error.message);
     }
 
