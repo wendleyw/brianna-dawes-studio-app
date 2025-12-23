@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { SplashScreen } from '@shared/ui';
-import { DashboardIcon, FilterIcon, SearchIcon } from '@shared/ui/Icons';
+import { ArrowLeftIcon, FilterIcon, SearchIcon } from '@shared/ui/Icons';
 import { useAuth } from '@features/auth';
 import logoImage from '../../../../assets/brand/logo-brianna.png';
 import { useMiro, zoomToProject, addVersionToProject } from '@features/boards';
@@ -59,6 +59,9 @@ export function ProjectsPage() {
   const [timelineFilter, setTimelineFilter] = useState<TimelineStatus | ''>('');
   const [projectTypeFilter, setProjectTypeFilter] = useState<string>('');
   const [dueThisWeekOnly, setDueThisWeekOnly] = useState(false);
+  const [isFiltersOpen, setIsFiltersOpen] = useState(() => {
+    return searchParams.has('clientId');
+  });
   // Initialize selectedClientId from URL param (passed from Dashboard)
   const [selectedClientId, setSelectedClientId] = useState<string | null>(() => {
     return searchParams.get('clientId');
@@ -67,6 +70,16 @@ export function ProjectsPage() {
   const [currentBoardId, setCurrentBoardId] = useState<string | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const filtersRef = useRef<HTMLDivElement>(null);
+  const hasActiveFilters =
+    Boolean(searchQuery) ||
+    Boolean(timelineFilter) ||
+    Boolean(projectTypeFilter) ||
+    dueThisWeekOnly ||
+    Boolean(selectedClientId);
+
+  useEffect(() => {
+    if (hasActiveFilters) setIsFiltersOpen(true);
+  }, [hasActiveFilters]);
 
   // Splash screen state - only show once per session
   const [showSplash, setShowSplash] = useState(() => {
@@ -731,7 +744,7 @@ export function ProjectsPage() {
             aria-label="Back to dashboard"
             onClick={() => navigate('/dashboard')}
           >
-            <DashboardIcon size={18} />
+            <ArrowLeftIcon size={18} />
           </button>
           <div className={styles.headerBrand}>
             {hasClientBranding ? (
@@ -759,22 +772,29 @@ export function ProjectsPage() {
             className={styles.iconButton}
             type="button"
             aria-label="Search projects"
-            onClick={() => searchInputRef.current?.focus()}
+            onClick={() => {
+              if (!isFiltersOpen) setIsFiltersOpen(true);
+              requestAnimationFrame(() => searchInputRef.current?.focus());
+            }}
           >
             <SearchIcon size={18} />
           </button>
         </div>
         <div className={styles.headerBottom}>
           <div className={styles.titleGroup}>
-            <h1 className={styles.pageTitle}>Dashboard</h1>
-            <p className={styles.pageSubtitle}>Overview of active initiatives</p>
             <span className={styles.projectCount}>{totalProjects} projects</span>
           </div>
           <button
-            className={styles.iconButtonPrimary}
+            className={`${styles.iconButtonPrimary} ${isFiltersOpen ? styles.iconButtonPrimaryActive : ''}`}
             type="button"
-            aria-label="Jump to filters"
-            onClick={() => filtersRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+            aria-label={isFiltersOpen ? 'Hide filters' : 'Show filters'}
+            aria-expanded={isFiltersOpen}
+            onClick={() => {
+              setIsFiltersOpen((prev) => !prev);
+              if (!isFiltersOpen) {
+                setTimeout(() => filtersRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+              }
+            }}
           >
             <FilterIcon size={18} />
           </button>
@@ -791,59 +811,64 @@ export function ProjectsPage() {
         </div>
       )}
 
-      <div className={styles.searchRow}>
-        <input
-          ref={searchInputRef}
-          type="text"
-          className={styles.searchInput}
-          placeholder="Search projects..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
-      </div>
+      <div
+        className={`${styles.filtersPanel} ${isFiltersOpen ? styles.filtersPanelOpen : ''}`}
+        ref={filtersRef}
+      >
+        <div className={styles.searchRow}>
+          <input
+            ref={searchInputRef}
+            type="text"
+            className={styles.searchInput}
+            placeholder="Search projects..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
 
-      <div className={styles.filters} ref={filtersRef}>
-        {(isMasterBoard || selectedClientId) && clientsForFilter && clientsForFilter.length > 0 && (
+        <div className={styles.filters}>
+          {(isMasterBoard || selectedClientId) && clientsForFilter && clientsForFilter.length > 0 && (
+            <select
+              className={styles.filterSelect}
+              value={selectedClientId || ''}
+              onChange={(e) => setSelectedClientId(e.target.value || null)}
+            >
+              <option value="">All Clients</option>
+              {clientsForFilter.map(client => (
+                <option key={client.id} value={client.id}>
+                  {client.company_name || client.name}
+                </option>
+              ))}
+            </select>
+          )}
           <select
             className={styles.filterSelect}
-            value={selectedClientId || ''}
-            onChange={(e) => setSelectedClientId(e.target.value || null)}
+            value={timelineFilter}
+            onChange={(e) => setTimelineFilter(e.target.value as TimelineStatus | '')}
           >
-            <option value="">All Clients</option>
-            {clientsForFilter.map(client => (
-              <option key={client.id} value={client.id}>
-                {client.company_name || client.name}
-              </option>
+            <option value="">All Status</option>
+            {TIMELINE_COLUMNS.map(col => (
+              <option key={col.id} value={col.id}>{col.label}</option>
             ))}
           </select>
-        )}
-        <select
-          className={styles.filterSelect}
-          value={timelineFilter}
-          onChange={(e) => setTimelineFilter(e.target.value as TimelineStatus | '')}
-        >
-          <option value="">All Status</option>
-          {TIMELINE_COLUMNS.map(col => (
-            <option key={col.id} value={col.id}>{col.label}</option>
-          ))}
-        </select>
-        <select
-          className={styles.filterSelect}
-          value={projectTypeFilter}
-          onChange={(e) => setProjectTypeFilter(e.target.value)}
-        >
-          <option value="">All Types</option>
-          {PROJECT_TYPES.map(type => (
-            <option key={type.value} value={type.value}>{type.label}</option>
-          ))}
-        </select>
-        <button
-          className={`${styles.filterChip} ${dueThisWeekOnly ? styles.filterChipActive : ''}`}
-          type="button"
-          onClick={() => setDueThisWeekOnly((prev) => !prev)}
-        >
-          Due this week
-        </button>
+          <select
+            className={styles.filterSelect}
+            value={projectTypeFilter}
+            onChange={(e) => setProjectTypeFilter(e.target.value)}
+          >
+            <option value="">All Types</option>
+            {PROJECT_TYPES.map(type => (
+              <option key={type.value} value={type.value}>{type.label}</option>
+            ))}
+          </select>
+          <button
+            className={`${styles.filterChip} ${dueThisWeekOnly ? styles.filterChipActive : ''}`}
+            type="button"
+            onClick={() => setDueThisWeekOnly((prev) => !prev)}
+          >
+            Due this week
+          </button>
+        </div>
       </div>
 
       {/* Project Cards */}
