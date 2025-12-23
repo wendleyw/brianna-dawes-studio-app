@@ -70,12 +70,19 @@ export function ProjectsPage() {
   const [currentBoardId, setCurrentBoardId] = useState<string | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const filtersRef = useRef<HTMLDivElement>(null);
+  const canViewClientFilter = user?.role !== 'client';
   const hasActiveFilters =
     Boolean(searchQuery) ||
     Boolean(timelineFilter) ||
     Boolean(projectTypeFilter) ||
     dueThisWeekOnly ||
     Boolean(selectedClientId);
+
+  useEffect(() => {
+    if (user?.role === 'client' && user.id && selectedClientId !== user.id) {
+      setSelectedClientId(user.id);
+    }
+  }, [user?.role, user?.id, selectedClientId]);
 
   useEffect(() => {
     if (hasActiveFilters) setIsFiltersOpen(true);
@@ -292,6 +299,7 @@ export function ProjectsPage() {
 
   // Check if we're currently inside the Master Board
   const isMasterBoard = !!(isInMiro && currentBoardId && masterBoardId && currentBoardId === masterBoardId);
+  const showMasterBadge = canViewClientFilter && (isMasterBoard || selectedClientId);
 
   // Query clients for filter dropdown (when on Master Board OR when we have clientId from URL)
   const { data: clientsForFilter } = useQuery<Array<{ id: string; name: string; company_name: string | null }>>({
@@ -305,7 +313,7 @@ export function ProjectsPage() {
       if (error) throw error;
       return (data || []) as Array<{ id: string; name: string; company_name: string | null }>;
     },
-    enabled: isMasterBoard || !!selectedClientId,
+    enabled: canViewClientFilter && (isMasterBoard || !!selectedClientId),
   });
 
   // Fetch projects filtered by current board (for data isolation)
@@ -315,9 +323,12 @@ export function ProjectsPage() {
     const f: ProjectFiltersType = {};
     if (searchQuery) f.search = searchQuery;
 
-    // If we have a selectedClientId (from dropdown or URL), filter by it
-    // This takes precedence over board filter
-    if (selectedClientId) {
+    // Clients should only see their own projects
+    if (user?.role === 'client' && user.id) {
+      f.clientId = user.id;
+    } else if (selectedClientId) {
+      // If we have a selectedClientId (from dropdown or URL), filter by it
+      // This takes precedence over board filter
       f.clientId = selectedClientId;
     } else if (isMasterBoard) {
       // On Master Board without client selected - show all projects (no filter)
@@ -326,7 +337,7 @@ export function ProjectsPage() {
       f.miroBoardId = currentBoardId;
     }
     return f;
-  }, [searchQuery, isInMiro, currentBoardId, isMasterBoard, selectedClientId]);
+  }, [searchQuery, isInMiro, currentBoardId, isMasterBoard, selectedClientId, user?.role, user?.id]);
 
   // Fetch ALL projects (pageSize: 1000 to avoid pagination limits)
   const { data: projectsData, isLoading, refetch } = useProjects({ filters, pageSize: 1000 });
@@ -802,7 +813,7 @@ export function ProjectsPage() {
       </header>
 
       {/* Master Board Badge - show when on Master Board OR when filtering by client */}
-      {(isMasterBoard || selectedClientId) && (
+      {showMasterBadge && (
         <div className={styles.masterBoardBadge}>
           {selectedClientId
             ? `Viewing: ${clientsForFilter?.find(c => c.id === selectedClientId)?.company_name || clientsForFilter?.find(c => c.id === selectedClientId)?.name || 'Client'}`
@@ -827,7 +838,7 @@ export function ProjectsPage() {
         </div>
 
         <div className={styles.filters}>
-          {(isMasterBoard || selectedClientId) && clientsForFilter && clientsForFilter.length > 0 && (
+          {canViewClientFilter && (isMasterBoard || selectedClientId) && clientsForFilter && clientsForFilter.length > 0 && (
             <select
               className={styles.filterSelect}
               value={selectedClientId || ''}

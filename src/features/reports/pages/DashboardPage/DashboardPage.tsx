@@ -488,7 +488,7 @@ export function DashboardPage() {
 
     const updateNavHeight = () => {
       const height = nav.getBoundingClientRect().height;
-      container.style.setProperty('--dash-nav-height', `${height + 16}px`);
+      container.style.setProperty('--dash-nav-height', `${height + 32}px`);
     };
 
     updateNavHeight();
@@ -546,8 +546,8 @@ export function DashboardPage() {
         )}
       </section>
 
-      {/* Client Filter - Only on Master Board */}
-      {isMasterBoard && clientsData && (
+      {/* Client Filter - Only on Master Board (admin only) */}
+      {isMasterBoard && isAdmin && clientsData && (
         <section className={`${styles.section} ${styles.sectionDelay1}`}>
           <div className={styles.clientFilterRow}>
             <label className={styles.filterLabel}>Filter by Client:</label>

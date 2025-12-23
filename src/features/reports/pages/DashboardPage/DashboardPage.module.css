@@ -21,6 +21,7 @@
   box-sizing: border-box;
   overflow-y: auto;
   overflow-x: hidden;
+  scroll-padding-bottom: calc(var(--dash-nav-height, 140px) + env(safe-area-inset-bottom));
   -webkit-overflow-scrolling: touch;
   background-color: var(--dash-bg);
   background-image:
@@ -638,10 +639,11 @@
   display: flex;
   gap: 10px;
   overflow-x: auto;
-  overflow-y: hidden;
+  overflow-y: auto;
   flex: 1;
   padding-bottom: 12px;
   margin-bottom: 4px;
+  padding-right: 6px;
   scrollbar-width: thin;
   scrollbar-color: rgba(148, 163, 184, 0.4) transparent;
 }
