@@ -1,7 +1,18 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { supabase } from '@shared/lib/supabase';
-// Logger removed - using console.log for debug visibility in Miro panel
+
+const debugEnabled = import.meta.env.DEV || import.meta.env.VITE_DEBUG === 'true';
+const debugLog = (...args: unknown[]) => {
+  if (debugEnabled) {
+    console.log(...args);
+  }
+};
+const debugWarn = (...args: unknown[]) => {
+  if (debugEnabled) {
+    console.warn(...args);
+  }
+};
 
 // Miro SDK v2 types
 export interface MiroItem {
@@ -153,89 +164,108 @@ export function MiroProvider({ children }: MiroProviderProps) {
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
 
   useEffect(() => {
+    let isActive = true;
+
+    async function runConnectivityChecks() {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+      if (!supabaseUrl || !supabaseKey) {
+        debugWarn('[MiroContext] Supabase env vars missing, skipping connectivity checks');
+        return;
+      }
+
+      debugLog('[MiroContext] Testing raw fetch to Supabase...');
+      const rawFetchStart = Date.now();
+      try {
+        const rawResponse = await fetch(`${supabaseUrl}/rest/v1/users?select=id&limit=1`, {
+          headers: {
+            apikey: supabaseKey,
+            Authorization: `Bearer ${supabaseKey}`,
+          },
+        });
+        const rawElapsed = Date.now() - rawFetchStart;
+        debugLog('[MiroContext] Raw fetch completed in', rawElapsed, 'ms, status:', rawResponse.status);
+      } catch (rawErr) {
+        const rawElapsed = Date.now() - rawFetchStart;
+        debugWarn('[MiroContext] Raw fetch FAILED after', rawElapsed, 'ms:', rawErr);
+      }
+
+      debugLog('[MiroContext] Testing Supabase client connectivity (background)...');
+      const connectivityStart = Date.now();
+
+      const testPromise = supabase
+        .from('users')
+        .select('id')
+        .limit(1)
+        .maybeSingle();
+
+      const timeoutPromise = new Promise<{ data: null; error: { message: string } }>((resolve) =>
+        setTimeout(() => resolve({ data: null, error: { message: 'Test timeout after 5s' } }), 5000)
+      );
+
+      Promise.race([testPromise, timeoutPromise])
+        .then(({ data, error: testError }) => {
+          const elapsed = Date.now() - connectivityStart;
+          if (testError) {
+            debugWarn('[MiroContext] Supabase client test:', testError.message, 'in', elapsed, 'ms');
+          } else {
+            debugLog('[MiroContext] Supabase client OK in', elapsed, 'ms, test data:', !!data);
+          }
+        })
+        .catch((connErr) => {
+          const elapsed = Date.now() - connectivityStart;
+          debugWarn('[MiroContext] Supabase client FAILED after', elapsed, 'ms:', connErr);
+        });
+    }
+
     async function initMiro() {
-      console.log('[MiroContext] Starting initialization...');
+      debugLog('[MiroContext] Starting initialization...');
       try {
         // Check if we're running inside Miro iframe
         const hasMiroSDK = typeof window !== 'undefined' && typeof window.miro !== 'undefined';
         const isInIframe = typeof window !== 'undefined' && window.self !== window.top;
         const inMiro = hasMiroSDK && isInIframe;
 
-        console.log('[MiroContext] Detection:', { hasMiroSDK, isInIframe, inMiro });
-        setIsInMiro(inMiro);
+        debugLog('[MiroContext] Detection:', { hasMiroSDK, isInIframe, inMiro });
+        if (isActive) setIsInMiro(inMiro);
 
         if (inMiro) {
-          console.log('[MiroContext] Running inside Miro, initializing SDK...');
+          debugLog('[MiroContext] Running inside Miro, initializing SDK...');
+          if (isActive) setIsReady(true);
 
-          // Get board info to verify SDK is working
-          const boardInfo = await window.miro.board.getInfo();
-          setBoardId(boardInfo.id);
-
-          console.log('[MiroContext] Miro SDK initialized, board ID:', boardInfo.id);
-
-          // Test raw fetch connectivity first (without Supabase client)
-          console.log('[MiroContext] Testing raw fetch to Supabase...');
-          const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-          const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-          const rawFetchStart = Date.now();
           try {
-            const rawResponse = await fetch(`${supabaseUrl}/rest/v1/users?select=id&limit=1`, {
-              headers: {
-                'apikey': supabaseKey,
-                'Authorization': `Bearer ${supabaseKey}`,
-              }
-            });
-            const rawElapsed = Date.now() - rawFetchStart;
-            console.log('[MiroContext] Raw fetch completed in', rawElapsed, 'ms, status:', rawResponse.status);
-          } catch (rawErr) {
-            const rawElapsed = Date.now() - rawFetchStart;
-            console.error('[MiroContext] Raw fetch FAILED after', rawElapsed, 'ms:', rawErr);
+            const boardInfo = await window.miro.board.getInfo();
+            if (isActive) setBoardId(boardInfo.id);
+            debugLog('[MiroContext] Miro SDK initialized, board ID:', boardInfo.id);
+          } catch (boardErr) {
+            console.error('[MiroContext] Failed to get board info:', boardErr);
+            if (isActive) {
+              setError(boardErr instanceof Error ? boardErr.message : 'Failed to get board info');
+            }
           }
 
-          // Mark as ready IMMEDIATELY - don't wait for Supabase client test
-          // The raw fetch already confirmed connectivity
-          console.log('[MiroContext] Setting isReady=true (raw fetch confirmed connectivity)');
-          setIsReady(true);
-
-          // Test Supabase client connectivity in background (non-blocking)
-          console.log('[MiroContext] Testing Supabase client connectivity (background)...');
-          const connectivityStart = Date.now();
-
-          // Add timeout to prevent hanging
-          const testPromise = supabase
-            .from('users')
-            .select('id')
-            .limit(1)
-            .maybeSingle();
-
-          const timeoutPromise = new Promise<{ data: null; error: { message: string } }>((resolve) =>
-            setTimeout(() => resolve({ data: null, error: { message: 'Test timeout after 5s' } }), 5000)
-          );
-
-          Promise.race([testPromise, timeoutPromise]).then(({ data, error: testError }) => {
-            const elapsed = Date.now() - connectivityStart;
-            if (testError) {
-              console.warn('[MiroContext] Supabase client test:', testError.message, 'in', elapsed, 'ms');
-            } else {
-              console.log('[MiroContext] Supabase client OK in', elapsed, 'ms, test data:', !!data);
-            }
-          }).catch((connErr) => {
-            const elapsed = Date.now() - connectivityStart;
-            console.error('[MiroContext] Supabase client FAILED after', elapsed, 'ms:', connErr);
-          });
+          if (debugEnabled) {
+            void runConnectivityChecks();
+          }
         } else {
-          console.log('[MiroContext] Running standalone (not in Miro iframe)');
-          setIsReady(true);
+          debugLog('[MiroContext] Running standalone (not in Miro iframe)');
+          if (isActive) setIsReady(true);
         }
       } catch (err) {
         console.error('[MiroContext] Error initializing Miro SDK:', err);
-        setError(err instanceof Error ? err.message : 'Failed to initialize Miro SDK');
-        setIsReady(true); // Still mark as ready so app can render
+        if (isActive) {
+          setError(err instanceof Error ? err.message : 'Failed to initialize Miro SDK');
+          setIsReady(true); // Still mark as ready so app can render
+        }
       }
     }
 
     initMiro();
+
+    return () => {
+      isActive = false;
+    };
   }, []);
 
   // Listen for card selection changes to detect project card clicks
@@ -246,7 +276,7 @@ export function MiroProvider({ children }: MiroProviderProps) {
     let lastClickedProjectId: string | null = null;
 
     const handleSelectionUpdate = async (event?: { items?: Array<{ id: string; type: string; description?: string }> }) => {
-      console.log('[MiroContext] Selection update:', event);
+      debugLog('[MiroContext] Selection update:', event);
 
       if (!event?.items?.length) {
         setSelectedProjectId(null);
@@ -275,12 +305,12 @@ export function MiroProvider({ children }: MiroProviderProps) {
       const now = Date.now();
       const isDoubleClick = lastClickedProjectId === projectId && (now - lastClickTime) < 500;
 
-      console.log('[MiroContext] Project card selected:', { projectId, isDoubleClick });
+      debugLog('[MiroContext] Project card selected:', { projectId, isDoubleClick });
       setSelectedProjectId(projectId);
 
       if (isDoubleClick) {
         // Double click: Open project modal
-        console.log('[MiroContext] Double click detected, opening project modal');
+        debugLog('[MiroContext] Double click detected, opening project modal');
         try {
           await window.miro.board.ui.openModal({
             url: `board-modal.html?mode=project&projectId=${projectId}`,
@@ -288,11 +318,11 @@ export function MiroProvider({ children }: MiroProviderProps) {
             height: 600,
           });
         } catch (err) {
-          console.error('[MiroContext] Error opening project modal:', err);
+        console.error('[MiroContext] Error opening project modal:', err);
         }
       } else {
         // Single click: Zoom to project briefing frame
-        console.log('[MiroContext] Single click, zooming to project');
+        debugLog('[MiroContext] Single click, zooming to project');
         // Import dynamically to avoid circular dependencies
         import('../services/miroSdkService').then(({ zoomToProject }) => {
           zoomToProject(projectId);
@@ -305,11 +335,11 @@ export function MiroProvider({ children }: MiroProviderProps) {
       lastClickedProjectId = projectId;
     };
 
-    console.log('[MiroContext] Registering selection:update listener');
+    debugLog('[MiroContext] Registering selection:update listener');
     window.miro.board.ui.on('selection:update', handleSelectionUpdate);
 
     return () => {
-      console.log('[MiroContext] Removing selection:update listener');
+      debugLog('[MiroContext] Removing selection:update listener');
       window.miro.board.ui.off('selection:update', handleSelectionUpdate);
     };
   }, [isInMiro, isReady]);

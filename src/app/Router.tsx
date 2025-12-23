@@ -80,6 +80,10 @@ export function Router() {
     };
 
     miro.board.ui.on('icon:click', handleIconClick);
+
+    return () => {
+      miro.board.ui.off('icon:click', handleIconClick);
+    };
   }, [isInMiro, miro, navigate, location.pathname]);
 
   useEffect(() => {
