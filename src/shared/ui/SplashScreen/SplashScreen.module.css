@@ -75,27 +75,12 @@
 }
 
 .sliding .content {
-  /*
-   * Animate to top-right corner
-   * Position calculation:
-   * - Move up: from center to ~60px from top
-   * - Move right: from center to ~100px from right edge
-   */
-  transform: translate(
-    calc(50vw - 100px),
-    calc(-50vh + 70px)
-  );
-  transform-origin: center center;
-  animation: slideAndFadeOut var(--animation-duration, 800ms) cubic-bezier(0.4, 0, 0.2, 1) forwards;
-}
-
-.sliding .logoWrapper {
-  animation: shrinkLogo var(--animation-duration, 600ms) cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  /* Simple fade out - no movement */
+  animation: fadeOut var(--animation-duration, 800ms) ease-out forwards;
 }
 
 .sliding .brandText {
   opacity: 0;
-  transform: scale(0.8);
 }
 
 /* ========== COMPLETE PHASE ========== */
@@ -106,26 +91,12 @@
 }
 
 /* ========== ANIMATIONS ========== */
-@keyframes shrinkLogo {
+/* Simple fade out animation */
+@keyframes fadeOut {
   from {
-    width: 80px;
-    height: 80px;
+    opacity: 1;
   }
   to {
-    width: 40px;
-    height: 40px;
-  }
-}
-
-/* Slide and fade out animation - fade starts at 60% */
-@keyframes slideAndFadeOut {
-  0% {
-    opacity: 1;
-  }
-  60% {
-    opacity: 1;
-  }
-  100% {
     opacity: 0;
   }
 }
@@ -163,23 +134,5 @@
   .brandText {
     font-size: 12px;
     letter-spacing: 0.1em;
-  }
-
-  .sliding .content {
-    transform: translate(
-      calc(50vw - 60px),
-      calc(-50vh + 50px)
-    );
-  }
-
-  @keyframes shrinkLogo {
-    from {
-      width: 60px;
-      height: 60px;
-    }
-    to {
-      width: 32px;
-      height: 32px;
-    }
   }
 }
