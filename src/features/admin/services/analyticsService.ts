@@ -139,6 +139,18 @@ class AnalyticsService {
       designers: users?.filter((u) => u.role === 'designer').length || 0,
     };
 
+    // Get board counts
+    const { data: boardAssignments } = await supabase
+      .from('board_assignments')
+      .select('board_id, user_id');
+
+    // Count unique boards
+    const uniqueBoardIds = new Set(boardAssignments?.map((b) => b.board_id) || []);
+    const totalBoards = uniqueBoardIds.size;
+
+    // Active boards = boards with at least one member assigned
+    const activeBoards = totalBoards; // All assigned boards are considered active
+
     // Active clients (with at least one active project in the current 5-status workflow)
     const activeClientIds = new Set(
       allProjects
@@ -200,6 +212,8 @@ class AnalyticsService {
       totalClients: userCounts.clients,
       activeClients: activeClientIds.size,
       totalDesigners: userCounts.designers,
+      totalBoards,
+      activeBoards,
       totalDeliverables: deliverableCounts.total,
       approvedDeliverables: deliverableCounts.approved,
       pendingDeliverables: deliverableCounts.pending,

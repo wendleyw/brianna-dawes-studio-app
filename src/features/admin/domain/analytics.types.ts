@@ -14,6 +14,8 @@ export interface OverviewMetrics {
   totalClients: number;
   activeClients: number;
   totalDesigners: number;
+  totalBoards: number;
+  activeBoards: number;
   totalDeliverables: number;
   approvedDeliverables: number;
   pendingDeliverables: number;

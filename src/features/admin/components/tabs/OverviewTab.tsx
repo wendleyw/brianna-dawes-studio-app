@@ -15,8 +15,8 @@ export default function OverviewTab({ onNavigateTab }: OverviewTabProps) {
   const stats = {
     totalProjects: metrics?.totalProjects || 0,
     totalUsers: (metrics?.totalClients || 0) + (metrics?.totalDesigners || 0),
-    activeBoards: metrics?.activeProjects || 0,
-    syncHealth: metrics?.completionRate ?? 98,
+    activeBoards: metrics?.activeBoards || 0,
+    syncHealth: metrics?.completionRate ?? 0,
   };
 
   const recentActivity =
