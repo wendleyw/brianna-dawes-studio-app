@@ -19,7 +19,7 @@ import { DELIVERABLE_TYPES, DELIVERABLE_STATUSES, DEFAULT_DELIVERABLE_FORM } fro
 import { useUsers } from '@features/admin/hooks/useUsers';
 import { useProjects } from '../../hooks/useProjects';
 import { createLogger } from '@shared/lib/logger';
-import { getStatusColumn, getStatusProgress, STATUS_COLUMNS } from '@shared/lib/timelineStatus';
+import { getStatusColumn, getStatusProgress, getTimelineStatus, STATUS_COLUMNS } from '@shared/lib/timelineStatus';
 import { PRIORITY_OPTIONS } from '@shared/lib/priorityConfig';
 import { PRIORITY_CONFIG, BADGE_COLORS } from '@features/boards/services/constants/colors.constants';
 import { getProjectType } from '@features/boards/services/miroHelpers';
@@ -65,6 +65,7 @@ export const ProjectCard = memo(function ProjectCard({
   onCardClick,
   onUpdateGoogleDrive,
   onUpdateStatus,
+  onStatusFilter,
   onUpdate,
   onArchive,
   onUnarchive,
@@ -177,7 +178,8 @@ export const ProjectCard = memo(function ProjectCard({
   const isAssignedClient = isClient && project.clientId === user?.id;
 
   // Get status column info (status is now direct from DB, uses color directly)
-  const statusColumn = getStatusColumn(project.status);
+  const displayStatus = getTimelineStatus(project);
+  const statusColumn = getStatusColumn(displayStatus);
   const projectType = getProjectType(project);
 
   // Debug: log status
@@ -889,10 +891,6 @@ export const ProjectCard = memo(function ProjectCard({
       </div>
 
       <div className={styles.badges}>
-        <span className={styles.badge} style={{ '--badge-color': statusColor } as React.CSSProperties}>
-          <span className={styles.badgeDot} />
-          {statusLabel}
-        </span>
         <span className={styles.badge} style={{ '--badge-color': priority.color } as React.CSSProperties}>
           <span className={styles.badgeDot} />
           {priorityLabel}
@@ -901,6 +899,25 @@ export const ProjectCard = memo(function ProjectCard({
           <span className={styles.badge} style={{ '--badge-color': projectType.color } as React.CSSProperties}>
             <span className={styles.badgeDot} />
             {projectType.label.toUpperCase()}
+          </span>
+        )}
+        {onStatusFilter ? (
+          <button
+            type="button"
+            className={`${styles.badgeButton} ${styles.badge}`}
+            style={{ '--badge-color': statusColor } as React.CSSProperties}
+            onClick={(event) => {
+              event.stopPropagation();
+              onStatusFilter(displayStatus);
+            }}
+          >
+            <span className={styles.badgeDot} />
+            {statusLabel}
+          </button>
+        ) : (
+          <span className={styles.badge} style={{ '--badge-color': statusColor } as React.CSSProperties}>
+            <span className={styles.badgeDot} />
+            {statusLabel}
           </span>
         )}
       </div>

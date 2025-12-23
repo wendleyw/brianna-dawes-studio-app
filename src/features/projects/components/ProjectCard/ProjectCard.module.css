@@ -2227,6 +2227,20 @@
   margin-top: 10px;
 }
 
+.badgeButton {
+  border: none;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+  padding: 0;
+}
+
+.badgeButton:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--badge-color) 45%, transparent);
+  outline-offset: 2px;
+  border-radius: 999px;
+}
+
 .badge {
   --badge-color: var(--status-color, var(--color-text-primary));
   display: inline-flex;

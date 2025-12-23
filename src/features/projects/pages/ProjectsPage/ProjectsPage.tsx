@@ -460,6 +460,12 @@ export function ProjectsPage() {
     }
   }, []);
 
+  const handleStatusFilter = useCallback((status: ProjectStatus) => {
+    setTimelineFilter((prev) => (prev === status ? '' : status));
+    setIsFiltersOpen(true);
+    setTimeout(() => filtersRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+  }, []);
+
   // Edit - Navigate to edit page
   const handleEdit = useCallback((project: Project) => {
     navigate(`/projects/${project.id}/edit`);
@@ -915,6 +921,7 @@ export function ProjectsPage() {
               onUnarchive={handleUnarchive}
               onCreateVersion={handleCreateVersion}
               onAssignDesigner={handleAssignDesigner}
+              onStatusFilter={handleStatusFilter}
               isSelected={project.id === selectedProjectId}
               isExpanded={project.id === expandedProjectId}
               onExpandedChange={(projectId, expanded) => {
