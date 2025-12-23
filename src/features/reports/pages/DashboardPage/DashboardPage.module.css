@@ -479,8 +479,8 @@
 
 .analyticsGrid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
 }
 
 .analyticsCard {
@@ -519,11 +519,13 @@
 }
 
 .deliveredCard {
+  grid-column: 1 / -1;
   background: var(--dash-primary);
   border: none;
   color: white;
   position: relative;
   overflow: hidden;
+  padding: 18px 12px;
 }
 
 .deliveredCard::after {
