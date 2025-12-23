@@ -1,0 +1,378 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap');
+
+/**
+ * ADMIN TAB BASE STYLES
+ *
+ * Unifica TODAS as tabs do Admin Dashboard sob o Design System principal.
+ * Herda 100% da tipografia, cores, espaçamento e hierarquia de Home/Projects.
+ *
+ * REGRA: Nenhuma tab pode introduzir novos estilos fora deste sistema.
+ */
+
+/* ============================================
+ * DESIGN TOKENS (HERDADOS DO SISTEMA PRINCIPAL)
+ * ============================================ */
+
+.tabContainer {
+  /* Colors - Exact match from ProjectsPage */
+  --tab-bg: #fafaf5;
+  --tab-surface: #ffffff;
+  --tab-border: rgba(148, 163, 184, 0.22);
+  --tab-primary: #0f172a;
+  --tab-muted: #94a3b8;
+  --tab-subtle: #64748b;
+  --tab-shadow: 0 12px 24px -20px rgba(15, 23, 42, 0.35);
+  --tab-shadow-soft: 0 6px 16px -12px rgba(15, 23, 42, 0.24);
+  --tab-chip: rgba(148, 163, 184, 0.12);
+  --tab-chip-active: rgba(15, 23, 42, 0.08);
+
+  /* Typography - Same as system */
+  font-family: 'Manrope', system-ui, sans-serif;
+  color: var(--tab-primary);
+
+  /* Layout */
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 0;
+}
+
+/* ============================================
+ * TAB HEADER (CONSISTENTE PARA TODAS AS TABS)
+ * ============================================ */
+
+.tabHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--tab-border);
+}
+
+.tabHeaderMain {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tabTitle {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--tab-primary);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.tabSubtitle {
+  font-size: 13px;
+  color: var(--tab-subtle);
+  margin: 0;
+  font-weight: 500;
+}
+
+.tabHeaderActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* ============================================
+ * SECTION CARDS (BASE PARA CONTEÚDO)
+ * ============================================ */
+
+.section {
+  background: var(--tab-surface);
+  border: 1px solid var(--tab-border);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: var(--tab-shadow-soft);
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--tab-border);
+}
+
+.sectionTitle {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--tab-muted);
+  margin: 0;
+}
+
+.sectionActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ============================================
+ * GRIDS (STATS, CARDS)
+ * ============================================ */
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+}
+
+.cardsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+/* ============================================
+ * STAT CARDS
+ * ============================================ */
+
+.statCard {
+  background: var(--tab-surface);
+  border: 1px solid var(--tab-border);
+  border-radius: 16px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: var(--tab-shadow-soft);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.statCard:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--tab-shadow);
+}
+
+.statIcon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(148, 163, 184, 0.1);
+  color: var(--tab-subtle);
+}
+
+.statValue {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--tab-primary);
+  line-height: 1;
+}
+
+.statLabel {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--tab-muted);
+}
+
+/* ============================================
+ * LIST ITEMS (ACTIVITY, MEMBERS, ETC)
+ * ============================================ */
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.listItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 12px;
+  transition: background 0.2s ease;
+  cursor: pointer;
+}
+
+.listItem:hover {
+  background: rgba(148, 163, 184, 0.06);
+}
+
+.listItem + .listItem {
+  border-top: 1px solid rgba(148, 163, 184, 0.1);
+}
+
+.listItemIcon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(148, 163, 184, 0.1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--tab-subtle);
+}
+
+.listItemContent {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.listItemTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--tab-primary);
+  margin: 0;
+}
+
+.listItemMeta {
+  font-size: 12px;
+  color: var(--tab-muted);
+  margin: 0;
+}
+
+.listItemAction {
+  flex-shrink: 0;
+  color: var(--tab-muted);
+}
+
+/* ============================================
+ * BUTTONS & CHIPS (SISTEMA PRINCIPAL)
+ * ============================================ */
+
+.filterChip {
+  padding: 8px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--tab-subtle);
+  background: var(--tab-surface);
+  border: 1px solid var(--tab-border);
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.filterChip:hover {
+  border-color: rgba(148, 163, 184, 0.45);
+}
+
+.filterChipActive {
+  background: var(--tab-chip-active);
+  color: var(--tab-primary);
+  border-color: rgba(15, 23, 42, 0.2);
+}
+
+.actionButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--tab-primary);
+  background: var(--tab-surface);
+  border: 1px solid var(--tab-border);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: 'Manrope', system-ui, sans-serif;
+}
+
+.actionButton:hover {
+  background: rgba(148, 163, 184, 0.06);
+  border-color: rgba(148, 163, 184, 0.35);
+}
+
+.actionButtonPrimary {
+  background: var(--tab-primary);
+  color: #ffffff;
+  border-color: var(--tab-primary);
+}
+
+.actionButtonPrimary:hover {
+  background: rgba(15, 23, 42, 0.9);
+}
+
+/* ============================================
+ * EMPTY STATES
+ * ============================================ */
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+  color: var(--tab-muted);
+}
+
+.emptyStateIcon {
+  font-size: 48px;
+  opacity: 0.3;
+  margin-bottom: 16px;
+}
+
+.emptyStateTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--tab-subtle);
+  margin: 0 0 8px;
+}
+
+.emptyStateMessage {
+  font-size: 13px;
+  color: var(--tab-muted);
+  margin: 0;
+}
+
+/* ============================================
+ * LOADING STATES
+ * ============================================ */
+
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  color: var(--tab-muted);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* ============================================
+ * RESPONSIVE
+ * ============================================ */
+
+@media (max-width: 640px) {
+  .tabContainer {
+    gap: 20px;
+  }
+
+  .statsGrid,
+  .cardsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .tabHeader {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .tabHeaderActions {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .actionButton {
+    flex: 1;
+    justify-content: center;
+  }
+}
