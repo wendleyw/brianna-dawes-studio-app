@@ -438,7 +438,7 @@ ${formData.additionalNotes || needsAttention}
         <div className={styles.pageIntro}>
           <h1 className={styles.pageTitle}>Create Project</h1>
           <p className={styles.pageSubtitle}>
-            Fill in the details below to initialize a new workspace for your team.
+            Fill in the details below to create a new project and get started.
           </p>
         </div>
 
