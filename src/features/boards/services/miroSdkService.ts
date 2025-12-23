@@ -365,11 +365,13 @@ class MiroMasterTimelineService {
     const headerShapes = shapes.filter((shape) => {
       const label = stripHtml(shape.content);
       if (!labelToColor.has(label)) return false;
+      const width = shape.width ?? 0;
+      const height = shape.height ?? 0;
       const isHeaderSize =
-        shape.width >= TIMELINE.COLUMN_WIDTH - 60 &&
-        shape.width <= TIMELINE.COLUMN_WIDTH + 60 &&
-        shape.height >= TIMELINE.HEADER_HEIGHT - 8 &&
-        shape.height <= TIMELINE.HEADER_HEIGHT + 8;
+        width >= TIMELINE.COLUMN_WIDTH - 60 &&
+        width <= TIMELINE.COLUMN_WIDTH + 60 &&
+        height >= TIMELINE.HEADER_HEIGHT - 8 &&
+        height <= TIMELINE.HEADER_HEIGHT + 8;
       const inFrame =
         shape.x >= frameLeft &&
         shape.x <= frameRight &&
