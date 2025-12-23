@@ -140,12 +140,12 @@ class AnalyticsService {
     };
 
     // Get board counts
-    const { data: boardAssignments } = await supabase
-      .from('board_assignments')
+    const { data: userBoards } = await supabase
+      .from('user_boards')
       .select('board_id, user_id');
 
     // Count unique boards
-    const uniqueBoardIds = new Set(boardAssignments?.map((b) => b.board_id) || []);
+    const uniqueBoardIds = new Set(userBoards?.map((b) => b.board_id) || []);
     const totalBoards = uniqueBoardIds.size;
 
     // Active boards = boards with at least one member assigned

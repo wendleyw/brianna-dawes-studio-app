@@ -1,7 +1,9 @@
-import { useOverviewMetrics, useRecentActivity } from '../../hooks';
-import { formatDistanceToNow } from 'date-fns';
+import { useState, useMemo } from 'react';
+import { useOverviewMetrics, useRecentActivity, useTimelineData } from '../../hooks';
+import { formatDistanceToNow, subDays, format } from 'date-fns';
 import type { AdminTab } from '../../domain/types';
 import { BoardIcon, CheckIcon, FolderIcon, UsersIcon } from '@shared/ui/Icons';
+import { TimelineChart } from '../TimelineChart';
 import baseStyles from './AdminTab.module.css';
 
 interface OverviewTabProps {
@@ -11,6 +13,16 @@ interface OverviewTabProps {
 export default function OverviewTab({ onNavigateTab }: OverviewTabProps) {
   const { data: metrics, isLoading: metricsLoading } = useOverviewMetrics();
   const { data: activities, isLoading: activitiesLoading } = useRecentActivity(5);
+
+  // Timeline filters
+  const [dateRangeDays, setDateRangeDays] = useState<number>(30);
+
+  const dateRange = useMemo(() => ({
+    start: format(subDays(new Date(), dateRangeDays), 'yyyy-MM-dd'),
+    end: format(new Date(), 'yyyy-MM-dd'),
+  }), [dateRangeDays]);
+
+  const { data: timelineData, isLoading: timelineLoading } = useTimelineData({ dateRange });
 
   const stats = {
     totalProjects: metrics?.totalProjects || 0,
@@ -143,6 +155,42 @@ export default function OverviewTab({ onNavigateTab }: OverviewTabProps) {
           <div className={baseStyles.statValue}>{stats.syncHealth}%</div>
           <div className={baseStyles.statLabel}>Sync Health</div>
         </div>
+      </div>
+
+      {/* Timeline Chart Section */}
+      <div className={baseStyles.section}>
+        <div className={baseStyles.sectionHeader}>
+          <h3 className={baseStyles.sectionTitle}>Projects & Deliverables Timeline</h3>
+          <div className={baseStyles.sectionActions}>
+            {/* Date Range Filter */}
+            <button
+              className={dateRangeDays === 7 ? `${baseStyles.filterChip} ${baseStyles.filterChipActive}` : baseStyles.filterChip}
+              onClick={() => setDateRangeDays(7)}
+            >
+              7 days
+            </button>
+            <button
+              className={dateRangeDays === 30 ? `${baseStyles.filterChip} ${baseStyles.filterChipActive}` : baseStyles.filterChip}
+              onClick={() => setDateRangeDays(30)}
+            >
+              30 days
+            </button>
+            <button
+              className={dateRangeDays === 90 ? `${baseStyles.filterChip} ${baseStyles.filterChipActive}` : baseStyles.filterChip}
+              onClick={() => setDateRangeDays(90)}
+            >
+              90 days
+            </button>
+          </div>
+        </div>
+
+        {timelineLoading ? (
+          <div style={{ padding: '60px 20px', textAlign: 'center', color: '#94a3b8' }}>
+            Loading timeline data...
+          </div>
+        ) : (
+          <TimelineChart data={timelineData || []} />
+        )}
       </div>
 
       {/* Recent Activity Section */}
