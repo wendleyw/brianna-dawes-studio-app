@@ -123,9 +123,15 @@ export function ProjectsPage() {
 
   // Splash screen state - show if requested via navigation state or if not shown this session
   const [showSplash, setShowSplash] = useState(() => {
-    const wasShown = sessionStorage.getItem(SPLASH_SHOWN_KEY);
     const shouldShow = (location.state as { showSplash?: boolean } | null)?.showSplash;
-    return shouldShow || !wasShown;
+    // If navigation explicitly requests splash, clear sessionStorage to ensure it shows
+    if (shouldShow) {
+      sessionStorage.removeItem(SPLASH_SHOWN_KEY);
+      return true;
+    }
+    // Otherwise, check if it was already shown this session
+    const wasShown = sessionStorage.getItem(SPLASH_SHOWN_KEY);
+    return !wasShown;
   });
 
   const handleSplashComplete = useCallback(() => {
@@ -778,8 +784,8 @@ export function ProjectsPage() {
       {showSplash && (
         <SplashScreen
           staticLogoSrc={logoImage}
-          displayDuration={1500}
-          animationDuration={600}
+          displayDuration={2000}
+          animationDuration={800}
           onComplete={handleSplashComplete}
         />
       )}
