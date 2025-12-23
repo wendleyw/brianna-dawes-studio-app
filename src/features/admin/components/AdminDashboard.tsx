@@ -226,10 +226,24 @@ export default function AdminDashboard({
                       <SyncIcon size={16} />
                       Sync All
                     </button>
+                    <button className={styles.panelActionSecondary} type="button">
+                      <DownloadIcon size={16} />
+                      Export
+                    </button>
+                    <button className={styles.panelActionSecondary} type="button">
+                      <MessageIcon size={16} />
+                      Announce
+                    </button>
                     {onOpenStatus && (
                       <button className={styles.panelActionSecondary} type="button" onClick={onOpenStatus}>
                         <BoardIcon size={16} />
                         Status
+                      </button>
+                    )}
+                    {onOpenReport && (
+                      <button className={styles.panelActionSecondary} type="button" onClick={onOpenReport}>
+                        <ChartIcon size={16} />
+                        Report
                       </button>
                     )}
                   </div>
@@ -300,57 +314,6 @@ export default function AdminDashboard({
 
         {/* Content */}
         <main className={styles.content}>{renderContent()}</main>
-
-        {/* Footer with Actions */}
-        <footer className={styles.footer}>
-          <button
-            className={`${styles.footerToggle} ${isActionsExpanded ? styles.footerToggleActive : ''}`}
-            type="button"
-            aria-label={isActionsExpanded ? 'Collapse actions' : 'Expand actions'}
-            aria-expanded={isActionsExpanded}
-            onClick={() => setIsActionsExpanded((prev) => !prev)}
-          >
-            <span className={styles.footerToggleChevron} />
-          </button>
-          <div className={`${styles.footerContent} ${isActionsExpanded ? styles.footerContentOpen : ''}`}>
-            <button className={styles.primaryAction} type="button">
-              <span className={styles.syncIcon}>
-                <SyncIcon size={16} />
-              </span>
-              Sync All Boards
-            </button>
-            <div className={styles.footerActions}>
-              <button className={styles.secondaryAction} type="button">
-                <DownloadIcon size={16} />
-                Export Data
-              </button>
-              <button className={styles.secondaryAction} type="button">
-                <MessageIcon size={16} />
-                Announce
-              </button>
-              {onOpenStatus && (
-                <button className={styles.secondaryAction} type="button" onClick={onOpenStatus}>
-                  <BoardIcon size={16} />
-                  Status
-                </button>
-              )}
-              {onOpenReport && (
-                <button className={styles.secondaryAction} type="button" onClick={onOpenReport}>
-                  <ChartIcon size={16} />
-                  Report
-                </button>
-              )}
-            </div>
-            <div className={styles.lastSyncInfo}>
-              <span>Last sync: 2 min ago</span>
-              <span className={styles.lastSyncDivider} />
-              <span className={styles.syncStatus}>
-                <span className={styles.syncDot} />
-                Healthy
-              </span>
-            </div>
-          </div>
-        </footer>
       </section>
     </div>
   );
