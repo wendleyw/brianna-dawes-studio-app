@@ -41,12 +41,14 @@ export default function AdminDashboard({
   onOpenReport,
 }: AdminDashboardProps) {
   const [activeTab, setActiveTab] = useState<AdminTab>(defaultTab);
+  const [isActionsExpanded, setIsActionsExpanded] = useState(true);
   const isPanel = variant === 'panel';
 
   // Reset to defaultTab when modal reopens or defaultTab changes
   useEffect(() => {
     if (isOpen) {
       setActiveTab(defaultTab);
+      setIsActionsExpanded(true);
     }
   }, [isOpen, defaultTab]);
 
@@ -159,6 +161,16 @@ export default function AdminDashboard({
         </main>
 
         <footer className={styles.footer}>
+          <button
+            className={`${styles.footerToggle} ${isActionsExpanded ? styles.footerToggleActive : ''}`}
+            type="button"
+            aria-label={isActionsExpanded ? 'Collapse actions' : 'Expand actions'}
+            aria-expanded={isActionsExpanded}
+            onClick={() => setIsActionsExpanded((prev) => !prev)}
+          >
+            <span className={styles.footerToggleChevron} />
+          </button>
+          <div className={`${styles.footerContent} ${isActionsExpanded ? styles.footerContentOpen : ''}`}>
           <button className={styles.primaryAction} type="button">
             <span className={styles.syncIcon}>
               <SyncIcon size={16} />
@@ -202,6 +214,7 @@ export default function AdminDashboard({
               <span className={styles.syncDot} />
               Healthy
             </span>
+          </div>
           </div>
         </footer>
       </section>
