@@ -821,7 +821,12 @@ export function DashboardPage() {
           <button
             type="button"
             className={styles.navButton}
-            onClick={() => navigate('/projects')}
+            onClick={() => {
+              const destination = (isMasterBoard && selectedClientId)
+                ? `/projects?clientId=${selectedClientId}`
+                : '/projects';
+              navigateToProjects(destination);
+            }}
           >
             <span className={styles.navIcon}>
               <FolderIcon />

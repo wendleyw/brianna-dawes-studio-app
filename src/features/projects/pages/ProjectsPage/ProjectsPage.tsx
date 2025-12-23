@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { SplashScreen, Logo } from '@shared/ui';
 import { ArrowLeftIcon, FilterIcon, SearchIcon } from '@shared/ui/Icons';
@@ -50,6 +50,7 @@ const SPLASH_SHOWN_KEY = 'brianna_splash_shown';
 
 export function ProjectsPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
   const { miro, isInMiro, boardId: miroBoardId } = useMiro();
@@ -120,16 +121,21 @@ export function ProjectsPage() {
     setTimelineFilter((prev) => (prev === normalized ? prev : normalized));
   }, [searchParams]);
 
-  // Splash screen state - only show once per session
+  // Splash screen state - show if requested via navigation state or if not shown this session
   const [showSplash, setShowSplash] = useState(() => {
     const wasShown = sessionStorage.getItem(SPLASH_SHOWN_KEY);
-    return !wasShown;
+    const shouldShow = (location.state as { showSplash?: boolean } | null)?.showSplash;
+    return shouldShow || !wasShown;
   });
 
   const handleSplashComplete = useCallback(() => {
     setShowSplash(false);
     sessionStorage.setItem(SPLASH_SHOWN_KEY, 'true');
-  }, []);
+    // Clear navigation state to prevent splash from showing again on browser back button
+    if (location.state?.showSplash) {
+      navigate(location.pathname + location.search, { replace: true, state: {} });
+    }
+  }, [location.pathname, location.search, location.state, navigate]);
 
   // Fetch client associated with current board
   useEffect(() => {
