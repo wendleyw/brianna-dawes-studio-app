@@ -20,7 +20,6 @@ export const ProjectCardActions = memo(function ProjectCardActions() {
     isAdmin,
     isAssignedClient,
     isInReview,
-    isDone,
     openModal,
   } = useProjectCard();
 
@@ -94,22 +93,6 @@ export const ProjectCardActions = memo(function ProjectCardActions() {
         <div className={styles.adminActions}>
           <h4 className={styles.actionsTitle}>YOUR ACTIONS</h4>
           <div className={styles.actionsGrid}>
-            {/* Version - available for assigned client, hidden when Done */}
-            {!isDone && (
-              <button className={styles.adminBtn} onClick={(e) => handleClick(e, 'version')}>
-                <div className={styles.adminBtnIcon}><PlusIcon /></div>
-                <span>Version</span>
-              </button>
-            )}
-
-            {/* Urgent - available for assigned client, hidden when Done */}
-            {!isDone && (
-              <button className={`${styles.adminBtn} ${styles.danger}`} onClick={(e) => handleClick(e, 'clientCritical')}>
-                <div className={styles.adminBtnIcon}><StarIcon /></div>
-                <span>Urgent</span>
-              </button>
-            )}
-
             {/* Request Changes - ONLY when in REVIEW status (sends back to in_progress) */}
             {isInReview && (
               <button className={`${styles.adminBtn} ${styles.warning}`} onClick={(e) => handleClick(e, 'clientRequestChanges')}>
