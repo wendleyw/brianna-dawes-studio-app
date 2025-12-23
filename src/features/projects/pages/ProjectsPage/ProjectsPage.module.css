@@ -146,6 +146,11 @@
   border-color: rgba(148, 163, 184, 0.45);
 }
 
+.iconButtonActive {
+  background-color: var(--projects-chip-active);
+  border-color: rgba(15, 23, 42, 0.2);
+}
+
 .iconButtonPrimary {
   width: 40px;
   height: 40px;

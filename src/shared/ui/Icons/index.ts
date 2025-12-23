@@ -42,6 +42,7 @@ export {
   // Action Icons
   FilterIcon,
   SortIcon,
+  StackIcon,
   AttachIcon,
 
   // Status Icons

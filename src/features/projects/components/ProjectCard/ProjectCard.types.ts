@@ -2,6 +2,7 @@ import type { Project, ProjectStatus, UpdateProjectInput } from '../../domain/pr
 
 export interface ProjectCardProps {
   project: Project;
+  compact?: boolean;
   onView?: (project: Project) => void;
   onEdit?: (project: Project) => void;
   onArchive?: (project: Project, reason?: string) => void;

@@ -1,5 +1,5 @@
 import { useState, useMemo, memo } from 'react';
-import { Button, Input, Skeleton } from '@shared/ui';
+import { Button, Input } from '@shared/ui';
 import { PlusIcon, BoardIcon, TrashIcon, StarIcon, AdminIcon, DesignerIcon, ClientIcon } from '@shared/ui/Icons';
 import { useUsers, useUserMutations } from '../../hooks';
 import { useAllBoards, useBoards, useBoardAssignmentMutations } from '../../hooks/useBoardAssignments';
@@ -8,6 +8,7 @@ import { ROLE_CONFIG } from '@shared/config';
 import type { UserRole } from '@shared/config/roles';
 import { createLogger } from '@shared/lib/logger';
 import type { User, CreateUserInput } from '../../domain';
+import baseStyles from '../tabs/AdminTab.module.css';
 import styles from './TeamManagement.module.css';
 
 const logger = createLogger('TeamManagement');
@@ -274,8 +275,8 @@ export const TeamManagement = memo(function TeamManagement() {
 
   if (isLoading) {
     return (
-      <div className={styles.container}>
-        <Skeleton height={400} />
+      <div className={baseStyles.tabContainer}>
+        <div className={baseStyles.loading}>Loading team...</div>
       </div>
     );
   }
@@ -283,36 +284,44 @@ export const TeamManagement = memo(function TeamManagement() {
   const assigningUser = assignBoardUserId ? allUsers?.find(u => u.id === assignBoardUserId) : null;
   const availableBoards = assignBoardUserId ? getAvailableBoards(assignBoardUserId) : [];
   return (
-    <div className={styles.container}>
-      {/* Role filter tabs with integrated add button */}
-      <div className={styles.filterTabs}>
+    <div className={baseStyles.tabContainer}>
+      {/* Tab Header */}
+      <div className={baseStyles.tabHeader}>
+        <div className={baseStyles.tabHeaderMain}>
+          <h2 className={baseStyles.tabTitle}>Team Management</h2>
+          <p className={baseStyles.tabSubtitle}>Manage users, roles, and board assignments</p>
+        </div>
+      </div>
+
+      {/* Role Filters */}
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
         <button
-          className={`${styles.filterTab} ${roleFilter === 'all' ? styles.active : ''}`}
+          className={roleFilter === 'all' ? `${baseStyles.filterChip} ${baseStyles.filterChipActive}` : baseStyles.filterChip}
           onClick={() => setRoleFilter('all')}
         >
-          All <span className={styles.badge}>{roleCounts.all}</span>
+          All ({roleCounts.all})
         </button>
         <button
-          className={`${styles.filterTab} ${roleFilter === 'admin' ? styles.active : ''}`}
+          className={roleFilter === 'admin' ? `${baseStyles.filterChip} ${baseStyles.filterChipActive}` : baseStyles.filterChip}
           onClick={() => setRoleFilter('admin')}
         >
-          <AdminIcon /> Admins <span className={styles.badge}>{roleCounts.admin}</span>
+          Admins ({roleCounts.admin})
         </button>
         <button
-          className={`${styles.filterTab} ${roleFilter === 'designer' ? styles.active : ''}`}
+          className={roleFilter === 'designer' ? `${baseStyles.filterChip} ${baseStyles.filterChipActive}` : baseStyles.filterChip}
           onClick={() => setRoleFilter('designer')}
         >
-          <DesignerIcon /> Designers <span className={styles.badge}>{roleCounts.designer}</span>
+          Designers ({roleCounts.designer})
         </button>
         <button
-          className={`${styles.filterTab} ${roleFilter === 'client' ? styles.active : ''}`}
+          className={roleFilter === 'client' ? `${baseStyles.filterChip} ${baseStyles.filterChipActive}` : baseStyles.filterChip}
           onClick={() => setRoleFilter('client')}
         >
-          <ClientIcon /> Clients <span className={styles.badge}>{roleCounts.client}</span>
+          Clients ({roleCounts.client})
         </button>
       </div>
 
-      {error && <div className={styles.error}>{error}</div>}
+      {error && <div style={{ padding: '12px 16px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: '12px', color: '#dc2626', fontSize: '13px', fontWeight: '500' }}>{error}</div>}
 
       {/* Create Form */}
       {showCreateForm && (

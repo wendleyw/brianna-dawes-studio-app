@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { SplashScreen, Logo } from '@shared/ui';
-import { ArrowLeftIcon, FilterIcon, SearchIcon } from '@shared/ui/Icons';
+import { ArrowLeftIcon, FilterIcon, SearchIcon, StackIcon } from '@shared/ui/Icons';
 import { useAuth } from '@features/auth';
 import logoImage from '../../../../assets/brand/logo-brianna.png';
 import { useMiro, zoomToProject, addVersionToProject } from '@features/boards';
@@ -60,6 +60,7 @@ export function ProjectsPage() {
   const [timelineFilter, setTimelineFilter] = useState<TimelineStatus | ''>('');
   const [projectTypeFilter, setProjectTypeFilter] = useState<string>('');
   const [dueThisWeekOnly, setDueThisWeekOnly] = useState(false);
+  const [isCompactView, setIsCompactView] = useState(false);
   const [isFiltersOpen, setIsFiltersOpen] = useState(() => {
     return searchParams.has('clientId');
   });
@@ -841,6 +842,16 @@ export function ProjectsPage() {
               <SearchIcon size={16} />
             </button>
             <button
+              className={`${styles.iconButton} ${styles.iconButtonSmall} ${
+                isCompactView ? styles.iconButtonActive : ''
+              }`}
+              type="button"
+              aria-label={isCompactView ? 'Expand view' : 'Compact view'}
+              onClick={() => setIsCompactView(!isCompactView)}
+            >
+              <StackIcon size={16} />
+            </button>
+            <button
               className={`${styles.iconButtonPrimary} ${styles.iconButtonPrimarySmall} ${
                 isFiltersOpen ? styles.iconButtonPrimaryActive : ''
               }`}
@@ -946,6 +957,7 @@ export function ProjectsPage() {
             <ProjectCard
               key={project.id}
               project={project}
+              compact={isCompactView}
               onEdit={handleEdit}
               onViewBoard={handleViewBoard}
               onCardClick={handleViewBoard}

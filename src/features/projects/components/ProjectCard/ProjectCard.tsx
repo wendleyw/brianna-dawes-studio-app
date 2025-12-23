@@ -61,6 +61,7 @@ function toTitleCase(value: string): string {
  */
 export const ProjectCard = memo(function ProjectCard({
   project,
+  compact = false,
   onViewBoard,
   onCardClick,
   onUpdateGoogleDrive,
@@ -712,7 +713,7 @@ export const ProjectCard = memo(function ProjectCard({
 
   return (
     <article
-      className={`${styles.card} ${isSelected ? styles.selected : ''} ${isDone ? styles.done : ''}`}
+      className={`${styles.card} ${compact ? styles.compact : ''} ${isSelected ? styles.selected : ''} ${isDone ? styles.done : ''}`}
       data-project-id={project.id}
       onClick={handleCardClick}
       style={{ cursor: 'pointer', ...cardStyle }}
@@ -820,70 +821,72 @@ export const ProjectCard = memo(function ProjectCard({
         <div className={styles.progressFill} style={{ width: `${progress}%` }} />
       </div>
 
-      {/* Stats */}
-      <div className={styles.statsGrid}>
-        {deliverables.length > 0 ? (
-          <button
-            className={`${styles.statCard} ${styles.statCardButton}`}
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowDeliverables(!showDeliverables);
-            }}
-          >
-            <span className={styles.statValue}>{deliverables.length}</span>
-            <span className={styles.statLabel}>Deliverables</span>
-          </button>
-        ) : (
-          <div className={styles.statCard}>
-            <span className={styles.statValue}>{project.deliverablesCount || 0}</span>
-            <span className={styles.statLabel}>Deliverables</span>
-          </div>
-        )}
-        <div
-          className={`${styles.statCard} ${
-            daysMeta.state === 'overdue' ? styles.statOverdue : ''
-          } ${daysMeta.state === 'pending' ? styles.statPending : ''} ${
-            daysMeta.state === 'done' ? styles.statDone : ''
-          }`}
-        >
-          {daysInfo?.isPending ? (
-            <>
-              <div className={styles.pendingDateInfo}>
-                <span className={styles.pendingLabel}>{daysMeta.label}</span>
-                <span className={styles.pendingDate}>
-                  {project.dueDate
-                    ? new Date(project.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-                    : ''}
-                </span>
-              </div>
-              {isAdmin && (
-                <div className={styles.dueDateApprovalButtons}>
-                  <button
-                    className={styles.approveSmall}
-                    onClick={handleApproveDueDate}
-                    title="Approve date"
-                  >
-                    ✓
-                  </button>
-                  <button
-                    className={styles.rejectSmall}
-                    onClick={handleRejectDueDate}
-                    title="Reject date"
-                  >
-                    ✕
-                  </button>
-                </div>
-              )}
-            </>
+      {/* Stats - hidden in compact view */}
+      {!compact && (
+        <div className={styles.statsGrid}>
+          {deliverables.length > 0 ? (
+            <button
+              className={`${styles.statCard} ${styles.statCardButton}`}
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowDeliverables(!showDeliverables);
+              }}
+            >
+              <span className={styles.statValue}>{deliverables.length}</span>
+              <span className={styles.statLabel}>Deliverables</span>
+            </button>
           ) : (
-            <>
-              <span className={styles.statValue}>{daysMeta.value}</span>
-              <span className={styles.statLabel}>{daysMeta.label}</span>
-            </>
+            <div className={styles.statCard}>
+              <span className={styles.statValue}>{project.deliverablesCount || 0}</span>
+              <span className={styles.statLabel}>Deliverables</span>
+            </div>
           )}
+          <div
+            className={`${styles.statCard} ${
+              daysMeta.state === 'overdue' ? styles.statOverdue : ''
+            } ${daysMeta.state === 'pending' ? styles.statPending : ''} ${
+              daysMeta.state === 'done' ? styles.statDone : ''
+            }`}
+          >
+            {daysInfo?.isPending ? (
+              <>
+                <div className={styles.pendingDateInfo}>
+                  <span className={styles.pendingLabel}>{daysMeta.label}</span>
+                  <span className={styles.pendingDate}>
+                    {project.dueDate
+                      ? new Date(project.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                      : ''}
+                  </span>
+                </div>
+                {isAdmin && (
+                  <div className={styles.dueDateApprovalButtons}>
+                    <button
+                      className={styles.approveSmall}
+                      onClick={handleApproveDueDate}
+                      title="Approve date"
+                    >
+                      ✓
+                    </button>
+                    <button
+                      className={styles.rejectSmall}
+                      onClick={handleRejectDueDate}
+                      title="Reject date"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                <span className={styles.statValue}>{daysMeta.value}</span>
+                <span className={styles.statLabel}>{daysMeta.label}</span>
+              </>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       <div className={styles.badges}>
         <span className={styles.badge} style={{ '--badge-color': priority.color } as React.CSSProperties}>
@@ -917,9 +920,9 @@ export const ProjectCard = memo(function ProjectCard({
         )}
       </div>
 
-      
-      {/* Expandable deliverables list */}
-      {showDeliverables && deliverables.length > 0 && (
+
+      {/* Expandable deliverables list - hidden in compact view */}
+      {!compact && showDeliverables && deliverables.length > 0 && (
         <div className={styles.deliverablesExpanded}>
           {deliverables.map((d) => (
             <div key={d.id} className={styles.deliverableItem}>
@@ -983,35 +986,38 @@ export const ProjectCard = memo(function ProjectCard({
         </div>
       )}
 
-      <div className={styles.cardFooter}>
-        <div className={styles.iconActions}>
-          <button
-            className={styles.iconButton}
-            type="button"
-            onClick={handleViewBoard}
-            title="View Board"
-            aria-label="View Board"
-          >
-            <BoardIcon size={18} />
-          </button>
-          {/* Google Drive - Admin always sees it, clients only if link exists */}
-          {(isAdmin || project.googleDriveUrl) && (
+      {/* Card Footer - hidden in compact view */}
+      {!compact && (
+        <div className={styles.cardFooter}>
+          <div className={styles.iconActions}>
             <button
               className={styles.iconButton}
               type="button"
-              onClick={handleGoogleDrive}
-              title={project.googleDriveUrl ? 'Open Google Drive' : 'Add Google Drive link'}
-              aria-label={project.googleDriveUrl ? 'Open Google Drive' : 'Add Google Drive link'}
+              onClick={handleViewBoard}
+              title="View Board"
+              aria-label="View Board"
             >
-              <DriveIconImg hasLink={!!project.googleDriveUrl} />
+              <BoardIcon size={18} />
             </button>
-          )}
+            {/* Google Drive - Admin always sees it, clients only if link exists */}
+            {(isAdmin || project.googleDriveUrl) && (
+              <button
+                className={styles.iconButton}
+                type="button"
+                onClick={handleGoogleDrive}
+                title={project.googleDriveUrl ? 'Open Google Drive' : 'Add Google Drive link'}
+                aria-label={project.googleDriveUrl ? 'Open Google Drive' : 'Add Google Drive link'}
+              >
+                <DriveIconImg hasLink={!!project.googleDriveUrl} />
+              </button>
+            )}
+          </div>
+          <button className={styles.viewDetailsButton} type="button" onClick={handleViewDetails}>
+            <span>View Details</span>
+            <ArrowRightIcon />
+          </button>
         </div>
-        <button className={styles.viewDetailsButton} type="button" onClick={handleViewDetails}>
-          <span>View Details</span>
-          <ArrowRightIcon />
-        </button>
-      </div>
+      )}
 
       {/* Expanded Section */}
       {isExpanded && (

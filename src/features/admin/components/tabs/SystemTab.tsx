@@ -3,7 +3,7 @@ import type { SystemSubTab } from '../../domain/types';
 import { MasterBoardSettings } from '../MasterBoardSettings';
 import { SyncHealthDashboard } from '../SyncHealthDashboard';
 import { DeveloperTools } from '../DeveloperTools';
-import styles from './SystemTab.module.css';
+import baseStyles from './AdminTab.module.css';
 
 export default function SystemTab() {
   const [activeSubTab, setActiveSubTab] = useState<SystemSubTab>('master');
@@ -22,29 +22,39 @@ export default function SystemTab() {
   };
 
   return (
-    <div className={styles.container}>
-      <nav className={styles.subNav}>
+    <div className={baseStyles.tabContainer}>
+      {/* Tab Header */}
+      <div className={baseStyles.tabHeader}>
+        <div className={baseStyles.tabHeaderMain}>
+          <h2 className={baseStyles.tabTitle}>System Settings</h2>
+          <p className={baseStyles.tabSubtitle}>Configure master board, sync health, and developer tools</p>
+        </div>
+      </div>
+
+      {/* Sub-navigation */}
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
         <button
-          className={activeSubTab === 'master' ? styles.subNavButtonActive : styles.subNavButton}
+          className={activeSubTab === 'master' ? `${baseStyles.filterChip} ${baseStyles.filterChipActive}` : baseStyles.filterChip}
           onClick={() => setActiveSubTab('master')}
         >
-          🖥️ Master Board
+          Master Board
         </button>
         <button
-          className={activeSubTab === 'sync' ? styles.subNavButtonActive : styles.subNavButton}
+          className={activeSubTab === 'sync' ? `${baseStyles.filterChip} ${baseStyles.filterChipActive}` : baseStyles.filterChip}
           onClick={() => setActiveSubTab('sync')}
         >
-          🔄 Sync Health
+          Sync Health
         </button>
         <button
-          className={activeSubTab === 'developer' ? styles.subNavButtonActive : styles.subNavButton}
+          className={activeSubTab === 'developer' ? `${baseStyles.filterChip} ${baseStyles.filterChipActive}` : baseStyles.filterChip}
           onClick={() => setActiveSubTab('developer')}
         >
-          💻 Developer Tools
+          Developer Tools
         </button>
-      </nav>
+      </div>
 
-      <div className={styles.content}>
+      {/* Content */}
+      <div>
         {renderSubTabContent()}
       </div>
     </div>

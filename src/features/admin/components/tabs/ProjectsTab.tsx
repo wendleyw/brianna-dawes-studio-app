@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { useProjects } from '@features/projects/hooks';
 import { useUsers } from '../../hooks';
 import type { Project } from '@features/projects/domain';
+import baseStyles from './AdminTab.module.css';
 import styles from './ProjectsTab.module.css';
 
 type ViewMode = 'kanban' | 'table';
@@ -41,58 +42,90 @@ export default function ProjectsTab() {
 
   if (projectsLoading || usersLoading) {
     return (
-      <div className={styles.container}>
-        <div style={{ textAlign: 'center', padding: '48px', color: 'var(--color-gray-500)' }}>
-          Loading projects...
-        </div>
+      <div className={baseStyles.tabContainer}>
+        <div className={baseStyles.loading}>Loading projects...</div>
       </div>
     );
   }
 
   return (
-    <div className={styles.container}>
-      <div className={styles.header}>
-        <div className={styles.filters}>
-          <select
-            className={styles.filterSelect}
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-          >
-            <option value="all">All Status</option>
-            <option value="overdue">Overdue</option>
-            <option value="urgent">Urgent</option>
-            <option value="in_progress">In Progress</option>
-            <option value="review">Review</option>
-            <option value="done">Done</option>
-          </select>
-
-          <select
-            className={styles.filterSelect}
-            value={designerFilter}
-            onChange={(e) => setDesignerFilter(e.target.value)}
-          >
-            <option value="all">All Designers</option>
-            {designers.map((designer) => (
-              <option key={designer.id} value={designer.id}>
-                {designer.name}
-              </option>
-            ))}
-          </select>
+    <div className={baseStyles.tabContainer}>
+      {/* Tab Header */}
+      <div className={baseStyles.tabHeader}>
+        <div className={baseStyles.tabHeaderMain}>
+          <h2 className={baseStyles.tabTitle}>All Projects</h2>
+          <p className={baseStyles.tabSubtitle}>Manage and track all projects across the studio</p>
         </div>
-
-        <div className={styles.viewToggle}>
+        <div className={baseStyles.tabHeaderActions}>
           <button
-            className={viewMode === 'kanban' ? styles.viewButtonActive : styles.viewButton}
+            className={viewMode === 'kanban' ? `${baseStyles.filterChip} ${baseStyles.filterChipActive}` : baseStyles.filterChip}
             onClick={() => setViewMode('kanban')}
           >
-            📋 Kanban
+            Kanban
           </button>
           <button
-            className={viewMode === 'table' ? styles.viewButtonActive : styles.viewButton}
+            className={viewMode === 'table' ? `${baseStyles.filterChip} ${baseStyles.filterChipActive}` : baseStyles.filterChip}
             onClick={() => setViewMode('table')}
           >
-            📊 Table
+            Table
           </button>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+        <button
+          className={statusFilter === 'all' ? `${baseStyles.filterChip} ${baseStyles.filterChipActive}` : baseStyles.filterChip}
+          onClick={() => setStatusFilter('all')}
+        >
+          All Status
+        </button>
+        <button
+          className={statusFilter === 'overdue' ? `${baseStyles.filterChip} ${baseStyles.filterChipActive}` : baseStyles.filterChip}
+          onClick={() => setStatusFilter('overdue')}
+        >
+          Overdue
+        </button>
+        <button
+          className={statusFilter === 'urgent' ? `${baseStyles.filterChip} ${baseStyles.filterChipActive}` : baseStyles.filterChip}
+          onClick={() => setStatusFilter('urgent')}
+        >
+          Urgent
+        </button>
+        <button
+          className={statusFilter === 'in_progress' ? `${baseStyles.filterChip} ${baseStyles.filterChipActive}` : baseStyles.filterChip}
+          onClick={() => setStatusFilter('in_progress')}
+        >
+          In Progress
+        </button>
+        <button
+          className={statusFilter === 'review' ? `${baseStyles.filterChip} ${baseStyles.filterChipActive}` : baseStyles.filterChip}
+          onClick={() => setStatusFilter('review')}
+        >
+          Review
+        </button>
+        <button
+          className={statusFilter === 'done' ? `${baseStyles.filterChip} ${baseStyles.filterChipActive}` : baseStyles.filterChip}
+          onClick={() => setStatusFilter('done')}
+        >
+          Done
+        </button>
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px' }}>
+          <button
+            className={designerFilter === 'all' ? `${baseStyles.filterChip} ${baseStyles.filterChipActive}` : baseStyles.filterChip}
+            onClick={() => setDesignerFilter('all')}
+          >
+            All Designers
+          </button>
+          {designers.map((designer) => (
+            <button
+              key={designer.id}
+              className={designerFilter === designer.id ? `${baseStyles.filterChip} ${baseStyles.filterChipActive}` : baseStyles.filterChip}
+              onClick={() => setDesignerFilter(designer.id)}
+            >
+              {designer.name}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -223,15 +256,18 @@ export default function ProjectsTab() {
           </div>
         </div>
       ) : (
-        <div className={styles.tableView}>
-          <p className={styles.emptyMessage}>Table view coming soon...</p>
+        <div className={baseStyles.emptyState}>
+          <div className={baseStyles.emptyStateIcon}>📊</div>
+          <h3 className={baseStyles.emptyStateTitle}>Table View</h3>
+          <p className={baseStyles.emptyStateMessage}>Table view coming soon</p>
         </div>
       )}
 
-      <div className={styles.footer}>
-        <button className={styles.footerButton}>📦 Archive Multiple</button>
-        <button className={styles.footerButton}>🔄 Bulk Status Change</button>
-        <button className={styles.footerButton}>📥 Export Report</button>
+      {/* Actions */}
+      <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+        <button className={baseStyles.actionButton}>Archive Multiple</button>
+        <button className={baseStyles.actionButton}>Bulk Status Change</button>
+        <button className={baseStyles.actionButton}>Export Report</button>
       </div>
     </div>
   );

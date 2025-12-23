@@ -17,6 +17,28 @@
   box-shadow: 0 0 0 2px var(--color-accent), var(--shadow-md);
 }
 
+/* Compact View - reduced padding and spacing */
+.card.compact {
+  padding: var(--space-3);
+  gap: var(--space-2);
+}
+
+.card.compact .header {
+  margin-bottom: var(--space-1);
+}
+
+.card.compact .cardTop {
+  margin-bottom: var(--space-2);
+}
+
+.card.compact .progressBar {
+  margin-bottom: var(--space-2);
+}
+
+.card.compact .badges {
+  gap: 6px;
+}
+
 /* Header */
 .header {
   display: flex;
