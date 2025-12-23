@@ -476,10 +476,12 @@ export function DashboardPage() {
         const status = getTimelineStatus(project);
         if (status !== 'review') return false;
         if (isClient) return !project.wasApproved;
-        if (isAdmin) return project.wasApproved;
         return true;
       })
       .sort((a, b) => {
+        if (isAdmin && a.wasApproved !== b.wasApproved) {
+          return a.wasApproved ? -1 : 1;
+        }
         const aDate = a.dueDate ? new Date(a.dueDate).getTime() : Number.POSITIVE_INFINITY;
         const bDate = b.dueDate ? new Date(b.dueDate).getTime() : Number.POSITIVE_INFINITY;
         return aDate - bDate;
