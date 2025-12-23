@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { SplashScreen } from '@shared/ui';
+import { SplashScreen, Logo } from '@shared/ui';
 import { ArrowLeftIcon, FilterIcon, SearchIcon } from '@shared/ui/Icons';
 import { useAuth } from '@features/auth';
 import logoImage from '../../../../assets/brand/logo-brianna.png';
@@ -795,26 +795,19 @@ export function ProjectsPage() {
             <ArrowLeftIcon size={18} />
           </button>
           <div className={styles.headerBrand}>
+            <Logo size="md" />
             {hasClientBranding ? (
-              <>
-                {boardClient.companyLogoUrl ? (
-                  <img
-                    src={boardClient.companyLogoUrl}
-                    alt={boardClient.companyName || 'Company'}
-                    className={styles.clientLogo}
-                  />
-                ) : (
-                  <div className={styles.clientLogoPlaceholder}>
-                    {(boardClient.companyName || boardClient.name || 'C').charAt(0).toUpperCase()}
-                  </div>
-                )}
-                <span className={styles.brandName}>
-                  {boardClient.companyName || boardClient.name}
-                </span>
-              </>
+              <span className={styles.brandName}>
+                {boardClient.companyName || boardClient.name}
+              </span>
             ) : (
               <span className={styles.brandName}>BD Studios</span>
             )}
+          </div>
+        </div>
+        <div className={styles.headerBottom}>
+          <div className={styles.titleGroup}>
+            <span className={styles.projectCount}>{totalProjects} projects</span>
           </div>
           <div className={styles.headerActions}>
             <button
@@ -836,11 +829,6 @@ export function ProjectsPage() {
             >
               <FilterIcon size={16} />
             </button>
-          </div>
-        </div>
-        <div className={styles.headerBottom}>
-          <div className={styles.titleGroup}>
-            <span className={styles.projectCount}>{totalProjects} projects</span>
           </div>
         </div>
       </header>
