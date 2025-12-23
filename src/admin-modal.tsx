@@ -15,6 +15,29 @@ import { ErrorBoundary } from '@shared/components';
 import { AdminDashboardPage } from '@features/admin';
 import '@shared/ui/styles/global.css';
 
+function getSearchParam(key: string): string | null {
+  if (typeof window === 'undefined') return null;
+  return new URLSearchParams(window.location.search).get(key);
+}
+
+async function waitForMiro(timeout = 3000): Promise<boolean> {
+  if (typeof window === 'undefined') return false;
+  if (typeof window.miro !== 'undefined') return true;
+
+  return new Promise((resolve) => {
+    const startTime = Date.now();
+    const checkInterval = setInterval(() => {
+      if (typeof window.miro !== 'undefined') {
+        clearInterval(checkInterval);
+        resolve(true);
+      } else if (Date.now() - startTime > timeout) {
+        clearInterval(checkInterval);
+        resolve(false);
+      }
+    }, 100);
+  });
+}
+
 export function AdminModalApp() {
   return (
     <ErrorBoundary>
@@ -44,4 +67,26 @@ function renderApp() {
   }
 }
 
-renderApp();
+async function init() {
+  const mode = getSearchParam('mode');
+  const tab = getSearchParam('tab') || 'overview';
+
+  if (mode !== 'modal') {
+    const miroReady = await waitForMiro();
+    if (miroReady && typeof window !== 'undefined' && window.miro) {
+      try {
+        await window.miro.board.ui.openPanel({
+          url: `app.html?adminTab=${encodeURIComponent(tab)}`,
+        });
+        await window.miro.board.ui.closeModal();
+        return;
+      } catch (error) {
+        console.error('Failed to redirect admin modal to panel', error);
+      }
+    }
+  }
+
+  renderApp();
+}
+
+init();
