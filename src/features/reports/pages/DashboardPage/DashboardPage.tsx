@@ -22,6 +22,7 @@ import styles from './DashboardPage.module.css';
 
 const EMPTY_PROJECTS: Project[] = [];
 const logger = createLogger('DashboardPage');
+const PROJECTS_SPLASH_SHOWN_KEY = 'brianna_splash_shown';
 
 const STATUS_BADGES: Record<ProjectStatus, { label: string; accent: string; soft: string }> = {
   overdue: { label: 'Overdue', accent: '#b91c1c', soft: 'rgba(185, 28, 28, 0.12)' },
@@ -188,16 +189,19 @@ export function DashboardPage() {
 
   // Handler for splash screen navigation
   const handleNavigateWithSplash = useCallback((destination: string) => {
+    if (destination.startsWith('/projects')) {
+      sessionStorage.setItem(PROJECTS_SPLASH_SHOWN_KEY, 'true');
+    }
     setSplashDestination(destination);
     setShowSplash(true);
   }, []);
 
   const handleSplashComplete = useCallback(() => {
-    setShowSplash(false);
     if (splashDestination) {
       navigate(splashDestination);
       setSplashDestination(null);
     }
+    setShowSplash(false);
   }, [navigate, splashDestination]);
 
   useEffect(() => {
@@ -889,8 +893,8 @@ export function DashboardPage() {
       <SplashScreen
         videoSrc="/logo-animation.webm"
         staticLogoSrc={logoImage}
-        displayDuration={1500}
-        animationDuration={600}
+        displayDuration={400}
+        animationDuration={450}
         onComplete={handleSplashComplete}
         brandText="BRIANNA DAWES STUDIOS"
       />

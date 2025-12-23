@@ -30,6 +30,13 @@ export function SplashScreen({
   const [phase, setPhase] = useState<'centered' | 'sliding' | 'complete'>('centered');
   const videoRef = useRef<HTMLVideoElement>(null);
   const hasCalledComplete = useRef(false);
+  const isMounted = useRef(true);
+
+  useEffect(() => {
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
 
   // Start slide animation after display duration
   useEffect(() => {
@@ -44,10 +51,12 @@ export function SplashScreen({
   useEffect(() => {
     if (phase === 'sliding') {
       const completeTimer = setTimeout(() => {
-        setPhase('complete');
         if (!hasCalledComplete.current) {
           hasCalledComplete.current = true;
           onComplete?.();
+        }
+        if (isMounted.current) {
+          setPhase('complete');
         }
       }, animationDuration);
 

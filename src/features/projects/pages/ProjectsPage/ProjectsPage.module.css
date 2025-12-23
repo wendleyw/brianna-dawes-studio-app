@@ -223,13 +223,16 @@
   opacity: 0;
   overflow: hidden;
   pointer-events: none;
-  transition: max-height 0.25s ease, opacity 0.2s ease;
+  transform: translateY(-6px);
+  transition: max-height 0.25s ease, opacity 0.2s ease, transform 0.2s ease;
 }
 
 .filtersPanelOpen {
-  max-height: 400px;
+  max-height: 520px;
   opacity: 1;
+  overflow: visible;
   pointer-events: auto;
+  transform: translateY(0);
 }
 
 .masterBoardBadge {
@@ -275,13 +278,9 @@
 .filters {
   display: flex;
   gap: 10px;
-  overflow-x: auto;
-  padding-bottom: 4px;
-  scrollbar-width: none;
-}
-
-.filters::-webkit-scrollbar {
-  display: none;
+  flex-wrap: wrap;
+  align-items: center;
+  row-gap: 8px;
 }
 
 .filterSelect {
