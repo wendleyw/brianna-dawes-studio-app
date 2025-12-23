@@ -101,7 +101,7 @@ export function SplashScreen({
             autoPlay
             loop={false}
           >
-            <source src={videoSrc} type="video/quicktime" />
+            <source src={videoSrc} type="video/webm" />
             <source src={videoSrc} type="video/mp4" />
             <img
               src={staticLogoSrc}
