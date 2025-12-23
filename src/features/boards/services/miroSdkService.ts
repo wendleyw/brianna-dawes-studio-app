@@ -148,8 +148,6 @@ function normalizeDateToYYYYMMDD(dateStr: string | null | undefined): string | u
 async function findTimelineFrame(): Promise<MiroFrame | null> {
   const miro = getMiroSDK();
   const existingFrames = await miro.board.get({ type: 'frame' }) as MiroFrame[];
-  const stripHtml = (value?: string) =>
-    value?.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim().toUpperCase() ?? '';
 
   // Strategy 1: Find frame with title containing "MASTER TIMELINE" or "Timeline Master"
   let timelineFrame = existingFrames.find(f =>
@@ -333,6 +331,20 @@ class MiroMasterTimelineService {
     color: '#000000',
   } as const;
 
+  private refreshColumnColors(): void {
+    if (!this.state) return;
+
+    this.state.columns = this.state.columns.map((col) => {
+      const config = TIMELINE_COLUMNS.find((c) => c.id === col.id);
+      if (!config) return col;
+      return {
+        ...col,
+        label: config.label,
+        color: normalizeMiroColor(config.color, '#6B7280'),
+      };
+    });
+  }
+
   private async updateTimelineHeaderColors(frame: MiroFrame): Promise<void> {
     const miro = getMiroSDK();
     const frameWidth = frame.width ?? TIMELINE.FRAME_WIDTH;
@@ -399,6 +411,7 @@ class MiroMasterTimelineService {
         log('MiroTimeline', '🔵 Singleton check: trying to ensure Files/Chat on cached timeline', { frameId: this.state.frameId });
         const frame = await miro.board.getById(this.state.frameId!) as MiroFrame | null;
         if (frame) {
+          this.refreshColumnColors();
           const frameWidth = frame.width ?? TIMELINE.FRAME_WIDTH;
           const frameHeight = frame.height ?? TIMELINE.FRAME_HEIGHT;
           const frameLeft = frame.x - frameWidth / 2;
@@ -455,6 +468,7 @@ class MiroMasterTimelineService {
       const frameLeft = existingTimeline.x - frameWidth / 2;
       const frameTop = existingTimeline.y - frameHeight / 2;
       await this.ensureFilesChatColumn({ frameLeft, frameTop, frameWidth, frameHeight });
+      this.refreshColumnColors();
       await this.updateTimelineHeaderColors(existingTimeline);
 
       this.initialized = true;
@@ -675,11 +689,8 @@ class MiroMasterTimelineService {
     }
     log('MiroTimeline', '🔵 Files/Chat column not found, creating...');
 
-    const stripHtml = (value?: string) =>
-      value?.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim().toLowerCase() ?? '';
-
     const doneHeader = frameShapes.find((shape) => {
-      const content = stripHtml(shape.content);
+      const content = stripHtml(shape.content).toLowerCase();
       const isHeaderHeight = shape.height >= TIMELINE.HEADER_HEIGHT - 6 && shape.height <= TIMELINE.HEADER_HEIGHT + 6;
       const isHeaderWidth = shape.width >= TIMELINE.COLUMN_WIDTH - 40 && shape.width <= TIMELINE.COLUMN_WIDTH + 40;
       return content === 'done' && isHeaderHeight && isHeaderWidth;
@@ -687,7 +698,7 @@ class MiroMasterTimelineService {
     log('MiroTimeline', doneHeader ? '✅ Found DONE header' : '❌ DONE header not found', doneHeader ? { x: doneHeader.x, y: doneHeader.y, width: doneHeader.width, height: doneHeader.height } : null);
 
     const reviewHeader = frameShapes.find((shape) => {
-      const content = stripHtml(shape.content);
+      const content = stripHtml(shape.content).toLowerCase();
       const isHeaderHeight = shape.height >= TIMELINE.HEADER_HEIGHT - 6 && shape.height <= TIMELINE.HEADER_HEIGHT + 6;
       const isHeaderWidth = shape.width >= TIMELINE.COLUMN_WIDTH - 40 && shape.width <= TIMELINE.COLUMN_WIDTH + 40;
       return content === 'review' && isHeaderHeight && isHeaderWidth;
@@ -840,6 +851,13 @@ class MiroMasterTimelineService {
     if (!this.state) throw new Error('Timeline not initialized');
 
     const miro = getMiroSDK();
+    this.refreshColumnColors();
+    if (this.state.frameId) {
+      const frame = await miro.board.getById(this.state.frameId) as MiroFrame | null;
+      if (frame) {
+        await this.updateTimelineHeaderColors(frame);
+      }
+    }
     const status = getTimelineStatus(project);
     const column = this.state.columns.find(c => c.id === status);
     if (!column) throw new Error(`Column ${status} not found`);
