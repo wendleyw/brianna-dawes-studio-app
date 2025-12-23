@@ -47,18 +47,18 @@ export function AdminDashboardPage() {
       });
   }, [isModalHost, isExplicitModal, miro, isInMiro, location.search]);
 
-  const handleOpenModal = useCallback(async (tab: AdminTab) => {
+  const handleOpenModal = useCallback((tab: AdminTab) => {
     if (!miro || !isInMiro) return;
-    try {
-      await miro.board.ui.openModal({
+    miro.board.ui
+      .openModal({
         url: `admin-modal.html?tab=${encodeURIComponent(tab)}&mode=modal`,
         width: 1200,
         height: 800,
         fullscreen: false,
+      })
+      .catch((error) => {
+        console.error('Failed to open admin modal', error);
       });
-    } catch (error) {
-      console.error('Failed to open admin modal', error);
-    }
   }, [miro, isInMiro]);
 
   const handleClose = useCallback(() => {
@@ -78,7 +78,7 @@ export function AdminDashboardPage() {
         onClose={handleClose}
         defaultTab={defaultTab}
         variant="panel"
-        onOpenModal={!isModalHost && isInMiro ? handleOpenModal : undefined}
+        {...(!isModalHost && isInMiro ? { onOpenModal: handleOpenModal } : {})}
       />
     </>
   );
