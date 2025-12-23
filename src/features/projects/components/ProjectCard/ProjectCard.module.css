@@ -136,12 +136,10 @@
 .badges {
   display: flex;
   flex-wrap: nowrap;
-  gap: var(--space-1);
+  gap: 6px;
   max-width: 100%;
-  overflow-x: auto;
-  overflow-y: hidden;
+  overflow: hidden;
   white-space: nowrap;
-  -webkit-overflow-scrolling: touch;
 }
 
 .indicator {
@@ -2226,13 +2224,11 @@
 
 .badges {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   flex-wrap: nowrap;
   margin-top: 10px;
-  overflow-x: auto;
-  overflow-y: hidden;
+  overflow: hidden;
   white-space: nowrap;
-  -webkit-overflow-scrolling: touch;
 }
 
 .badgeButton {
@@ -2253,12 +2249,12 @@
   --badge-color: var(--status-color, var(--color-text-primary));
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
+  gap: 5px;
+  padding: 3px 8px;
   border-radius: 999px;
-  font-size: 9px;
+  font-size: 8px;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--badge-color);
   background-color: rgba(148, 163, 184, 0.12);
