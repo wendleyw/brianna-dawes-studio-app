@@ -46,7 +46,6 @@ export default function AdminDashboard({
   onOpenReport,
 }: AdminDashboardProps) {
   const [activeTab, setActiveTab] = useState<AdminTab>(defaultTab);
-  const [isActionsExpanded, setIsActionsExpanded] = useState(true);
   const isPanel = variant === 'panel';
   const { data: metrics, isLoading: metricsLoading } = useOverviewMetrics();
 
@@ -54,7 +53,6 @@ export default function AdminDashboard({
   useEffect(() => {
     if (isOpen) {
       setActiveTab(defaultTab);
-      setIsActionsExpanded(true);
     }
   }, [isOpen, defaultTab]);
 
