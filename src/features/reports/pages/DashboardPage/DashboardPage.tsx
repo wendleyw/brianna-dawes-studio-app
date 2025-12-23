@@ -1,10 +1,9 @@
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
-import { Skeleton, Logo, SplashScreen } from '@shared/ui';
+import { Skeleton, Logo } from '@shared/ui';
 import { ChevronDownIcon } from '@shared/ui/Icons';
 import { useAuth } from '@features/auth';
-import logoImage from '../../../../assets/brand/logo-brianna.png';
 import { useProjects } from '@features/projects';
 import { projectKeys } from '@features/projects/services/projectKeys';
 import { zoomToProject, useMiro } from '@features/boards';
@@ -22,8 +21,6 @@ import styles from './DashboardPage.module.css';
 
 const EMPTY_PROJECTS: Project[] = [];
 const logger = createLogger('DashboardPage');
-const PROJECTS_SPLASH_SHOWN_KEY = 'brianna_splash_shown';
-
 const STATUS_BADGES: Record<ProjectStatus, { label: string; accent: string; soft: string }> = {
   overdue: { label: 'Overdue', accent: '#b91c1c', soft: 'rgba(185, 28, 28, 0.12)' },
   urgent: { label: 'Urgent', accent: '#c2410c', soft: 'rgba(194, 65, 12, 0.12)' },
@@ -179,30 +176,14 @@ export function DashboardPage() {
   const { boardId: masterBoardId } = useMasterBoardSettings();
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [boardCreatedAt, setBoardCreatedAt] = useState<string | null>(null);
-  const [showSplash, setShowSplash] = useState(false);
-  const [splashDestination, setSplashDestination] = useState<string | null>(null);
-
   // Handler to open Admin Dashboard in panel view
   const openAdminDashboard = useCallback((tab: AdminTab) => {
     navigate(`/admin?tab=${encodeURIComponent(tab)}`);
   }, [navigate]);
 
-  // Handler for splash screen navigation
-  const handleNavigateWithSplash = useCallback((destination: string) => {
-    if (destination.startsWith('/projects')) {
-      sessionStorage.setItem(PROJECTS_SPLASH_SHOWN_KEY, 'true');
-    }
-    setSplashDestination(destination);
-    setShowSplash(true);
-  }, []);
-
-  const handleSplashComplete = useCallback(() => {
-    if (splashDestination) {
-      navigate(splashDestination);
-      setSplashDestination(null);
-    }
-    setShowSplash(false);
-  }, [navigate, splashDestination]);
+  const navigateToProjects = useCallback((destination: string) => {
+    navigate(destination, { state: { showSplash: true } });
+  }, [navigate]);
 
   useEffect(() => {
     let isActive = true;
@@ -468,7 +449,7 @@ export function DashboardPage() {
   const isAdmin = user?.role === 'admin';
   const isClient = user?.role === 'client';
   const canCreateProjects = isAdmin || isClient;
-  const [isNavCollapsed, setIsNavCollapsed] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(true);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const navRef = useRef<HTMLElement | null>(null);
 
@@ -522,7 +503,7 @@ export function DashboardPage() {
     const observer = new ResizeObserver(updateNavHeight);
     observer.observe(nav);
     return () => observer.disconnect();
-  }, [isNavCollapsed]);
+  }, [isExpanded]);
 
   // Get projects for timeline (ALL statuses, organized by date) - memoized
   const timelineProjects = useMemo(() =>
@@ -555,7 +536,7 @@ export function DashboardPage() {
     <>
     <div
       ref={containerRef}
-      className={`${styles.container} ${isNavCollapsed ? styles.navCollapsed : ''}`}
+      className={`${styles.container} ${!isExpanded ? styles.navCollapsed : ''}`}
     >
       <section className={styles.hero}>
         <div className={styles.heroLogo}>
@@ -616,7 +597,7 @@ export function DashboardPage() {
               const destination = (isMasterBoard && selectedClientId)
                 ? `/projects?clientId=${selectedClientId}`
                 : '/projects';
-              handleNavigateWithSplash(destination);
+              navigateToProjects(destination);
             }}
           >
             <div className={styles.actionIconSecondary}>
@@ -653,7 +634,7 @@ export function DashboardPage() {
               const params = new URLSearchParams();
               params.set('status', 'review');
               if (selectedClientId) params.set('clientId', selectedClientId);
-              handleNavigateWithSplash(`/projects?${params.toString()}`);
+              navigateToProjects(`/projects?${params.toString()}`);
             }}
           >
             See all
@@ -811,18 +792,18 @@ export function DashboardPage() {
 
       <nav
         ref={navRef}
-        className={`${styles.bottomNav} ${isNavCollapsed ? styles.bottomNavCollapsed : ''}`}
+        className={`${styles.bottomNav} ${!isExpanded ? styles.bottomNavCollapsed : ''}`}
         aria-label="Primary"
       >
         <button
           type="button"
           className={styles.navToggle}
-          aria-label={isNavCollapsed ? 'Expand menu' : 'Collapse menu'}
-          aria-expanded={!isNavCollapsed}
-          onClick={() => setIsNavCollapsed((prev) => !prev)}
+          aria-label={isExpanded ? 'Collapse menu' : 'Expand menu'}
+          aria-expanded={isExpanded}
+          onClick={() => setIsExpanded((prev) => !prev)}
         >
           <span className={styles.navIcon}>
-            <ChevronDownIcon isOpen={!isNavCollapsed} />
+            <ChevronDownIcon isOpen={isExpanded} />
           </span>
         </button>
         <div className={styles.navItems}>
@@ -889,16 +870,6 @@ export function DashboardPage() {
       </nav>
       <div className={styles.bottomSpacer} aria-hidden="true" />
     </div>
-    {showSplash && (
-      <SplashScreen
-        videoSrc="/logo-animation.webm"
-        staticLogoSrc={logoImage}
-        displayDuration={400}
-        animationDuration={450}
-        onComplete={handleSplashComplete}
-        brandText="BRIANNA DAWES STUDIOS"
-      />
-    )}
     </>
   );
 }

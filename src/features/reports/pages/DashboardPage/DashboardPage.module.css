@@ -37,7 +37,7 @@
 }
 
 .bottomSpacer {
-  height: calc(var(--dash-nav-height, 100px) + env(safe-area-inset-bottom));
+  height: calc(var(--dash-nav-height, 70px) + env(safe-area-inset-bottom));
   width: 100%;
   flex-shrink: 0;
 }
@@ -810,8 +810,8 @@
 
 .bottomNav {
   position: fixed;
-  left: 12px;
-  right: auto;
+  left: 0;
+  right: 0;
   bottom: 0;
   z-index: 30;
   display: flex;
@@ -822,11 +822,11 @@
   background: rgba(255, 255, 255, 0.9);
   border-top: 1px solid rgba(148, 163, 184, 0.2);
   backdrop-filter: blur(14px);
-  border-radius: 12px;
-  width: calc(100% - 24px);
+  border-radius: 0;
+  width: 100%;
   overflow: hidden;
   transition: width 0.25s ease, padding 0.25s ease;
-  box-shadow: 0 14px 24px -20px rgba(15, 23, 42, 0.45);
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05);
 }
 
 .bottomNavCollapsed {
