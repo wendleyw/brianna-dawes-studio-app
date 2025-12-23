@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useRecentActivity } from '../../hooks';
 import { formatDistanceToNow, isToday, isYesterday, format } from 'date-fns';
-import styles from './ActivityTab.module.css';
+import baseStyles from './AdminTab.module.css';
 
 export default function ActivityTab() {
   const [filterType, setFilterType] = useState<string>('all');
@@ -59,147 +59,163 @@ export default function ActivityTab() {
     return '•';
   };
 
-  const getActivityColor = (type: string) => {
-    if (type.includes('project_created')) return styles.typeProject;
-    if (type.includes('project_completed')) return styles.typeSync;
-    if (type.includes('deliverable_approved')) return styles.typeApproved;
-    if (type.includes('client_joined')) return styles.typeUser;
-    if (type.includes('feedback')) return styles.typeComment;
-    return '';
-  };
 
   if (isLoading) {
     return (
-      <div className={styles.container}>
-        <div style={{ textAlign: 'center', padding: '48px', color: 'var(--color-gray-500)' }}>
-          Loading activity...
-        </div>
+      <div className={baseStyles.tabContainer}>
+        <div className={baseStyles.loading}>Loading activity...</div>
       </div>
     );
   }
 
+  const hasActivity = activityLog.today.length > 0 || activityLog.yesterday.length > 0 || activityLog.lastWeek.length > 0;
+
   return (
-    <div className={styles.container}>
-      <div className={styles.header}>
-        <div className={styles.filters}>
-          <select
-            className={styles.filterSelect}
-            value={filterType}
-            onChange={(e) => setFilterType(e.target.value)}
-          >
-            <option value="all">All Activities</option>
-            <option value="projects">Projects</option>
-            <option value="users">Users</option>
-            <option value="deliverables">Deliverables</option>
-            <option value="feedback">Feedback</option>
-          </select>
-
-          <select
-            className={styles.filterSelect}
-            value={dateRange}
-            onChange={(e) => setDateRange(e.target.value)}
-          >
-            <option value="today">Today</option>
-            <option value="7days">Last 7 days</option>
-            <option value="30days">Last 30 days</option>
-            <option value="90days">Last 90 days</option>
-          </select>
-        </div>
-
-        <button className={styles.exportButton}>📥 Export Log</button>
-      </div>
-
-      <div className={styles.timeline}>
-        {activityLog.today.length > 0 && (
-          <div className={styles.timelineSection}>
-            <div className={styles.timelineDate}>Today</div>
-            <div className={styles.timelineItems}>
-              {activityLog.today.map((activity) => (
-                <div key={activity.id} className={styles.timelineItem}>
-                  <div className={`${styles.timelineIcon} ${getActivityColor(activity.type)}`}>
-                    {getActivityIcon(activity.type)}
-                  </div>
-                  <div className={styles.timelineContent}>
-                    <div className={styles.timelineMessage}>
-                      {activity.userName && (
-                        <span className={styles.timelineUser}>{activity.userName}</span>
-                      )}{' '}
-                      {activity.description}
-                    </div>
-                    <div className={styles.timelineTime}>
-                      {format(new Date(activity.timestamp), 'HH:mm')}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {activityLog.yesterday.length > 0 && (
-          <div className={styles.timelineSection}>
-            <div className={styles.timelineDate}>Yesterday</div>
-            <div className={styles.timelineItems}>
-              {activityLog.yesterday.map((activity) => (
-                <div key={activity.id} className={styles.timelineItem}>
-                  <div className={`${styles.timelineIcon} ${getActivityColor(activity.type)}`}>
-                    {getActivityIcon(activity.type)}
-                  </div>
-                  <div className={styles.timelineContent}>
-                    <div className={styles.timelineMessage}>
-                      {activity.userName && (
-                        <span className={styles.timelineUser}>{activity.userName}</span>
-                      )}{' '}
-                      {activity.description}
-                    </div>
-                    <div className={styles.timelineTime}>
-                      {format(new Date(activity.timestamp), 'HH:mm')}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {activityLog.lastWeek.length > 0 && (
-          <div className={styles.timelineSection}>
-            <div className={styles.timelineDate}>Earlier</div>
-            <div className={styles.timelineItems}>
-              {activityLog.lastWeek.map((activity) => (
-                <div key={activity.id} className={styles.timelineItem}>
-                  <div className={`${styles.timelineIcon} ${getActivityColor(activity.type)}`}>
-                    {getActivityIcon(activity.type)}
-                  </div>
-                  <div className={styles.timelineContent}>
-                    <div className={styles.timelineMessage}>
-                      {activity.userName && (
-                        <span className={styles.timelineUser}>{activity.userName}</span>
-                      )}{' '}
-                      {activity.description}
-                    </div>
-                    <div className={styles.timelineTime}>
-                      {formatDistanceToNow(new Date(activity.timestamp), { addSuffix: true })}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {activityLog.today.length === 0 &&
-          activityLog.yesterday.length === 0 &&
-          activityLog.lastWeek.length === 0 && (
-            <div style={{ textAlign: 'center', padding: '48px', color: 'var(--color-gray-500)' }}>
-              No recent activity
-            </div>
-          )}
-
-        <div className={styles.loadMore}>
-          <button className={styles.loadMoreButton}>Load More</button>
+    <div className={baseStyles.tabContainer}>
+      {/* Tab Header with Filters */}
+      <div className={baseStyles.tabHeader}>
+        <div className={baseStyles.tabHeaderMain}>
+          <h2 className={baseStyles.tabTitle}>Activity Log</h2>
+          <p className={baseStyles.tabSubtitle}>Track all system events and user actions</p>
         </div>
       </div>
+
+      {/* Filters */}
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+        <button
+          className={filterType === 'all' ? `${baseStyles.filterChip} ${baseStyles.filterChipActive}` : baseStyles.filterChip}
+          onClick={() => setFilterType('all')}
+        >
+          All
+        </button>
+        <button
+          className={filterType === 'projects' ? `${baseStyles.filterChip} ${baseStyles.filterChipActive}` : baseStyles.filterChip}
+          onClick={() => setFilterType('projects')}
+        >
+          Projects
+        </button>
+        <button
+          className={filterType === 'users' ? `${baseStyles.filterChip} ${baseStyles.filterChipActive}` : baseStyles.filterChip}
+          onClick={() => setFilterType('users')}
+        >
+          Users
+        </button>
+        <button
+          className={filterType === 'deliverables' ? `${baseStyles.filterChip} ${baseStyles.filterChipActive}` : baseStyles.filterChip}
+          onClick={() => setFilterType('deliverables')}
+        >
+          Deliverables
+        </button>
+        <button
+          className={filterType === 'feedback' ? `${baseStyles.filterChip} ${baseStyles.filterChipActive}` : baseStyles.filterChip}
+          onClick={() => setFilterType('feedback')}
+        >
+          Feedback
+        </button>
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px' }}>
+          <button
+            className={dateRange === '7days' ? `${baseStyles.filterChip} ${baseStyles.filterChipActive}` : baseStyles.filterChip}
+            onClick={() => setDateRange('7days')}
+          >
+            7 days
+          </button>
+          <button
+            className={dateRange === '30days' ? `${baseStyles.filterChip} ${baseStyles.filterChipActive}` : baseStyles.filterChip}
+            onClick={() => setDateRange('30days')}
+          >
+            30 days
+          </button>
+        </div>
+      </div>
+
+      {!hasActivity && (
+        <div className={baseStyles.emptyState}>
+          <div className={baseStyles.emptyStateIcon}>📭</div>
+          <h3 className={baseStyles.emptyStateTitle}>No Activity Found</h3>
+          <p className={baseStyles.emptyStateMessage}>Try adjusting your filters or date range</p>
+        </div>
+      )}
+
+      {/* Today Section */}
+      {activityLog.today.length > 0 && (
+        <div className={baseStyles.section}>
+          <div className={baseStyles.sectionHeader}>
+            <h3 className={baseStyles.sectionTitle}>Today</h3>
+          </div>
+          <div className={baseStyles.list}>
+            {activityLog.today.map((activity) => (
+              <div key={activity.id} className={baseStyles.listItem}>
+                <div className={baseStyles.listItemIcon}>
+                  <span>{getActivityIcon(activity.type)}</span>
+                </div>
+                <div className={baseStyles.listItemContent}>
+                  <div className={baseStyles.listItemTitle}>
+                    {activity.userName && <strong>{activity.userName}</strong>}{' '}
+                    {activity.description}
+                  </div>
+                  <div className={baseStyles.listItemMeta}>
+                    {format(new Date(activity.timestamp), 'HH:mm')}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Yesterday Section */}
+      {activityLog.yesterday.length > 0 && (
+        <div className={baseStyles.section}>
+          <div className={baseStyles.sectionHeader}>
+            <h3 className={baseStyles.sectionTitle}>Yesterday</h3>
+          </div>
+          <div className={baseStyles.list}>
+            {activityLog.yesterday.map((activity) => (
+              <div key={activity.id} className={baseStyles.listItem}>
+                <div className={baseStyles.listItemIcon}>
+                  <span>{getActivityIcon(activity.type)}</span>
+                </div>
+                <div className={baseStyles.listItemContent}>
+                  <div className={baseStyles.listItemTitle}>
+                    {activity.userName && <strong>{activity.userName}</strong>}{' '}
+                    {activity.description}
+                  </div>
+                  <div className={baseStyles.listItemMeta}>
+                    {format(new Date(activity.timestamp), 'HH:mm')}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Earlier Section */}
+      {activityLog.lastWeek.length > 0 && (
+        <div className={baseStyles.section}>
+          <div className={baseStyles.sectionHeader}>
+            <h3 className={baseStyles.sectionTitle}>Earlier</h3>
+          </div>
+          <div className={baseStyles.list}>
+            {activityLog.lastWeek.map((activity) => (
+              <div key={activity.id} className={baseStyles.listItem}>
+                <div className={baseStyles.listItemIcon}>
+                  <span>{getActivityIcon(activity.type)}</span>
+                </div>
+                <div className={baseStyles.listItemContent}>
+                  <div className={baseStyles.listItemTitle}>
+                    {activity.userName && <strong>{activity.userName}</strong>}{' '}
+                    {activity.description}
+                  </div>
+                  <div className={baseStyles.listItemMeta}>
+                    {formatDistanceToNow(new Date(activity.timestamp), { addSuffix: true })}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
