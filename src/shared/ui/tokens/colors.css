@@ -22,9 +22,9 @@
   --color-error-light: #F87171;
   --color-error-dark: #DC2626;
 
-  --color-info: #60A5FA;
+  --color-info: #3B82F6;
   --color-info-light: #93C5FD;
-  --color-info-dark: #3B82F6;
+  --color-info-dark: #1D4ED8;
 
   /* Neutral Colors */
   --color-gray-50: #F9FAFB;
@@ -56,7 +56,7 @@
   /* Project Status Colors */
   --status-draft: #9CA3AF;
   --status-in-progress: #60A5FA;
-  --status-review: #F59E0B;
+  --status-review: var(--color-info);
   --status-done: #10B981;
   --status-archived: #6B7280;
 
