@@ -18,7 +18,7 @@ export function AppShell() {
   const isAdminRoute = location.pathname.startsWith('/admin') || location.pathname.includes('admin-modal');
   const isDashboardRoute = location.pathname === '/' || location.pathname === '/dashboard';
   const showBackButton = isProjectsRoute || isNotificationsRoute;
-  const showTopbar = !isDashboardRoute && !isAdminRoute;
+  const showTopbar = !isDashboardRoute && !isAdminRoute && !isProjectsRoute;
 
   return (
     <div className={styles.shell}>
