@@ -897,6 +897,12 @@ export const ProjectCard = memo(function ProjectCard({
           <span className={styles.badgeDot} />
           {priorityLabel}
         </span>
+        {projectType && (
+          <span className={styles.badge} style={{ '--badge-color': projectType.color } as React.CSSProperties}>
+            <span className={styles.badgeDot} />
+            {projectType.label.toUpperCase()}
+          </span>
+        )}
       </div>
 
       
