@@ -1,8 +1,5 @@
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { useCallback, useEffect, useRef, useState } from 'react';
 import { NotificationBell } from '@features/notifications';
-import type { AdminTab } from '@features/admin/domain/types';
-import { useAuth } from '@features/auth';
 import styles from './AppShell.module.css';
 
 // Icons
@@ -12,67 +9,14 @@ const BackIcon = () => (
   </svg>
 );
 
-const SettingsIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <circle cx="12" cy="12" r="3"/>
-    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-  </svg>
-);
-
-const AnalyticsIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M3 3v18h18" />
-    <path d="M7 15v-5" />
-    <path d="M12 15v-9" />
-    <path d="M17 15v-3" />
-  </svg>
-);
-
-const AdminMenuIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M4 6h16M4 12h16M4 18h16" />
-  </svg>
-);
-
 export function AppShell() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const [isAdminMenuOpen, setIsAdminMenuOpen] = useState(false);
-  const adminMenuRef = useRef<HTMLDivElement | null>(null);
 
-  const isAdmin = user?.role === 'admin';
   const isProjectsRoute = location.pathname.startsWith('/projects');
   const isNotificationsRoute = location.pathname.startsWith('/notifications');
   const isDashboardRoute = location.pathname === '/' || location.pathname === '/dashboard';
   const showBackButton = isProjectsRoute || isNotificationsRoute;
-
-  useEffect(() => {
-    if (!isAdminMenuOpen) return;
-
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setIsAdminMenuOpen(false);
-    };
-
-    const onPointerDown = (e: MouseEvent | PointerEvent) => {
-      const target = e.target as Node | null;
-      if (!target) return;
-      if (adminMenuRef.current && !adminMenuRef.current.contains(target)) {
-        setIsAdminMenuOpen(false);
-      }
-    };
-
-    document.addEventListener('keydown', onKeyDown);
-    document.addEventListener('pointerdown', onPointerDown);
-    return () => {
-      document.removeEventListener('keydown', onKeyDown);
-      document.removeEventListener('pointerdown', onPointerDown);
-    };
-  }, [isAdminMenuOpen]);
-
-  const openAdminDashboard = useCallback((tab: AdminTab) => {
-    navigate(`/admin?tab=${encodeURIComponent(tab)}`);
-  }, [navigate]);
 
   return (
     <div className={styles.shell}>
@@ -95,45 +39,6 @@ export function AppShell() {
             )}
           </div>
           <div className={styles.right}>
-            {isAdmin && (
-              <div className={styles.adminMenuWrap} ref={adminMenuRef}>
-                <button
-                  className={styles.adminToggle}
-                  onClick={() => setIsAdminMenuOpen(v => !v)}
-                  aria-label="Admin quick actions"
-                  aria-expanded={isAdminMenuOpen}
-                  type="button"
-                  title="Admin"
-                >
-                  <AdminMenuIcon />
-                </button>
-                {isAdminMenuOpen && (
-                  <div className={styles.adminMenu} role="menu" aria-label="Admin quick actions">
-                    <button
-                      className={styles.adminMenuItem}
-                      onClick={async () => {
-                        setIsAdminMenuOpen(false);
-                        await openAdminDashboard('settings');
-                      }}
-                      type="button"
-                      role="menuitem"
-                    >
-                      <SettingsIcon />
-                      <span>Settings</span>
-                    </button>
-                  </div>
-                )}
-                <button
-                  className={styles.adminToggle}
-                  onClick={() => openAdminDashboard('analytics')}
-                  aria-label="Analytics"
-                  type="button"
-                  title="Analytics"
-                >
-                  <AnalyticsIcon />
-                </button>
-              </div>
-            )}
             <NotificationBell />
           </div>
         </header>
