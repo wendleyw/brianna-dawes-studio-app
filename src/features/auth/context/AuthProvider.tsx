@@ -26,28 +26,28 @@ async function verifyUserExists(userId: string): Promise<{
   companyName?: string | null;
   companyLogoUrl?: string | null;
 }> {
-  console.log('[verifyUserExists] Starting for userId:', userId);
+  logger.debug('Starting verifyUserExists', { userId });
   try {
-    console.log('[verifyUserExists] Querying Supabase...');
+    logger.debug('verifyUserExists querying Supabase');
     const { data, error } = await supabase
       .from('users')
       .select('id, role, primary_board_id, name, email, is_super_admin, company_name, company_logo_url')
       .eq('id', userId)
       .maybeSingle();
 
-    console.log('[verifyUserExists] Query complete. Error:', error, 'Data:', data);
+    logger.debug('verifyUserExists query complete', { hasError: !!error, hasData: !!data });
 
     if (error) {
-      console.error('[verifyUserExists] Error verifying user existence', error);
+      logger.error('verifyUserExists error verifying user existence', error);
       return { exists: false };
     }
 
     if (!data) {
-      console.log('[verifyUserExists] No data returned');
+      logger.debug('verifyUserExists no data returned');
       return { exists: false };
     }
 
-    console.log('[verifyUserExists] User found:', data.email);
+    logger.debug('verifyUserExists user found', { email: data.email });
     return {
       exists: true,
       role: data.role as string,
@@ -59,7 +59,7 @@ async function verifyUserExists(userId: string): Promise<{
       companyLogoUrl: data.company_logo_url as string | null,
     };
   } catch (err) {
-    console.error('[verifyUserExists] Exception:', err);
+    logger.error('verifyUserExists exception', err);
     return { exists: false };
   }
 }
@@ -87,36 +87,36 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   useEffect(() => {
     const initializeAuth = async () => {
-      console.log('[AuthProvider] Starting initializeAuth...');
+      logger.debug('Starting initializeAuth');
       try {
         // First, get the current Miro user to verify identity
-        console.log('[AuthProvider] Getting Miro user from SDK...');
+        logger.debug('Getting Miro user from SDK');
         const currentMiroUser = await miroAuthService.getMiroUserFromSdk();
-        console.log('[AuthProvider] Current Miro user:', { id: currentMiroUser?.id, email: currentMiroUser?.email });
+        logger.debug('Current Miro user', { id: currentMiroUser?.id, email: currentMiroUser?.email });
 
         // Check if we have a stored user (from Miro auth)
         const storedUser = localStorage.getItem(AUTH_STORAGE_KEY);
-        console.log('[AuthProvider] Stored user exists:', !!storedUser);
+        logger.debug('Stored user exists', { exists: !!storedUser });
         if (storedUser) {
           const user = JSON.parse(storedUser) as AuthUser;
-          console.log('[AuthProvider] Stored user:', { id: user.id, role: user.role, miroUserId: user.miroUserId });
+          logger.debug('Stored user', { id: user.id, role: user.role, miroUserId: user.miroUserId });
           let bridgedTokens: { accessToken: string; refreshToken: string; expiresAt: number } | null = null;
 
           // IMPORTANT: Verify the stored user matches the current Miro user
           // If miroUserId doesn't match, we need to re-authenticate
           if (currentMiroUser && currentMiroUser.id && user.miroUserId && currentMiroUser.id !== user.miroUserId) {
-            console.log('[AuthProvider] Miro user changed, re-authenticating');
+            logger.debug('Miro user changed, re-authenticating');
             localStorage.removeItem(AUTH_STORAGE_KEY);
             // Don't return - fall through to check Supabase session or trigger re-auth
           } else if (currentMiroUser && currentMiroUser.id && !user.miroUserId) {
             // Stored user doesn't have miroUserId - force re-auth to get it
-            console.log('[AuthProvider] Stored user missing miroUserId, forcing re-auth');
+            logger.debug('Stored user missing miroUserId, forcing re-auth');
             localStorage.removeItem(AUTH_STORAGE_KEY);
             // Don't return - fall through to trigger re-auth
           } else {
             // Miro user ID matches stored user
             // Re-establish Supabase session and verify user data is still current
-            console.log('[AuthProvider] Miro user matches stored user, attempting Supabase session...');
+            logger.debug('Miro user matches stored user, attempting Supabase session');
 
             // Re-establish Supabase Auth session for RLS (with timeout)
             if (user.miroUserId) {
@@ -134,9 +134,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
                 const authResult = await Promise.race([authPromise, timeoutPromise]);
 
                 if (!authResult.success) {
-                  console.warn('[AuthProvider] Supabase session failed (will use anon):', authResult.error);
+                  logger.warn('Supabase session failed (will use anon)', authResult.error);
                 } else {
-                  console.log('[AuthProvider] Supabase session re-established successfully');
+                  logger.debug('Supabase session re-established successfully');
                   if (authResult.accessToken && authResult.refreshToken) {
                     bridgedTokens = {
                       accessToken: authResult.accessToken,
@@ -146,17 +146,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
                   }
                 }
               } catch (err) {
-                console.warn('[AuthProvider] Supabase session error (will use anon):', err);
+                logger.warn('Supabase session error (will use anon)', err);
               }
             }
 
             // IMPORTANT: Always verify user data from DB to catch role changes
-            console.log('[AuthProvider] Verifying user data from database...');
+            logger.debug('Verifying user data from database');
             const userCheck = await verifyUserExists(user.id);
 
             if (!userCheck.exists) {
               // User no longer exists - clear cache and require re-auth
-              console.log('[AuthProvider] User no longer exists in DB, clearing cache');
+              logger.debug('User no longer exists in DB, clearing cache');
               localStorage.removeItem(AUTH_STORAGE_KEY);
               setState({ ...initialState, isLoading: false });
               return;
@@ -176,11 +176,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
             // Check if anything changed
             if (userCheck.role !== user.role) {
-              console.log('[AuthProvider] User role changed:', user.role, '->', userCheck.role);
+              logger.debug('User role changed', { from: user.role, to: userCheck.role });
               localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(updatedUser));
             }
 
-            console.log('[AuthProvider] Setting authenticated state with verified data');
+            logger.debug('Setting authenticated state with verified data');
             setState({
               user: updatedUser,
               session: bridgedTokens
@@ -200,11 +200,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
         }
 
         // Then check Supabase session
-        console.log('[AuthProvider] Checking Supabase session...');
+        logger.debug('Checking Supabase session');
         const session = await authService.getSession();
-        console.log('[AuthProvider] Supabase session exists:', !!session);
+        logger.debug('Supabase session exists', { exists: !!session });
         if (session) {
-          console.log('[AuthProvider] Setting authenticated state from session');
+          logger.debug('Setting authenticated state from session');
           setState({
             user: session.user,
             session,
@@ -213,11 +213,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
             error: null,
           });
         } else {
-          console.log('[AuthProvider] No session, setting isLoading: false');
+          logger.debug('No session, setting isLoading false');
           setState({ ...initialState, isLoading: false });
         }
       } catch (error) {
-        console.error('[AuthProvider] Error during initialization:', error);
+        logger.error('Error during initialization', error);
         setState({
           ...initialState,
           isLoading: false,

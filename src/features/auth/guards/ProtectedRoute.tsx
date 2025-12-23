@@ -2,9 +2,12 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useMiro } from '@features/boards/context/MiroContext';
 import { Skeleton, Logo } from '@shared/ui';
+import { createLogger } from '@shared/lib/logger';
 import type { ProtectedRouteProps } from '../domain/auth.types';
 import { AccessDenied } from '../components/AccessDenied';
 import styles from './ProtectedRoute.module.css';
+
+const logger = createLogger('ProtectedRoute');
 
 /**
  * Component shown when client has no board assigned
@@ -121,7 +124,7 @@ export function ProtectedRoute({
   const location = useLocation();
 
   // Debug logging
-  console.log('[ProtectedRoute] State:', {
+  logger.debug('State', {
     isLoading,
     isAuthenticated,
     miroReady,
@@ -132,7 +135,7 @@ export function ProtectedRoute({
   });
 
   if (isLoading || !miroReady) {
-    console.log('[ProtectedRoute] Showing loading - isLoading:', isLoading, 'miroReady:', miroReady);
+    logger.debug('Showing loading', { isLoading, miroReady });
     return (
       <div className={styles.loadingWrapper}>
         <Skeleton width="100%" height={400} />

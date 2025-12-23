@@ -33,9 +33,10 @@
 }
 
 .headerTop {
-  display: flex;
+  display: grid;
+  grid-template-columns: 50px 1fr 50px;
   align-items: center;
-  justify-content: center;
+  gap: 12px;
   position: relative;
 }
 
@@ -48,7 +49,14 @@
 .headerBrand {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 10px;
+}
+
+.headerLogoWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
 }
 
 .brandName {
@@ -123,8 +131,6 @@
   cursor: pointer;
   transition: all 0.2s ease;
   box-shadow: var(--projects-shadow);
-  position: absolute;
-  left: 0;
 }
 
 .iconButtonSmall {
@@ -174,6 +180,12 @@
   align-items: flex-end;
   justify-content: space-between;
   gap: 12px;
+  position: relative;
+}
+
+.headerBottom .headerActions {
+  position: absolute;
+  right: 0;
 }
 
 .titleGroup {

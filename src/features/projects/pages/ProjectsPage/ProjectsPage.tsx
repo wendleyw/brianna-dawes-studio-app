@@ -52,7 +52,7 @@ export function ProjectsPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
-  const { miro, isInMiro } = useMiro();
+  const { miro, isInMiro, boardId: miroBoardId } = useMiro();
   const { syncProject } = useMiroBoardSync();
   const { boardId: masterBoardId } = useMasterBoardSettings();
   const [searchQuery, setSearchQuery] = useState('');
@@ -134,20 +134,9 @@ export function ProjectsPage() {
   // Fetch client associated with current board
   useEffect(() => {
     async function fetchBoardClient() {
-      logger.debug('fetchBoardClient starting', { isInMiro, hasMiro: !!miro });
+      logger.debug('fetchBoardClient starting', { isInMiro, hasMiro: !!miro, boardId: miroBoardId });
 
-      let boardId: string | null = null;
-
-      // Try to get board ID from Miro SDK
-      if (miro) {
-        try {
-          const boardInfo = await miro.board.getInfo();
-          boardId = boardInfo.id;
-          logger.debug('Current board ID from Miro SDK', { boardId });
-        } catch (err) {
-          logger.warn('Could not get board ID from Miro SDK', err);
-        }
-      }
+      const boardId = miroBoardId ?? null;
 
       try {
         // Save the current board ID for plan stats lookup
@@ -319,7 +308,7 @@ export function ProjectsPage() {
     }
 
     fetchBoardClient();
-  }, [miro, isInMiro, user?.id, user?.role]);
+  }, [miro, miroBoardId, isInMiro, user?.id, user?.role]);
 
   // Get selected project from URL
   const selectedProjectId = searchParams.get('selected');
@@ -811,15 +800,13 @@ export function ProjectsPage() {
                 <span className={styles.brandName}>
                   {boardClient.companyName || boardClient.name}
                 </span>
-                <span className={styles.brandSeparator}>|</span>
-                <Logo size="md" />
               </>
             ) : (
-              <>
-                <Logo size="md" />
-                <span className={styles.brandName}>BD Studios</span>
-              </>
+              <span className={styles.brandName}>BD Studios</span>
             )}
+          </div>
+          <div className={styles.headerLogoWrapper}>
+            <Logo size="md" />
           </div>
         </div>
         <div className={styles.headerBottom}>

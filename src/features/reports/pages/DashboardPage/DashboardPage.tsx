@@ -16,9 +16,11 @@ import { STATUS_COLUMNS, getStatusColumn, getStatusProgress, getTimelineStatus }
 import { formatDateShort, formatDateMonthYear } from '@shared/lib/dateFormat';
 import { useRealtimeSubscription } from '@shared/hooks/useRealtimeSubscription';
 import type { AdminTab } from '@features/admin/domain/types';
+import { createLogger } from '@shared/lib/logger';
 import styles from './DashboardPage.module.css';
 
 const EMPTY_PROJECTS: Project[] = [];
+const logger = createLogger('DashboardPage');
 
 const STATUS_BADGES: Record<ProjectStatus, { label: string; accent: string; soft: string }> = {
   overdue: { label: 'Overdue', accent: '#b91c1c', soft: 'rgba(185, 28, 28, 0.12)' },
@@ -221,7 +223,7 @@ export function DashboardPage() {
           setBoardCreatedAt(createdAt);
         }
       } catch (error) {
-        console.warn('[DashboardPage] Failed to load board info', error);
+        logger.warn('Failed to load board info', error);
       }
     })();
 
@@ -233,7 +235,7 @@ export function DashboardPage() {
   const analyticsSince = boardCreatedAt ? formatDateMonthYear(boardCreatedAt) : null;
 
   // Debug log
-  console.log('[DashboardPage] Render:', {
+  logger.debug('Render', {
     hasUser: !!user,
     userId: user?.id,
     userRole: user?.role,
@@ -245,7 +247,7 @@ export function DashboardPage() {
   // Check if we're on the Master Board
   const isMasterBoard = !!(isInMiro && currentBoardId && masterBoardId && currentBoardId === masterBoardId);
 
-  console.log('[DashboardPage] 🔍 Master Board check:', {
+  logger.debug('Master board check', {
     isInMiro,
     currentBoardId,
     masterBoardId,
@@ -263,23 +265,23 @@ export function DashboardPage() {
 
     (async () => {
       try {
-        console.log('[DashboardPage] 🔵 Master Board detected, checking timeline initialization...');
+        logger.debug('Master board detected, checking timeline initialization');
 
         const timelineState = miroTimelineService.getState();
-        console.log('[DashboardPage] 🔵 Timeline state:', timelineState);
+        logger.debug('Timeline state', timelineState);
 
         if (!timelineState && isActive) {
-          console.log('[DashboardPage] 🔵 Timeline not initialized, initializing now...');
+          logger.debug('Timeline not initialized, initializing now');
           await miroTimelineService.initializeTimeline();
-          console.log('[DashboardPage] ✅ Timeline initialized successfully');
+          logger.debug('Timeline initialized successfully');
         } else {
-          console.log('[DashboardPage] ✅ Timeline already initialized, ensuring Files/Chat column...');
+          logger.debug('Timeline already initialized, ensuring Files/Chat column');
           // Even if timeline is initialized, try to ensure Files/Chat column exists
           // This is handled inside initializeTimeline via the singleton check
           await miroTimelineService.initializeTimeline();
         }
       } catch (error) {
-        console.error('[DashboardPage] ❌ Failed to initialize timeline:', error);
+        logger.error('Failed to initialize timeline', error);
       }
     })();
 
@@ -299,7 +301,7 @@ export function DashboardPage() {
     if (isMasterBoard && selectedClientId) {
       f.clientId = selectedClientId;
     }
-    console.log('[DashboardPage] Filters:', f);
+    logger.debug('Filters', f);
     return f;
   }, [isInMiro, currentBoardId, isMasterBoard, selectedClientId]);
 
@@ -307,7 +309,7 @@ export function DashboardPage() {
   const { data: projectsData, isLoading: projectsLoading, refetch, error: projectsError } = useProjects({ filters, pageSize: 1000 });
 
   // Debug log for projects query
-  console.log('[DashboardPage] Projects query:', {
+  logger.debug('Projects query', {
     isLoading: projectsLoading,
     hasData: !!projectsData,
     dataLength: projectsData?.data?.length,
@@ -390,7 +392,7 @@ export function DashboardPage() {
 
       // Use REST API in Miro iframe context to avoid Supabase client hanging
       if (isInMiroIframe()) {
-        console.log('[DashboardPage] Using REST API for deliverables (Miro iframe context)');
+        logger.debug('Using REST API for deliverables (Miro iframe context)');
         // Try: count + bonus_count (newest)
         const result = await supabaseRestQuery<Array<{ count?: number; bonus_count?: number }>>(
           'deliverables',

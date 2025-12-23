@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const debugEnabled = import.meta.env.DEV || import.meta.env.VITE_DEBUG === 'true';
 
 if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables');
@@ -10,10 +11,12 @@ if (!supabaseUrl || !supabaseAnonKey) {
 // Check if we're running in a Miro iframe context
 const isInMiroIframe = typeof window !== 'undefined' && window.parent !== window;
 
-console.log('[Supabase] Initializing client:', {
-  url: supabaseUrl,
-  isInMiroIframe,
-});
+if (debugEnabled) {
+  console.log('[Supabase] Initializing client:', {
+    url: supabaseUrl,
+    isInMiroIframe,
+  });
+}
 
 // Custom fetch wrapper with logging for debugging network issues
 const debugFetch: typeof fetch = async (input, init) => {
@@ -65,7 +68,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     },
   },
   global: {
-    fetch: debugFetch,
+    fetch: debugEnabled ? debugFetch : fetch,
   },
 });
 
