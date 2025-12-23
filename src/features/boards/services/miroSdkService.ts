@@ -28,7 +28,7 @@ import type {
   ProjectRowState,
 } from '../domain/board.types';
 import type { Project, ProjectStatus } from '@features/projects/domain/project.types';
-import type { MiroFrame, MiroCard } from '../context/MiroContext';
+import type { MiroFrame, MiroCard, MiroItem } from '../context/MiroContext';
 
 // Import centralized constants
 import {
@@ -358,12 +358,7 @@ class MiroMasterTimelineService {
       TIMELINE_COLUMNS.map((col) => [col.label, normalizeMiroColor(col.color, '#6B7280')])
     );
 
-    const shapes = await miro.board.get({ type: 'shape' }) as Array<{
-      content?: string;
-      x: number;
-      y: number;
-      width: number;
-      height: number;
+    const shapes = await miro.board.get({ type: 'shape' }) as Array<MiroItem & {
       style?: { fillColor?: string };
     }>;
 

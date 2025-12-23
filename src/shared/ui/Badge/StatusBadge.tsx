@@ -1,5 +1,6 @@
 import React from 'react';
 import { Badge } from './Badge';
+import type { BadgeColor } from './Badge.types';
 import { CheckCircleIcon, ClockIcon, AlertCircleIcon } from '@shared/ui/Icons';
 
 type ProjectStatus = 'draft' | 'in_progress' | 'review' | 'done' | 'archived';
@@ -9,14 +10,7 @@ interface StatusBadgeProps {
   size?: 'xs' | 'sm' | 'md' | 'lg';
 }
 
-const STATUS_CONFIG: Record<
-  ProjectStatus,
-  {
-    color: 'primary' | 'success' | 'warning' | 'error' | 'neutral';
-    icon: React.ReactNode;
-    label: string;
-  }
-> = {
+const STATUS_CONFIG: Record<ProjectStatus, { color: BadgeColor; icon: React.ReactNode; label: string }> = {
   draft: {
     color: 'neutral',
     icon: <ClockIcon size={14} />,
