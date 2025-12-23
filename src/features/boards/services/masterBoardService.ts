@@ -44,7 +44,7 @@ const STATUS_COLUMNS = [
   { id: 'overdue', label: 'OVERDUE', color: '#F59E0B' },
   { id: 'urgent', label: 'URGENT', color: '#EF4444' },
   { id: 'in_progress', label: 'IN PROGRESS', color: '#60A5FA' },
-  { id: 'review', label: 'REVIEW', color: '#1D4ED8' },
+  { id: 'review', label: 'REVIEW', color: '#1E40AF' },
   { id: 'done', label: 'DONE', color: '#10B981' },
 ] as const;
 
@@ -83,7 +83,7 @@ function getCardTheme(status: string): string {
     case 'draft':
       return '#60A5FA'; // Light blue - IN PROGRESS
     case 'review':
-      return '#1D4ED8'; // Deep blue - REVIEW
+      return '#1E40AF'; // Deep blue - REVIEW
     case 'done':
     case 'archived':
       return '#10B981'; // Green - DONE

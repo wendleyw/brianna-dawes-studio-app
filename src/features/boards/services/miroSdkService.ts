@@ -58,7 +58,7 @@ const MIRO_COLOR_FALLBACKS: Record<string, string> = {
   '--color-info': '#3B82F6',
   '--color-accent-light': '#60A5FA',
   '--status-in-progress': '#60A5FA',
-  '--status-review': '#1D4ED8',
+  '--status-review': '#1E40AF',
   '--priority-high': '#F59E0B',
   '--priority-urgent': '#EF4444',
   '--priority-medium': '#60A5FA',
@@ -101,6 +101,10 @@ function normalizeMiroColor(value: string | undefined, fallback: string): string
   }
 
   return fallback;
+}
+
+function stripHtml(value?: string): string {
+  return value?.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim().toUpperCase() ?? '';
 }
 
 /** Prefixed logger for Miro services - uses unified logger */
@@ -329,6 +333,60 @@ class MiroMasterTimelineService {
     color: '#000000',
   } as const;
 
+  private async updateTimelineHeaderColors(frame: MiroFrame): Promise<void> {
+    const miro = getMiroSDK();
+    const frameWidth = frame.width ?? TIMELINE.FRAME_WIDTH;
+    const frameHeight = frame.height ?? TIMELINE.FRAME_HEIGHT;
+    const frameLeft = frame.x - frameWidth / 2;
+    const frameRight = frame.x + frameWidth / 2;
+    const frameTop = frame.y - frameHeight / 2;
+    const frameBottom = frame.y + frameHeight / 2;
+
+    const labelToColor = new Map(
+      TIMELINE_COLUMNS.map((col) => [col.label, normalizeMiroColor(col.color, '#6B7280')])
+    );
+
+    const shapes = await miro.board.get({ type: 'shape' }) as Array<{
+      content?: string;
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+      style?: { fillColor?: string };
+    }>;
+
+    const headerShapes = shapes.filter((shape) => {
+      const label = stripHtml(shape.content);
+      if (!labelToColor.has(label)) return false;
+      const isHeaderSize =
+        shape.width >= TIMELINE.COLUMN_WIDTH - 60 &&
+        shape.width <= TIMELINE.COLUMN_WIDTH + 60 &&
+        shape.height >= TIMELINE.HEADER_HEIGHT - 8 &&
+        shape.height <= TIMELINE.HEADER_HEIGHT + 8;
+      const inFrame =
+        shape.x >= frameLeft &&
+        shape.x <= frameRight &&
+        shape.y >= frameTop &&
+        shape.y <= frameBottom;
+      return isHeaderSize && inFrame;
+    });
+
+    let updated = 0;
+    for (const shape of headerShapes) {
+      const label = stripHtml(shape.content);
+      const color = labelToColor.get(label);
+      if (!color) continue;
+      if (shape.style?.fillColor === color) continue;
+      shape.style = { ...(shape.style || {}), fillColor: color };
+      await miro.board.sync(shape);
+      updated += 1;
+    }
+
+    if (updated > 0) {
+      log('MiroTimeline', 'Updated timeline header colors', { updated });
+    }
+  }
+
   isInitialized(): boolean {
     return this.initialized && this.state !== null;
   }
@@ -347,6 +405,7 @@ class MiroMasterTimelineService {
           const frameTop = frame.y - frameHeight / 2;
           log('MiroTimeline', '🔵 Frame found, calling ensureFilesChatColumn...', { frameWidth, frameHeight, frameLeft, frameTop });
           await this.ensureFilesChatColumn({ frameLeft, frameTop, frameWidth, frameHeight });
+          await this.updateTimelineHeaderColors(frame);
           log('MiroTimeline', '✅ Files/Chat column ensured successfully on cached timeline');
         } else {
           log('MiroTimeline', '⚠️ Frame not found by ID, skipping Files/Chat column', { frameId: this.state.frameId });
@@ -396,6 +455,7 @@ class MiroMasterTimelineService {
       const frameLeft = existingTimeline.x - frameWidth / 2;
       const frameTop = existingTimeline.y - frameHeight / 2;
       await this.ensureFilesChatColumn({ frameLeft, frameTop, frameWidth, frameHeight });
+      await this.updateTimelineHeaderColors(existingTimeline);
 
       this.initialized = true;
       await miro.board.viewport.zoomTo([existingTimeline]);
