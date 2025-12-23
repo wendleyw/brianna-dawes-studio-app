@@ -14,6 +14,8 @@ import {
   DashboardIcon,
   DownloadIcon,
   ExternalLinkIcon,
+  BoardIcon,
+  ChartIcon,
   MessageIcon,
   SyncIcon,
 } from '@shared/ui/Icons';
@@ -25,6 +27,8 @@ interface AdminDashboardProps {
   defaultTab?: AdminTab;
   variant?: 'modal' | 'panel';
   onOpenModal?: (tab: AdminTab) => void;
+  onOpenStatus?: () => void;
+  onOpenReport?: () => void;
 }
 
 export default function AdminDashboard({
@@ -33,6 +37,8 @@ export default function AdminDashboard({
   defaultTab = 'overview',
   variant = 'modal',
   onOpenModal,
+  onOpenStatus,
+  onOpenReport,
 }: AdminDashboardProps) {
   const [activeTab, setActiveTab] = useState<AdminTab>(defaultTab);
   const isPanel = variant === 'panel';
@@ -168,6 +174,26 @@ export default function AdminDashboard({
               <MessageIcon size={16} />
               Announce
             </button>
+            {onOpenStatus && (
+              <button
+                className={styles.secondaryAction}
+                type="button"
+                onClick={onOpenStatus}
+              >
+                <BoardIcon size={16} />
+                Status
+              </button>
+            )}
+            {onOpenReport && (
+              <button
+                className={styles.secondaryAction}
+                type="button"
+                onClick={onOpenReport}
+              >
+                <ChartIcon size={16} />
+                Report
+              </button>
+            )}
           </div>
           <div className={styles.lastSyncInfo}>
             <span>Last sync: 2 min ago</span>

@@ -1,34 +1,14 @@
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { NotificationBell } from '@features/notifications';
-import { ReportModal } from '@features/admin/components';
 import type { AdminTab } from '@features/admin/domain/types';
 import { useAuth } from '@features/auth';
-import { useMiro } from '@features/boards';
 import styles from './AppShell.module.css';
 
 // Icons
 const BackIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
     <path d="M19 12H5M12 19l-7-7 7-7"/>
-  </svg>
-);
-
-const GridIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <rect x="3" y="3" width="7" height="7"/>
-    <rect x="14" y="3" width="7" height="7"/>
-    <rect x="14" y="14" width="7" height="7"/>
-    <rect x="3" y="14" width="7" height="7"/>
-  </svg>
-);
-
-const ReportIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-    <polyline points="14 2 14 8 20 8"/>
-    <line x1="16" y1="13" x2="8" y2="13"/>
-    <line x1="16" y1="17" x2="8" y2="17"/>
   </svg>
 );
 
@@ -58,8 +38,6 @@ export function AppShell() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { miro, isInMiro } = useMiro();
-  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [isAdminMenuOpen, setIsAdminMenuOpen] = useState(false);
   const adminMenuRef = useRef<HTMLDivElement | null>(null);
 
@@ -91,21 +69,6 @@ export function AppShell() {
       document.removeEventListener('pointerdown', onPointerDown);
     };
   }, [isAdminMenuOpen]);
-
-  const handleOpenBoardModal = useCallback(async () => {
-    if (miro && isInMiro) {
-      try {
-        await miro.board.ui.openModal({
-          url: 'board-modal.html',
-          width: 1200,
-          height: 800,
-          fullscreen: false,
-        });
-      } catch (error) {
-        console.error('Failed to open board modal', error);
-      }
-    }
-  }, [miro, isInMiro]);
 
   const openAdminDashboard = useCallback((tab: AdminTab) => {
     navigate(`/admin?tab=${encodeURIComponent(tab)}`);
@@ -150,30 +113,6 @@ export function AppShell() {
                       className={styles.adminMenuItem}
                       onClick={async () => {
                         setIsAdminMenuOpen(false);
-                        await handleOpenBoardModal();
-                      }}
-                      type="button"
-                      role="menuitem"
-                    >
-                      <GridIcon />
-                      <span>Status</span>
-                    </button>
-                    <button
-                      className={styles.adminMenuItem}
-                      onClick={() => {
-                        setIsAdminMenuOpen(false);
-                        setIsReportModalOpen(true);
-                      }}
-                      type="button"
-                      role="menuitem"
-                    >
-                      <ReportIcon />
-                      <span>Report</span>
-                    </button>
-                    <button
-                      className={styles.adminMenuItem}
-                      onClick={async () => {
-                        setIsAdminMenuOpen(false);
                         await openAdminDashboard('settings');
                       }}
                       type="button"
@@ -203,11 +142,6 @@ export function AppShell() {
       <main className={styles.content}>
         <Outlet />
       </main>
-
-      <ReportModal
-        open={isReportModalOpen}
-        onClose={() => setIsReportModalOpen(false)}
-      />
 
     </div>
   );

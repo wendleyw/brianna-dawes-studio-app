@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { AdminDashboard } from '../../components';
+import { AdminDashboard, ReportModal } from '../../components';
 import type { AdminTab } from '../../domain/types';
 import { useMiro } from '@features/boards';
 
@@ -8,6 +8,7 @@ export function AdminDashboardPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const [isDashboardOpen, setIsDashboardOpen] = useState(true);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const { miro, isInMiro } = useMiro();
   const isModalHost = location.pathname.includes('admin-modal');
   const modalMode = new URLSearchParams(location.search).get('mode');
@@ -64,6 +65,24 @@ export function AdminDashboardPage() {
       });
   }, [miro, isInMiro]);
 
+  const handleOpenStatus = useCallback(() => {
+    if (!miro || !isInMiro) return;
+    miro.board.ui
+      .openModal({
+        url: 'board-modal.html',
+        width: 1200,
+        height: 800,
+        fullscreen: false,
+      })
+      .catch((error) => {
+        console.error('Failed to open board modal', error);
+      });
+  }, [miro, isInMiro]);
+
+  const handleOpenReport = useCallback(() => {
+    setIsReportModalOpen(true);
+  }, []);
+
   const handleClose = useCallback(() => {
     if (isModalHost && miro && isInMiro) {
       miro.board.ui.closeModal().catch((error) => {
@@ -82,6 +101,12 @@ export function AdminDashboardPage() {
         defaultTab={defaultTab}
         variant="panel"
         {...(!isModalHost && isInMiro ? { onOpenModal: handleOpenModal } : {})}
+        {...(isInMiro ? { onOpenStatus: handleOpenStatus } : {})}
+        onOpenReport={handleOpenReport}
+      />
+      <ReportModal
+        open={isReportModalOpen}
+        onClose={() => setIsReportModalOpen(false)}
       />
     </>
   );
