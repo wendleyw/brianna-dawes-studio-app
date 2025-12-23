@@ -110,6 +110,12 @@
   color: white;
 }
 
+/* Solid Review */
+.variant-solid.color-review {
+  background-color: var(--status-review);
+  color: white;
+}
+
 /* Solid Neutral */
 .variant-solid.color-neutral {
   background-color: var(--color-gray-600);
@@ -151,6 +157,13 @@
   background: transparent;
   border: 1px solid var(--color-info);
   color: var(--color-info);
+}
+
+/* Outlined Review */
+.variant-outlined.color-review {
+  background: transparent;
+  border: 1px solid var(--status-review);
+  color: var(--status-review);
 }
 
 /* Outlined Neutral */
@@ -195,6 +208,13 @@
   background-color: var(--color-info-light);
   border: 1px solid transparent;
   color: var(--color-info-dark);
+}
+
+/* Soft Review */
+.variant-soft.color-review {
+  background-color: var(--color-info-light);
+  border: 1px solid transparent;
+  color: var(--status-review);
 }
 
 /* Soft Neutral */

@@ -55,8 +55,8 @@
 
   /* Project Status Colors */
   --status-draft: #9CA3AF;
-  --status-in-progress: #60A5FA;
-  --status-review: var(--color-info);
+  --status-in-progress: var(--color-accent-light);
+  --status-review: var(--color-info-dark);
   --status-done: #10B981;
   --status-archived: #6B7280;
 

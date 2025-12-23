@@ -28,7 +28,7 @@ const STATUS_CONFIG: Record<
     label: 'In Progress',
   },
   review: {
-    color: 'info',
+    color: 'review',
     icon: <AlertCircleIcon size={14} />,
     label: 'In Review',
   },

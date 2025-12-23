@@ -27,7 +27,7 @@ const STATUS_BADGES: Record<ProjectStatus, { label: string; accent: string; soft
   overdue: { label: 'Overdue', accent: '#b91c1c', soft: 'rgba(185, 28, 28, 0.12)' },
   urgent: { label: 'Urgent', accent: '#c2410c', soft: 'rgba(194, 65, 12, 0.12)' },
   in_progress: { label: 'On Track', accent: '#ba7a68', soft: 'rgba(186, 122, 104, 0.12)' },
-  review: { label: 'In Review', accent: 'var(--color-info)', soft: 'rgba(59, 130, 246, 0.12)' },
+  review: { label: 'In Review', accent: 'var(--status-review)', soft: 'rgba(29, 78, 216, 0.12)' },
   done: { label: 'Done', accent: '#0f766e', soft: 'rgba(15, 118, 110, 0.12)' },
 };
 

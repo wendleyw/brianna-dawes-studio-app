@@ -57,6 +57,8 @@ const MIRO_COLOR_FALLBACKS: Record<string, string> = {
   '--color-success': '#10B981',
   '--color-info': '#3B82F6',
   '--color-accent-light': '#60A5FA',
+  '--status-in-progress': '#60A5FA',
+  '--status-review': '#1D4ED8',
   '--priority-high': '#F59E0B',
   '--priority-urgent': '#EF4444',
   '--priority-medium': '#60A5FA',

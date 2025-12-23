@@ -43,8 +43,8 @@ const MASTER_BOARD = {
 const STATUS_COLUMNS = [
   { id: 'overdue', label: 'OVERDUE', color: '#F59E0B' },
   { id: 'urgent', label: 'URGENT', color: '#EF4444' },
-  { id: 'in_progress', label: 'IN PROGRESS', color: '#3B82F6' },
-  { id: 'review', label: 'REVIEW', color: '#3B82F6' },
+  { id: 'in_progress', label: 'IN PROGRESS', color: '#60A5FA' },
+  { id: 'review', label: 'REVIEW', color: '#1D4ED8' },
   { id: 'done', label: 'DONE', color: '#10B981' },
 ] as const;
 
@@ -81,14 +81,14 @@ function getCardTheme(status: string): string {
     case 'in_progress':
     case 'on_track':
     case 'draft':
-      return '#3B82F6'; // Blue - IN PROGRESS
+      return '#60A5FA'; // Light blue - IN PROGRESS
     case 'review':
-      return '#3B82F6'; // Indigo - REVIEW
+      return '#1D4ED8'; // Deep blue - REVIEW
     case 'done':
     case 'archived':
       return '#10B981'; // Green - DONE
     default:
-      return '#3B82F6'; // Blue - default
+      return '#60A5FA'; // Light blue - default
   }
 }
 

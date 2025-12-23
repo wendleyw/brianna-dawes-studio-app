@@ -193,7 +193,7 @@
 }
 
 .statusCard.review {
-  border-top: 3px solid var(--color-info);
+  border-top: 3px solid var(--status-review);
 }
 
 .statusCard.urgent {
@@ -403,7 +403,7 @@
 
 .statusBadge.review {
   background: var(--color-info-light);
-  color: var(--color-info-dark);
+  color: var(--status-review);
 }
 
 .statusBadge.done {

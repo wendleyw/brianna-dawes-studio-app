@@ -27,8 +27,8 @@ export interface StatusColumn {
 export const STATUS_COLUMNS: StatusColumn[] = [
   { id: 'overdue', label: 'OVERDUE', color: 'var(--priority-high)', description: 'Past due date' },
   { id: 'urgent', label: 'URGENT', color: 'var(--color-error)', description: 'High priority, deadline approaching' },
-  { id: 'in_progress', label: 'IN PROGRESS', color: 'var(--color-accent-light)', description: 'Actively being worked on' },
-  { id: 'review', label: 'REVIEW', color: 'var(--color-info)', description: 'Awaiting client review/approval' },
+  { id: 'in_progress', label: 'IN PROGRESS', color: 'var(--status-in-progress)', description: 'Actively being worked on' },
+  { id: 'review', label: 'REVIEW', color: 'var(--status-review)', description: 'Awaiting client review/approval' },
   { id: 'done', label: 'DONE', color: 'var(--color-success)', description: 'Completed' },
 ];
 
