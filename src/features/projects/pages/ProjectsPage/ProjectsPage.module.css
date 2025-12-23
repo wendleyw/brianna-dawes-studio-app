@@ -35,7 +35,8 @@
 .headerTop {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
+  position: relative;
 }
 
 .headerActions {
@@ -66,8 +67,8 @@
 }
 
 .clientAvatar {
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   object-fit: cover;
   background-color: var(--projects-surface);
@@ -75,8 +76,8 @@
 }
 
 .clientAvatarPlaceholder {
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   background-color: var(--projects-primary);
   color: #ffffff;
@@ -84,7 +85,7 @@
   align-items: center;
   justify-content: center;
   font-weight: 700;
-  font-size: 11px;
+  font-size: 13px;
 }
 
 .clientLogo {
@@ -122,6 +123,8 @@
   cursor: pointer;
   transition: all 0.2s ease;
   box-shadow: var(--projects-shadow);
+  position: absolute;
+  left: 0;
 }
 
 .iconButtonSmall {

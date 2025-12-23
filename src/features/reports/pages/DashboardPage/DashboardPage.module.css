@@ -590,13 +590,15 @@
   font-weight: 700;
 }
 
-.analyticsTitle {
-  display: flex;
-  align-items: baseline;
-  justify-content: flex-start;
-  gap: 6px;
-  flex-wrap: wrap;
-  text-align: left;
+.analyticsBadge {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #94a3b8;
+  background: rgba(148, 163, 184, 0.12);
+  padding: 6px 10px;
+  border-radius: 6px;
 }
 
 .timelineSection {

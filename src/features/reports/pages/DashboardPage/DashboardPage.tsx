@@ -730,12 +730,12 @@ export function DashboardPage() {
 
       {/* Analytics */}
       <section className={`${styles.section} ${styles.sectionDelay4}`}>
-        <h2 className={`${styles.sectionTitle} ${styles.analyticsTitle}`}>
-          <span>Analytics</span>
+        <div className={styles.sectionHeader}>
+          <h2 className={styles.sectionTitle}>Analytics</h2>
           {analyticsSince && (
-            <span className={styles.sectionTitleMeta}>| Since {analyticsSince}</span>
+            <span className={styles.analyticsBadge}>Since {analyticsSince}</span>
           )}
-        </h2>
+        </div>
         <div className={styles.analyticsGrid}>
           <div className={styles.analyticsCard}>
             <span className={styles.analyticsValue}>{activeProjects}</span>

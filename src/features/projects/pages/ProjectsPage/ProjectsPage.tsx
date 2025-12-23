@@ -812,11 +812,11 @@ export function ProjectsPage() {
                   {boardClient.companyName || boardClient.name}
                 </span>
                 <span className={styles.brandSeparator}>|</span>
-                <Logo size="sm" />
+                <Logo size="md" />
               </>
             ) : (
               <>
-                <Logo size="sm" />
+                <Logo size="md" />
                 <span className={styles.brandName}>BD Studios</span>
               </>
             )}
