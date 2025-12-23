@@ -93,13 +93,18 @@ export function AdminDashboardPage() {
     setIsDashboardOpen(false);
   }, [isModalHost, miro, isInMiro]);
 
+  // Determine variant based on context
+  // Modal: when explicitly opened via admin-modal.html with mode=modal
+  // Panel: default sidebar panel view
+  const variant = isModalHost && isExplicitModal ? 'modal' : 'panel';
+
   return (
     <>
       <AdminDashboard
         isOpen={isDashboardOpen}
         onClose={handleClose}
         defaultTab={defaultTab}
-        variant="panel"
+        variant={variant}
         {...(!isModalHost && isInMiro ? { onOpenModal: handleOpenModal } : {})}
         {...(isInMiro ? { onOpenStatus: handleOpenStatus } : {})}
         onOpenReport={handleOpenReport}
