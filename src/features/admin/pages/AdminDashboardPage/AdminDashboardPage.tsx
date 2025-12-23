@@ -10,6 +10,8 @@ export function AdminDashboardPage() {
   const [isDashboardOpen, setIsDashboardOpen] = useState(true);
   const { miro, isInMiro } = useMiro();
   const isModalHost = location.pathname.includes('admin-modal');
+  const modalMode = new URLSearchParams(location.search).get('mode');
+  const isExplicitModal = modalMode === 'modal';
 
   const defaultTab = useMemo<AdminTab>(() => {
     const tab = new URLSearchParams(location.search).get('tab');
@@ -34,11 +36,22 @@ export function AdminDashboardPage() {
     }
   }, [isDashboardOpen, navigate]);
 
+  useEffect(() => {
+    if (!isModalHost || isExplicitModal || !miro || !isInMiro) return;
+
+    const tabParam = new URLSearchParams(location.search).get('tab') || 'overview';
+    miro.board.ui.openPanel({ url: `app.html?adminTab=${encodeURIComponent(tabParam)}` })
+      .then(() => miro.board.ui.closeModal())
+      .catch((error) => {
+        console.error('Failed to redirect admin modal to panel', error);
+      });
+  }, [isModalHost, isExplicitModal, miro, isInMiro, location.search]);
+
   const handleOpenModal = useCallback(async (tab: AdminTab) => {
     if (!miro || !isInMiro) return;
     try {
       await miro.board.ui.openModal({
-        url: `admin-modal.html?tab=${encodeURIComponent(tab)}`,
+        url: `admin-modal.html?tab=${encodeURIComponent(tab)}&mode=modal`,
         width: 1200,
         height: 800,
         fullscreen: false,

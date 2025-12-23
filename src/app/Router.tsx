@@ -82,6 +82,14 @@ export function Router() {
     miro.board.ui.on('icon:click', handleIconClick);
   }, [isInMiro, miro, navigate, location.pathname]);
 
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const adminTab = params.get('adminTab');
+    if (adminTab && location.pathname !== '/admin') {
+      navigate(`/admin?tab=${encodeURIComponent(adminTab)}`, { replace: true });
+    }
+  }, [location.pathname, location.search, navigate]);
+
   return (
     <div className={styles.routerContainer}>
       <Suspense fallback={<PageLoader />}>
