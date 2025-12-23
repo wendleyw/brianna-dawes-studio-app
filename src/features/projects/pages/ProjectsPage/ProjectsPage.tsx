@@ -795,13 +795,30 @@ export function ProjectsPage() {
             <ArrowLeftIcon size={18} />
           </button>
           <div className={styles.headerBrand}>
-            <Logo size="md" />
             {hasClientBranding ? (
-              <span className={styles.brandName}>
-                {boardClient.companyName || boardClient.name}
-              </span>
+              <>
+                {boardClient.companyLogoUrl ? (
+                  <img
+                    src={boardClient.companyLogoUrl}
+                    alt={boardClient.companyName || 'Company'}
+                    className={styles.clientAvatar}
+                  />
+                ) : (
+                  <div className={styles.clientAvatarPlaceholder}>
+                    {(boardClient.companyName || boardClient.name || 'C').charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <span className={styles.brandName}>
+                  {boardClient.companyName || boardClient.name}
+                </span>
+                <span className={styles.brandSeparator}>|</span>
+                <Logo size="sm" />
+              </>
             ) : (
-              <span className={styles.brandName}>BD Studios</span>
+              <>
+                <Logo size="sm" />
+                <span className={styles.brandName}>BD Studios</span>
+              </>
             )}
           </div>
         </div>

@@ -58,6 +58,35 @@
   color: var(--projects-primary);
 }
 
+.brandSeparator {
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--projects-muted);
+  margin: 0 4px;
+}
+
+.clientAvatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  background-color: var(--projects-surface);
+  border: 1px solid var(--projects-border);
+}
+
+.clientAvatarPlaceholder {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: var(--projects-primary);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 11px;
+}
+
 .clientLogo {
   width: 36px;
   height: 36px;
