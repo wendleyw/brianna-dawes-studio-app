@@ -57,7 +57,7 @@ export function Logo({ size = 'md', className, animated = false, onAnimationComp
           onEnded={handleVideoEnd}
           onError={handleVideoError}
         >
-          <source src="/logo-animation.webm" type="video/webm" />
+          <source src="/logo-animation.mp4" type="video/mp4" />
         </video>
       </div>
     );

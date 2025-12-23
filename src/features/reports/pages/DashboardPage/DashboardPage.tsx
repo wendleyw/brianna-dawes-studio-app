@@ -890,7 +890,7 @@ export function DashboardPage() {
     </div>
     {showSplash && (
       <SplashScreen
-        videoSrc="/logo-animation.webm"
+        videoSrc="/logo-animation.mp4"
         staticLogoSrc={logoImage}
         displayDuration={1500}
         animationDuration={600}
