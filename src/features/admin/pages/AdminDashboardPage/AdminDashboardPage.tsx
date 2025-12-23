@@ -40,7 +40,10 @@ export function AdminDashboardPage() {
     if (!isModalHost || isExplicitModal || !miro || !isInMiro) return;
 
     const tabParam = new URLSearchParams(location.search).get('tab') || 'overview';
-    miro.board.ui.openPanel({ url: `app.html?adminTab=${encodeURIComponent(tabParam)}` })
+    miro.board.ui.openPanel({
+      url: `app.html?adminTab=${encodeURIComponent(tabParam)}`,
+      height: 760,
+    })
       .then(() => miro.board.ui.closeModal())
       .catch((error) => {
         console.error('Failed to redirect admin modal to panel', error);
@@ -52,8 +55,8 @@ export function AdminDashboardPage() {
     miro.board.ui
       .openModal({
         url: `admin-modal.html?tab=${encodeURIComponent(tab)}&mode=modal`,
-        width: 1200,
-        height: 800,
+        width: 1280,
+        height: 920,
         fullscreen: false,
       })
       .catch((error) => {

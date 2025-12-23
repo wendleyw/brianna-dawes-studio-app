@@ -53,7 +53,7 @@ async function init() {
           logger.debug('Icon clicked, opening panel...');
           await window.miro.board.ui.openPanel({
             url: 'app.html',
-            height: 600,
+            height: 760,
           });
         });
 

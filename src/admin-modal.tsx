@@ -77,6 +77,7 @@ async function init() {
       try {
         await window.miro.board.ui.openPanel({
           url: `app.html?adminTab=${encodeURIComponent(tab)}`,
+          height: 760,
         });
         await window.miro.board.ui.closeModal();
         return;
