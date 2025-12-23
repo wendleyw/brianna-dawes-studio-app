@@ -1,8 +1,9 @@
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
-import { Skeleton } from '@shared/ui';
+import { Skeleton, Logo, SplashScreen } from '@shared/ui';
 import { useAuth } from '@features/auth';
+import logoImage from '../../../../assets/brand/logo-brianna.png';
 import { useProjects } from '@features/projects';
 import { projectKeys } from '@features/projects/services/projectKeys';
 import { zoomToProject, useMiro } from '@features/boards';
@@ -182,10 +183,27 @@ export function DashboardPage() {
   const { boardId: masterBoardId } = useMasterBoardSettings();
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [boardCreatedAt, setBoardCreatedAt] = useState<string | null>(null);
+  const [showSplash, setShowSplash] = useState(false);
+  const [splashDestination, setSplashDestination] = useState<string | null>(null);
+
   // Handler to open Admin Dashboard in panel view
   const openAdminDashboard = useCallback((tab: AdminTab) => {
     navigate(`/admin?tab=${encodeURIComponent(tab)}`);
   }, [navigate]);
+
+  // Handler for splash screen navigation
+  const handleNavigateWithSplash = useCallback((destination: string) => {
+    setSplashDestination(destination);
+    setShowSplash(true);
+  }, []);
+
+  const handleSplashComplete = useCallback(() => {
+    setShowSplash(false);
+    if (splashDestination) {
+      navigate(splashDestination);
+      setSplashDestination(null);
+    }
+  }, [navigate, splashDestination]);
 
   useEffect(() => {
     let isActive = true;
@@ -527,16 +545,16 @@ export function DashboardPage() {
   }
 
   return (
+    <>
     <div
       ref={containerRef}
       className={`${styles.container} ${isNavCollapsed ? styles.navCollapsed : ''}`}
     >
       <section className={styles.hero}>
-        <div className={styles.heroMark} aria-hidden="true">
-          <span className={styles.heroMarkDot} />
-          <span className={styles.heroMarkBean} />
+        <div className={styles.heroLogo}>
+          <Logo animated={true} size="xl" />
         </div>
-        <p className={styles.brandName}>Brianna Dawes Studios</p>
+        <p className={styles.brandName}>BRIANNA DAWES STUDIOS</p>
         {isMasterBoard ? (
           <div className={styles.masterBoardBadge}>Master Overview</div>
         ) : (
@@ -588,11 +606,10 @@ export function DashboardPage() {
             className={styles.actionCard}
             onClick={() => {
               // Pass selected client ID to projects page if on Master Board
-              if (isMasterBoard && selectedClientId) {
-                navigate(`/projects?clientId=${selectedClientId}`);
-              } else {
-                navigate('/projects');
-              }
+              const destination = (isMasterBoard && selectedClientId)
+                ? `/projects?clientId=${selectedClientId}`
+                : '/projects';
+              handleNavigateWithSplash(destination);
             }}
           >
             <div className={styles.actionIconSecondary}>
@@ -860,5 +877,16 @@ export function DashboardPage() {
       </nav>
       <div className={styles.bottomSpacer} aria-hidden="true" />
     </div>
+    {showSplash && (
+      <SplashScreen
+        videoSrc="/logo-animation.webm"
+        staticLogoSrc={logoImage}
+        displayDuration={1500}
+        animationDuration={600}
+        onComplete={handleSplashComplete}
+        brandText="BRIANNA DAWES STUDIOS"
+      />
+    )}
+    </>
   );
 }

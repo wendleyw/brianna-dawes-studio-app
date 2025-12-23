@@ -38,6 +38,12 @@
   justify-content: space-between;
 }
 
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .headerBrand {
   display: flex;
   align-items: center;
@@ -89,6 +95,13 @@
   box-shadow: var(--projects-shadow);
 }
 
+.iconButtonSmall {
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  box-shadow: none;
+}
+
 .iconButton:hover {
   transform: translateY(-1px);
   border-color: rgba(148, 163, 184, 0.45);
@@ -107,6 +120,13 @@
   cursor: pointer;
   transition: all 0.2s ease;
   box-shadow: var(--projects-shadow);
+}
+
+.iconButtonPrimarySmall {
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  box-shadow: none;
 }
 
 .iconButtonPrimary:hover {

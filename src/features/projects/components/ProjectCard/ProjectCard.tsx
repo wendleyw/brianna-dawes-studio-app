@@ -806,14 +806,9 @@ export const ProjectCard = memo(function ProjectCard({
       <div className={styles.cardTop}>
         <div className={styles.titleGroup}>
           <h3 className={styles.title}>{project.name}</h3>
-          {(project.client || projectType) && (
+          {project.client && (
             <div className={styles.metaRow}>
-              {project.client && (
-                <span className={styles.clientName}>{project.client.name}</span>
-              )}
-              {projectType && (
-                <span className={styles.projectType}>{projectType.label}</span>
-              )}
+              <span className={styles.clientName}>{project.client.name}</span>
             </div>
           )}
         </div>

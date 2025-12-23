@@ -77,6 +77,29 @@ export function ProjectsPage() {
     Boolean(projectTypeFilter) ||
     dueThisWeekOnly ||
     Boolean(selectedClientId);
+  const scrollFiltersIntoView = useCallback((focusSearch = false) => {
+    requestAnimationFrame(() => {
+      filtersRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (focusSearch) {
+        searchInputRef.current?.focus();
+      }
+    });
+  }, []);
+
+  const openFilters = useCallback((focusSearch = false) => {
+    setIsFiltersOpen(true);
+    scrollFiltersIntoView(focusSearch);
+  }, [scrollFiltersIntoView]);
+
+  const toggleFilters = useCallback(() => {
+    setIsFiltersOpen((prev) => {
+      const next = !prev;
+      if (next) {
+        scrollFiltersIntoView();
+      }
+      return next;
+    });
+  }, [scrollFiltersIntoView]);
 
   useEffect(() => {
     if (user?.role === 'client' && user.id && selectedClientId !== user.id) {
@@ -462,9 +485,8 @@ export function ProjectsPage() {
 
   const handleStatusFilter = useCallback((status: ProjectStatus) => {
     setTimelineFilter((prev) => (prev === status ? '' : status));
-    setIsFiltersOpen(true);
-    setTimeout(() => filtersRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
-  }, []);
+    openFilters();
+  }, [openFilters]);
 
   // Edit - Navigate to edit page
   const handleEdit = useCallback((project: Project) => {
@@ -785,36 +807,32 @@ export function ProjectsPage() {
               <span className={styles.brandName}>BD Studios</span>
             )}
           </div>
-          <button
-            className={styles.iconButton}
-            type="button"
-            aria-label="Search projects"
-            onClick={() => {
-              if (!isFiltersOpen) setIsFiltersOpen(true);
-              requestAnimationFrame(() => searchInputRef.current?.focus());
-            }}
-          >
-            <SearchIcon size={18} />
-          </button>
+          <div className={styles.headerActions}>
+            <button
+              className={`${styles.iconButton} ${styles.iconButtonSmall}`}
+              type="button"
+              aria-label="Search projects"
+              onClick={() => openFilters(true)}
+            >
+              <SearchIcon size={16} />
+            </button>
+            <button
+              className={`${styles.iconButtonPrimary} ${styles.iconButtonPrimarySmall} ${
+                isFiltersOpen ? styles.iconButtonPrimaryActive : ''
+              }`}
+              type="button"
+              aria-label={isFiltersOpen ? 'Hide filters' : 'Show filters'}
+              aria-expanded={isFiltersOpen}
+              onClick={toggleFilters}
+            >
+              <FilterIcon size={16} />
+            </button>
+          </div>
         </div>
         <div className={styles.headerBottom}>
           <div className={styles.titleGroup}>
             <span className={styles.projectCount}>{totalProjects} projects</span>
           </div>
-          <button
-            className={`${styles.iconButtonPrimary} ${isFiltersOpen ? styles.iconButtonPrimaryActive : ''}`}
-            type="button"
-            aria-label={isFiltersOpen ? 'Hide filters' : 'Show filters'}
-            aria-expanded={isFiltersOpen}
-            onClick={() => {
-              setIsFiltersOpen((prev) => !prev);
-              if (!isFiltersOpen) {
-                setTimeout(() => filtersRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
-              }
-            }}
-          >
-            <FilterIcon size={18} />
-          </button>
         </div>
       </header>
 
