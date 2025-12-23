@@ -111,6 +111,15 @@ export function ProjectsPage() {
     if (hasActiveFilters) setIsFiltersOpen(true);
   }, [hasActiveFilters]);
 
+  useEffect(() => {
+    const statusParam = searchParams.get('status') as TimelineStatus | null;
+    if (!statusParam) return;
+    const normalized = statusParam.toLowerCase() as TimelineStatus;
+    const isValid = TIMELINE_COLUMNS.some((col) => col.id === normalized);
+    if (!isValid) return;
+    setTimelineFilter((prev) => (prev === normalized ? prev : normalized));
+  }, [searchParams]);
+
   // Splash screen state - only show once per session
   const [showSplash, setShowSplash] = useState(() => {
     const wasShown = sessionStorage.getItem(SPLASH_SHOWN_KEY);

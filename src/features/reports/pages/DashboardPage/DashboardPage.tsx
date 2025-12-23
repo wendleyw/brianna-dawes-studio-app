@@ -475,16 +475,22 @@ export function DashboardPage() {
 
   // Get projects array from response
   const projectsList = useMemo(() => projectsData?.data ?? EMPTY_PROJECTS, [projectsData?.data]);
-  const activeDeliverables = useMemo(() => {
+  const reviewProjects = useMemo(() => {
     return projectsList
-      .filter((project) => project.status !== 'done')
+      .filter((project) => {
+        const status = getTimelineStatus(project);
+        if (status !== 'review') return false;
+        if (isClient) return !project.wasApproved;
+        if (isAdmin) return project.wasApproved;
+        return true;
+      })
       .sort((a, b) => {
         const aDate = a.dueDate ? new Date(a.dueDate).getTime() : Number.POSITIVE_INFINITY;
         const bDate = b.dueDate ? new Date(b.dueDate).getTime() : Number.POSITIVE_INFINITY;
         return aDate - bDate;
       })
       .slice(0, 3);
-  }, [projectsList]);
+  }, [projectsList, isAdmin, isClient]);
 
   // Calculate stats (memoized to prevent recalculation on every render)
   const { activeProjects, completedProjects } = useMemo(() => ({
@@ -635,23 +641,28 @@ export function DashboardPage() {
         </div>
       </section>
 
-      {/* Active Deliverables */}
+      {/* Awaiting Your Review */}
       <section className={`${styles.section} ${styles.sectionDelay3}`}>
         <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Active Deliverables</h2>
+          <h2 className={styles.sectionTitle}>Awaiting Your Review</h2>
           <button
             className={styles.sectionLink}
             type="button"
-            onClick={() => navigate('/projects')}
+            onClick={() => {
+              const params = new URLSearchParams();
+              params.set('status', 'review');
+              if (selectedClientId) params.set('clientId', selectedClientId);
+              handleNavigateWithSplash(`/projects?${params.toString()}`);
+            }}
           >
             See all
           </button>
         </div>
         <div className={styles.deliverablesList}>
-          {activeDeliverables.length === 0 ? (
-            <div className={styles.emptyDeliverables}>No active deliverables yet.</div>
+          {reviewProjects.length === 0 ? (
+            <div className={styles.emptyDeliverables}>No items awaiting your review.</div>
           ) : (
-            activeDeliverables.map((project) => {
+            reviewProjects.map((project) => {
               const displayStatus = getTimelineStatus(project);
               const statusMeta = STATUS_BADGES[displayStatus];
               const progress = getStatusProgress(displayStatus);
