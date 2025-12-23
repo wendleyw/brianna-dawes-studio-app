@@ -15,12 +15,14 @@ export function AppShell() {
 
   const isProjectsRoute = location.pathname.startsWith('/projects');
   const isNotificationsRoute = location.pathname.startsWith('/notifications');
+  const isAdminRoute = location.pathname.startsWith('/admin') || location.pathname.includes('admin-modal');
   const isDashboardRoute = location.pathname === '/' || location.pathname === '/dashboard';
   const showBackButton = isProjectsRoute || isNotificationsRoute;
+  const showTopbar = !isDashboardRoute && !isAdminRoute;
 
   return (
     <div className={styles.shell}>
-      {!isDashboardRoute && (
+      {showTopbar && (
         <header className={styles.topbar}>
           <div className={styles.left}>
             {showBackButton && (
