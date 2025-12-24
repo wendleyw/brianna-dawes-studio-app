@@ -843,22 +843,18 @@ export function DashboardPage() {
             </span>
             <span>Projects</span>
           </button>
-          <button
-            type="button"
-            className={styles.navButton}
-            onClick={() => {
-              if (isAdmin) {
-                navigate('/admin?tab=reports');
-              } else {
-                navigate('/reports');
-              }
-            }}
-          >
-            <span className={styles.navIcon}>
-              <FileTextIcon />
-            </span>
-            <span>Reports</span>
-          </button>
+          {!isAdmin && (
+            <button
+              type="button"
+              className={styles.navButton}
+              onClick={() => navigate('/reports')}
+            >
+              <span className={styles.navIcon}>
+                <FileTextIcon />
+              </span>
+              <span>Reports</span>
+            </button>
+          )}
           <button
             type="button"
             className={`${styles.navButton} ${!isAdmin ? styles.navButtonDisabled : ''}`}
