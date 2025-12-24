@@ -1,23 +1,17 @@
-@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap');
-
 /* ============================================
- * CREATE PROJECT PAGE - DASHBOARD ALIGNED
- * Replicate 100% Design System da Home/Dashboard
+ * CREATE PROJECT PAGE - DESIGN SYSTEM ALIGNED
+ * Uses unified design system tokens
  * ============================================ */
 
 .container {
-  /* Dashboard Variables - Exact Match */
-  --dash-primary: #0f172a;
-  --dash-bg: #fafaf5;
-  --dash-surface: #ffffff;
-  --dash-border: rgba(148, 163, 184, 0.2);
-  --dash-shadow: 0 12px 24px -18px rgba(15, 23, 42, 0.3);
-  --dash-shadow-soft: 0 6px 16px -12px rgba(15, 23, 42, 0.24);
-  --dash-sage: #788775;
-  --dash-sand: #e3dacd;
-  --dash-clay: #ba7a68;
-  --dash-stone: #a8a29e;
-  --dash-text-muted: #94a3b8;
+  /* Design System Variables */
+  --dash-primary: var(--color-primary);
+  --dash-bg: var(--color-bg-secondary);
+  --dash-surface: var(--color-bg-primary);
+  --dash-border: var(--color-border);
+  --dash-shadow: var(--shadow-md);
+  --dash-shadow-soft: var(--shadow-sm);
+  --dash-text-muted: var(--color-text-tertiary);
 
   /* Layout */
   display: flex;
@@ -30,16 +24,16 @@
   -webkit-overflow-scrolling: touch;
   padding: 0 18px calc(140px + env(safe-area-inset-bottom));
 
-  /* Background - EXACT SAME as Dashboard */
-  background-color: #ffffff;
+  /* Background - Using design system colors */
+  background-color: var(--color-bg-primary);
   background-image:
-    radial-gradient(circle at 15% 35%, rgba(120, 135, 117, 0.12), transparent 42%),
-    radial-gradient(circle at 85% 40%, rgba(186, 122, 104, 0.14), transparent 45%),
-    linear-gradient(to bottom, #ffffff 0%, #ffffff 280px, var(--dash-bg) 100%);
+    radial-gradient(circle at 15% 35%, rgba(37, 99, 235, 0.04), transparent 42%),
+    radial-gradient(circle at 85% 40%, rgba(5, 0, 56, 0.06), transparent 45%),
+    linear-gradient(to bottom, var(--color-bg-primary) 0%, var(--color-bg-primary) 280px, var(--dash-bg) 100%);
 
-  /* Typography - EXACT SAME as Dashboard */
-  font-family: 'Manrope', 'Segoe UI', sans-serif;
-  color: #1e293b;
+  /* Typography - Using design system fonts */
+  font-family: var(--font-ui);
+  color: var(--color-text-primary);
 }
 
 /* Rise Animation - Same as Dashboard */

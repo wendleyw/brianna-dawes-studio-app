@@ -1,15 +1,14 @@
-@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap');
-
 .container {
-  --projects-bg: #fafaf5;
-  --projects-surface: #ffffff;
-  --projects-border: rgba(148, 163, 184, 0.22);
-  --projects-primary: #0f172a;
-  --projects-muted: #94a3b8;
-  --projects-subtle: #64748b;
-  --projects-shadow: 0 12px 24px -20px rgba(15, 23, 42, 0.35);
-  --projects-chip: rgba(148, 163, 184, 0.12);
-  --projects-chip-active: rgba(15, 23, 42, 0.08);
+  /* Use design system colors */
+  --projects-bg: var(--color-bg-secondary);
+  --projects-surface: var(--color-bg-primary);
+  --projects-border: var(--color-border);
+  --projects-primary: var(--color-primary);
+  --projects-muted: var(--color-text-tertiary);
+  --projects-subtle: var(--color-text-secondary);
+  --projects-shadow: var(--shadow-md);
+  --projects-chip: var(--color-gray-100);
+  --projects-chip-active: var(--color-gray-200);
 
   display: flex;
   flex-direction: column;
@@ -19,11 +18,11 @@
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
-  background-color: #ffffff;
-  background-image: linear-gradient(to bottom, #ffffff 0%, #ffffff 200px, var(--projects-bg) 100%);
+  background-color: var(--color-bg-primary);
+  background-image: linear-gradient(to bottom, var(--color-bg-primary) 0%, var(--color-bg-primary) 200px, var(--projects-bg) 100%);
   padding: 18px;
-  gap: 20px;
-  font-family: 'Manrope', system-ui, sans-serif;
+  gap: var(--space-5);
+  font-family: var(--font-ui);
   color: var(--projects-primary);
 }
 
