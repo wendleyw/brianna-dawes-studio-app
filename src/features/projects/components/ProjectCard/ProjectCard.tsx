@@ -1,4 +1,5 @@
 import { useState, useMemo, memo, useRef, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Badge, Dialog, Input, Button, useToast } from '@shared/ui';
 import {
   BoardIcon,
@@ -80,6 +81,7 @@ export const ProjectCard = memo(function ProjectCard({
 }: ProjectCardProps) {
   const { user } = useAuth();
   const { addToast } = useToast();
+  const navigate = useNavigate();
   const [uncontrolledIsExpanded, setUncontrolledIsExpanded] = useState(false);
   const isExpanded = controlledIsExpanded ?? uncontrolledIsExpanded;
   const setIsExpanded = useCallback((next: boolean) => {
@@ -450,16 +452,8 @@ export const ProjectCard = memo(function ProjectCard({
 
   const handleEditClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    // Reset form to current project values
-    setEditForm({
-      name: project.name,
-      description: project.description || '',
-      status: project.status,
-      priority: project.priority,
-      startDate: project.startDate?.split('T')[0] || '',
-      dueDate: project.dueDate?.split('T')[0] || '',
-    });
-    setShowEditModal(true);
+    // Navigate to full-screen edit page
+    navigate(`/projects/${project.id}/edit`);
   };
 
   const handleEditSubmit = async () => {
