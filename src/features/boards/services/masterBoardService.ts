@@ -1026,14 +1026,7 @@ class MasterBoardService {
     const frameLeft = frameCenterX - MASTER_BOARD.FRAME_WIDTH / 2;
     const frameTop = frameTopY;
 
-    // Column positioning
-    const totalColumnsWidth = STATUS_COLUMNS.length * MASTER_BOARD.COLUMN_WIDTH +
-      (STATUS_COLUMNS.length - 1) * MASTER_BOARD.COLUMN_GAP;
-    const columnsStartX = frameLeft + (MASTER_BOARD.FRAME_WIDTH - totalColumnsWidth) / 2;
-    const headerY = frameTop + MASTER_BOARD.PADDING + MASTER_BOARD.COLUMN_HEADER_HEIGHT / 2;
-    const dropZoneY = headerY + MASTER_BOARD.COLUMN_HEADER_HEIGHT / 2 + 10 + MASTER_BOARD.COLUMN_HEIGHT / 2;
-
-    // Group projects by column
+    // Group projects by column FIRST (before calculating positions)
     const projectsByColumn: Record<string, ProjectInfo[]> = {
       overdue: [],
       urgent: [],
@@ -1046,6 +1039,21 @@ class MasterBoardService {
       const column = getColumnForStatus(project.status);
       projectsByColumn[column]?.push(project);
     });
+
+    // Calculate required column height based on max cards in any column
+    const maxCardsInColumn = Math.max(
+      ...Object.values(projectsByColumn).map(cards => cards.length),
+      0
+    );
+    const requiredCardsHeight = maxCardsInColumn * (MASTER_BOARD.CARD_HEIGHT + MASTER_BOARD.CARD_GAP) + 40;
+    const dynamicColumnHeight = Math.max(requiredCardsHeight, MASTER_BOARD.COLUMN_HEIGHT);
+
+    // Column positioning
+    const totalColumnsWidth = STATUS_COLUMNS.length * MASTER_BOARD.COLUMN_WIDTH +
+      (STATUS_COLUMNS.length - 1) * MASTER_BOARD.COLUMN_GAP;
+    const columnsStartX = frameLeft + (MASTER_BOARD.FRAME_WIDTH - totalColumnsWidth) / 2;
+    const headerY = frameTop + MASTER_BOARD.PADDING + MASTER_BOARD.COLUMN_HEADER_HEIGHT / 2;
+    const dropZoneY = headerY + MASTER_BOARD.COLUMN_HEADER_HEIGHT / 2 + 10 + dynamicColumnHeight / 2;
 
     // Create columns and cards
     for (let i = 0; i < STATUS_COLUMNS.length; i++) {
@@ -1073,13 +1081,13 @@ class MasterBoardService {
         },
       });
 
-      // Column drop zone (white rectangle with border)
+      // Column drop zone (white rectangle with border) - dynamic height
       await miro.board.createShape({
         shape: 'rectangle',
         x: columnX,
         y: dropZoneY,
         width: MASTER_BOARD.COLUMN_WIDTH,
-        height: MASTER_BOARD.COLUMN_HEIGHT,
+        height: dynamicColumnHeight,
         content: '',
         style: {
           fillColor: '#FFFFFF',
