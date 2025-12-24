@@ -769,7 +769,7 @@
   font-size: 10px;
   font-weight: var(--font-bold);
   letter-spacing: 0.08em;
-  color: var(--color-brand-gold);
+  color: var(--color-primary);
   margin: 0 0 var(--space-2) 0;
 }
 
@@ -838,7 +838,7 @@
   font-size: 10px;
   font-weight: var(--font-bold);
   letter-spacing: 0.08em;
-  color: var(--color-text-secondary);
+  color: var(--color-primary);
   margin: 0 0 var(--space-3) 0;
 }
 
