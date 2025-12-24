@@ -1558,7 +1558,7 @@
 .deliverableCompactField input:focus,
 .deliverableCompactField select:focus {
   outline: none;
-  border-color: var(--color-primary);
+  border-color: var(--color-accent);
 }
 
 /* Disabled input style (for auto version) */
@@ -1923,7 +1923,7 @@
 
 .editInputName:focus {
   outline: none;
-  border-color: var(--color-primary);
+  border-color: var(--color-accent);
 }
 
 .editInputName::placeholder {
@@ -1965,13 +1965,13 @@
 }
 
 .editChip:hover {
-  border-color: var(--color-primary);
+  border-color: var(--color-accent);
   color: var(--color-text-primary);
 }
 
 .editChip.editChipActive {
-  background: var(--color-primary);
-  border-color: var(--color-primary);
+  background: var(--color-accent);
+  border-color: var(--color-accent);
   color: var(--color-text-inverse);
 }
 
@@ -2029,7 +2029,7 @@
 
 .editDateInput:focus {
   outline: none;
-  border-color: var(--color-primary);
+  border-color: var(--color-accent);
 }
 
 .editDateSeparator {
@@ -2053,7 +2053,7 @@
 
 .editTextarea:focus {
   outline: none;
-  border-color: var(--color-primary);
+  border-color: var(--color-accent);
 }
 
 .editTextarea::placeholder {
