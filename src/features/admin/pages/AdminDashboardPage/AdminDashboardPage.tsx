@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { AdminDashboard, ReportModal } from '../../components';
+import { AdminDashboard } from '../../components';
 import type { AdminTab } from '../../domain/types';
 import { useMiro } from '@features/boards';
 
@@ -8,7 +8,6 @@ export function AdminDashboardPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const [isDashboardOpen, setIsDashboardOpen] = useState(true);
-  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const { miro, isInMiro } = useMiro();
   const isModalHost = location.pathname.includes('admin-modal');
   const modalMode = new URLSearchParams(location.search).get('mode');
@@ -22,6 +21,7 @@ export function AdminDashboardPage() {
       'team',
       'boards',
       'projects',
+      'reports',
       'activity',
       'system',
       'settings',
@@ -79,10 +79,6 @@ export function AdminDashboardPage() {
       });
   }, [miro, isInMiro]);
 
-  const handleOpenReport = useCallback(() => {
-    setIsReportModalOpen(true);
-  }, []);
-
   const handleClose = useCallback(() => {
     if (isModalHost && miro && isInMiro) {
       miro.board.ui.closeModal().catch((error) => {
@@ -99,20 +95,13 @@ export function AdminDashboardPage() {
   const variant = isModalHost && isExplicitModal ? 'modal' : 'panel';
 
   return (
-    <>
-      <AdminDashboard
-        isOpen={isDashboardOpen}
-        onClose={handleClose}
-        defaultTab={defaultTab}
-        variant={variant}
-        {...(!isModalHost && isInMiro ? { onOpenModal: handleOpenModal } : {})}
-        {...(isInMiro ? { onOpenStatus: handleOpenStatus } : {})}
-        onOpenReport={handleOpenReport}
-      />
-      <ReportModal
-        open={isReportModalOpen}
-        onClose={() => setIsReportModalOpen(false)}
-      />
-    </>
+    <AdminDashboard
+      isOpen={isDashboardOpen}
+      onClose={handleClose}
+      defaultTab={defaultTab}
+      variant={variant}
+      {...(!isModalHost && isInMiro ? { onOpenModal: handleOpenModal } : {})}
+      {...(isInMiro ? { onOpenStatus: handleOpenStatus } : {})}
+    />
   );
 }

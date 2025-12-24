@@ -5,6 +5,7 @@ import AnalyticsTab from './tabs/AnalyticsTab';
 import ProjectsTab from './tabs/ProjectsTab';
 import ActivityTab from './tabs/ActivityTab';
 import SystemTab from './tabs/SystemTab';
+import ReportsTab from './tabs/ReportsTab';
 import { TeamManagement } from './TeamManagement';
 import { BoardManagement } from './BoardManagement';
 import { AppSettings } from './AppSettings';
@@ -16,7 +17,6 @@ import {
   DownloadIcon,
   ExternalLinkIcon,
   BoardIcon,
-  ChartIcon,
   MessageIcon,
   SyncIcon,
   FolderIcon,
@@ -33,7 +33,6 @@ interface AdminDashboardProps {
   variant?: 'modal' | 'panel';
   onOpenModal?: (tab: AdminTab) => void;
   onOpenStatus?: () => void;
-  onOpenReport?: () => void;
 }
 
 export default function AdminDashboard({
@@ -43,7 +42,6 @@ export default function AdminDashboard({
   variant = 'modal',
   onOpenModal,
   onOpenStatus,
-  onOpenReport,
 }: AdminDashboardProps) {
   const [activeTab, setActiveTab] = useState<AdminTab>(defaultTab);
   const isPanel = variant === 'panel';
@@ -76,6 +74,8 @@ export default function AdminDashboard({
         return <BoardManagement />;
       case 'projects':
         return <ProjectsTab />;
+      case 'reports':
+        return <ReportsTab />;
       case 'activity':
         return <ActivityTab />;
       case 'system':
@@ -103,6 +103,7 @@ export default function AdminDashboard({
     { id: 'projects', label: 'Projects' },
     { id: 'team', label: 'Team' },
     { id: 'boards', label: 'Boards' },
+    { id: 'reports', label: 'Reports' },
     { id: 'activity', label: 'Activity' },
     { id: 'system', label: 'System' },
   ];
@@ -236,12 +237,6 @@ export default function AdminDashboard({
                       <button className={styles.panelActionSecondary} type="button" onClick={onOpenStatus}>
                         <BoardIcon size={16} />
                         Status
-                      </button>
-                    )}
-                    {onOpenReport && (
-                      <button className={styles.panelActionSecondary} type="button" onClick={onOpenReport}>
-                        <ChartIcon size={16} />
-                        Report
                       </button>
                     )}
                   </div>

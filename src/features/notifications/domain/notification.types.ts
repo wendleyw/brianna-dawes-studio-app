@@ -6,7 +6,8 @@ export type NotificationType =
   | 'deadline_approaching'
   | 'project_assigned'
   | 'project_created'
-  | 'mention';
+  | 'mention'
+  | 'report_sent';
 
 export interface Notification {
   id: string;
@@ -19,6 +20,9 @@ export interface Notification {
     projectName?: string;
     deliverableId?: string;
     deliverableName?: string;
+    reportId?: string;
+    reportTitle?: string;
+    reportType?: string;
     actorId?: string;
     actorName?: string;
     version?: string;

@@ -4,6 +4,7 @@ export type AdminTab =
   | 'team'
   | 'boards'
   | 'projects'
+  | 'reports'
   | 'activity'
   | 'system'
   | 'settings';

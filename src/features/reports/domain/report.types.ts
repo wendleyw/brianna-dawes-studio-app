@@ -85,3 +85,113 @@ export interface ReportFilters {
 }
 
 export type ReportType = 'dashboard' | 'project' | 'designer' | 'client' | 'timeline';
+
+// =============================================
+// PROJECT REPORTS (PDF Reports for Clients)
+// =============================================
+
+export interface ProjectReport {
+  id: string;
+  projectId: string;
+  createdBy: string;
+
+  // Report metadata
+  title: string;
+  description: string | null;
+  reportType: ProjectReportType;
+
+  // Report data snapshot
+  reportData: ProjectReportData;
+
+  // PDF storage
+  pdfUrl: string;
+  pdfFilename: string;
+  fileSizeBytes: number | null;
+
+  // Status
+  status: 'generated' | 'sent' | 'viewed';
+  sentAt: string | null;
+  firstViewedAt: string | null;
+  viewCount: number;
+
+  // Timestamps
+  createdAt: string;
+  updatedAt: string;
+
+  // Relations (joined data)
+  project?: {
+    id: string;
+    name: string;
+    client: {
+      id: string;
+      name: string;
+    };
+  };
+  creator?: {
+    id: string;
+    name: string;
+  };
+}
+
+export type ProjectReportType = 'project_summary' | 'milestone' | 'final';
+
+export interface ProjectReportData {
+  // Snapshot of project state at time of report
+  project: {
+    id: string;
+    name: string;
+    description: string | null;
+    status: string;
+    priority: string;
+    startDate: string | null;
+    dueDate: string | null;
+    client: {
+      id: string;
+      name: string;
+      companyName: string | null;
+    };
+    designers: Array<{
+      id: string;
+      name: string;
+    }>;
+  };
+
+  // Metrics
+  metrics: {
+    totalDeliverables: number;
+    completedDeliverables: number;
+    pendingDeliverables: number;
+    completionRate: number;
+    totalAssets: number;
+    totalBonusAssets: number;
+    averageApprovalTime: number; // days
+    totalFeedback: number;
+    resolvedFeedback: number;
+  };
+
+  // Recent activity
+  recentActivity: ActivityItem[];
+
+  // Upcoming deadlines
+  upcomingDeadlines: DeadlineItem[];
+
+  // Custom notes from admin
+  adminNotes?: string;
+}
+
+export interface CreateReportInput {
+  projectId: string;
+  title: string;
+  description?: string;
+  reportType: ProjectReportType;
+  adminNotes?: string;
+}
+
+export interface ProjectReportFilters {
+  projectId?: string;
+  clientId?: string;
+  reportType?: ProjectReportType;
+  status?: ProjectReport['status'];
+  startDate?: string;
+  endDate?: string;
+}

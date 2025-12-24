@@ -8,4 +8,9 @@ export type {
   DeadlineItem,
   ReportFilters,
   ReportType,
+  ProjectReport,
+  ProjectReportData,
+  ProjectReportType,
+  CreateReportInput,
+  ProjectReportFilters,
 } from './report.types';
