@@ -846,7 +846,13 @@ export function DashboardPage() {
           <button
             type="button"
             className={styles.navButton}
-            onClick={() => navigate('/reports')}
+            onClick={() => {
+              if (isAdmin) {
+                navigate('/admin?tab=reports');
+              } else {
+                navigate('/reports');
+              }
+            }}
           >
             <span className={styles.navIcon}>
               <FileTextIcon />
