@@ -23,7 +23,9 @@ import {
   UsersIcon,
   CheckIcon,
   AlertTriangleIcon,
+  FileIcon,
 } from '@shared/ui/Icons';
+import { CreateReportModal } from '@features/reports/components/CreateReportModal';
 import styles from './AdminDashboard.module.css';
 
 interface AdminDashboardProps {
@@ -44,6 +46,7 @@ export default function AdminDashboard({
   onOpenStatus,
 }: AdminDashboardProps) {
   const [activeTab, setActiveTab] = useState<AdminTab>(defaultTab);
+  const [isCreateReportOpen, setIsCreateReportOpen] = useState(false);
   const isPanel = variant === 'panel';
   const { data: metrics, isLoading: metricsLoading } = useOverviewMetrics();
 
@@ -121,8 +124,9 @@ export default function AdminDashboard({
     const systemStatus = hasIssues ? 'warning' : 'healthy';
 
     return (
-      <div className={styles.panelWrapper}>
-        <section className={styles.panel}>
+      <>
+        <div className={styles.panelWrapper}>
+          <section className={styles.panel}>
           {/* Header */}
           <header className={styles.header}>
             <div className={styles.headerIdentity}>
@@ -221,6 +225,14 @@ export default function AdminDashboard({
                 <section className={styles.panelActions}>
                   <h3 className={styles.panelSectionTitle}>Quick Actions</h3>
                   <div className={styles.panelActionButtons}>
+                    <button
+                      className={styles.panelActionSecondary}
+                      type="button"
+                      onClick={() => setIsCreateReportOpen(true)}
+                    >
+                      <FileIcon size={16} />
+                      Report
+                    </button>
                     <button className={styles.panelActionSecondary} type="button">
                       <SyncIcon size={16} />
                       Sync All
@@ -246,27 +258,33 @@ export default function AdminDashboard({
           </main>
 
           {/* CTA to open Modal */}
-          {onOpenModal && (
-            <footer className={styles.panelFooter}>
-              <button
-                className={styles.panelCtaButton}
-                type="button"
-                onClick={() => onOpenModal(activeTab)}
-              >
-                <span>Open Full Admin</span>
-                <ExternalLinkIcon size={18} />
-              </button>
-            </footer>
-          )}
-        </section>
-      </div>
+            {onOpenModal && (
+              <footer className={styles.panelFooter}>
+                <button
+                  className={styles.panelCtaButton}
+                  type="button"
+                  onClick={() => onOpenModal(activeTab)}
+                >
+                  <span>Open Full Admin</span>
+                  <ExternalLinkIcon size={18} />
+                </button>
+              </footer>
+            )}
+          </section>
+        </div>
+        <CreateReportModal
+          open={isCreateReportOpen}
+          onClose={() => setIsCreateReportOpen(false)}
+        />
+      </>
     );
   }
 
   // Modal (Full) - Complete admin interface with tabs
   return (
-    <div className={styles.overlay} onClick={handleOverlayClick}>
-      <section className={styles.modal}>
+    <>
+      <div className={styles.overlay} onClick={handleOverlayClick}>
+        <section className={styles.modal}>
         {/* Header with Admin Badge */}
         <header className={styles.header}>
           <div className={styles.headerIdentity}>
@@ -305,9 +323,14 @@ export default function AdminDashboard({
           ))}
         </nav>
 
-        {/* Content */}
-        <main className={styles.content}>{renderContent()}</main>
-      </section>
-    </div>
+          {/* Content */}
+          <main className={styles.content}>{renderContent()}</main>
+        </section>
+      </div>
+      <CreateReportModal
+        open={isCreateReportOpen}
+        onClose={() => setIsCreateReportOpen(false)}
+      />
+    </>
   );
 }

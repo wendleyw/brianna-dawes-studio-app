@@ -140,7 +140,7 @@ interface ReportPDFDocumentProps {
 }
 
 export function ReportPDFDocument({ data }: ReportPDFDocumentProps) {
-  const { project, metrics, recentActivity, upcomingDeadlines, adminNotes } = data;
+  const { project, metrics, recentActivity, upcomingDeadlines, adminNotes, dateRange } = data;
 
   // Format date for display
   const formatDate = (dateStr: string | null) => {
@@ -159,6 +159,10 @@ export function ReportPDFDocument({ data }: ReportPDFDocumentProps) {
     day: 'numeric',
   });
 
+  const periodLabel = dateRange
+    ? `${formatDate(dateRange.startDate)} - ${formatDate(dateRange.endDate)}`
+    : null;
+
   return (
     <Document>
       <Page size="A4" style={styles.page}>
@@ -167,6 +171,9 @@ export function ReportPDFDocument({ data }: ReportPDFDocumentProps) {
           <Text style={styles.logo}>BRIANNA DAWES STUDIOS</Text>
           <Text style={styles.title}>Project Report</Text>
           <Text style={styles.subtitle}>Generated on {currentDate}</Text>
+          {periodLabel && (
+            <Text style={styles.subtitle}>Reporting Period: {periodLabel}</Text>
+          )}
         </View>
 
         {/* Project Information */}

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Dialog, Button } from '@shared/ui';
 import { useProjects } from '@features/projects';
 import { useCreateReport } from '../../hooks';
@@ -15,6 +15,8 @@ export function CreateReportModal({ open, onClose }: CreateReportModalProps) {
   const [description, setDescription] = useState('');
   const [reportType, setReportType] = useState<ProjectReportType>('project_summary');
   const [adminNotes, setAdminNotes] = useState('');
+  const [startDate, setStartDate] = useState(() => getDefaultDateRange().startDate);
+  const [endDate, setEndDate] = useState(() => getDefaultDateRange().endDate);
 
   const { data: projects } = useProjects({ pageSize: 1000 });
   const { mutate: createReport, isPending } = useCreateReport();
@@ -22,7 +24,7 @@ export function CreateReportModal({ open, onClose }: CreateReportModalProps) {
   const handleSubmit = () => {
     if (!projectId || !title) return;
 
-    const input: any = { projectId, title, reportType };
+    const input: any = { projectId, title, reportType, startDate, endDate };
     if (description) input.description = description;
     if (adminNotes) input.adminNotes = adminNotes;
 
@@ -32,10 +34,22 @@ export function CreateReportModal({ open, onClose }: CreateReportModalProps) {
         setTitle('');
         setDescription('');
         setAdminNotes('');
+        setStartDate(getDefaultDateRange().startDate);
+        setEndDate(getDefaultDateRange().endDate);
         onClose();
       },
     });
   };
+
+  const presets = useMemo(
+    () => [
+      { label: 'This Month', getValue: getThisMonthRange },
+      { label: 'Last Month', getValue: getLastMonthRange },
+      { label: 'This Year', getValue: getThisYearRange },
+      { label: 'Last Year', getValue: getLastYearRange },
+    ],
+    []
+  );
 
   return (
     <Dialog open={open} onClose={onClose} title="Create Project Report">
@@ -99,6 +113,59 @@ export function CreateReportModal({ open, onClose }: CreateReportModalProps) {
         </div>
 
         <div>
+          <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>
+            Report Period
+          </label>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '8px' }}>
+            {presets.map((preset) => (
+              <button
+                key={preset.label}
+                type="button"
+                onClick={() => {
+                  const range = preset.getValue();
+                  setStartDate(range.startDate);
+                  setEndDate(range.endDate);
+                }}
+                style={{
+                  padding: '6px 10px',
+                  borderRadius: '999px',
+                  border: '1px solid #ddd',
+                  background: '#fff',
+                  fontSize: '12px',
+                  cursor: 'pointer',
+                }}
+              >
+                {preset.label}
+              </button>
+            ))}
+          </div>
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <div style={{ flex: 1 }}>
+              <label style={{ display: 'block', marginBottom: '4px', fontSize: '12px', color: '#666' }}>
+                Start
+              </label>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
+              />
+            </div>
+            <div style={{ flex: 1 }}>
+              <label style={{ display: 'block', marginBottom: '4px', fontSize: '12px', color: '#666' }}>
+                End
+              </label>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div>
           <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
             Admin Notes
           </label>
@@ -117,7 +184,7 @@ export function CreateReportModal({ open, onClose }: CreateReportModalProps) {
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={!projectId || !title || isPending}
+            disabled={!projectId || !title || !startDate || !endDate || isPending}
             isLoading={isPending}
           >
             Generate & Send Report
@@ -126,4 +193,55 @@ export function CreateReportModal({ open, onClose }: CreateReportModalProps) {
       </div>
     </Dialog>
   );
+}
+
+function formatDateForInput(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function getDefaultDateRange(): { startDate: string; endDate: string } {
+  return getThisMonthRange();
+}
+
+function getThisMonthRange(): { startDate: string; endDate: string } {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), 1);
+  const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  return {
+    startDate: formatDateForInput(start),
+    endDate: formatDateForInput(end),
+  };
+}
+
+function getLastMonthRange(): { startDate: string; endDate: string } {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const end = new Date(now.getFullYear(), now.getMonth(), 0);
+  return {
+    startDate: formatDateForInput(start),
+    endDate: formatDateForInput(end),
+  };
+}
+
+function getThisYearRange(): { startDate: string; endDate: string } {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), 0, 1);
+  const end = new Date(now.getFullYear(), 11, 31);
+  return {
+    startDate: formatDateForInput(start),
+    endDate: formatDateForInput(end),
+  };
+}
+
+function getLastYearRange(): { startDate: string; endDate: string } {
+  const now = new Date();
+  const start = new Date(now.getFullYear() - 1, 0, 1);
+  const end = new Date(now.getFullYear() - 1, 11, 31);
+  return {
+    startDate: formatDateForInput(start),
+    endDate: formatDateForInput(end),
+  };
 }

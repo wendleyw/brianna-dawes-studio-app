@@ -136,6 +136,13 @@ export interface ProjectReport {
 export type ProjectReportType = 'project_summary' | 'milestone' | 'final';
 
 export interface ProjectReportData {
+  // Optional reporting period
+  dateRange?: {
+    startDate: string;
+    endDate: string;
+    label?: string;
+  };
+
   // Snapshot of project state at time of report
   project: {
     id: string;
@@ -185,6 +192,8 @@ export interface CreateReportInput {
   description?: string;
   reportType: ProjectReportType;
   adminNotes?: string;
+  startDate?: string;
+  endDate?: string;
 }
 
 export interface ProjectReportFilters {

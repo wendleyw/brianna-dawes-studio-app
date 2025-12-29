@@ -72,11 +72,31 @@ export function useCreateReport() {
       }
 
       // Step 2: Generate metrics using existing reportService
-      const metrics = await reportService.getProjectMetrics(input.projectId);
+      const dateRange =
+        input.startDate && input.endDate
+          ? { startDate: input.startDate, endDate: input.endDate }
+          : null;
+
+      const metrics = dateRange
+        ? await getProjectMetricsForRange(
+            input.projectId,
+            project.name,
+            dateRange.startDate,
+            dateRange.endDate
+          )
+        : await reportService.getProjectMetrics(input.projectId);
 
       // Step 3: Get recent activity (last 10 items for this project)
-      const recentActivity = await reportService.getRecentActivity(20);
-      const projectActivity = recentActivity.filter((a) => a.projectId === input.projectId);
+      const recentActivity = await reportService.getRecentActivity(50);
+      const projectActivity = recentActivity
+        .filter((a) => a.projectId === input.projectId)
+        .filter((a) => {
+          if (!dateRange) return true;
+          const ts = new Date(a.timestamp).getTime();
+          const start = new Date(`${dateRange.startDate}T00:00:00`).getTime();
+          const end = new Date(`${dateRange.endDate}T23:59:59.999`).getTime();
+          return ts >= start && ts <= end;
+        });
 
       // Step 4: Get upcoming deadlines for this project
       // TODO: Implement in reportService if needed
@@ -84,6 +104,7 @@ export function useCreateReport() {
 
       // Step 5: Build ProjectReportData snapshot
       const reportData: ProjectReportData = {
+        ...(dateRange ? { dateRange } : {}),
         project: {
           id: project.id,
           name: project.name,
@@ -193,4 +214,71 @@ export function useCreateReport() {
       logger.error('Failed to create report', error);
     },
   });
+}
+
+async function getProjectMetricsForRange(
+  projectId: string,
+  projectName: string,
+  startDate: string,
+  endDate: string
+) {
+  const startIso = new Date(`${startDate}T00:00:00`).toISOString();
+  const endIso = new Date(`${endDate}T23:59:59.999`).toISOString();
+
+  const { data: deliverables, error: deliverablesError } = await supabase
+    .from('deliverables')
+    .select('created_at, updated_at, status')
+    .eq('project_id', projectId)
+    .gte('created_at', startIso)
+    .lte('created_at', endIso);
+
+  if (deliverablesError) {
+    throw new Error('Failed to fetch deliverables for report period');
+  }
+
+  const completedStatuses = new Set(['approved', 'delivered']);
+  const totalDeliverables = deliverables?.length || 0;
+  const completedDeliverables = deliverables?.filter((d) => completedStatuses.has(d.status)).length || 0;
+  const pendingDeliverables = totalDeliverables - completedDeliverables;
+
+  let totalApprovalTime = 0;
+  let approvedCount = 0;
+
+  deliverables?.forEach((d) => {
+    if (!completedStatuses.has(d.status)) return;
+    const created = new Date(d.created_at).getTime();
+    const updated = new Date(d.updated_at).getTime();
+    if (!Number.isFinite(created) || !Number.isFinite(updated)) return;
+    totalApprovalTime += (updated - created) / (1000 * 60 * 60 * 24);
+    approvedCount++;
+  });
+
+  const averageApprovalTime = approvedCount > 0 ? totalApprovalTime / approvedCount : 0;
+
+  const { data: feedback, error: feedbackError } = await supabase
+    .from('deliverable_feedback')
+    .select('status, created_at, deliverable:deliverables(project_id)')
+    .eq('deliverable.project_id', projectId)
+    .gte('created_at', startIso)
+    .lte('created_at', endIso);
+
+  if (feedbackError) {
+    throw new Error('Failed to fetch feedback for report period');
+  }
+
+  const totalFeedback = feedback?.length || 0;
+  const resolvedFeedback = feedback?.filter((f) => f.status === 'resolved').length || 0;
+
+  return {
+    projectId,
+    projectName,
+    totalDeliverables,
+    completedDeliverables,
+    pendingDeliverables,
+    overdueDeliverables: 0,
+    completionRate: totalDeliverables > 0 ? Math.round((completedDeliverables / totalDeliverables) * 100) : 0,
+    averageApprovalTime: Math.round(averageApprovalTime * 10) / 10,
+    totalFeedback,
+    resolvedFeedback,
+  };
 }

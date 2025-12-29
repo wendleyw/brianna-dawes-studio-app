@@ -9,7 +9,6 @@ import { projectKeys } from '@features/projects/services/projectKeys';
 import { zoomToProject, useMiro } from '@features/boards';
 import { useMasterBoardSettings } from '@features/boards/hooks/useMasterBoard';
 import { miroTimelineService } from '@features/boards/services/miroSdkService';
-import { CreateReportModal } from '@features/reports/components/CreateReportModal';
 import { supabase } from '@shared/lib/supabase';
 import { supabaseRestQuery, isInMiroIframe } from '@shared/lib/supabaseRest';
 import type { Project, ProjectFilters as ProjectFiltersType, ProjectStatus } from '@features/projects/domain/project.types';
@@ -187,7 +186,6 @@ export function DashboardPage() {
   const { boardId: masterBoardId } = useMasterBoardSettings();
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [boardCreatedAt, setBoardCreatedAt] = useState<string | null>(null);
-  const [isCreateReportOpen, setIsCreateReportOpen] = useState(false);
   // Handler to open Admin Dashboard in panel view
   const openAdminDashboard = useCallback((tab: AdminTab) => {
     navigate(`/admin?tab=${encodeURIComponent(tab)}`);
@@ -632,19 +630,6 @@ export function DashboardPage() {
             </button>
           )}
 
-          {isAdmin && (
-            <button
-              className={styles.actionCard}
-              onClick={() => setIsCreateReportOpen(true)}
-            >
-              <div className={styles.actionIconSecondary}>
-                <FileTextIcon />
-              </div>
-              <span className={styles.actionLabel}>Report</span>
-              <span className={styles.actionSub}>Generate</span>
-            </button>
-          )}
-
         </div>
       </section>
 
@@ -912,10 +897,6 @@ export function DashboardPage() {
       </nav>
       <div className={styles.bottomSpacer} aria-hidden="true" />
     </div>
-      <CreateReportModal
-        open={isCreateReportOpen}
-        onClose={() => setIsCreateReportOpen(false)}
-      />
     </>
   );
 }
