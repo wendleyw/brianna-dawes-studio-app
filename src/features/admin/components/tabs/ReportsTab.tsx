@@ -2,11 +2,22 @@ import { useState } from 'react';
 import { Button } from '@shared/ui';
 import { useReports, useReportMutations } from '@features/reports/hooks';
 import { CreateReportModal } from '@features/reports/components/CreateReportModal';
+import { reportPDFService } from '@features/reports/services/reportPDFService';
 
 export default function ReportsTab() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const { data: reports, isLoading } = useReports();
   const { mutate: deleteReport, isPending: isDeleting } = useReportMutations().deleteReport;
+
+  const handleDownload = async (pdfUrl: string) => {
+    try {
+      const signedUrl = await reportPDFService.getDownloadURL(pdfUrl);
+      window.open(signedUrl, '_blank');
+    } catch (error) {
+      console.error('Failed to open report PDF', error);
+      window.open(pdfUrl, '_blank');
+    }
+  };
 
   const handleDelete = (report: any) => {
     if (confirm(`Delete report "${report.title}"?`)) {
@@ -90,7 +101,7 @@ export default function ReportsTab() {
                 <Button
                   size="sm"
                   variant="ghost"
-                  onClick={() => window.open(report.pdfUrl, '_blank')}
+                  onClick={() => handleDownload(report.pdfUrl)}
                 >
                   Download PDF
                 </Button>

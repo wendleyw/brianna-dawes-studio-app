@@ -84,11 +84,13 @@ export class ReportRepository {
     pdfUrl: string;
     pdfFilename: string;
     fileSizeBytes: number;
+    createdBy: string;
   }): Promise<ProjectReport> {
     const { data, error } = await supabase
       .from('project_reports')
       .insert({
         project_id: input.projectId,
+        created_by: input.createdBy,
         title: input.title,
         description: input.description || null,
         report_type: input.reportType,

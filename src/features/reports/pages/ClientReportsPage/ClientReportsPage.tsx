@@ -1,16 +1,23 @@
 import { Button } from '@shared/ui';
 import { useNavigate } from 'react-router-dom';
 import { useReports, useReportMutations } from '../../hooks';
+import { reportPDFService } from '../../services/reportPDFService';
 import { ProjectReportCard } from '../../components/ProjectReportCard';
 
 export function ClientReportsPage() {
   const navigate = useNavigate();
   const { data: reports, isLoading } = useReports();
-  const { mutate: incrementViewCount } = useReportMutations().incrementViewCount;
+  const { mutateAsync: incrementViewCount } = useReportMutations().incrementViewCount;
 
-  const handleViewReport = (reportId: string, pdfUrl: string) => {
-    incrementViewCount(reportId);
-    window.open(pdfUrl, '_blank');
+  const handleViewReport = async (reportId: string, pdfUrl: string) => {
+    try {
+      await incrementViewCount(reportId);
+      const signedUrl = await reportPDFService.getDownloadURL(pdfUrl);
+      window.open(signedUrl, '_blank');
+    } catch (error) {
+      console.error('Failed to open report PDF', error);
+      window.open(pdfUrl, '_blank');
+    }
   };
 
   const unreadReports = reports?.filter((r) => r.viewCount === 0) || [];

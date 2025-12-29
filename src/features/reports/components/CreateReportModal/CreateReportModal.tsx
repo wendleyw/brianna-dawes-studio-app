@@ -16,7 +16,7 @@ export function CreateReportModal({ open, onClose }: CreateReportModalProps) {
   const [reportType, setReportType] = useState<ProjectReportType>('project_summary');
   const [adminNotes, setAdminNotes] = useState('');
 
-  const { data: projects } = useProjects();
+  const { data: projects } = useProjects({ pageSize: 1000 });
   const { mutate: createReport, isPending } = useCreateReport();
 
   const handleSubmit = () => {

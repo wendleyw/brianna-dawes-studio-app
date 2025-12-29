@@ -6,6 +6,7 @@ import { reportPDFService } from '../services/reportPDFService';
 import { ReportPDFDocument } from '../components/ReportPDFDocument';
 import { reportKeys } from '../services/reportKeys';
 import { createLogger } from '@shared/lib/logger';
+import { useAuth } from '@features/auth';
 import type { CreateReportInput, ProjectReportData } from '../domain/report.types';
 
 const logger = createLogger('useCreateReport');
@@ -25,10 +26,30 @@ const logger = createLogger('useCreateReport');
  */
 export function useCreateReport() {
   const queryClient = useQueryClient();
+  const { user: currentUser } = useAuth();
 
   return useMutation({
     mutationFn: async (input: CreateReportInput) => {
       logger.debug('Creating project report', input);
+
+      // Ensure we have an authenticated user (required for created_by)
+      if (!currentUser?.id) {
+        throw new Error('You must be signed in to create a report');
+      }
+
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (userError) {
+        logger.error('Failed to fetch current user', userError);
+        throw new Error('Failed to authenticate report creator');
+      }
+
+      if (!user) {
+        throw new Error('You must be signed in to create a report');
+      }
 
       // Step 1: Fetch project data with all relations
       const { data: project, error: projectError } = await supabase
@@ -125,16 +146,12 @@ export function useCreateReport() {
         pdfUrl,
         pdfFilename: `${input.title}.pdf`,
         fileSizeBytes: pdfBlob.size,
+        createdBy: currentUser.id,
       });
 
       logger.debug('Report saved to database', { reportId: report.id });
 
-      // Step 9: Get current user for notification
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      // Step 10: Send notification to client
+      // Step 9: Send notification to client
       const { error: notificationError } = await supabase.rpc('create_notification', {
         p_user_id: project.client.id,
         p_type: 'report_sent',
@@ -146,8 +163,8 @@ export function useCreateReport() {
           reportId: report.id,
           reportTitle: input.title,
           reportType: input.reportType,
-          actorId: user?.id,
-          actorName: user?.user_metadata?.name || 'Admin',
+          actorId: currentUser.id,
+          actorName: currentUser.name || currentUser.email || 'Admin',
         },
       });
 
