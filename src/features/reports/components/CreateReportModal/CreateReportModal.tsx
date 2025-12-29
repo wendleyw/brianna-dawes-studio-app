@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Dialog, Button } from '@shared/ui';
 import { useProjects } from '@features/projects';
 import { useUsers } from '@features/admin/hooks';
+import { useMiro } from '@features/boards';
 import { supabase } from '@shared/lib/supabase';
 import { useCreateReport } from '../../hooks';
 import type { ProjectReportType } from '../../domain/report.types';
@@ -21,6 +22,8 @@ export function CreateReportModal({
   const [projectId, setProjectId] = useState('');
   const [projectClientId, setProjectClientId] = useState('');
   const [clientId, setClientId] = useState('');
+  const [boardClientName, setBoardClientName] = useState<string | null>(null);
+  const [boardClientId, setBoardClientId] = useState<string | null>(null);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [reportType, setReportType] = useState<ProjectReportType>('project_summary');
@@ -31,6 +34,7 @@ export function CreateReportModal({
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isBatchSubmitting, setIsBatchSubmitting] = useState(false);
 
+  const { isInMiro, boardId, selectedProjectId } = useMiro();
   const { data: projects } = useProjects({ pageSize: 1000 });
   const { data: users } = useUsers();
   const { mutateAsync: createReport, isPending } = useCreateReport();
@@ -60,6 +64,8 @@ export function CreateReportModal({
     setBatchProgress(null);
     setSubmitError(null);
     setScope(defaultScope);
+    setBoardClientName(null);
+    setBoardClientId(null);
   }, [defaultScope]);
 
   useEffect(() => {
@@ -67,6 +73,76 @@ export function CreateReportModal({
       resetForm();
     }
   }, [open, resetForm]);
+
+  useEffect(() => {
+    if (!open || !isInMiro) return;
+    if (!boardId && !selectedProjectId) return;
+
+    let isActive = true;
+
+    const fetchBoardClient = async () => {
+      try {
+        if (selectedProjectId) {
+          const { data, error } = await supabase
+            .from('projects')
+            .select('client_id, client:users!client_id(id, name, company_name)')
+            .eq('id', selectedProjectId)
+            .maybeSingle();
+
+          if (error || !data?.client_id) return;
+          if (!isActive) return;
+          setBoardClientId(data.client_id);
+          setBoardClientName(data.client?.company_name || data.client?.name || null);
+          return;
+        }
+
+        const { data, error } = await supabase
+          .from('projects')
+          .select('client_id, client:users!client_id(id, name, company_name)')
+          .eq('miro_board_id', boardId);
+
+        if (error || !data || data.length === 0) return;
+        const uniqueClients = new Map<string, { name: string | null }>();
+        data.forEach((project: any) => {
+          if (!project.client_id || uniqueClients.has(project.client_id)) return;
+          uniqueClients.set(project.client_id, {
+            name: project.client?.company_name || project.client?.name || null,
+          });
+        });
+
+        if (uniqueClients.size !== 1) return;
+        const [clientEntry] = uniqueClients.entries();
+        if (!clientEntry) return;
+        const [clientId, clientMeta] = clientEntry;
+        if (!isActive) return;
+        setBoardClientId(clientId);
+        setBoardClientName(clientMeta.name);
+      } catch (error) {
+        console.error('Failed to infer board client', error);
+      }
+    };
+
+    fetchBoardClient();
+
+    return () => {
+      isActive = false;
+    };
+  }, [open, isInMiro, boardId, selectedProjectId]);
+
+  useEffect(() => {
+    if (!boardClientId) return;
+
+    if (scope === 'client') {
+      if (!clientId) {
+        setClientId(boardClientId);
+      }
+      return;
+    }
+
+    if (!projectClientId) {
+      setProjectClientId(boardClientId);
+    }
+  }, [boardClientId, clientId, projectClientId, scope]);
 
   useEffect(() => {
     if (!projectId) return;
@@ -248,6 +324,11 @@ export function CreateReportModal({
                 </option>
               ))}
             </select>
+            {boardClientName && (
+              <p style={{ marginTop: '6px', fontSize: '12px', color: '#6b7280' }}>
+                Board client detected: {boardClientName}
+              </p>
+            )}
             <p style={{ marginTop: '6px', fontSize: '12px', color: '#6b7280' }}>
               Generates a single report covering all projects for the selected client.
             </p>

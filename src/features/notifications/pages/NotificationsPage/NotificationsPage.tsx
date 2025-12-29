@@ -22,6 +22,12 @@ export function NotificationsPage() {
       await markAsRead(notification.id);
     }
 
+    const reportId = notification.data?.reportId;
+    if (reportId) {
+      navigate(`/reports/${reportId}`);
+      return;
+    }
+
     const projectId = notification.data?.projectId;
     if (projectId) {
       navigate(`/projects/${projectId}`);

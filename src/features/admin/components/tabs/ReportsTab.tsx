@@ -34,9 +34,9 @@ export default function ReportsTab() {
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px' }}>
         <div>
           <h2 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '8px' }}>
-            Project Reports
+            Reports
           </h2>
-          <p style={{ color: '#666' }}>Generate and send PDF reports to clients</p>
+          <p style={{ color: '#666' }}>Generate and send client reports</p>
         </div>
         <Button onClick={() => setIsCreateModalOpen(true)}>Create Report</Button>
       </div>

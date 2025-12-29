@@ -37,6 +37,9 @@ const NotificationsPage = lazy(() =>
 const ClientReportsPage = lazy(() =>
   import('@features/reports').then((module) => ({ default: module.ClientReportsPage }))
 );
+const ReportDetailsPage = lazy(() =>
+  import('@features/reports').then((module) => ({ default: module.ReportDetailsPage }))
+);
 
 // Loading fallback component
 function PageLoader() {
@@ -144,6 +147,7 @@ export function Router() {
 
             {/* Reports */}
             <Route path="reports" element={<ClientReportsPage />} />
+            <Route path="reports/:id" element={<ReportDetailsPage />} />
 
             {/* Admin */}
             <Route

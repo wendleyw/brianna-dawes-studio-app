@@ -68,7 +68,7 @@ export function ProjectReportCard({ report, onView }: ProjectReportCardProps) {
       </div>
 
       <Button onClick={onView} style={{ width: '100%' }}>
-        Download Report PDF
+        View Report
       </Button>
     </div>
   );
