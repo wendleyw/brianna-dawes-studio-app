@@ -127,6 +127,7 @@ export default function ReportsTab() {
       <CreateReportModal
         open={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
+        defaultScope="client"
       />
     </div>
   );

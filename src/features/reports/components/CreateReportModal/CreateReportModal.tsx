@@ -9,10 +9,15 @@ import type { ProjectReportType } from '../../domain/report.types';
 interface CreateReportModalProps {
   open: boolean;
   onClose: () => void;
+  defaultScope?: 'project' | 'client';
 }
 
-export function CreateReportModal({ open, onClose }: CreateReportModalProps) {
-  const [scope, setScope] = useState<'project' | 'client'>('project');
+export function CreateReportModal({
+  open,
+  onClose,
+  defaultScope = 'client',
+}: CreateReportModalProps) {
+  const [scope, setScope] = useState<'project' | 'client'>(defaultScope);
   const [projectId, setProjectId] = useState('');
   const [projectClientId, setProjectClientId] = useState('');
   const [clientId, setClientId] = useState('');
@@ -54,8 +59,8 @@ export function CreateReportModal({ open, onClose }: CreateReportModalProps) {
     setEndDate(getDefaultDateRange().endDate);
     setBatchProgress(null);
     setSubmitError(null);
-    setScope('project');
-  }, []);
+    setScope(defaultScope);
+  }, [defaultScope]);
 
   useEffect(() => {
     if (!open) {
@@ -151,12 +156,14 @@ export function CreateReportModal({ open, onClose }: CreateReportModalProps) {
     []
   );
 
+  const dialogTitle = scope === 'client' ? 'Create Client Report' : 'Create Project Report';
+
   return (
-    <Dialog open={open} onClose={onClose} title="Create Reports">
+    <Dialog open={open} onClose={onClose} title={dialogTitle}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', minWidth: '400px' }}>
         <div>
           <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
-            Report Scope *
+            Report Scope (default: Client)
           </label>
           <div style={{ display: 'flex', gap: '8px' }}>
             <button
@@ -187,7 +194,7 @@ export function CreateReportModal({ open, onClose }: CreateReportModalProps) {
                 cursor: 'pointer',
               }}
             >
-              All Projects for Client
+              Client (All Projects)
             </button>
           </div>
         </div>
