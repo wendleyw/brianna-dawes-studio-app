@@ -7,7 +7,7 @@ import { ReportPDFDocument } from '../components/ReportPDFDocument';
 import { reportKeys } from '../services/reportKeys';
 import { createLogger } from '@shared/lib/logger';
 import { useAuth } from '@features/auth';
-import type { CreateReportInput, ProjectReportData } from '../domain/report.types';
+import type { CreateReportInput, ProjectMetrics, ProjectReportData } from '../domain/report.types';
 
 const logger = createLogger('useCreateReport');
 
@@ -77,14 +77,26 @@ export function useCreateReport() {
           ? { startDate: input.startDate, endDate: input.endDate }
           : null;
 
-      const metrics = dateRange
-        ? await getProjectMetricsForRange(
-            input.projectId,
-            project.name,
-            dateRange.startDate,
-            dateRange.endDate
-          )
-        : await reportService.getProjectMetrics(input.projectId);
+      let metrics: ProjectMetrics;
+      let totalAssets = 0;
+      let totalBonusAssets = 0;
+
+      if (dateRange) {
+        const rangeResult = await getProjectMetricsForRange(
+          input.projectId,
+          project.name,
+          dateRange.startDate,
+          dateRange.endDate
+        );
+        metrics = rangeResult.metrics;
+        totalAssets = rangeResult.totalAssets;
+        totalBonusAssets = rangeResult.totalBonusAssets;
+      } else {
+        metrics = await reportService.getProjectMetrics(input.projectId);
+        const assetTotals = await getProjectAssetTotals(input.projectId);
+        totalAssets = assetTotals.totalAssets;
+        totalBonusAssets = assetTotals.totalBonusAssets;
+      }
 
       // Step 3: Get recent activity (last 10 items for this project)
       const recentActivity = await reportService.getRecentActivity(50);
@@ -128,8 +140,8 @@ export function useCreateReport() {
           completedDeliverables: metrics.completedDeliverables,
           pendingDeliverables: metrics.pendingDeliverables,
           completionRate: metrics.completionRate,
-          totalAssets: 0, // TODO: Calculate from deliverables if needed
-          totalBonusAssets: 0, // TODO: Calculate from deliverables if needed
+          totalAssets,
+          totalBonusAssets,
           averageApprovalTime: metrics.averageApprovalTime,
           totalFeedback: metrics.totalFeedback,
           resolvedFeedback: metrics.resolvedFeedback,
@@ -225,26 +237,18 @@ async function getProjectMetricsForRange(
   const startIso = new Date(`${startDate}T00:00:00`).toISOString();
   const endIso = new Date(`${endDate}T23:59:59.999`).toISOString();
 
-  const { data: deliverables, error: deliverablesError } = await supabase
-    .from('deliverables')
-    .select('created_at, updated_at, status')
-    .eq('project_id', projectId)
-    .gte('created_at', startIso)
-    .lte('created_at', endIso);
-
-  if (deliverablesError) {
-    throw new Error('Failed to fetch deliverables for report period');
-  }
+  const deliverables = await fetchDeliverables(projectId, startIso, endIso);
+  const { totalAssets, totalBonusAssets } = getAssetTotals(deliverables);
 
   const completedStatuses = new Set(['approved', 'delivered']);
-  const totalDeliverables = deliverables?.length || 0;
-  const completedDeliverables = deliverables?.filter((d) => completedStatuses.has(d.status)).length || 0;
+  const totalDeliverables = deliverables.length;
+  const completedDeliverables = deliverables.filter((d) => completedStatuses.has(d.status)).length;
   const pendingDeliverables = totalDeliverables - completedDeliverables;
 
   let totalApprovalTime = 0;
   let approvedCount = 0;
 
-  deliverables?.forEach((d) => {
+  deliverables.forEach((d) => {
     if (!completedStatuses.has(d.status)) return;
     const created = new Date(d.created_at).getTime();
     const updated = new Date(d.updated_at).getTime();
@@ -270,15 +274,72 @@ async function getProjectMetricsForRange(
   const resolvedFeedback = feedback?.filter((f) => f.status === 'resolved').length || 0;
 
   return {
-    projectId,
-    projectName,
-    totalDeliverables,
-    completedDeliverables,
-    pendingDeliverables,
-    overdueDeliverables: 0,
-    completionRate: totalDeliverables > 0 ? Math.round((completedDeliverables / totalDeliverables) * 100) : 0,
-    averageApprovalTime: Math.round(averageApprovalTime * 10) / 10,
-    totalFeedback,
-    resolvedFeedback,
+    metrics: {
+      projectId,
+      projectName,
+      totalDeliverables,
+      completedDeliverables,
+      pendingDeliverables,
+      overdueDeliverables: 0,
+      completionRate: totalDeliverables > 0 ? Math.round((completedDeliverables / totalDeliverables) * 100) : 0,
+      averageApprovalTime: Math.round(averageApprovalTime * 10) / 10,
+      totalFeedback,
+      resolvedFeedback,
+    },
+    totalAssets,
+    totalBonusAssets,
   };
+}
+
+async function getProjectAssetTotals(projectId: string) {
+  const deliverables = await fetchDeliverables(projectId);
+  return getAssetTotals(deliverables);
+}
+
+function getAssetTotals(deliverables: Array<{ count?: number | null; bonus_count?: number | null }>) {
+  return deliverables.reduce(
+    (totals, item) => ({
+      totalAssets: totals.totalAssets + (item.count || 0),
+      totalBonusAssets: totals.totalBonusAssets + (item.bonus_count || 0),
+    }),
+    { totalAssets: 0, totalBonusAssets: 0 }
+  );
+}
+
+async function fetchDeliverables(projectId: string, startIso?: string, endIso?: string) {
+  let query = supabase
+    .from('deliverables')
+    .select('created_at, updated_at, status, count, bonus_count')
+    .eq('project_id', projectId);
+
+  if (startIso) query = query.gte('created_at', startIso);
+  if (endIso) query = query.lte('created_at', endIso);
+
+  let { data, error } = await query;
+
+  if (error && (error as { code?: string }).code === 'PGRST204') {
+    let fallbackQuery = supabase
+      .from('deliverables')
+      .select('created_at, updated_at, status, count')
+      .eq('project_id', projectId);
+
+    if (startIso) fallbackQuery = fallbackQuery.gte('created_at', startIso);
+    if (endIso) fallbackQuery = fallbackQuery.lte('created_at', endIso);
+
+    const fallback = await fallbackQuery;
+    data = fallback.data;
+    error = fallback.error;
+  }
+
+  if (error) {
+    throw new Error('Failed to fetch deliverables for report period');
+  }
+
+  return (data || []) as Array<{
+    created_at: string;
+    updated_at: string;
+    status: string;
+    count?: number | null;
+    bonus_count?: number | null;
+  }>;
 }

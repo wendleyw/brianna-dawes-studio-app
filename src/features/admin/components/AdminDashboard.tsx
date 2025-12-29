@@ -299,14 +299,24 @@ export default function AdminDashboard({
               <p className={styles.headerSubtitle}>BD Studios</p>
             </div>
           </div>
-          <button
-            className={styles.closeButton}
-            onClick={onClose}
-            aria-label="Close dashboard"
-            type="button"
-          >
-            <CloseIcon size={18} />
-          </button>
+          <div className={styles.headerActions}>
+            <button
+              className={styles.modalButton}
+              type="button"
+              onClick={() => setIsCreateReportOpen(true)}
+            >
+              <FileIcon size={16} />
+              Report
+            </button>
+            <button
+              className={styles.closeButton}
+              onClick={onClose}
+              aria-label="Close dashboard"
+              type="button"
+            >
+              <CloseIcon size={18} />
+            </button>
+          </div>
         </header>
 
         {/* Navigation Tabs */}
