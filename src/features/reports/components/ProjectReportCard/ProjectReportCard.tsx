@@ -49,7 +49,18 @@ export function ProjectReportCard({ report, onView }: ProjectReportCardProps) {
       )}
 
       <div style={{ fontSize: '13px', color: '#666', marginBottom: '16px' }}>
-        <div>Project: {report.project?.name}</div>
+        {report.reportData?.scope === 'client' ? (
+          <>
+            <div>
+              Client: {report.reportData.client?.companyName || report.reportData.client?.name || 'Client'}
+            </div>
+            <div>
+              Projects: {report.reportData.projects?.length ?? 0}
+            </div>
+          </>
+        ) : (
+          <div>Project: {report.project?.name}</div>
+        )}
         <div>
           Sent: {new Date(report.sentAt || report.createdAt).toLocaleDateString()}
         </div>

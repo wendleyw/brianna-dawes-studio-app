@@ -134,14 +134,32 @@ export interface ProjectReport {
 }
 
 export type ProjectReportType = 'project_summary' | 'milestone' | 'final';
+export type ReportScope = 'project' | 'client';
 
 export interface ProjectReportData {
+  scope?: ReportScope;
   // Optional reporting period
   dateRange?: {
     startDate: string;
     endDate: string;
     label?: string;
   };
+
+  // Optional client summary data (when scope === 'client')
+  client?: {
+    id: string;
+    name: string;
+    companyName: string | null;
+  };
+
+  projects?: Array<{
+    id: string;
+    name: string;
+    status: string;
+    priority: string;
+    startDate: string | null;
+    dueDate: string | null;
+  }>;
 
   // Snapshot of project state at time of report
   project: {
@@ -194,6 +212,9 @@ export interface CreateReportInput {
   adminNotes?: string;
   startDate?: string;
   endDate?: string;
+  scope?: ReportScope;
+  clientId?: string;
+  projectIds?: string[];
 }
 
 export interface ProjectReportFilters {

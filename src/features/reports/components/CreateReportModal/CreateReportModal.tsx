@@ -102,31 +102,40 @@ export function CreateReportModal({ open, onClose }: CreateReportModalProps) {
     try {
       const { data, error } = await supabase
         .from('projects')
-        .select('id, name')
-        .eq('client_id', clientId);
+        .select('id, name, created_at')
+        .eq('client_id', clientId)
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
       if (!data || data.length === 0) {
         throw new Error('No projects found for this client');
       }
 
-      const total = data.length;
-      for (let i = 0; i < data.length; i += 1) {
-        const project = data[i];
-        setBatchProgress(`Generating ${i + 1} of ${total}: ${project.name}`);
-        const reportTitle = `${title} — ${project.name}`;
-        await createReport({
-          ...baseInput,
-          projectId: project.id,
-          title: reportTitle,
-        });
-      }
+      const primaryProject = data[0];
+      const projectIds = data.map((project) => project.id);
+      const selectedClient = clients.find((client) => client.id === clientId);
+      const reportTitle = selectedClient?.companyName
+        ? `${title} — ${selectedClient.companyName}`
+        : selectedClient?.name
+        ? `${title} — ${selectedClient.name}`
+        : title;
 
-      setBatchProgress(`Generated ${total} report${total > 1 ? 's' : ''}.`);
+      setBatchProgress('Generating client report...');
+
+      await createReport({
+        ...baseInput,
+        projectId: primaryProject.id,
+        title: reportTitle,
+        scope: 'client',
+        clientId,
+        projectIds,
+      });
+
+      setBatchProgress('Client report generated.');
       resetForm();
       onClose();
     } catch (error) {
-      setSubmitError(error instanceof Error ? error.message : 'Failed to create reports');
+      setSubmitError(error instanceof Error ? error.message : 'Failed to create report');
     } finally {
       setIsBatchSubmitting(false);
     }
@@ -233,7 +242,7 @@ export function CreateReportModal({ open, onClose }: CreateReportModalProps) {
               ))}
             </select>
             <p style={{ marginTop: '6px', fontSize: '12px', color: '#6b7280' }}>
-              Generates one report per project for the selected client.
+              Generates a single report covering all projects for the selected client.
             </p>
           </div>
         )}
@@ -360,7 +369,7 @@ export function CreateReportModal({ open, onClose }: CreateReportModalProps) {
             }
             isLoading={isSubmitting}
           >
-            {scope === 'client' ? 'Generate Reports' : 'Generate & Send Report'}
+            {scope === 'client' ? 'Generate Client Report' : 'Generate & Send Report'}
           </Button>
         </div>
         {batchProgress && (

@@ -72,7 +72,11 @@ export default function ReportsTab() {
                   {report.title}
                 </h3>
                 <p style={{ fontSize: '14px', color: '#666' }}>
-                  {report.project?.name} • {report.reportType.replace(/_/g, ' ')} •{' '}
+                  {report.reportData?.scope === 'client'
+                    ? `Client: ${report.reportData.client?.companyName || report.reportData.client?.name || 'Client'}`
+                    : report.project?.name}
+                  {' • '}
+                  {report.reportType.replace(/_/g, ' ')} •{' '}
                   {new Date(report.createdAt).toLocaleDateString()}
                 </p>
                 <div style={{ marginTop: '8px', display: 'flex', gap: '12px' }}>

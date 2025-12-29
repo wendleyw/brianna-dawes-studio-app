@@ -140,7 +140,7 @@ interface ReportPDFDocumentProps {
 }
 
 export function ReportPDFDocument({ data }: ReportPDFDocumentProps) {
-  const { project, metrics, recentActivity, upcomingDeadlines, adminNotes, dateRange } = data;
+  const { project, metrics, recentActivity, upcomingDeadlines, adminNotes, dateRange, scope, client, projects } = data;
 
   // Format date for display
   const formatDate = (dateStr: string | null) => {
@@ -169,65 +169,108 @@ export function ReportPDFDocument({ data }: ReportPDFDocumentProps) {
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.logo}>BRIANNA DAWES STUDIOS</Text>
-          <Text style={styles.title}>Project Report</Text>
+          <Text style={styles.title}>{scope === 'client' ? 'Client Report' : 'Project Report'}</Text>
           <Text style={styles.subtitle}>Generated on {currentDate}</Text>
           {periodLabel && (
             <Text style={styles.subtitle}>Reporting Period: {periodLabel}</Text>
           )}
         </View>
 
-        {/* Project Information */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Project Information</Text>
-          <View style={styles.row}>
-            <Text style={styles.label}>Project Name:</Text>
-            <Text style={styles.value}>{project.name}</Text>
-          </View>
-          {project.description && (
+        {/* Project / Client Information */}
+        {scope === 'client' ? (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Client Overview</Text>
             <View style={styles.row}>
-              <Text style={styles.label}>Description:</Text>
-              <Text style={styles.value}>{project.description}</Text>
-            </View>
-          )}
-          <View style={styles.row}>
-            <Text style={styles.label}>Client:</Text>
-            <Text style={styles.value}>
-              {project.client.companyName || project.client.name}
-            </Text>
-          </View>
-          <View style={styles.row}>
-            <Text style={styles.label}>Status:</Text>
-            <Text style={styles.value}>{project.status.toUpperCase()}</Text>
-          </View>
-          <View style={styles.row}>
-            <Text style={styles.label}>Priority:</Text>
-            <Text style={styles.value}>{project.priority.toUpperCase()}</Text>
-          </View>
-          {project.startDate && (
-            <View style={styles.row}>
-              <Text style={styles.label}>Start Date:</Text>
-              <Text style={styles.value}>{formatDate(project.startDate)}</Text>
-            </View>
-          )}
-          {project.dueDate && (
-            <View style={styles.row}>
-              <Text style={styles.label}>Due Date:</Text>
-              <Text style={styles.value}>{formatDate(project.dueDate)}</Text>
-            </View>
-          )}
-          {project.designers.length > 0 && (
-            <View style={styles.row}>
-              <Text style={styles.label}>Design Team:</Text>
+              <Text style={styles.label}>Client:</Text>
               <Text style={styles.value}>
-                {project.designers.map((d) => d.name).join(', ')}
+                {client?.companyName || client?.name || 'Client'}
               </Text>
             </View>
-          )}
-        </View>
+            <View style={styles.row}>
+              <Text style={styles.label}>Projects Included:</Text>
+              <Text style={styles.value}>{projects?.length ?? 0}</Text>
+            </View>
+            {periodLabel && (
+              <View style={styles.row}>
+                <Text style={styles.label}>Period:</Text>
+                <Text style={styles.value}>{periodLabel}</Text>
+              </View>
+            )}
+          </View>
+        ) : (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Project Information</Text>
+            <View style={styles.row}>
+              <Text style={styles.label}>Project Name:</Text>
+              <Text style={styles.value}>{project.name}</Text>
+            </View>
+            {project.description && (
+              <View style={styles.row}>
+                <Text style={styles.label}>Description:</Text>
+                <Text style={styles.value}>{project.description}</Text>
+              </View>
+            )}
+            <View style={styles.row}>
+              <Text style={styles.label}>Client:</Text>
+              <Text style={styles.value}>
+                {project.client.companyName || project.client.name}
+              </Text>
+            </View>
+            <View style={styles.row}>
+              <Text style={styles.label}>Status:</Text>
+              <Text style={styles.value}>{project.status.toUpperCase()}</Text>
+            </View>
+            <View style={styles.row}>
+              <Text style={styles.label}>Priority:</Text>
+              <Text style={styles.value}>{project.priority.toUpperCase()}</Text>
+            </View>
+            {project.startDate && (
+              <View style={styles.row}>
+                <Text style={styles.label}>Start Date:</Text>
+                <Text style={styles.value}>{formatDate(project.startDate)}</Text>
+              </View>
+            )}
+            {project.dueDate && (
+              <View style={styles.row}>
+                <Text style={styles.label}>Due Date:</Text>
+                <Text style={styles.value}>{formatDate(project.dueDate)}</Text>
+              </View>
+            )}
+            {project.designers.length > 0 && (
+              <View style={styles.row}>
+                <Text style={styles.label}>Design Team:</Text>
+                <Text style={styles.value}>
+                  {project.designers.map((d) => d.name).join(', ')}
+                </Text>
+              </View>
+            )}
+          </View>
+        )}
+
+        {scope === 'client' && projects && projects.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Projects Included</Text>
+            <View style={styles.activityList}>
+              {projects.slice(0, 12).map((proj) => (
+                <View key={proj.id} style={styles.activityItem}>
+                  <View style={styles.activityDot} />
+                  <Text style={styles.activityText}>
+                    {proj.name} • {proj.status.toUpperCase()} • Due {formatDate(proj.dueDate)}
+                  </Text>
+                </View>
+              ))}
+              {projects.length > 12 && (
+                <Text style={styles.emptyState}>
+                  + {projects.length - 12} more projects
+                </Text>
+              )}
+            </View>
+          </View>
+        )}
 
         {/* Metrics */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Project Metrics</Text>
+          <Text style={styles.sectionTitle}>{scope === 'client' ? 'Client Metrics' : 'Project Metrics'}</Text>
           <View style={styles.metricsContainer}>
             <View style={styles.metricCard}>
               <Text style={styles.metricLabel}>Completion Rate</Text>

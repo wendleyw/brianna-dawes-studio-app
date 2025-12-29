@@ -71,6 +71,10 @@ export function useCreateReport() {
         throw new Error('Project not found');
       }
 
+      const reportScope = input.scope ?? 'project';
+      const isClientReport = reportScope === 'client' && (input.projectIds?.length || 0) > 0;
+      const scopedProjectIds = isClientReport ? (input.projectIds as string[]) : [input.projectId];
+
       // Step 2: Generate metrics using existing reportService
       const dateRange =
         input.startDate && input.endDate
@@ -81,27 +85,45 @@ export function useCreateReport() {
       let totalAssets = 0;
       let totalBonusAssets = 0;
 
-      if (dateRange) {
-        const rangeResult = await getProjectMetricsForRange(
-          input.projectId,
-          project.name,
-          dateRange.startDate,
-          dateRange.endDate
-        );
-        metrics = rangeResult.metrics;
-        totalAssets = rangeResult.totalAssets;
-        totalBonusAssets = rangeResult.totalBonusAssets;
+      if (isClientReport) {
+        if (dateRange) {
+          const rangeResult = await getClientMetricsForRange(
+            scopedProjectIds,
+            dateRange.startDate,
+            dateRange.endDate
+          );
+          metrics = rangeResult.metrics;
+          totalAssets = rangeResult.totalAssets;
+          totalBonusAssets = rangeResult.totalBonusAssets;
+        } else {
+          const allTimeResult = await getClientMetricsForRange(scopedProjectIds);
+          metrics = allTimeResult.metrics;
+          totalAssets = allTimeResult.totalAssets;
+          totalBonusAssets = allTimeResult.totalBonusAssets;
+        }
       } else {
-        metrics = await reportService.getProjectMetrics(input.projectId);
-        const assetTotals = await getProjectAssetTotals(input.projectId);
-        totalAssets = assetTotals.totalAssets;
-        totalBonusAssets = assetTotals.totalBonusAssets;
+        if (dateRange) {
+          const rangeResult = await getProjectMetricsForRange(
+            input.projectId,
+            project.name,
+            dateRange.startDate,
+            dateRange.endDate
+          );
+          metrics = rangeResult.metrics;
+          totalAssets = rangeResult.totalAssets;
+          totalBonusAssets = rangeResult.totalBonusAssets;
+        } else {
+          metrics = await reportService.getProjectMetrics(input.projectId);
+          const assetTotals = await getProjectAssetTotals(input.projectId);
+          totalAssets = assetTotals.totalAssets;
+          totalBonusAssets = assetTotals.totalBonusAssets;
+        }
       }
 
       // Step 3: Get recent activity (last 10 items for this project)
       const recentActivity = await reportService.getRecentActivity(50);
       const projectActivity = recentActivity
-        .filter((a) => a.projectId === input.projectId)
+        .filter((a) => scopedProjectIds.includes(a.projectId))
         .filter((a) => {
           if (!dateRange) return true;
           const ts = new Date(a.timestamp).getTime();
@@ -115,7 +137,7 @@ export function useCreateReport() {
       const upcomingDeadlines: any[] = [];
 
       // Step 5: Build ProjectReportData snapshot
-      const reportData: ProjectReportData = {
+      let reportData: ProjectReportData = {
         ...(dateRange ? { dateRange } : {}),
         project: {
           id: project.id,
@@ -149,6 +171,28 @@ export function useCreateReport() {
         recentActivity: projectActivity.slice(0, 10),
         upcomingDeadlines,
       };
+
+      if (isClientReport) {
+        const projectsForReport = await fetchProjectsForClientReport(scopedProjectIds);
+        const clientInfo = projectsForReport[0]?.client || {
+          id: project.client.id,
+          name: project.client.name,
+          companyName: project.client.company_name,
+        };
+        reportData = {
+          ...reportData,
+          scope: 'client',
+          client: clientInfo,
+          projects: projectsForReport.map((item) => ({
+            id: item.id,
+            name: item.name,
+            status: item.status,
+            priority: item.priority,
+            startDate: item.startDate,
+            dueDate: item.dueDate,
+          })),
+        };
+      }
 
       // Conditionally add adminNotes if provided
       if (input.adminNotes) {
@@ -296,6 +340,72 @@ async function getProjectAssetTotals(projectId: string) {
   return getAssetTotals(deliverables);
 }
 
+async function getClientMetricsForRange(projectIds: string[], startDate?: string, endDate?: string) {
+  const startIso = startDate ? new Date(`${startDate}T00:00:00`).toISOString() : undefined;
+  const endIso = endDate ? new Date(`${endDate}T23:59:59.999`).toISOString() : undefined;
+
+  const deliverables = await fetchDeliverablesForProjects(projectIds, startIso, endIso);
+  const { totalAssets, totalBonusAssets } = getAssetTotals(deliverables);
+
+  const completedStatuses = new Set(['approved', 'delivered']);
+  const totalDeliverables = deliverables.length;
+  const completedDeliverables = deliverables.filter((d) => completedStatuses.has(d.status)).length;
+  const pendingDeliverables = totalDeliverables - completedDeliverables;
+
+  let totalApprovalTime = 0;
+  let approvedCount = 0;
+
+  deliverables.forEach((d) => {
+    if (!completedStatuses.has(d.status)) return;
+    const created = new Date(d.created_at).getTime();
+    const updated = new Date(d.updated_at).getTime();
+    if (!Number.isFinite(created) || !Number.isFinite(updated)) return;
+    totalApprovalTime += (updated - created) / (1000 * 60 * 60 * 24);
+    approvedCount++;
+  });
+
+  const averageApprovalTime = approvedCount > 0 ? totalApprovalTime / approvedCount : 0;
+  const deliverableIds = deliverables.map((d) => d.id).filter(Boolean) as string[];
+
+  let totalFeedback = 0;
+  let resolvedFeedback = 0;
+
+  if (deliverableIds.length > 0) {
+    let feedbackQuery = supabase
+      .from('deliverable_feedback')
+      .select('status, created_at, deliverable_id')
+      .in('deliverable_id', deliverableIds);
+
+    if (startIso) feedbackQuery = feedbackQuery.gte('created_at', startIso);
+    if (endIso) feedbackQuery = feedbackQuery.lte('created_at', endIso);
+
+    const { data: feedback, error: feedbackError } = await feedbackQuery;
+    if (feedbackError) {
+      throw new Error('Failed to fetch feedback for report period');
+    }
+
+    totalFeedback = feedback?.length || 0;
+    resolvedFeedback = feedback?.filter((f) => f.status === 'resolved').length || 0;
+  }
+
+  return {
+    metrics: {
+      projectId: projectIds[0] || '',
+      projectName: 'Client Summary',
+      totalDeliverables,
+      completedDeliverables,
+      pendingDeliverables,
+      overdueDeliverables: 0,
+      completionRate: totalDeliverables > 0 ? Math.round((completedDeliverables / totalDeliverables) * 100) : 0,
+      averageApprovalTime: Math.round(averageApprovalTime * 10) / 10,
+      totalFeedback,
+      resolvedFeedback,
+    },
+    totalAssets,
+    totalBonusAssets,
+  };
+}
+
 function getAssetTotals(deliverables: Array<{ count?: number | null; bonus_count?: number | null }>) {
   return deliverables.reduce(
     (totals, item) => ({
@@ -309,7 +419,7 @@ function getAssetTotals(deliverables: Array<{ count?: number | null; bonus_count
 async function fetchDeliverables(projectId: string, startIso?: string, endIso?: string) {
   let query = supabase
     .from('deliverables')
-    .select('created_at, updated_at, status, count, bonus_count')
+    .select('id, created_at, updated_at, status, count, bonus_count')
     .eq('project_id', projectId);
 
   if (startIso) query = query.gte('created_at', startIso);
@@ -320,7 +430,7 @@ async function fetchDeliverables(projectId: string, startIso?: string, endIso?: 
   if (error && (error as { code?: string }).code === 'PGRST204') {
     let fallbackQuery = supabase
       .from('deliverables')
-      .select('created_at, updated_at, status, count')
+      .select('id, created_at, updated_at, status, count')
       .eq('project_id', projectId);
 
     if (startIso) fallbackQuery = fallbackQuery.gte('created_at', startIso);
@@ -336,10 +446,73 @@ async function fetchDeliverables(projectId: string, startIso?: string, endIso?: 
   }
 
   return (data || []) as Array<{
+    id: string;
     created_at: string;
     updated_at: string;
     status: string;
     count?: number | null;
     bonus_count?: number | null;
   }>;
+}
+
+async function fetchDeliverablesForProjects(projectIds: string[], startIso?: string, endIso?: string) {
+  let query = supabase
+    .from('deliverables')
+    .select('id, created_at, updated_at, status, count, bonus_count, project_id')
+    .in('project_id', projectIds);
+
+  if (startIso) query = query.gte('created_at', startIso);
+  if (endIso) query = query.lte('created_at', endIso);
+
+  let { data, error } = await query;
+
+  if (error && (error as { code?: string }).code === 'PGRST204') {
+    let fallbackQuery = supabase
+      .from('deliverables')
+      .select('id, created_at, updated_at, status, count, project_id')
+      .in('project_id', projectIds);
+
+    if (startIso) fallbackQuery = fallbackQuery.gte('created_at', startIso);
+    if (endIso) fallbackQuery = fallbackQuery.lte('created_at', endIso);
+
+    const fallback = await fallbackQuery;
+    data = fallback.data;
+    error = fallback.error;
+  }
+
+  if (error) {
+    throw new Error('Failed to fetch deliverables for report period');
+  }
+
+  return (data || []) as Array<{
+    id: string;
+    created_at: string;
+    updated_at: string;
+    status: string;
+    count?: number | null;
+    bonus_count?: number | null;
+    project_id: string;
+  }>;
+}
+
+async function fetchProjectsForClientReport(projectIds: string[]) {
+  const { data, error } = await supabase
+    .from('projects')
+    .select('id, name, status, priority, start_date, due_date, client:users!client_id(id, name, company_name)')
+    .in('id', projectIds)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    throw new Error('Failed to fetch client projects');
+  }
+
+  return (data || []).map((project: any) => ({
+    id: project.id,
+    name: project.name,
+    status: project.status,
+    priority: project.priority,
+    startDate: project.start_date,
+    dueDate: project.due_date,
+    client: project.client,
+  }));
 }
