@@ -425,7 +425,18 @@ async function fetchDeliverables(projectId: string, startIso?: string, endIso?: 
   if (startIso) query = query.gte('created_at', startIso);
   if (endIso) query = query.lte('created_at', endIso);
 
-  let { data, error } = await query;
+  const { data: initialData, error: initialError } = await query;
+  let data = initialData as
+    | Array<{
+        id: string;
+        created_at: string;
+        updated_at: string;
+        status: string;
+        count?: number | null;
+        bonus_count?: number | null;
+      }>
+    | null;
+  let error = initialError;
 
   if (error && (error as { code?: string }).code === 'PGRST204') {
     let fallbackQuery = supabase
@@ -437,7 +448,7 @@ async function fetchDeliverables(projectId: string, startIso?: string, endIso?: 
     if (endIso) fallbackQuery = fallbackQuery.lte('created_at', endIso);
 
     const fallback = await fallbackQuery;
-    data = fallback.data;
+    data = fallback.data as typeof data;
     error = fallback.error;
   }
 
@@ -464,7 +475,19 @@ async function fetchDeliverablesForProjects(projectIds: string[], startIso?: str
   if (startIso) query = query.gte('created_at', startIso);
   if (endIso) query = query.lte('created_at', endIso);
 
-  let { data, error } = await query;
+  const { data: initialData, error: initialError } = await query;
+  let data = initialData as
+    | Array<{
+        id: string;
+        created_at: string;
+        updated_at: string;
+        status: string;
+        count?: number | null;
+        bonus_count?: number | null;
+        project_id: string;
+      }>
+    | null;
+  let error = initialError;
 
   if (error && (error as { code?: string }).code === 'PGRST204') {
     let fallbackQuery = supabase
@@ -476,7 +499,7 @@ async function fetchDeliverablesForProjects(projectIds: string[], startIso?: str
     if (endIso) fallbackQuery = fallbackQuery.lte('created_at', endIso);
 
     const fallback = await fallbackQuery;
-    data = fallback.data;
+    data = fallback.data as typeof data;
     error = fallback.error;
   }
 

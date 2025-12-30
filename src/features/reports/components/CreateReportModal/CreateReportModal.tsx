@@ -141,8 +141,9 @@ export function CreateReportModal({
 
           if (error || !data?.client_id) return;
           if (!isActive) return;
+          const clientRecord = Array.isArray(data.client) ? data.client[0] : data.client;
           setBoardClientId(data.client_id);
-          setBoardClientName(data.client?.company_name || data.client?.name || null);
+          setBoardClientName(clientRecord?.company_name || clientRecord?.name || null);
           return;
         }
 
@@ -155,8 +156,9 @@ export function CreateReportModal({
         const uniqueClients = new Map<string, { name: string | null }>();
         data.forEach((project: any) => {
           if (!project.client_id || uniqueClients.has(project.client_id)) return;
+          const clientRecord = Array.isArray(project.client) ? project.client[0] : project.client;
           uniqueClients.set(project.client_id, {
-            name: project.client?.company_name || project.client?.name || null,
+            name: clientRecord?.company_name || clientRecord?.name || null,
           });
         });
 
@@ -245,12 +247,13 @@ export function CreateReportModal({
       const { data, error } = await projectsQuery;
 
       if (error) throw error;
-      if (!data || data.length === 0) {
+      const projectsData = data || [];
+      if (projectsData.length === 0) {
         throw new Error('No projects found for this client');
       }
 
-      const primaryProject = data[0];
-      const projectIds = data.map((project) => project.id);
+      const primaryProject = projectsData[0]!;
+      const projectIds = projectsData.map((project) => project.id);
       const clientLabel = selectedClient?.companyName || selectedClient?.name || boardClientName;
       const reportTitle = clientLabel && !effectiveTitle.includes(clientLabel)
         ? `${effectiveTitle} — ${clientLabel}`
