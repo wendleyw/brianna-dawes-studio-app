@@ -139,6 +139,56 @@ export function ReportDetailsPage() {
     return map;
   }, [deliverables, projectList]);
 
+  const deliverableStatusSummary = useMemo(() => {
+    const counts = {
+      completed: 0,
+      inReview: 0,
+      inProgress: 0,
+      pending: 0,
+      rejected: 0,
+    };
+
+    deliverables.forEach((deliverable) => {
+      const status = deliverable.status.toLowerCase();
+      if (['approved', 'delivered', 'completed'].includes(status)) {
+        counts.completed += 1;
+      } else if (status === 'in_review') {
+        counts.inReview += 1;
+      } else if (status === 'in_progress') {
+        counts.inProgress += 1;
+      } else if (status === 'rejected') {
+        counts.rejected += 1;
+      } else {
+        counts.pending += 1;
+      }
+    });
+
+    return [
+      { label: 'Completed', value: counts.completed, color: '#0f766e' },
+      { label: 'In Review', value: counts.inReview, color: '#f59e0b' },
+      { label: 'In Progress', value: counts.inProgress, color: '#3b82f6' },
+      { label: 'Pending', value: counts.pending, color: '#94a3b8' },
+      { label: 'Rejected', value: counts.rejected, color: '#ef4444' },
+    ];
+  }, [deliverables]);
+
+  const assetsByProject = useMemo(() => {
+    return projectList
+      .map((project) => {
+        const totals = deliverablesByProject.get(project.id)?.totals;
+        const assets = totals?.assets ?? 0;
+        const bonus = totals?.bonus ?? 0;
+        return {
+          id: project.id,
+          name: project.name,
+          assets,
+          bonus,
+          total: assets + bonus,
+        };
+      })
+      .sort((a, b) => b.total - a.total);
+  }, [deliverablesByProject, projectList]);
+
   const formatDate = (dateStr?: string | null) => {
     if (!dateStr) return 'N/A';
     return new Date(dateStr).toLocaleDateString('en-US', {
@@ -196,56 +246,6 @@ export function ReportDetailsPage() {
         { label: 'Resolved Feedback', value: metrics.resolvedFeedback ?? 0 },
       ]
     : [];
-
-  const deliverableStatusSummary = useMemo(() => {
-    const counts = {
-      completed: 0,
-      inReview: 0,
-      inProgress: 0,
-      pending: 0,
-      rejected: 0,
-    };
-
-    deliverables.forEach((deliverable) => {
-      const status = deliverable.status.toLowerCase();
-      if (['approved', 'delivered', 'completed'].includes(status)) {
-        counts.completed += 1;
-      } else if (status === 'in_review') {
-        counts.inReview += 1;
-      } else if (status === 'in_progress') {
-        counts.inProgress += 1;
-      } else if (status === 'rejected') {
-        counts.rejected += 1;
-      } else {
-        counts.pending += 1;
-      }
-    });
-
-    return [
-      { label: 'Completed', value: counts.completed, color: '#0f766e' },
-      { label: 'In Review', value: counts.inReview, color: '#f59e0b' },
-      { label: 'In Progress', value: counts.inProgress, color: '#3b82f6' },
-      { label: 'Pending', value: counts.pending, color: '#94a3b8' },
-      { label: 'Rejected', value: counts.rejected, color: '#ef4444' },
-    ];
-  }, [deliverables]);
-
-  const assetsByProject = useMemo(() => {
-    return projectList
-      .map((project) => {
-        const totals = deliverablesByProject.get(project.id)?.totals;
-        const assets = totals?.assets ?? 0;
-        const bonus = totals?.bonus ?? 0;
-        return {
-          id: project.id,
-          name: project.name,
-          assets,
-          bonus,
-          total: assets + bonus,
-        };
-      })
-      .sort((a, b) => b.total - a.total);
-  }, [deliverablesByProject, projectList]);
 
   const formatStatus = (value?: string | null) =>
     value ? value.replace(/_/g, ' ').toUpperCase() : 'N/A';
