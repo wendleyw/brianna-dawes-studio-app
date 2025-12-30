@@ -11,14 +11,17 @@ interface CreateReportModalProps {
   open: boolean;
   onClose: () => void;
   defaultScope?: 'project' | 'client';
+  lockScope?: 'project' | 'client';
 }
 
 export function CreateReportModal({
   open,
   onClose,
   defaultScope = 'client',
+  lockScope,
 }: CreateReportModalProps) {
-  const [scope, setScope] = useState<'project' | 'client'>(defaultScope);
+  const initialScope = lockScope ?? defaultScope;
+  const [scope, setScope] = useState<'project' | 'client'>(initialScope);
   const [projectId, setProjectId] = useState('');
   const [projectClientId, setProjectClientId] = useState('');
   const [clientId, setClientId] = useState('');
@@ -63,10 +66,15 @@ export function CreateReportModal({
     setEndDate(getDefaultDateRange().endDate);
     setBatchProgress(null);
     setSubmitError(null);
-    setScope(defaultScope);
+    setScope(lockScope ?? defaultScope);
     setBoardClientName(null);
     setBoardClientId(null);
-  }, [defaultScope]);
+  }, [defaultScope, lockScope]);
+
+  useEffect(() => {
+    if (!lockScope) return;
+    setScope(lockScope);
+  }, [lockScope]);
 
   useEffect(() => {
     if (!open) {
@@ -254,43 +262,54 @@ export function CreateReportModal({
   return (
     <Dialog open={open} onClose={onClose} title={dialogTitle}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', minWidth: '400px' }}>
-        <div>
-          <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
-            Report Scope (default: Client)
-          </label>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button
-              type="button"
-              onClick={() => setScope('project')}
-              style={{
-                padding: '6px 10px',
-                borderRadius: '999px',
-                border: scope === 'project' ? '1px solid #2563EB' : '1px solid #ddd',
-                background: scope === 'project' ? '#EFF6FF' : '#fff',
-                color: scope === 'project' ? '#1D4ED8' : '#111827',
-                fontSize: '12px',
-                cursor: 'pointer',
-              }}
-            >
-              Single Project
-            </button>
-            <button
-              type="button"
-              onClick={() => setScope('client')}
-              style={{
-                padding: '6px 10px',
-                borderRadius: '999px',
-                border: scope === 'client' ? '1px solid #2563EB' : '1px solid #ddd',
-                background: scope === 'client' ? '#EFF6FF' : '#fff',
-                color: scope === 'client' ? '#1D4ED8' : '#111827',
-                fontSize: '12px',
-                cursor: 'pointer',
-              }}
-            >
-              Client (All Projects)
-            </button>
+        {!lockScope ? (
+          <div>
+            <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+              Report Scope (default: Client)
+            </label>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                type="button"
+                onClick={() => setScope('project')}
+                style={{
+                  padding: '6px 10px',
+                  borderRadius: '999px',
+                  border: scope === 'project' ? '1px solid #2563EB' : '1px solid #ddd',
+                  background: scope === 'project' ? '#EFF6FF' : '#fff',
+                  color: scope === 'project' ? '#1D4ED8' : '#111827',
+                  fontSize: '12px',
+                  cursor: 'pointer',
+                }}
+              >
+                Single Project
+              </button>
+              <button
+                type="button"
+                onClick={() => setScope('client')}
+                style={{
+                  padding: '6px 10px',
+                  borderRadius: '999px',
+                  border: scope === 'client' ? '1px solid #2563EB' : '1px solid #ddd',
+                  background: scope === 'client' ? '#EFF6FF' : '#fff',
+                  color: scope === 'client' ? '#1D4ED8' : '#111827',
+                  fontSize: '12px',
+                  cursor: 'pointer',
+                }}
+              >
+                Client (All Projects)
+              </button>
+            </div>
           </div>
-        </div>
+        ) : (
+          <div>
+            <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
+              Report Scope
+            </label>
+            <div style={{ fontSize: '12px', color: '#6b7280' }}>
+              {lockScope === 'client' ? 'Client (All Projects)' : 'Single Project'}
+            </div>
+          </div>
+        )}
 
         {scope === 'project' && (
           <div>

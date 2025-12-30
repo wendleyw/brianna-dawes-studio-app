@@ -276,6 +276,7 @@ export default function AdminDashboard({
           open={isCreateReportOpen}
           onClose={() => setIsCreateReportOpen(false)}
           defaultScope="client"
+          lockScope="client"
         />
       </>
     );
@@ -342,6 +343,7 @@ export default function AdminDashboard({
         open={isCreateReportOpen}
         onClose={() => setIsCreateReportOpen(false)}
         defaultScope="client"
+        lockScope="client"
       />
     </>
   );
