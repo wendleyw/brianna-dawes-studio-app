@@ -181,11 +181,28 @@ export function CreateReportModal({
     setBatchProgress('Loading client projects...');
 
     try {
-      const { data, error } = await supabase
+      const startIso = startDate ? new Date(`${startDate}T00:00:00`).toISOString() : null;
+      const endIso = endDate ? new Date(`${endDate}T23:59:59.999`).toISOString() : null;
+
+      let projectsQuery = supabase
         .from('projects')
         .select('id, name, created_at')
         .eq('client_id', clientId)
         .order('created_at', { ascending: false });
+
+      if (isInMiro && boardId) {
+        projectsQuery = projectsQuery.eq('miro_board_id', boardId);
+      }
+
+      if (startIso) {
+        projectsQuery = projectsQuery.gte('created_at', startIso);
+      }
+
+      if (endIso) {
+        projectsQuery = projectsQuery.lte('created_at', endIso);
+      }
+
+      const { data, error } = await projectsQuery;
 
       if (error) throw error;
       if (!data || data.length === 0) {
