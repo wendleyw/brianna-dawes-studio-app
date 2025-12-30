@@ -180,9 +180,6 @@ export function ReportDetailsPage() {
       : 0;
   const deliverableTotal = metrics?.totalDeliverables ?? 0;
   const deliverableCompleted = metrics?.completedDeliverables ?? 0;
-  const deliverablePending = metrics?.pendingDeliverables ?? 0;
-  const deliverablePendingRate =
-    deliverableTotal > 0 ? Math.round((deliverablePending / deliverableTotal) * 100) : 0;
   const totalAssets = metrics?.totalAssets ?? 0;
   const bonusAssets = metrics?.totalBonusAssets ?? 0;
   const assetsTotal = totalAssets + bonusAssets;

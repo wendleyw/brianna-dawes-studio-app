@@ -138,6 +138,10 @@ export class ReportPDFService {
    */
   async getDownloadURL(pdfUrl: string, expiresIn: number = 3600): Promise<string> {
     try {
+      if (pdfUrl.includes('/storage/v1/object/sign/') || pdfUrl.includes('?token=')) {
+        return pdfUrl;
+      }
+
       const path = extractStoragePath(pdfUrl);
 
       if (!path) {
@@ -148,12 +152,15 @@ export class ReportPDFService {
         .from(REPORTS_BUCKET)
         .createSignedUrl(path, expiresIn);
 
-      if (error) throw error;
+      if (error) {
+        logger.warn('Signed URL request failed, using stored URL', error);
+        return pdfUrl;
+      }
 
       return data.signedUrl;
     } catch (error) {
       logger.error('Failed to get download URL', error);
-      throw new Error('Failed to get download URL');
+      return pdfUrl;
     }
   }
 }
