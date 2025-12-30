@@ -12,6 +12,7 @@ interface CreateReportModalProps {
   onClose: () => void;
   defaultScope?: 'project' | 'client';
   lockScope?: 'project' | 'client';
+  allowProjectScope?: boolean;
 }
 
 export function CreateReportModal({
@@ -19,8 +20,10 @@ export function CreateReportModal({
   onClose,
   defaultScope = 'client',
   lockScope,
+  allowProjectScope: allowProjectScopeProp,
 }: CreateReportModalProps) {
-  const initialScope = lockScope ?? defaultScope;
+  const allowProjectScope = allowProjectScopeProp ?? false;
+  const initialScope = allowProjectScope ? (lockScope ?? defaultScope) : 'client';
   const [scope, setScope] = useState<'project' | 'client'>(initialScope);
   const [projectId, setProjectId] = useState('');
   const [projectClientId, setProjectClientId] = useState('');
@@ -71,7 +74,8 @@ export function CreateReportModal({
     });
   }, [projects?.data, projectClientId]);
   const isSubmitting = isPending || isBatchSubmitting;
-  const lockToClientScope = lockScope === 'client' || (!!boardClientId && lockScope !== 'project');
+  const lockToClientScope =
+    !allowProjectScope || lockScope === 'client' || (!!boardClientId && lockScope !== 'project');
 
   const resetForm = useCallback(() => {
     setProjectId('');
@@ -85,15 +89,19 @@ export function CreateReportModal({
     setEndDate(getDefaultDateRange().endDate);
     setBatchProgress(null);
     setSubmitError(null);
-    setScope(lockScope ?? defaultScope);
+    setScope(allowProjectScope ? (lockScope ?? defaultScope) : 'client');
     setBoardClientName(null);
     setBoardClientId(null);
-  }, [defaultScope, lockScope]);
+  }, [allowProjectScope, defaultScope, lockScope]);
 
   useEffect(() => {
+    if (!allowProjectScope) {
+      setScope('client');
+      return;
+    }
     if (!lockScope) return;
     setScope(lockScope);
-  }, [lockScope]);
+  }, [allowProjectScope, lockScope]);
 
   useEffect(() => {
     if (!lockToClientScope) return;
@@ -371,20 +379,25 @@ export function CreateReportModal({
             <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
               Client *
             </label>
-            <select
-              value={clientId}
-              onChange={(e) => setClientId(e.target.value)}
-              style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
-              disabled={lockToClientScope && !!boardClientId}
-            >
-              <option value="">Select a client</option>
-              {clients.map((client) => (
-                <option key={client.id} value={client.id}>
-                  {client.companyName || client.name}
-                </option>
-              ))}
-            </select>
-            {lockScope === 'client' && boardClientId && (
+            {lockToClientScope && boardClientId ? (
+              <div style={{ fontSize: '14px', color: '#111827', padding: '8px 0' }}>
+                {boardClientName || selectedClient?.companyName || selectedClient?.name || 'Client from board'}
+              </div>
+            ) : (
+              <select
+                value={clientId}
+                onChange={(e) => setClientId(e.target.value)}
+                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
+              >
+                <option value="">Select a client</option>
+                {clients.map((client) => (
+                  <option key={client.id} value={client.id}>
+                    {client.companyName || client.name}
+                  </option>
+                ))}
+              </select>
+            )}
+            {lockToClientScope && boardClientId && (
               <p style={{ marginTop: '6px', fontSize: '12px', color: '#6b7280' }}>
                 Client is locked to this board.
               </p>
