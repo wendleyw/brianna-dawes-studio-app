@@ -4,6 +4,7 @@ import { Button } from '@shared/ui';
 import { supabase } from '@shared/lib/supabase';
 import { reportPDFService } from '../../services/reportPDFService';
 import { useReport, useReportMutations } from '../../hooks';
+import styles from './ReportDetailsPage.module.css';
 
 type DeliverableRow = {
   id: string;
@@ -162,12 +163,12 @@ export function ReportDetailsPage() {
   };
 
   if (isLoading) {
-    return <div style={{ padding: '24px' }}>Loading report...</div>;
+    return <div className={styles.state}>Loading report...</div>;
   }
 
   if (!report) {
     return (
-      <div style={{ padding: '24px' }}>
+      <div className={styles.state}>
         <p>Report not found.</p>
         <Button variant="ghost" onClick={() => navigate('/reports')}>
           Back to Reports
@@ -186,6 +187,21 @@ export function ReportDetailsPage() {
       : null;
 
   const metrics = reportData?.metrics;
+  const completionRate = Math.max(0, Math.min(100, metrics?.completionRate || 0));
+  const feedbackRate =
+    metrics?.totalFeedback && metrics.totalFeedback > 0
+      ? Math.round((metrics.resolvedFeedback / metrics.totalFeedback) * 100)
+      : 0;
+  const deliverableTotal = metrics?.totalDeliverables ?? 0;
+  const deliverableCompleted = metrics?.completedDeliverables ?? 0;
+  const deliverablePending = metrics?.pendingDeliverables ?? 0;
+  const deliverablePendingRate =
+    deliverableTotal > 0 ? Math.round((deliverablePending / deliverableTotal) * 100) : 0;
+  const totalAssets = metrics?.totalAssets ?? 0;
+  const bonusAssets = metrics?.totalBonusAssets ?? 0;
+  const assetsTotal = totalAssets + bonusAssets;
+  const bonusRate = assetsTotal > 0 ? Math.round((bonusAssets / assetsTotal) * 100) : 0;
+  const assetsRate = assetsTotal > 0 ? Math.round((totalAssets / assetsTotal) * 100) : 0;
   const metricCards = metrics
     ? [
         { label: 'Completion Rate', value: `${Math.round(metrics.completionRate || 0)}%` },
@@ -200,203 +216,275 @@ export function ReportDetailsPage() {
       ]
     : [];
 
+  const formatStatus = (value?: string | null) =>
+    value ? value.replace(/_/g, ' ').toUpperCase() : 'N/A';
+
+  const getStatusClass = (value?: string | null) => {
+    const status = value?.toLowerCase() || '';
+    if (['approved', 'delivered', 'completed'].includes(status)) {
+      return `${styles.statusBadge} ${styles.statusPositive}`;
+    }
+    if (['rejected', 'overdue', 'blocked'].includes(status)) {
+      return `${styles.statusBadge} ${styles.statusNegative}`;
+    }
+    if (['in_review', 'in_progress', 'pending'].includes(status)) {
+      return `${styles.statusBadge} ${styles.statusWarning}`;
+    }
+    return `${styles.statusBadge} ${styles.statusNeutral}`;
+  };
+
   return (
-    <div style={{ padding: '24px', maxWidth: '1100px', margin: '0 auto' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
-        <div>
-          <h1 style={{ fontSize: '26px', fontWeight: 'bold', marginBottom: '6px' }}>{report.title}</h1>
-          <p style={{ color: '#6b7280', marginBottom: '4px' }}>
-            {isClientReport
-              ? `Client Report • ${clientLabel || 'Client'}`
-              : `Project Report • ${report.project?.name || reportData?.project?.name}`}
-          </p>
-          <p style={{ color: '#6b7280' }}>
-            Created: {formatDate(report.createdAt)}
-            {periodLabel ? ` • Period: ${periodLabel}` : ''}
-          </p>
-        </div>
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <Button variant="ghost" onClick={() => navigate('/reports')}>
-            Back to Reports
-          </Button>
-          <Button onClick={handleDownload}>Download PDF</Button>
-        </div>
-      </div>
-
-      {downloadError && (
-        <div style={{ marginTop: '12px', color: '#dc2626', fontSize: '13px' }}>
-          {downloadError}
-        </div>
-      )}
-
-      {report.description && (
-        <div style={{ marginTop: '16px', color: '#4b5563' }}>{report.description}</div>
-      )}
-
-      {metricCards.length > 0 && (
-        <section style={{ marginTop: '24px' }}>
-          <h2 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '12px' }}>Metrics</h2>
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
-              gap: '12px',
-            }}
-          >
-            {metricCards.map((metric) => (
-              <div
-                key={metric.label}
-                style={{
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '10px',
-                  padding: '12px',
-                  background: '#fff',
-                }}
-              >
-                <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '6px' }}>
-                  {metric.label}
-                </div>
-                <div style={{ fontSize: '18px', fontWeight: 600 }}>{metric.value}</div>
-              </div>
-            ))}
+    <div className={styles.page}>
+      <div className={styles.container}>
+        <section className={styles.hero}>
+          <div className={styles.heroHeader}>
+            <div>
+              <p className={styles.heroEyebrow}>
+                {isClientReport ? 'Client Report' : 'Project Report'}
+              </p>
+              <h1 className={styles.heroTitle}>{report.title}</h1>
+              <p className={styles.heroSubtitle}>
+                {isClientReport
+                  ? `For ${clientLabel || 'your client'}`
+                  : `For ${report.project?.name || reportData?.project?.name}`}
+              </p>
+            </div>
+            <div className={styles.heroActions}>
+              <Button variant="ghost" onClick={() => navigate('/reports')}>
+                Back to Reports
+              </Button>
+              <Button onClick={handleDownload}>Download PDF</Button>
+            </div>
           </div>
+          <div className={styles.heroMeta}>
+            <span className={styles.metaPill}>Created {formatDate(report.createdAt)}</span>
+            {periodLabel && <span className={styles.metaPill}>Period {periodLabel}</span>}
+            <span className={styles.metaPill}>
+              {projectList.length} project{projectList.length === 1 ? '' : 's'} included
+            </span>
+          </div>
+          {downloadError && <div className={styles.alert}>{downloadError}</div>}
         </section>
-      )}
 
-      <section style={{ marginTop: '28px' }}>
-        <h2 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '12px' }}>
-          {isClientReport ? 'Projects Included' : 'Project Details'}
-        </h2>
-        <div style={{ display: 'grid', gap: '12px' }}>
-          {projectList.map((project) => (
-            <div
-              key={project.id}
-              style={{
-                border: '1px solid #e5e7eb',
-                borderRadius: '10px',
-                padding: '12px',
-                background: '#fff',
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
-                <div style={{ fontWeight: 600 }}>{project.name}</div>
-                <div style={{ fontSize: '12px', color: '#6b7280' }}>
-                  Status: {project.status.toUpperCase()}
+        {report.description && <div className={styles.description}>{report.description}</div>}
+
+        {metricCards.length > 0 && (
+          <section className={styles.section}>
+            <div className={styles.sectionHeader}>
+              <h2>Metrics Overview</h2>
+              <p>Performance, delivery volume, and feedback health for this reporting period.</p>
+            </div>
+            <div className={styles.kpiGrid}>
+              {metricCards.map((metric) => (
+                <div key={metric.label} className={styles.kpiCard}>
+                  <div className={styles.kpiLabel}>{metric.label}</div>
+                  <div className={styles.kpiValue}>{metric.value}</div>
                 </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        <section className={styles.section}>
+          <div className={styles.sectionHeader}>
+            <h2>Report Highlights</h2>
+            <p>Key trends and totals pulled from deliverables and feedback.</p>
+          </div>
+          <div className={styles.chartGrid}>
+            <div className={styles.chartCard}>
+              <div className={styles.chartHeader}>
+                <div>
+                  <h3>Delivery Progress</h3>
+                  <p>{deliverableCompleted} delivered out of {deliverableTotal} items.</p>
+                </div>
+                <span className={styles.chartValue}>{completionRate}%</span>
               </div>
-              <div style={{ marginTop: '6px', fontSize: '12px', color: '#6b7280' }}>
-                Priority: {project.priority.toUpperCase()}
-                {project.dueDate ? ` • Due: ${formatDate(project.dueDate)}` : ''}
+              <div className={styles.progressTrack} aria-label="Completion rate">
+                <div className={styles.progressFill} style={{ width: `${completionRate}%` }} />
               </div>
             </div>
-          ))}
-        </div>
-      </section>
 
-      <section style={{ marginTop: '28px' }}>
-        <h2 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '12px' }}>Deliverables</h2>
-        {deliverablesLoading && <div style={{ color: '#6b7280' }}>Loading deliverables...</div>}
-        {deliverablesError && <div style={{ color: '#dc2626' }}>{deliverablesError}</div>}
-        {!deliverablesLoading && !deliverablesError && projectList.length === 0 && (
-          <div style={{ color: '#6b7280' }}>No projects linked to this report.</div>
-        )}
-        {!deliverablesLoading && !deliverablesError && projectList.length > 0 && (
-          <div style={{ display: 'grid', gap: '16px' }}>
-            {projectList.map((project) => {
-              const entry = deliverablesByProject.get(project.id);
-              const items = entry?.items || [];
-              const totals = entry?.totals || { total: 0, completed: 0, assets: 0, bonus: 0 };
-              const previewItems = items.slice(0, 8);
-              return (
-                <div
-                  key={project.id}
-                  style={{
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '10px',
-                    padding: '12px',
-                    background: '#fff',
-                  }}
-                >
-                  <div style={{ fontWeight: 600, marginBottom: '8px' }}>{project.name}</div>
-                  <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '10px' }}>
-                    Deliverables: {totals.total} • Completed: {totals.completed} • Assets: {totals.assets}
-                    {totals.bonus ? ` • Bonus: ${totals.bonus}` : ''}
-                  </div>
-                  {items.length === 0 ? (
-                    <div style={{ fontSize: '12px', color: '#9ca3af' }}>
-                      No deliverables in this period.
-                    </div>
-                  ) : (
-                    <div style={{ display: 'grid', gap: '6px' }}>
-                      {previewItems.map((deliverable) => (
-                        <div
-                          key={deliverable.id}
-                          style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            gap: '8px',
-                            fontSize: '12px',
-                            color: '#374151',
-                          }}
-                        >
-                          <span>{deliverable.name}</span>
-                          <span style={{ color: '#6b7280' }}>{deliverable.status.replace(/_/g, ' ')}</span>
-                        </div>
-                      ))}
-                      {items.length > previewItems.length && (
-                        <div style={{ fontSize: '12px', color: '#9ca3af' }}>
-                          + {items.length - previewItems.length} more deliverable
-                          {items.length - previewItems.length === 1 ? '' : 's'}
-                        </div>
-                      )}
-                    </div>
-                  )}
+            <div className={styles.chartCard}>
+              <div className={styles.chartHeader}>
+                <div>
+                  <h3>Deliverable Status</h3>
+                  <p>Pending work vs approved content.</p>
                 </div>
-              );
-            })}
-          </div>
-        )}
-      </section>
+                <span className={styles.chartValue}>{deliverablePending} pending</span>
+              </div>
+              <div className={styles.stackTrack} aria-label="Deliverable status">
+                <div className={styles.stackFillPrimary} style={{ width: `${100 - deliverablePendingRate}%` }} />
+                <div className={styles.stackFillMuted} style={{ width: `${deliverablePendingRate}%` }} />
+              </div>
+              <div className={styles.legendRow}>
+                <span className={styles.legendItem}>
+                  <span className={styles.legendSwatchPrimary} />
+                  Completed ({deliverableCompleted})
+                </span>
+                <span className={styles.legendItem}>
+                  <span className={styles.legendSwatchMuted} />
+                  Pending ({deliverablePending})
+                </span>
+              </div>
+            </div>
 
-      {reportData?.recentActivity?.length ? (
-        <section style={{ marginTop: '28px' }}>
-          <h2 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '12px' }}>Recent Activity</h2>
-          <div style={{ display: 'grid', gap: '8px' }}>
-            {reportData.recentActivity.slice(0, 10).map((activity, index) => (
-              <div
-                key={`${activity.id}-${index}`}
-                style={{
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '10px',
-                  padding: '10px',
-                  fontSize: '12px',
-                  color: '#4b5563',
-                }}
-              >
-                {activity.itemName} • {activity.type.replace(/_/g, ' ')}
-                {activity.userName ? ` • ${activity.userName}` : ''}
+            <div className={styles.chartCard}>
+              <div className={styles.chartHeader}>
+                <div>
+                  <h3>Asset Mix</h3>
+                  <p>Core assets vs bonus items delivered.</p>
+                </div>
+                <span className={styles.chartValue}>{assetsTotal}</span>
+              </div>
+              <div className={styles.stackTrack} aria-label="Asset mix">
+                <div className={styles.stackFillPrimary} style={{ width: `${assetsRate}%` }} />
+                <div className={styles.stackFillAccent} style={{ width: `${bonusRate}%` }} />
+              </div>
+              <div className={styles.legendRow}>
+                <span className={styles.legendItem}>
+                  <span className={styles.legendSwatchPrimary} />
+                  Assets ({totalAssets})
+                </span>
+                <span className={styles.legendItem}>
+                  <span className={styles.legendSwatchAccent} />
+                  Bonus ({bonusAssets})
+                </span>
+              </div>
+            </div>
+
+            <div className={styles.chartCard}>
+              <div className={styles.chartHeader}>
+                <div>
+                  <h3>Feedback Resolution</h3>
+                  <p>Resolved vs open feedback threads.</p>
+                </div>
+                <span className={styles.chartValue}>{feedbackRate}%</span>
+              </div>
+              <div className={styles.progressTrack} aria-label="Feedback resolution">
+                <div className={styles.progressFill} style={{ width: `${feedbackRate}%` }} />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className={styles.section}>
+          <div className={styles.sectionHeader}>
+            <h2>{isClientReport ? 'Projects Included' : 'Project Details'}</h2>
+            <p>All projects counted in this report.</p>
+          </div>
+          <div className={styles.projectGrid}>
+            {projectList.map((project) => (
+              <div key={project.id} className={styles.projectCard}>
+                <div className={styles.projectHeader}>
+                  <div>
+                    <h3>{project.name}</h3>
+                    <p>Priority {formatStatus(project.priority)}</p>
+                  </div>
+                  <span className={getStatusClass(project.status)}>{formatStatus(project.status)}</span>
+                </div>
+                <div className={styles.projectMeta}>
+                  <span>Start {formatDate(project.startDate)}</span>
+                  <span>Due {formatDate(project.dueDate)}</span>
+                </div>
               </div>
             ))}
           </div>
         </section>
-      ) : null}
 
-      {reportData?.adminNotes ? (
-        <section style={{ marginTop: '28px' }}>
-          <h2 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '12px' }}>Admin Notes</h2>
-          <div
-            style={{
-              border: '1px solid #fcd34d',
-              background: '#fff7ed',
-              borderRadius: '10px',
-              padding: '12px',
-              color: '#92400e',
-            }}
-          >
-            {reportData.adminNotes}
+        <section className={styles.section}>
+          <div className={styles.sectionHeader}>
+            <h2>Deliverables</h2>
+            <p>Quick snapshot by project with status and totals.</p>
           </div>
+          {deliverablesLoading && <div className={styles.stateSmall}>Loading deliverables...</div>}
+          {deliverablesError && <div className={styles.alert}>{deliverablesError}</div>}
+          {!deliverablesLoading && !deliverablesError && projectList.length === 0 && (
+            <div className={styles.stateSmall}>No projects linked to this report.</div>
+          )}
+          {!deliverablesLoading && !deliverablesError && projectList.length > 0 && (
+            <div className={styles.deliverablesGrid}>
+              {projectList.map((project) => {
+                const entry = deliverablesByProject.get(project.id);
+                const items = entry?.items || [];
+                const totals = entry?.totals || { total: 0, completed: 0, assets: 0, bonus: 0 };
+                const previewItems = items.slice(0, 8);
+                const completion =
+                  totals.total > 0 ? Math.round((totals.completed / totals.total) * 100) : 0;
+                return (
+                  <div key={project.id} className={styles.deliverableCard}>
+                    <div className={styles.deliverableHeader}>
+                      <div>
+                        <h3>{project.name}</h3>
+                        <p>
+                          {totals.total} deliverable{totals.total === 1 ? '' : 's'} • {totals.assets} assets
+                          {totals.bonus ? ` • ${totals.bonus} bonus` : ''}
+                        </p>
+                      </div>
+                      <span className={styles.chartValue}>{completion}%</span>
+                    </div>
+                    <div className={styles.progressTrack}>
+                      <div className={styles.progressFill} style={{ width: `${completion}%` }} />
+                    </div>
+                    {items.length === 0 ? (
+                      <div className={styles.stateSmall}>No deliverables in this period.</div>
+                    ) : (
+                      <div className={styles.deliverableList}>
+                        {previewItems.map((deliverable) => (
+                          <div key={deliverable.id} className={styles.deliverableRow}>
+                            <span>{deliverable.name}</span>
+                            <span className={getStatusClass(deliverable.status)}>
+                              {formatStatus(deliverable.status)}
+                            </span>
+                          </div>
+                        ))}
+                        {items.length > previewItems.length && (
+                          <div className={styles.stateSmall}>
+                            + {items.length - previewItems.length} more deliverable
+                            {items.length - previewItems.length === 1 ? '' : 's'}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </section>
-      ) : null}
+
+        {reportData?.recentActivity?.length ? (
+          <section className={styles.section}>
+            <div className={styles.sectionHeader}>
+              <h2>Recent Activity</h2>
+              <p>Latest updates contributing to this report.</p>
+            </div>
+            <div className={styles.activityList}>
+              {reportData.recentActivity.slice(0, 10).map((activity, index) => (
+                <div key={`${activity.id}-${index}`} className={styles.activityItem}>
+                  <span className={styles.activityDot} />
+                  <div>
+                    <div>{activity.itemName}</div>
+                    <div className={styles.activityMeta}>
+                      {activity.type.replace(/_/g, ' ')}
+                      {activity.userName ? ` • ${activity.userName}` : ''}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
+        {reportData?.adminNotes ? (
+          <section className={styles.section}>
+            <div className={styles.sectionHeader}>
+              <h2>Admin Notes</h2>
+              <p>Additional context from the team.</p>
+            </div>
+            <div className={styles.notesBox}>{reportData.adminNotes}</div>
+          </section>
+        ) : null}
+      </div>
     </div>
   );
 }
