@@ -28,6 +28,7 @@ export function CreateReportModal({
   const [boardClientName, setBoardClientName] = useState<string | null>(null);
   const [boardClientId, setBoardClientId] = useState<string | null>(null);
   const [title, setTitle] = useState('');
+  const [hasEditedTitle, setHasEditedTitle] = useState(false);
   const [description, setDescription] = useState('');
   const [reportType, setReportType] = useState<ProjectReportType>('project_summary');
   const [adminNotes, setAdminNotes] = useState('');
@@ -45,6 +46,22 @@ export function CreateReportModal({
     () => (users || []).filter((user) => user.role === 'client'),
     [users]
   );
+  const effectiveClientId = clientId || boardClientId || '';
+  const selectedClient = useMemo(
+    () => clients.find((client) => client.id === effectiveClientId),
+    [clients, effectiveClientId]
+  );
+  const defaultTitle = useMemo(() => {
+    if (!effectiveClientId) return '';
+    const clientLabel = selectedClient?.companyName || selectedClient?.name || boardClientName;
+    if (!clientLabel) return '';
+    const startLabel = startDate ? formatDateForLabel(startDate) : '';
+    const endLabel = endDate ? formatDateForLabel(endDate) : '';
+    const periodLabel = startLabel && endLabel ? `${startLabel} - ${endLabel}` : '';
+    return periodLabel
+      ? `Client Report — ${clientLabel} (${periodLabel})`
+      : `Client Report — ${clientLabel}`;
+  }, [boardClientName, effectiveClientId, endDate, selectedClient, startDate]);
   const filteredProjects = useMemo(() => {
     const list = projects?.data || [];
     if (!projectClientId) return list;
@@ -60,6 +77,7 @@ export function CreateReportModal({
     setProjectClientId('');
     setClientId('');
     setTitle('');
+    setHasEditedTitle(false);
     setDescription('');
     setAdminNotes('');
     setStartDate(getDefaultDateRange().startDate);
@@ -81,6 +99,14 @@ export function CreateReportModal({
       resetForm();
     }
   }, [open, resetForm]);
+
+  useEffect(() => {
+    if (!open) return;
+    if (hasEditedTitle) return;
+    if (!title && defaultTitle) {
+      setTitle(defaultTitle);
+    }
+  }, [defaultTitle, hasEditedTitle, open, title]);
 
   useEffect(() => {
     if (!open || !isInMiro) return;
@@ -165,12 +191,13 @@ export function CreateReportModal({
     setSubmitError(null);
     setBatchProgress(null);
 
-    if (!title || !startDate || !endDate) return;
+    if ((!title && !defaultTitle) || !startDate || !endDate) return;
 
     if (scope === 'project' && !projectId) return;
-    if (scope === 'client' && !clientId) return;
+    if (scope === 'client' && !effectiveClientId) return;
 
-    const baseInput: any = { title, reportType, startDate, endDate };
+    const effectiveTitle = title || defaultTitle;
+    const baseInput: any = { title: effectiveTitle, reportType, startDate, endDate };
     if (description) baseInput.description = description;
     if (adminNotes) baseInput.adminNotes = adminNotes;
 
@@ -189,25 +216,14 @@ export function CreateReportModal({
     setBatchProgress('Loading client projects...');
 
     try {
-      const startIso = startDate ? new Date(`${startDate}T00:00:00`).toISOString() : null;
-      const endIso = endDate ? new Date(`${endDate}T23:59:59.999`).toISOString() : null;
-
       let projectsQuery = supabase
         .from('projects')
         .select('id, name, created_at')
-        .eq('client_id', clientId)
+        .eq('client_id', effectiveClientId)
         .order('created_at', { ascending: false });
 
       if (isInMiro && boardId) {
         projectsQuery = projectsQuery.eq('miro_board_id', boardId);
-      }
-
-      if (startIso) {
-        projectsQuery = projectsQuery.gte('created_at', startIso);
-      }
-
-      if (endIso) {
-        projectsQuery = projectsQuery.lte('created_at', endIso);
       }
 
       const { data, error } = await projectsQuery;
@@ -219,12 +235,10 @@ export function CreateReportModal({
 
       const primaryProject = data[0];
       const projectIds = data.map((project) => project.id);
-      const selectedClient = clients.find((client) => client.id === clientId);
-      const reportTitle = selectedClient?.companyName
-        ? `${title} — ${selectedClient.companyName}`
-        : selectedClient?.name
-        ? `${title} — ${selectedClient.name}`
-        : title;
+      const clientLabel = selectedClient?.companyName || selectedClient?.name || boardClientName;
+      const reportTitle = clientLabel && !effectiveTitle.includes(clientLabel)
+        ? `${effectiveTitle} — ${clientLabel}`
+        : effectiveTitle;
 
       setBatchProgress('Generating client report...');
 
@@ -233,7 +247,7 @@ export function CreateReportModal({
         projectId: primaryProject.id,
         title: reportTitle,
         scope: 'client',
-        clientId,
+        clientId: effectiveClientId,
         projectIds,
       });
 
@@ -352,6 +366,7 @@ export function CreateReportModal({
               value={clientId}
               onChange={(e) => setClientId(e.target.value)}
               style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
+              disabled={lockScope === 'client' && !!boardClientId}
             >
               <option value="">Select a client</option>
               {clients.map((client) => (
@@ -360,6 +375,11 @@ export function CreateReportModal({
                 </option>
               ))}
             </select>
+            {lockScope === 'client' && boardClientId && (
+              <p style={{ marginTop: '6px', fontSize: '12px', color: '#6b7280' }}>
+                Client is locked to this board.
+              </p>
+            )}
             {boardClientName && (
               <p style={{ marginTop: '6px', fontSize: '12px', color: '#6b7280' }}>
                 Board client detected: {boardClientName}
@@ -378,8 +398,11 @@ export function CreateReportModal({
           <input
             type="text"
             value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Monthly Progress Report"
+            onChange={(e) => {
+              setHasEditedTitle(true);
+              setTitle(e.target.value);
+            }}
+            placeholder={defaultTitle || 'Monthly Progress Report'}
             style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
           />
         </div>
@@ -484,11 +507,11 @@ export function CreateReportModal({
           <Button
             onClick={handleSubmit}
             disabled={
-              !title ||
+              (!title && !defaultTitle) ||
               !startDate ||
               !endDate ||
               (scope === 'project' && !projectId) ||
-              (scope === 'client' && !clientId) ||
+              (scope === 'client' && !effectiveClientId) ||
               isSubmitting
             }
             isLoading={isSubmitting}
@@ -516,6 +539,16 @@ function formatDateForInput(date: Date): string {
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
+}
+
+function formatDateForLabel(dateStr: string): string {
+  const parsed = new Date(dateStr);
+  if (Number.isNaN(parsed.getTime())) return dateStr;
+  return parsed.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
 }
 
 function getDefaultDateRange(): { startDate: string; endDate: string } {
