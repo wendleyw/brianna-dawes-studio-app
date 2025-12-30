@@ -195,6 +195,39 @@
   font-size: 16px;
 }
 
+.barList {
+  display: grid;
+  gap: 8px;
+}
+
+.barRow {
+  display: grid;
+  grid-template-columns: minmax(80px, 1fr) minmax(120px, 2fr) minmax(32px, auto);
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: #334155;
+}
+
+.barTrack {
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.1);
+  overflow: hidden;
+}
+
+.barFill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--bar-color, #0f766e);
+}
+
+.barValue {
+  font-weight: 600;
+  color: #0f172a;
+  text-align: right;
+}
+
 .progressTrack {
   height: 10px;
   border-radius: 999px;

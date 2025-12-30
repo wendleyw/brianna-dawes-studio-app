@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@shared/ui';
 import { supabase } from '@shared/lib/supabase';
-import { reportPDFService } from '../../services/reportPDFService';
 import { useReport, useReportMutations } from '../../hooks';
 import styles from './ReportDetailsPage.module.css';
 
@@ -28,7 +27,6 @@ export function ReportDetailsPage() {
   const [deliverables, setDeliverables] = useState<DeliverableRow[]>([]);
   const [deliverablesError, setDeliverablesError] = useState<string | null>(null);
   const [deliverablesLoading, setDeliverablesLoading] = useState(false);
-  const [downloadError, setDownloadError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!report || hasIncrementedRef.current) return;
@@ -141,18 +139,6 @@ export function ReportDetailsPage() {
     return map;
   }, [deliverables, projectList]);
 
-  const handleDownload = async () => {
-    if (!report) return;
-    setDownloadError(null);
-    try {
-      const signedUrl = await reportPDFService.getDownloadURL(report.pdfUrl);
-      window.open(signedUrl, '_blank');
-    } catch (error) {
-      window.open(report.pdfUrl, '_blank');
-      setDownloadError('Unable to open the PDF for this report.');
-    }
-  };
-
   const formatDate = (dateStr?: string | null) => {
     if (!dateStr) return 'N/A';
     return new Date(dateStr).toLocaleDateString('en-US', {
@@ -200,8 +186,6 @@ export function ReportDetailsPage() {
   const totalAssets = metrics?.totalAssets ?? 0;
   const bonusAssets = metrics?.totalBonusAssets ?? 0;
   const assetsTotal = totalAssets + bonusAssets;
-  const bonusRate = assetsTotal > 0 ? Math.round((bonusAssets / assetsTotal) * 100) : 0;
-  const assetsRate = assetsTotal > 0 ? Math.round((totalAssets / assetsTotal) * 100) : 0;
   const metricCards = metrics
     ? [
         { label: 'Completion Rate', value: `${Math.round(metrics.completionRate || 0)}%` },
@@ -215,6 +199,56 @@ export function ReportDetailsPage() {
         { label: 'Resolved Feedback', value: metrics.resolvedFeedback ?? 0 },
       ]
     : [];
+
+  const deliverableStatusSummary = useMemo(() => {
+    const counts = {
+      completed: 0,
+      inReview: 0,
+      inProgress: 0,
+      pending: 0,
+      rejected: 0,
+    };
+
+    deliverables.forEach((deliverable) => {
+      const status = deliverable.status.toLowerCase();
+      if (['approved', 'delivered', 'completed'].includes(status)) {
+        counts.completed += 1;
+      } else if (status === 'in_review') {
+        counts.inReview += 1;
+      } else if (status === 'in_progress') {
+        counts.inProgress += 1;
+      } else if (status === 'rejected') {
+        counts.rejected += 1;
+      } else {
+        counts.pending += 1;
+      }
+    });
+
+    return [
+      { label: 'Completed', value: counts.completed, color: '#0f766e' },
+      { label: 'In Review', value: counts.inReview, color: '#f59e0b' },
+      { label: 'In Progress', value: counts.inProgress, color: '#3b82f6' },
+      { label: 'Pending', value: counts.pending, color: '#94a3b8' },
+      { label: 'Rejected', value: counts.rejected, color: '#ef4444' },
+    ];
+  }, [deliverables]);
+
+  const assetsByProject = useMemo(() => {
+    return projectList
+      .map((project) => {
+        const totals = deliverablesByProject.get(project.id)?.totals;
+        const assets = totals?.assets ?? 0;
+        const bonus = totals?.bonus ?? 0;
+        return {
+          id: project.id,
+          name: project.name,
+          assets,
+          bonus,
+          total: assets + bonus,
+        };
+      })
+      .sort((a, b) => b.total - a.total);
+  }, [deliverablesByProject, projectList]);
 
   const formatStatus = (value?: string | null) =>
     value ? value.replace(/_/g, ' ').toUpperCase() : 'N/A';
@@ -253,7 +287,6 @@ export function ReportDetailsPage() {
               <Button variant="ghost" onClick={() => navigate('/reports')}>
                 Back to Reports
               </Button>
-              <Button onClick={handleDownload}>Download PDF</Button>
             </div>
           </div>
           <div className={styles.heroMeta}>
@@ -263,7 +296,6 @@ export function ReportDetailsPage() {
               {projectList.length} project{projectList.length === 1 ? '' : 's'} included
             </span>
           </div>
-          {downloadError && <div className={styles.alert}>{downloadError}</div>}
         </section>
 
         {report.description && <div className={styles.description}>{report.description}</div>}
@@ -307,54 +339,6 @@ export function ReportDetailsPage() {
             <div className={styles.chartCard}>
               <div className={styles.chartHeader}>
                 <div>
-                  <h3>Deliverable Status</h3>
-                  <p>Pending work vs approved content.</p>
-                </div>
-                <span className={styles.chartValue}>{deliverablePending} pending</span>
-              </div>
-              <div className={styles.stackTrack} aria-label="Deliverable status">
-                <div className={styles.stackFillPrimary} style={{ width: `${100 - deliverablePendingRate}%` }} />
-                <div className={styles.stackFillMuted} style={{ width: `${deliverablePendingRate}%` }} />
-              </div>
-              <div className={styles.legendRow}>
-                <span className={styles.legendItem}>
-                  <span className={styles.legendSwatchPrimary} />
-                  Completed ({deliverableCompleted})
-                </span>
-                <span className={styles.legendItem}>
-                  <span className={styles.legendSwatchMuted} />
-                  Pending ({deliverablePending})
-                </span>
-              </div>
-            </div>
-
-            <div className={styles.chartCard}>
-              <div className={styles.chartHeader}>
-                <div>
-                  <h3>Asset Mix</h3>
-                  <p>Core assets vs bonus items delivered.</p>
-                </div>
-                <span className={styles.chartValue}>{assetsTotal}</span>
-              </div>
-              <div className={styles.stackTrack} aria-label="Asset mix">
-                <div className={styles.stackFillPrimary} style={{ width: `${assetsRate}%` }} />
-                <div className={styles.stackFillAccent} style={{ width: `${bonusRate}%` }} />
-              </div>
-              <div className={styles.legendRow}>
-                <span className={styles.legendItem}>
-                  <span className={styles.legendSwatchPrimary} />
-                  Assets ({totalAssets})
-                </span>
-                <span className={styles.legendItem}>
-                  <span className={styles.legendSwatchAccent} />
-                  Bonus ({bonusAssets})
-                </span>
-              </div>
-            </div>
-
-            <div className={styles.chartCard}>
-              <div className={styles.chartHeader}>
-                <div>
                   <h3>Feedback Resolution</h3>
                   <p>Resolved vs open feedback threads.</p>
                 </div>
@@ -363,6 +347,69 @@ export function ReportDetailsPage() {
               <div className={styles.progressTrack} aria-label="Feedback resolution">
                 <div className={styles.progressFill} style={{ width: `${feedbackRate}%` }} />
               </div>
+            </div>
+
+            <div className={styles.chartCard}>
+              <div className={styles.chartHeader}>
+                <div>
+                  <h3>Deliverable Status Mix</h3>
+                  <p>Breakdown of work by status.</p>
+                </div>
+                <span className={styles.chartValue}>{deliverableTotal}</span>
+              </div>
+              {deliverableTotal === 0 ? (
+                <div className={styles.stateSmall}>No deliverables yet.</div>
+              ) : (
+                <div className={styles.barList}>
+                  {deliverableStatusSummary.map((row) => {
+                    const percent =
+                      deliverableTotal > 0 ? Math.round((row.value / deliverableTotal) * 100) : 0;
+                    return (
+                      <div key={row.label} className={styles.barRow}>
+                        <span>{row.label}</span>
+                        <div className={styles.barTrack}>
+                          <div
+                            className={styles.barFill}
+                            style={{ width: `${percent}%`, '--bar-color': row.color } as React.CSSProperties}
+                          />
+                        </div>
+                        <span className={styles.barValue}>{row.value}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <div className={styles.chartCard}>
+              <div className={styles.chartHeader}>
+                <div>
+                  <h3>Assets by Project</h3>
+                  <p>Distribution of assets delivered.</p>
+                </div>
+                <span className={styles.chartValue}>{assetsTotal}</span>
+              </div>
+              {assetsTotal === 0 ? (
+                <div className={styles.stateSmall}>No assets recorded.</div>
+              ) : (
+                <div className={styles.barList}>
+                  {assetsByProject.slice(0, 5).map((row) => {
+                    const percent = assetsTotal > 0 ? Math.round((row.total / assetsTotal) * 100) : 0;
+                    return (
+                      <div key={row.id} className={styles.barRow}>
+                        <span>{row.name}</span>
+                        <div className={styles.barTrack}>
+                          <div
+                            className={styles.barFill}
+                            style={{ width: `${percent}%`, '--bar-color': '#0f766e' } as React.CSSProperties}
+                          />
+                        </div>
+                        <span className={styles.barValue}>{row.total}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
         </section>
