@@ -139,6 +139,49 @@ export function ReportDetailsPage() {
     return map;
   }, [deliverables, projectList]);
 
+  const formatDate = (dateStr?: string | null) => {
+    if (!dateStr) return 'N/A';
+    return new Date(dateStr).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+  };
+
+  const reportData = report?.reportData;
+  const isClientReport = reportData?.scope === 'client';
+  const clientLabel = reportData?.client?.companyName || reportData?.client?.name;
+  const dateRange = reportData?.dateRange;
+  const periodLabel =
+    dateRange?.startDate && dateRange?.endDate
+      ? `${formatDate(dateRange.startDate)} - ${formatDate(dateRange.endDate)}`
+      : null;
+
+  const metrics = reportData?.metrics;
+  const completionRate = Math.max(0, Math.min(100, metrics?.completionRate || 0));
+  const feedbackRate =
+    metrics?.totalFeedback && metrics.totalFeedback > 0
+      ? Math.round((metrics.resolvedFeedback / metrics.totalFeedback) * 100)
+      : 0;
+  const deliverableTotal = metrics?.totalDeliverables ?? 0;
+  const deliverableCompleted = metrics?.completedDeliverables ?? 0;
+  const totalAssets = metrics?.totalAssets ?? 0;
+  const bonusAssets = metrics?.totalBonusAssets ?? 0;
+  const assetsTotal = totalAssets + bonusAssets;
+  const metricCards = metrics
+    ? [
+        { label: 'Completion Rate', value: `${Math.round(metrics.completionRate || 0)}%` },
+        { label: 'Total Deliverables', value: metrics.totalDeliverables ?? 0 },
+        { label: 'Completed', value: metrics.completedDeliverables ?? 0 },
+        { label: 'Pending', value: metrics.pendingDeliverables ?? 0 },
+        { label: 'Total Assets', value: metrics.totalAssets ?? 0 },
+        { label: 'Bonus Assets', value: metrics.totalBonusAssets ?? 0 },
+        { label: 'Avg Approval Time', value: `${Math.round(metrics.averageApprovalTime || 0)} days` },
+        { label: 'Total Feedback', value: metrics.totalFeedback ?? 0 },
+        { label: 'Resolved Feedback', value: metrics.resolvedFeedback ?? 0 },
+      ]
+    : [];
+
   const deliverableStatusSummary = useMemo(() => {
     const counts = {
       completed: 0,
@@ -189,15 +232,6 @@ export function ReportDetailsPage() {
       .sort((a, b) => b.total - a.total);
   }, [deliverablesByProject, projectList]);
 
-  const formatDate = (dateStr?: string | null) => {
-    if (!dateStr) return 'N/A';
-    return new Date(dateStr).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-  };
-
   if (isLoading) {
     return <div className={styles.state}>Loading report...</div>;
   }
@@ -212,40 +246,6 @@ export function ReportDetailsPage() {
       </div>
     );
   }
-
-  const { reportData } = report;
-  const isClientReport = reportData?.scope === 'client';
-  const clientLabel = reportData?.client?.companyName || reportData?.client?.name;
-  const dateRange = reportData?.dateRange;
-  const periodLabel =
-    dateRange?.startDate && dateRange?.endDate
-      ? `${formatDate(dateRange.startDate)} - ${formatDate(dateRange.endDate)}`
-      : null;
-
-  const metrics = reportData?.metrics;
-  const completionRate = Math.max(0, Math.min(100, metrics?.completionRate || 0));
-  const feedbackRate =
-    metrics?.totalFeedback && metrics.totalFeedback > 0
-      ? Math.round((metrics.resolvedFeedback / metrics.totalFeedback) * 100)
-      : 0;
-  const deliverableTotal = metrics?.totalDeliverables ?? 0;
-  const deliverableCompleted = metrics?.completedDeliverables ?? 0;
-  const totalAssets = metrics?.totalAssets ?? 0;
-  const bonusAssets = metrics?.totalBonusAssets ?? 0;
-  const assetsTotal = totalAssets + bonusAssets;
-  const metricCards = metrics
-    ? [
-        { label: 'Completion Rate', value: `${Math.round(metrics.completionRate || 0)}%` },
-        { label: 'Total Deliverables', value: metrics.totalDeliverables ?? 0 },
-        { label: 'Completed', value: metrics.completedDeliverables ?? 0 },
-        { label: 'Pending', value: metrics.pendingDeliverables ?? 0 },
-        { label: 'Total Assets', value: metrics.totalAssets ?? 0 },
-        { label: 'Bonus Assets', value: metrics.totalBonusAssets ?? 0 },
-        { label: 'Avg Approval Time', value: `${Math.round(metrics.averageApprovalTime || 0)} days` },
-        { label: 'Total Feedback', value: metrics.totalFeedback ?? 0 },
-        { label: 'Resolved Feedback', value: metrics.resolvedFeedback ?? 0 },
-      ]
-    : [];
 
   const formatStatus = (value?: string | null) =>
     value ? value.replace(/_/g, ' ').toUpperCase() : 'N/A';
