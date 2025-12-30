@@ -132,8 +132,8 @@
 
 .kpiGrid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(2, minmax(140px, 1fr));
+  gap: 10px;
 }
 
 .kpiCard {
@@ -157,8 +157,8 @@
 
 .chartGrid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(2, minmax(160px, 1fr));
+  gap: 12px;
 }
 
 .chartCard {
@@ -297,8 +297,8 @@
 
 .projectGrid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(2, minmax(160px, 1fr));
+  gap: 12px;
 }
 
 .projectCard {
@@ -366,8 +366,8 @@
 
 .deliverablesGrid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(2, minmax(160px, 1fr));
+  gap: 12px;
 }
 
 .deliverableCard {
@@ -449,7 +449,7 @@
   font-size: 13px;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 480px) {
   .page {
     padding: 16px;
   }
