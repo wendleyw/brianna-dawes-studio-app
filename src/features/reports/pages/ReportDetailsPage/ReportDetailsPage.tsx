@@ -357,22 +357,10 @@ export function ReportDetailsPage() {
     return { buckets: trimmed, isMonthly: useMonthly };
   }, [dateRange, deliverables]);
 
-  const trendData = useMemo(() => {
-    const buckets = periodSummary.buckets;
-    const maxValue = Math.max(1, ...buckets.map((bucket) => bucket.total));
-    const points = buckets.map((bucket, index) => {
-      const x = buckets.length === 1 ? 50 : (index / (buckets.length - 1)) * 100;
-      const y = 90 - (bucket.total / maxValue) * 70;
-      return { x, y };
-    });
-    const linePath = points.map((point, index) => `${index === 0 ? 'M' : 'L'}${point.x},${point.y}`).join(' ');
-    return { maxValue, points, linePath };
-  }, [periodSummary.buckets]);
+
 
   const hasTrendData = periodSummary.buckets.some((bucket) => bucket.total > 0);
-  const trendColumnsStyle = {
-    '--trend-columns': Math.max(periodSummary.buckets.length, 1),
-  } as React.CSSProperties;
+
   const trendLabel = periodSummary.isMonthly ? 'Monthly' : 'Weekly';
 
   if (isLoading) {

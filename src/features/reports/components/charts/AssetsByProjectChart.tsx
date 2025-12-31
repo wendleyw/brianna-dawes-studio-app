@@ -54,7 +54,7 @@ export function AssetsByProjectChart({ data }: AssetsByProjectChartProps) {
                         contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
                     />
                     <Bar dataKey="total" radius={[0, 4, 4, 0]} barSize={20}>
-                        {sortedData.map((entry, index) => (
+                        {sortedData.map((_, index) => (
                             <Cell key={`cell-${index}`} fill="#0f766e" />
                         ))}
                     </Bar>
