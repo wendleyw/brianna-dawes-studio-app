@@ -3,6 +3,9 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@shared/ui';
 import { supabase } from '@shared/lib/supabase';
 import { useReport, useReportMutations } from '../../hooks';
+import { DeliveryTrendChart } from '../../components/charts/DeliveryTrendChart';
+import { StatusDistributionChart } from '../../components/charts/StatusDistributionChart';
+import { AssetsByProjectChart } from '../../components/charts/AssetsByProjectChart';
 import styles from './ReportDetailsPage.module.css';
 
 type DeliverableRow = {
@@ -249,16 +252,16 @@ export function ReportDetailsPage() {
   const assetsTotal = totalAssets + bonusAssets;
   const metricCards = metrics
     ? [
-        { label: 'Completion Rate', value: `${Math.round(metrics.completionRate || 0)}%` },
-        { label: 'Total Deliverables', value: metrics.totalDeliverables ?? 0 },
-        { label: 'Completed', value: metrics.completedDeliverables ?? 0 },
-        { label: 'Pending', value: metrics.pendingDeliverables ?? 0 },
-        { label: 'Total Assets', value: metrics.totalAssets ?? 0 },
-        { label: 'Bonus Assets', value: metrics.totalBonusAssets ?? 0 },
-        { label: 'Avg Approval Time', value: `${Math.round(metrics.averageApprovalTime || 0)} days` },
-        { label: 'Total Feedback', value: metrics.totalFeedback ?? 0 },
-        { label: 'Resolved Feedback', value: metrics.resolvedFeedback ?? 0 },
-      ]
+      { label: 'Completion Rate', value: `${Math.round(metrics.completionRate || 0)}%` },
+      { label: 'Total Deliverables', value: metrics.totalDeliverables ?? 0 },
+      { label: 'Completed', value: metrics.completedDeliverables ?? 0 },
+      { label: 'Pending', value: metrics.pendingDeliverables ?? 0 },
+      { label: 'Total Assets', value: metrics.totalAssets ?? 0 },
+      { label: 'Bonus Assets', value: metrics.totalBonusAssets ?? 0 },
+      { label: 'Avg Approval Time', value: `${Math.round(metrics.averageApprovalTime || 0)} days` },
+      { label: 'Total Feedback', value: metrics.totalFeedback ?? 0 },
+      { label: 'Resolved Feedback', value: metrics.resolvedFeedback ?? 0 },
+    ]
     : [];
 
   const deliverableStatusSummary = useMemo(() => {
@@ -471,59 +474,7 @@ export function ReportDetailsPage() {
               {!hasTrendData ? (
                 <div className={styles.stateSmall}>No delivery activity in this period.</div>
               ) : (
-                <div className={styles.trendChart} style={trendColumnsStyle}>
-                  <div className={styles.trendLegend}>
-                    <span className={styles.legendItem}>
-                      <span className={styles.trendSwatchAssets} />
-                      Assets
-                    </span>
-                    <span className={styles.legendItem}>
-                      <span className={styles.trendSwatchBonus} />
-                      Bonus
-                    </span>
-                    <span className={styles.legendItem}>
-                      <span className={styles.trendSwatchLine} />
-                      Total
-                    </span>
-                  </div>
-                  <div className={styles.trendPlot}>
-                    <div className={styles.trendBars}>
-                      {periodSummary.buckets.map((bucket, index) => {
-                        const assetsHeight =
-                          bucket.assets > 0 ? Math.max((bucket.assets / trendData.maxValue) * 100, 4) : 0;
-                        const bonusHeight =
-                          bucket.bonus > 0 ? Math.max((bucket.bonus / trendData.maxValue) * 100, 4) : 0;
-                        return (
-                          <div
-                            key={`${bucket.label}-${index}`}
-                            className={styles.trendBarGroup}
-                            title={`${bucket.label}: ${bucket.assets} assets, ${bucket.bonus} bonus`}
-                          >
-                            <div
-                              className={`${styles.trendBar} ${styles.trendBarAssets}`}
-                              style={{ height: `${assetsHeight}%` }}
-                            />
-                            <div
-                              className={`${styles.trendBar} ${styles.trendBarBonus}`}
-                              style={{ height: `${bonusHeight}%` }}
-                            />
-                          </div>
-                        );
-                      })}
-                    </div>
-                    <svg className={styles.trendLine} viewBox="0 0 100 100" preserveAspectRatio="none">
-                      <path d={trendData.linePath} stroke="#0f172a" strokeWidth="2" fill="none" />
-                      {trendData.points.map((point, index) => (
-                        <circle key={`point-${index}`} cx={point.x} cy={point.y} r="2.5" fill="#0f172a" />
-                      ))}
-                    </svg>
-                  </div>
-                  <div className={styles.trendLabels}>
-                    {periodSummary.buckets.map((bucket, index) => (
-                      <span key={`${bucket.label}-label-${index}`}>{bucket.label}</span>
-                    ))}
-                  </div>
-                </div>
+                <DeliveryTrendChart data={periodSummary.buckets} />
               )}
             </div>
             <div className={styles.chartCard}>
@@ -563,24 +514,7 @@ export function ReportDetailsPage() {
               {deliverableTotal === 0 ? (
                 <div className={styles.stateSmall}>No deliverables yet.</div>
               ) : (
-                <div className={styles.barList}>
-                  {deliverableStatusSummary.map((row) => {
-                    const percent =
-                      deliverableTotal > 0 ? Math.round((row.value / deliverableTotal) * 100) : 0;
-                    return (
-                      <div key={row.label} className={styles.barRow}>
-                        <span>{row.label}</span>
-                        <div className={styles.barTrack}>
-                          <div
-                            className={styles.barFill}
-                            style={{ width: `${percent}%`, '--bar-color': row.color } as React.CSSProperties}
-                          />
-                        </div>
-                        <span className={styles.barValue}>{row.value}</span>
-                      </div>
-                    );
-                  })}
-                </div>
+                <StatusDistributionChart data={deliverableStatusSummary} />
               )}
             </div>
 
@@ -595,23 +529,7 @@ export function ReportDetailsPage() {
               {assetsTotal === 0 ? (
                 <div className={styles.stateSmall}>No assets recorded.</div>
               ) : (
-                <div className={styles.barList}>
-                  {assetsByProject.slice(0, 5).map((row) => {
-                    const percent = assetsTotal > 0 ? Math.round((row.total / assetsTotal) * 100) : 0;
-                    return (
-                      <div key={row.id} className={styles.barRow}>
-                        <span>{row.name}</span>
-                        <div className={styles.barTrack}>
-                          <div
-                            className={styles.barFill}
-                            style={{ width: `${percent}%`, '--bar-color': '#0f766e' } as React.CSSProperties}
-                          />
-                        </div>
-                        <span className={styles.barValue}>{row.total}</span>
-                      </div>
-                    );
-                  })}
-                </div>
+                <AssetsByProjectChart data={assetsByProject} />
               )}
             </div>
           </div>
