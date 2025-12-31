@@ -17,6 +17,85 @@ type DeliverableRow = {
   createdAt: string;
 };
 
+type PeriodBucket = {
+  label: string;
+  assets: number;
+  bonus: number;
+  total: number;
+  deliverables: number;
+  completed: number;
+};
+
+const COMPLETED_STATUSES = new Set(['approved', 'delivered', 'completed']);
+const MS_PER_DAY = 1000 * 60 * 60 * 24;
+
+function getDaysBetween(startDate: Date, endDate: Date) {
+  return Math.ceil((endDate.getTime() - startDate.getTime()) / MS_PER_DAY);
+}
+
+function formatWeekLabel(startDate: Date, endDate: Date) {
+  const startMonth = startDate.toLocaleDateString('en-US', { month: 'short' });
+  const endMonth = endDate.toLocaleDateString('en-US', { month: 'short' });
+  const startDay = startDate.getDate();
+  const endDay = endDate.getDate();
+
+  if (startMonth === endMonth) {
+    return `${startMonth} ${startDay}-${endDay}`;
+  }
+  return `${startMonth} ${startDay} - ${endMonth} ${endDay}`;
+}
+
+function getWeeksInRange(startDate: Date, endDate: Date) {
+  const weeks: Array<{ start: Date; end: Date; label: string }> = [];
+  const currentStart = new Date(startDate);
+  currentStart.setDate(currentStart.getDate() - currentStart.getDay());
+
+  while (currentStart <= endDate) {
+    const weekEnd = new Date(currentStart);
+    weekEnd.setDate(weekEnd.getDate() + 6);
+
+    weeks.push({
+      start: new Date(currentStart),
+      end: weekEnd > endDate ? new Date(endDate) : weekEnd,
+      label: formatWeekLabel(currentStart, weekEnd > endDate ? endDate : weekEnd),
+    });
+
+    currentStart.setDate(currentStart.getDate() + 7);
+  }
+
+  return weeks;
+}
+
+function getMonthsInRange(startDate: Date, endDate: Date) {
+  const months: Array<{ start: Date; end: Date; label: string }> = [];
+  const currentStart = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
+
+  while (currentStart <= endDate) {
+    const monthEnd = new Date(currentStart.getFullYear(), currentStart.getMonth() + 1, 0);
+    const label = currentStart.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+
+    months.push({
+      start: new Date(currentStart),
+      end: monthEnd > endDate ? new Date(endDate) : monthEnd,
+      label,
+    });
+
+    currentStart.setMonth(currentStart.getMonth() + 1);
+  }
+
+  return months;
+}
+
+function getDeliverablePeriodDate(deliverable: DeliverableRow) {
+  if (deliverable.deliveredAt) {
+    return new Date(deliverable.deliveredAt);
+  }
+  if (deliverable.dueDate) {
+    return new Date(deliverable.dueDate);
+  }
+  return new Date(deliverable.createdAt);
+}
+
 export function ReportDetailsPage() {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -232,6 +311,67 @@ export function ReportDetailsPage() {
       .sort((a, b) => b.total - a.total);
   }, [deliverablesByProject, projectList]);
 
+  const periodSummary = useMemo(() => {
+    if (!dateRange?.startDate || !dateRange?.endDate) {
+      return { buckets: [] as PeriodBucket[], isMonthly: false };
+    }
+
+    const startDate = new Date(`${dateRange.startDate}T00:00:00`);
+    const endDate = new Date(`${dateRange.endDate}T23:59:59.999`);
+    const daysBetween = getDaysBetween(startDate, endDate);
+    const useMonthly = daysBetween > 90;
+    const ranges = useMonthly ? getMonthsInRange(startDate, endDate) : getWeeksInRange(startDate, endDate);
+
+    const buckets = ranges.map((range) => {
+      let assets = 0;
+      let bonus = 0;
+      let deliverableCount = 0;
+      let completedCount = 0;
+
+      deliverables.forEach((deliverable) => {
+        const periodDate = getDeliverablePeriodDate(deliverable);
+        if (periodDate < range.start || periodDate > range.end) return;
+        assets += deliverable.count || 0;
+        bonus += deliverable.bonusCount || 0;
+        deliverableCount += 1;
+        if (COMPLETED_STATUSES.has(deliverable.status.toLowerCase())) {
+          completedCount += 1;
+        }
+      });
+
+      return {
+        label: range.label,
+        assets,
+        bonus,
+        total: assets + bonus,
+        deliverables: deliverableCount,
+        completed: completedCount,
+      };
+    });
+
+    const maxBuckets = useMonthly ? 6 : 8;
+    const trimmed = buckets.length > maxBuckets ? buckets.slice(buckets.length - maxBuckets) : buckets;
+    return { buckets: trimmed, isMonthly: useMonthly };
+  }, [dateRange, deliverables]);
+
+  const trendData = useMemo(() => {
+    const buckets = periodSummary.buckets;
+    const maxValue = Math.max(1, ...buckets.map((bucket) => bucket.total));
+    const points = buckets.map((bucket, index) => {
+      const x = buckets.length === 1 ? 50 : (index / (buckets.length - 1)) * 100;
+      const y = 90 - (bucket.total / maxValue) * 70;
+      return { x, y };
+    });
+    const linePath = points.map((point, index) => `${index === 0 ? 'M' : 'L'}${point.x},${point.y}`).join(' ');
+    return { maxValue, points, linePath };
+  }, [periodSummary.buckets]);
+
+  const hasTrendData = periodSummary.buckets.some((bucket) => bucket.total > 0);
+  const trendColumnsStyle = {
+    '--trend-columns': Math.max(periodSummary.buckets.length, 1),
+  } as React.CSSProperties;
+  const trendLabel = periodSummary.isMonthly ? 'Monthly' : 'Weekly';
+
   if (isLoading) {
     return <div className={styles.state}>Loading report...</div>;
   }
@@ -320,6 +460,72 @@ export function ReportDetailsPage() {
             <p>Key trends and totals pulled from deliverables and feedback.</p>
           </div>
           <div className={styles.chartGrid}>
+            <div className={`${styles.chartCard} ${styles.chartSpan}`}>
+              <div className={styles.chartHeader}>
+                <div>
+                  <h3>{trendLabel} Delivery Volume</h3>
+                  <p>Assets and bonus counts over this reporting period.</p>
+                </div>
+                <span className={styles.chartValue}>{assetsTotal}</span>
+              </div>
+              {!hasTrendData ? (
+                <div className={styles.stateSmall}>No delivery activity in this period.</div>
+              ) : (
+                <div className={styles.trendChart} style={trendColumnsStyle}>
+                  <div className={styles.trendLegend}>
+                    <span className={styles.legendItem}>
+                      <span className={styles.trendSwatchAssets} />
+                      Assets
+                    </span>
+                    <span className={styles.legendItem}>
+                      <span className={styles.trendSwatchBonus} />
+                      Bonus
+                    </span>
+                    <span className={styles.legendItem}>
+                      <span className={styles.trendSwatchLine} />
+                      Total
+                    </span>
+                  </div>
+                  <div className={styles.trendPlot}>
+                    <div className={styles.trendBars}>
+                      {periodSummary.buckets.map((bucket, index) => {
+                        const assetsHeight =
+                          bucket.assets > 0 ? Math.max((bucket.assets / trendData.maxValue) * 100, 4) : 0;
+                        const bonusHeight =
+                          bucket.bonus > 0 ? Math.max((bucket.bonus / trendData.maxValue) * 100, 4) : 0;
+                        return (
+                          <div
+                            key={`${bucket.label}-${index}`}
+                            className={styles.trendBarGroup}
+                            title={`${bucket.label}: ${bucket.assets} assets, ${bucket.bonus} bonus`}
+                          >
+                            <div
+                              className={`${styles.trendBar} ${styles.trendBarAssets}`}
+                              style={{ height: `${assetsHeight}%` }}
+                            />
+                            <div
+                              className={`${styles.trendBar} ${styles.trendBarBonus}`}
+                              style={{ height: `${bonusHeight}%` }}
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <svg className={styles.trendLine} viewBox="0 0 100 100" preserveAspectRatio="none">
+                      <path d={trendData.linePath} stroke="#0f172a" strokeWidth="2" fill="none" />
+                      {trendData.points.map((point, index) => (
+                        <circle key={`point-${index}`} cx={point.x} cy={point.y} r="2.5" fill="#0f172a" />
+                      ))}
+                    </svg>
+                  </div>
+                  <div className={styles.trendLabels}>
+                    {periodSummary.buckets.map((bucket, index) => (
+                      <span key={`${bucket.label}-label-${index}`}>{bucket.label}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
             <div className={styles.chartCard}>
               <div className={styles.chartHeader}>
                 <div>
