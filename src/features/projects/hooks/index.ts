@@ -14,3 +14,4 @@ export {
   useDeleteProjectWithMiro,
   useProjectMutationsWithMiro,
 } from './useProjectWithMiro';
+export { useProjectTypes } from './useProjectTypes';
