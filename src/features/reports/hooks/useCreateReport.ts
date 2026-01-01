@@ -2,9 +2,8 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@shared/lib/supabase';
 import { reportRepository } from '../api/reportRepository';
 import { reportService } from '../services/reportService';
-import { reportPDFService } from '../services/reportPDFService';
-import { ReportPDFDocument } from '../components/ReportPDFDocument';
 import { reportKeys } from '../services/reportKeys';
+import { projectTypeService } from '@features/admin/services/projectTypeService';
 import { createLogger } from '@shared/lib/logger';
 import { useAuth } from '@features/auth';
 import type { CreateReportInput, ProjectMetrics, ProjectReportData } from '../domain/report.types';
@@ -18,11 +17,10 @@ const logger = createLogger('useCreateReport');
  * 1. Fetch project data from Supabase
  * 2. Generate metrics using reportService
  * 3. Build ProjectReportData snapshot
- * 4. Generate PDF using React-PDF
- * 5. Upload PDF to Supabase Storage
- * 6. Save report record to database
- * 7. Send notification to client
- * 8. Update report status to 'sent'
+ * 4. (Disabled) PDF generation + upload
+ * 5. Save report record to database
+ * 6. Send notification to client
+ * 7. Update report status to 'sent'
  */
 export function useCreateReport() {
   const queryClient = useQueryClient();
@@ -113,8 +111,17 @@ export function useCreateReport() {
           totalAssets = rangeResult.totalAssets;
           totalBonusAssets = rangeResult.totalBonusAssets;
         } else {
-          metrics = await reportService.getProjectMetrics(input.projectId);
+          // Wrap legacy getProjectMetrics to include new fields
+          const legacyMetrics = await reportService.getProjectMetrics(input.projectId);
           const assetTotals = await getProjectAssetTotals(input.projectId);
+
+          const { data: pData } = await supabase.from('projects').select('priority').eq('id', input.projectId).single();
+          const urgentProjectsCount = pData?.priority === 'urgent' ? 1 : 0;
+
+          metrics = {
+            ...legacyMetrics,
+            urgentProjectsCount
+          };
           totalAssets = assetTotals.totalAssets;
           totalBonusAssets = assetTotals.totalBonusAssets;
         }
@@ -133,8 +140,23 @@ export function useCreateReport() {
         });
 
       // Step 4: Get upcoming deadlines for this project
-      // TODO: Implement in reportService if needed
       const upcomingDeadlines: any[] = [];
+
+      // Fetch Process Types for mapping
+      const allProjectTypes = await projectTypeService.getAllProjectTypes();
+      const normalizeTypeKey = (value: string) => value.trim().toLowerCase();
+      const projectTypeMap = new Map<string, string>();
+      allProjectTypes.forEach((t) => {
+        projectTypeMap.set(normalizeTypeKey(t.value), t.label);
+        projectTypeMap.set(normalizeTypeKey(t.id), t.label);
+        projectTypeMap.set(normalizeTypeKey(t.label), t.label);
+        projectTypeMap.set(normalizeTypeKey(t.shortLabel), t.label);
+      });
+
+      const resolveProjectType = (typeValueOrId: string | undefined | null) => {
+        if (!typeValueOrId) return null;
+        return projectTypeMap.get(normalizeTypeKey(typeValueOrId)) || 'Other';
+      };
 
       // Step 5: Build ProjectReportData snapshot
       let reportData: ProjectReportData = {
@@ -147,6 +169,8 @@ export function useCreateReport() {
           priority: project.priority,
           startDate: project.start_date,
           dueDate: project.due_date,
+          // Resolve project type immediately
+          projectType: resolveProjectType(project.briefing?.projectType),
           client: {
             id: project.client.id,
             name: project.client.name,
@@ -160,13 +184,14 @@ export function useCreateReport() {
         metrics: {
           totalDeliverables: metrics.totalDeliverables,
           completedDeliverables: metrics.completedDeliverables,
-          pendingDeliverables: metrics.pendingDeliverables,
+          pendingDeliverables: metrics.pendingDeliverables, // restored
           completionRate: metrics.completionRate,
           totalAssets,
           totalBonusAssets,
           averageApprovalTime: metrics.averageApprovalTime,
           totalFeedback: metrics.totalFeedback,
           resolvedFeedback: metrics.resolvedFeedback,
+          urgentProjectsCount: metrics.urgentProjectsCount, // Added
         },
         recentActivity: projectActivity.slice(0, 10),
         upcomingDeadlines,
@@ -190,6 +215,7 @@ export function useCreateReport() {
             priority: item.priority,
             startDate: item.startDate,
             dueDate: item.dueDate,
+            projectType: resolveProjectType(item.projectType),
           })),
         };
       }
@@ -199,36 +225,19 @@ export function useCreateReport() {
         reportData.adminNotes = input.adminNotes;
       }
 
-      // Step 6: Generate PDF blob
-      const pdfBlob = await reportPDFService.generatePDFBlob(
-        ReportPDFDocument,
-        reportData
-      );
-
-      logger.debug('PDF generated', { size: pdfBlob.size });
-
-      // Step 7: Upload PDF to storage
-      const { url: pdfUrl } = await reportPDFService.uploadPDF(
-        input.projectId,
-        input.title,
-        pdfBlob
-      );
-
-      logger.debug('PDF uploaded', { pdfUrl });
-
-      // Step 8: Save report to database
+      // Step 6: Save report to database (no PDF generation)
       const report = await reportRepository.create({
         ...input,
         reportData,
-        pdfUrl,
-        pdfFilename: `${input.title}.pdf`,
-        fileSizeBytes: pdfBlob.size,
+        pdfUrl: '',
+        pdfFilename: '',
+        fileSizeBytes: 0,
         createdBy: currentUser.id,
       });
 
       logger.debug('Report saved to database', { reportId: report.id });
 
-      // Step 9: Send notification to client
+      // Step 7: Send notification to client
       const { error: notificationError } = await supabase.rpc('create_notification', {
         p_user_id: project.client.id,
         p_type: 'report_sent',
@@ -247,10 +256,9 @@ export function useCreateReport() {
 
       if (notificationError) {
         logger.warn('Failed to send notification', notificationError);
-        // Don't throw - notification failure shouldn't fail report creation
       }
 
-      // Step 11: Update report status to 'sent'
+      // Step 8: Update report status to 'sent'
       await reportRepository.updateStatus(report.id, 'sent');
 
       logger.info('Report created and sent successfully', {
@@ -266,7 +274,7 @@ export function useCreateReport() {
       queryClient.invalidateQueries({ queryKey: reportKeys.projectReports.all });
       queryClient.invalidateQueries({ queryKey: reportKeys.projectReports.lists() });
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       logger.error('Failed to create report', error);
     },
   });
@@ -317,6 +325,10 @@ async function getProjectMetricsForRange(
   const totalFeedback = feedback?.length || 0;
   const resolvedFeedback = feedback?.filter((f) => f.status === 'resolved').length || 0;
 
+  // Fetch priority
+  const { data: pData } = await supabase.from('projects').select('priority').eq('id', projectId).single();
+  const urgentProjectsCount = pData?.priority === 'urgent' ? 1 : 0;
+
   return {
     metrics: {
       projectId,
@@ -329,6 +341,7 @@ async function getProjectMetricsForRange(
       averageApprovalTime: Math.round(averageApprovalTime * 10) / 10,
       totalFeedback,
       resolvedFeedback,
+      urgentProjectsCount,
     },
     totalAssets,
     totalBonusAssets,
@@ -367,6 +380,34 @@ async function getClientMetricsForRange(projectIds: string[], startDate?: string
   const averageApprovalTime = approvedCount > 0 ? totalApprovalTime / approvedCount : 0;
   const deliverableIds = deliverables.map((d) => d.id).filter(Boolean) as string[];
 
+  // Fetch projects with creation date to filter by period and count by priority
+  let projectQuery = supabase
+    .from('projects')
+    .select('id, priority, created_at')
+    .in('id', projectIds);
+
+  const { data: projectsData } = await projectQuery;
+
+  // Filter projects created within the period if dates are specified
+  const filteredProjects = startIso && endIso
+    ? (projectsData || []).filter((p) => {
+        const createdAt = new Date(p.created_at).getTime();
+        const start = new Date(startIso).getTime();
+        const end = new Date(endIso).getTime();
+        return createdAt >= start && createdAt <= end;
+      })
+    : (projectsData || []);
+
+  const urgentProjectsCount = filteredProjects.filter(p => p.priority === 'urgent').length;
+
+  // Count projects by priority (for projects created in the period)
+  const projectsByPriority = {
+    urgent: filteredProjects.filter(p => p.priority === 'urgent').length,
+    high: filteredProjects.filter(p => p.priority === 'high').length,
+    medium: filteredProjects.filter(p => p.priority === 'medium').length,
+    low: filteredProjects.filter(p => p.priority === 'low').length,
+  };
+
   let totalFeedback = 0;
   let resolvedFeedback = 0;
 
@@ -400,6 +441,8 @@ async function getClientMetricsForRange(projectIds: string[], startDate?: string
       averageApprovalTime: Math.round(averageApprovalTime * 10) / 10,
       totalFeedback,
       resolvedFeedback,
+      urgentProjectsCount,
+      projectsByPriority,
     },
     totalAssets,
     totalBonusAssets,
@@ -428,13 +471,13 @@ async function fetchDeliverables(projectId: string, startIso?: string, endIso?: 
   const { data: initialData, error: initialError } = await query;
   let data = initialData as
     | Array<{
-        id: string;
-        created_at: string;
-        updated_at: string;
-        status: string;
-        count?: number | null;
-        bonus_count?: number | null;
-      }>
+      id: string;
+      created_at: string;
+      updated_at: string;
+      status: string;
+      count?: number | null;
+      bonus_count?: number | null;
+    }>
     | null;
   let error = initialError;
 
@@ -478,14 +521,14 @@ async function fetchDeliverablesForProjects(projectIds: string[], startIso?: str
   const { data: initialData, error: initialError } = await query;
   let data = initialData as
     | Array<{
-        id: string;
-        created_at: string;
-        updated_at: string;
-        status: string;
-        count?: number | null;
-        bonus_count?: number | null;
-        project_id: string;
-      }>
+      id: string;
+      created_at: string;
+      updated_at: string;
+      status: string;
+      count?: number | null;
+      bonus_count?: number | null;
+      project_id: string;
+    }>
     | null;
   let error = initialError;
 
@@ -521,7 +564,7 @@ async function fetchDeliverablesForProjects(projectIds: string[], startIso?: str
 async function fetchProjectsForClientReport(projectIds: string[]) {
   const { data, error } = await supabase
     .from('projects')
-    .select('id, name, status, priority, start_date, due_date, client:users!client_id(id, name, company_name)')
+    .select('id, name, status, priority, start_date, due_date, briefing, client:users!client_id(id, name, company_name)')
     .in('id', projectIds)
     .order('created_at', { ascending: false });
 
@@ -536,6 +579,7 @@ async function fetchProjectsForClientReport(projectIds: string[]) {
     priority: project.priority,
     startDate: project.start_date,
     dueDate: project.due_date,
+    projectType: project.briefing?.projectType ?? null, // Will be resolved by caller
     client: project.client,
   }));
 }

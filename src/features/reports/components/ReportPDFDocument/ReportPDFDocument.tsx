@@ -210,6 +210,12 @@ export function ReportPDFDocument({ data }: ReportPDFDocumentProps) {
                 <Text style={styles.value}>{project.description}</Text>
               </View>
             )}
+            {project.projectType && (
+              <View style={styles.row}>
+                <Text style={styles.label}>Project Type:</Text>
+                <Text style={styles.value}>{project.projectType}</Text>
+              </View>
+            )}
             <View style={styles.row}>
               <Text style={styles.label}>Client:</Text>
               <Text style={styles.value}>
@@ -322,8 +328,43 @@ export function ReportPDFDocument({ data }: ReportPDFDocumentProps) {
               <Text style={styles.metricLabel}>Resolved Feedback</Text>
               <Text style={styles.metricValue}>{metrics.resolvedFeedback}</Text>
             </View>
+
+            {metrics.urgentProjectsCount !== undefined && scope === 'client' && (
+              <View style={styles.metricCard}>
+                <Text style={styles.metricLabel}>Urgent Projects</Text>
+                <Text style={styles.metricValue}>{metrics.urgentProjectsCount}</Text>
+              </View>
+            )}
           </View>
         </View>
+
+        {/* Projects by Priority (for client reports with date range) */}
+        {scope === 'client' && metrics.projectsByPriority && dateRange && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>New Projects by Priority (Period)</Text>
+            <View style={styles.metricsContainer}>
+              <View style={styles.metricCard}>
+                <Text style={styles.metricLabel}>Urgent</Text>
+                <Text style={styles.metricValue}>{metrics.projectsByPriority.urgent}</Text>
+              </View>
+
+              <View style={styles.metricCard}>
+                <Text style={styles.metricLabel}>High</Text>
+                <Text style={styles.metricValue}>{metrics.projectsByPriority.high}</Text>
+              </View>
+
+              <View style={styles.metricCard}>
+                <Text style={styles.metricLabel}>Medium</Text>
+                <Text style={styles.metricValue}>{metrics.projectsByPriority.medium}</Text>
+              </View>
+
+              <View style={styles.metricCard}>
+                <Text style={styles.metricLabel}>Low</Text>
+                <Text style={styles.metricValue}>{metrics.projectsByPriority.low}</Text>
+              </View>
+            </View>
+          </View>
+        )}
 
         {/* Recent Activity */}
         {recentActivity && recentActivity.length > 0 && (

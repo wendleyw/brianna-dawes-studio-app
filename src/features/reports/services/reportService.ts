@@ -271,6 +271,15 @@ class ReportService {
     const total = stats?.total_deliverables || 0;
     const completed = (stats?.approved_deliverables || 0) + (stats?.delivered_deliverables || 0);
 
+    // Get project priority to check if urgent
+    const { data: projectData } = await supabase
+      .from('projects')
+      .select('priority')
+      .eq('id', projectId)
+      .single();
+
+    const urgentProjectsCount = projectData?.priority === 'urgent' ? 1 : 0;
+
     return {
       projectId,
       projectName: project?.name || '',
@@ -282,6 +291,7 @@ class ReportService {
       averageApprovalTime: Math.round(averageApprovalTime * 10) / 10,
       totalFeedback: stats?.total_feedback || 0,
       resolvedFeedback: (stats?.total_feedback || 0) - (stats?.pending_feedback || 0),
+      urgentProjectsCount,
     };
   }
 

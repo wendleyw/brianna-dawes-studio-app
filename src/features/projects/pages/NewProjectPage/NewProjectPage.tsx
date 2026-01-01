@@ -3,8 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@shared/ui';
 import { useAuth } from '@features/auth';
 import { useUsers } from '@features/admin/hooks';
+import type { User } from '@features/admin/domain/admin.types';
+import type { ProjectType } from '@features/admin/services/projectTypeService';
 import { useMiro } from '@features/boards';
-import { useCreateProjectWithMiro } from '../../hooks';
+import { useCreateProjectWithMiro, useProjectTypes } from '../../hooks';
 import { createLogger } from '@shared/lib/logger';
 import { PRIORITY_OPTIONS } from '@shared/lib/priorityConfig';
 import { MiroNotifications } from '@shared/lib/miroNotifications';
@@ -15,28 +17,28 @@ const logger = createLogger('NewProjectPage');
 // Calendar icon
 const CalendarIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-    <line x1="16" y1="2" x2="16" y2="6"/>
-    <line x1="8" y1="2" x2="8" y2="6"/>
-    <line x1="3" y1="10" x2="21" y2="10"/>
+    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+    <line x1="16" y1="2" x2="16" y2="6" />
+    <line x1="8" y1="2" x2="8" y2="6" />
+    <line x1="3" y1="10" x2="21" y2="10" />
   </svg>
 );
 
 // Warning icon
 const WarningIcon = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-    <line x1="12" y1="9" x2="12" y2="13"/>
-    <line x1="12" y1="17" x2="12.01" y2="17"/>
+    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+    <line x1="12" y1="9" x2="12" y2="13" />
+    <line x1="12" y1="17" x2="12.01" y2="17" />
   </svg>
 );
 
 // Alert icon for board mismatch
 const AlertIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <circle cx="12" cy="12" r="10"/>
-    <line x1="12" y1="8" x2="12" y2="12"/>
-    <line x1="12" y1="16" x2="12.01" y2="16"/>
+    <circle cx="12" cy="12" r="10" />
+    <line x1="12" y1="8" x2="12" y2="12" />
+    <line x1="12" y1="16" x2="12.01" y2="16" />
   </svg>
 );
 
@@ -73,19 +75,7 @@ interface ProjectBriefing {
   priority: 'urgent' | 'high' | 'medium' | 'low';
 }
 
-// Project types with durations in business days (sorted by days ascending)
-const PROJECT_TYPES = [
-  { value: 'social-post-design', label: 'Social Post Design (Carousel / Static)', days: 5 },
-  { value: 'hero-section', label: 'Hero Section or Image Set', days: 5 },
-  { value: 'ad-design', label: 'Ad Design (Static or GIF)', days: 5 },
-  { value: 'gif-design', label: 'GIF Design (Standalone)', days: 5 },
-  { value: 'website-assets', label: 'Website Assets (Individual Sections)', days: 5 },
-  { value: 'email-design', label: 'Email Design (Full In-Depth)', days: 7 },
-  { value: 'video-production', label: 'Video Production / Reels', days: 7 },
-  { value: 'website-ui-design', label: 'Website UI Design (Full Page)', days: 11 },
-  { value: 'marketing-campaign', label: 'Marketing Campaign (Multi-Channel)', days: 14 },
-  { value: 'other', label: 'Other', days: 15 },
-] as const;
+// Project types are now loaded dynamically via useProjectTypes hook
 
 // PRIORITY_OPTIONS imported from @shared/lib/priorityConfig
 
@@ -112,10 +102,13 @@ function formatDateForInput(date: Date): string {
 
 export function NewProjectPage() {
   const navigate = useNavigate();
+  // Data hooks
   const { user, isLoading: authLoading } = useAuth();
   const { data: usersData, isLoading: usersLoading } = useUsers();
+  const { data: projectTypes = [] } = useProjectTypes();
   const { boardId, isInMiro } = useMiro();
   const createProject = useCreateProjectWithMiro();
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -128,13 +121,13 @@ export function NewProjectPage() {
   const isAdmin = user?.role === 'admin';
 
   // Get list of clients for admin to select from
-  const clients = usersData?.filter(u => u.role === 'client') || [];
+  const clients = usersData?.filter((u: User) => u.role === 'client') || [];
 
   // Find client associated with current Miro board
   const clientFromBoard = useMemo(() => {
     if (!boardId || !usersData) return null;
     // Find client whose primaryBoardId matches the current board
-    return usersData.find(u => u.role === 'client' && u.primaryBoardId === boardId) || null;
+    return usersData.find((u: User) => u.role === 'client' && u.primaryBoardId === boardId) || null;
   }, [boardId, usersData]);
 
   const [formData, setFormData] = useState<ProjectBriefing>({
@@ -157,7 +150,7 @@ export function NewProjectPage() {
   // Find selected client info (for board mismatch detection)
   const selectedClient = useMemo(() => {
     if (!formData.clientId || !usersData) return null;
-    return usersData.find(u => u.id === formData.clientId) || null;
+    return usersData.find((u: User) => u.id === formData.clientId) || null;
   }, [formData.clientId, usersData]);
 
   // Detect board mismatch: selected client has a different primaryBoardId than current board
@@ -202,7 +195,7 @@ export function NewProjectPage() {
 
   // Handle project type selection - auto-calculate due date
   const handleProjectTypeChange = (typeValue: string) => {
-    const projectType = PROJECT_TYPES.find(t => t.value === typeValue);
+    const projectType = projectTypes.find((t: ProjectType) => t.value === typeValue);
 
     if (projectType) {
       // Calculate due date from today + business days
@@ -240,7 +233,10 @@ export function NewProjectPage() {
       setFormData(prev => ({ ...prev, targetDate: autoCalculatedDate }));
       setHasCustomDate(false);
     } else {
+      // Enable specific date - mark as custom immediately and set priority to urgent
       setWantsSpecificDate(true);
+      setHasCustomDate(true);
+      setFormData(prev => ({ ...prev, priority: 'urgent' }));
     }
   };
 
@@ -268,6 +264,7 @@ export function NewProjectPage() {
   const handleSubmit = async () => {
     logger.debug('Submit called', { name: formData.name, projectType: formData.projectType, isAdmin });
 
+    // Only 3 required fields: Title, Type, and Deliverables
     if (!formData.projectType) {
       setError('Please select a project type');
       scrollToTop();
@@ -280,28 +277,15 @@ export function NewProjectPage() {
       return;
     }
 
-    if (!formData.clientId) {
-      setError(isAdmin ? 'Please select a client' : 'User not loaded. Please try again.');
-      scrollToTop();
-      return;
-    }
-
-    if (!formData.goalsObjectives.trim()) {
-      setError('Goals & Objectives is required');
-      scrollToTop();
-      return;
-    }
-
     if (!formData.deliverables.trim()) {
       setError('Deliverables is required');
       scrollToTop();
       return;
     }
 
-    if (!formData.targetDate) {
-      setError('Target completion date is required');
-      scrollToTop();
-      return;
+    // Auto-set clientId if not provided
+    if (!formData.clientId && user?.id) {
+      formData.clientId = user.id;
     }
 
     setIsSubmitting(true);
@@ -309,7 +293,7 @@ export function NewProjectPage() {
 
     try {
       // Get project type info for description
-      const selectedProjectType = PROJECT_TYPES.find(t => t.value === formData.projectType);
+      const selectedProjectType = projectTypes.find((t: ProjectType) => t.value === formData.projectType);
       const projectTypeLabel = selectedProjectType?.label || formData.projectType;
 
       // Create the project with briefing data in description
@@ -390,7 +374,7 @@ ${formData.additionalNotes || needsAttention}
         dueDateApproved: !hasCustomDate,
         // Pass briefing data for Miro board creation
         briefing: {
-          projectType: formData.projectType || null, // Important: Save the project type in briefing
+          projectType: formData.projectType || null, // Store the project_types.value key for consistent filtering
           projectOverview: formData.projectOverview || null,
           finalMessaging: formData.finalMessaging || null,
           inspirations: formData.inspirations || null,
@@ -453,7 +437,7 @@ ${formData.additionalNotes || needsAttention}
           {isAdmin && (
             <div className={styles.field}>
               <label className={styles.label}>
-                PROJECT OWNER <span className={styles.required}>*</span>
+                PROJECT OWNER
               </label>
               <select
                 className={styles.select}
@@ -468,7 +452,7 @@ ${formData.additionalNotes || needsAttention}
                 {/* Divider */}
                 <option disabled>──────────</option>
                 {/* List of clients - highlight detected client if any */}
-                {clients.map((client) => (
+                {clients.map((client: User) => (
                   <option key={client.id} value={client.id}>
                     {client.name} ({client.email}){clientFromBoard?.id === client.id ? ' ✓ Board' : ''}
                   </option>
@@ -549,7 +533,7 @@ ${formData.additionalNotes || needsAttention}
               onChange={(e) => handleProjectTypeChange(e.target.value)}
             >
               <option value="">Select project type...</option>
-              {PROJECT_TYPES.map((type) => (
+              {projectTypes.map((type: ProjectType) => (
                 <option key={type.value} value={type.value}>
                   {type.label} ({type.days} days)
                 </option>
@@ -568,7 +552,7 @@ ${formData.additionalNotes || needsAttention}
 
           <div className={styles.field}>
             <label className={styles.label}>
-              GOALS & OBJECTIVES <span className={styles.required}>*</span>
+              GOALS & OBJECTIVES
             </label>
             <textarea
               className={styles.textarea}
@@ -720,7 +704,7 @@ ${formData.additionalNotes || needsAttention}
 
           <div className={styles.field}>
             <label className={styles.label}>
-              TARGET COMPLETION DATE <span className={styles.required}>*</span>
+              TARGET COMPLETION DATE
             </label>
             <div className={styles.dueDateSection}>
               {/* Auto-calculated date display (readonly) */}
@@ -729,11 +713,11 @@ ${formData.additionalNotes || needsAttention}
                 <span>
                   {formData.targetDate
                     ? new Date(formData.targetDate + 'T00:00:00').toLocaleDateString('en-US', {
-                        weekday: 'short',
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric'
-                      })
+                      weekday: 'short',
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric'
+                    })
                     : 'Select project type first'}
                 </span>
                 {formData.projectType && !wantsSpecificDate && (
@@ -782,17 +766,23 @@ ${formData.additionalNotes || needsAttention}
 
           <div className={styles.field}>
             <label className={styles.label}>
-              PRIORITY LEVEL <span className={styles.required}>*</span>
+              PRIORITY LEVEL
+              {wantsSpecificDate && (
+                <span style={{ marginLeft: '8px', fontSize: '11px', color: 'var(--color-warning)', fontWeight: 'normal' }}>
+                  (Auto-set to Urgent for specific dates)
+                </span>
+              )}
             </label>
             <div className={styles.priorityGrid}>
               {PRIORITY_OPTIONS.map((option) => (
                 <button
                   key={option.value}
                   type="button"
-                  className={`${styles.priorityOption} ${
-                    formData.priority === option.value ? styles.prioritySelected : ''
-                  }`}
-                  onClick={() => updateField('priority', option.value)}
+                  className={`${styles.priorityOption} ${formData.priority === option.value ? styles.prioritySelected : ''
+                    }`}
+                  onClick={() => !wantsSpecificDate && updateField('priority', option.value)}
+                  disabled={wantsSpecificDate}
+                  style={wantsSpecificDate ? { opacity: 0.6, cursor: 'not-allowed' } : {}}
                 >
                   <span
                     className={styles.priorityDot}

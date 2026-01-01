@@ -9,6 +9,7 @@ export interface ProjectMetrics {
   averageApprovalTime: number; // in days
   totalFeedback: number;
   resolvedFeedback: number;
+  urgentProjectsCount: number;
 }
 
 export interface DesignerMetrics {
@@ -159,6 +160,7 @@ export interface ProjectReportData {
     priority: string;
     startDate: string | null;
     dueDate: string | null;
+    projectType?: string | null;
   }>;
 
   // Snapshot of project state at time of report
@@ -170,6 +172,7 @@ export interface ProjectReportData {
     priority: string;
     startDate: string | null;
     dueDate: string | null;
+    projectType?: string | null;
     client: {
       id: string;
       name: string;
@@ -192,6 +195,14 @@ export interface ProjectReportData {
     averageApprovalTime: number; // days
     totalFeedback: number;
     resolvedFeedback: number;
+    urgentProjectsCount: number;
+    // Project counts by priority (for client reports in date range)
+    projectsByPriority?: {
+      urgent: number;
+      high: number;
+      medium: number;
+      low: number;
+    };
   };
 
   // Recent activity
