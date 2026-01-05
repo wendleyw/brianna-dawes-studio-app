@@ -19,6 +19,7 @@ export const FRAME = {
 
 /** Master Timeline frame and column configuration */
 export const TIMELINE = {
+  START_Y: 0,            // Master Timeline starts at Y=0
   FRAME_WIDTH: 1000,     // Wider to fit detailed cards
   FRAME_HEIGHT: 600,     // Taller for more cards
   COLUMN_WIDTH: 130,     // Wider columns for detailed cards
@@ -31,6 +32,18 @@ export const TIMELINE = {
   CARD_GAP: 15,          // Increased gap between cards for better spacing
   PADDING: 15,
   GAP_TO_PROJECTS: 50,   // Gap between timeline and projects
+} as const;
+
+// ==================== PROJECT ROWS LAYOUT ====================
+
+/** Project rows positioning (below Master Timeline) */
+export const PROJECT_ROWS = {
+  START_X: 100,
+  // Calculate START_Y dynamically: Timeline bottom + gap
+  get START_Y() {
+    return TIMELINE.START_Y + TIMELINE.FRAME_HEIGHT + TIMELINE.GAP_TO_PROJECTS;
+  },
+  ROW_GAP: 100,          // Vertical gap between project rows
 } as const;
 
 // ==================== BRIEFING LAYOUT ====================

@@ -1,15 +1,16 @@
 import type { ProjectBriefing, ProjectRowState } from '../domain/board.types';
 import type { Project } from '@features/projects/domain/project.types';
+import { PROJECT_ROWS, TIMELINE } from './constants/layout.constants';
 
 // Layout constants
-const PROJECT_ROWS_START_X = 100;
-const PROJECT_ROWS_START_Y = 1000; // Below the Master Timeline
+const PROJECT_ROWS_START_X = PROJECT_ROWS.START_X;
+const PROJECT_ROWS_START_Y = PROJECT_ROWS.START_Y; // Calculated: Timeline bottom + gap
 const BRIEFING_FRAME_WIDTH = 700;
 const BRIEFING_FRAME_HEIGHT = 1200; // Increased to fit FILE ASSETS section
 const PROCESS_FRAME_WIDTH = 700;
 const PROCESS_FRAME_HEIGHT = 1200; // Match briefing frame height
 const FRAME_GAP = 50;
-const ROW_GAP = 100;
+const ROW_GAP = PROJECT_ROWS.ROW_GAP;
 
 // Briefing field configuration (3-column grid)
 const BRIEFING_FIELDS: Array<{ key: keyof ProjectBriefing; label: string; column: 0 | 1 | 2; row: number }> = [
