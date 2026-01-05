@@ -38,6 +38,8 @@ node AI-DEV-GUIDE.md
 - Zustand for client state
 - CSS Modules + Design System tokens
 - Zod for runtime validation
+- Recharts for data visualization
+- React PDF Renderer for PDF generation
 
 ### Backend
 - Supabase (Postgres 15 + RLS + Realtime + Edge Functions)
@@ -56,30 +58,34 @@ The system follows **Clean Architecture** with feature-based modules:
 ```
 /src
 ├── /app                  # React entry points
-├── /features             # Feature modules (auth, projects, deliverables, boards, reports, settings)
+├── /features             # Feature modules (auth, projects, deliverables, boards, reports, admin, notifications)
 │   └── /[feature]
 │       ├── /components   # UI components
 │       ├── /pages        # Page components
-│       ├── /hooks        # React Query hooks
-│       ├── /api          # API layer
-│       ├── /domain       # Types, validators, entities
-│       └── /infra        # Repository implementations
+│       ├── /hooks        # React Query hooks and custom hooks
+│       ├── /services     # Business logic, API clients, query keys (most common)
+│       ├── /domain       # Types, Zod schemas, entities
+│       ├── /context      # React context providers (when needed, e.g., AuthProvider)
+│       └── /api          # API layer (used in some features like reports)
 ├── /shared
 │   ├── /ui               # Design System (Button, Card, Dialog, Toast, etc.)
-│   ├── /hooks            # Cross-cutting hooks
-│   ├── /lib              # Utilities (httpClient, logger, queryClient)
-│   └── /config           # Environment, roles, board config
-├── /services-bundle      # UMD bundle for Miro SDK services
+│   ├── /hooks            # Cross-cutting hooks (useDebounce, useRealtimeSubscription)
+│   ├── /lib              # Utilities (logger, miroAdapter, supabase clients, etc.)
+│   ├── /config           # Environment, roles, board config
+│   ├── /types            # Shared TypeScript types
+│   └── /components       # Shared components
+├── /legacy               # Legacy code (excluded from TypeScript compilation)
 └── /supabase
-    ├── /functions        # Edge Functions
+    ├── /functions        # Edge Functions (Deno)
     └── /migrations       # SQL migrations
 ```
 
 ## Key Design Patterns
 
-- **Repository Pattern**: All data access through interfaces (e.g., `ProjectRepository`)
-- **Use Case Pattern**: Business logic in orchestrating classes (e.g., `CreateProjectUseCase`)
+- **Services Pattern**: Business logic organized in service classes (e.g., `masterBoardService`, `projectService`)
 - **React Query Keys Factory**: Query keys structured as `projectKeys.list(filters)`, `projectKeys.detail(id)`
+- **Singleton Adapters**: Single instances for SDK access (`miroAdapter`)
+- **Feature-Based Modules**: Each feature is self-contained with its own components, hooks, services, and domain logic
 
 ## User Roles
 
@@ -91,10 +97,11 @@ The system follows **Clean Architecture** with feature-based modules:
 
 ### Multiple Entry Points
 
-The app has three HTML entry points for different Miro contexts (configured in `vite.config.ts`):
+The app has four HTML entry points for different Miro contexts (configured in `vite.config.ts`):
 - `index.html` - Main panel entry
 - `app.html` - Full app interface
 - `board-modal.html` - Modal dialogs opened from board
+- `admin-modal.html` - Admin-specific modal dialogs
 
 ### SDK Access
 
@@ -113,12 +120,23 @@ const boardInfo = await miroAdapter.getBoardInfo(); // Returns null if not in Mi
 
 ### Services
 
-- **MasterTimelineService**: Manages Kanban board with status columns (draft, in_progress, review, done)
-- **BrandWorkspaceService**: Creates project workspace frames (brief, process sections)
-- **BoardSyncService**: Handles DB <-> Miro synchronization with reconciliation
-- **miroClient** (`src/features/boards/services/miroClient.ts`): REST API wrapper for Miro v2 API
+The Miro integration uses several specialized services in `src/features/boards/services/`:
 
-## Database Tables
+- **masterBoardService**: Manages consolidated "Master Board" displaying all clients with projects in vertical frames with mini-kanbans
+- **projectRowService**: Manages individual project rows on the timeline with status columns
+- **brandWorkspaceService**: Creates project workspace frames (brief, process sections)
+- **miroSdkService**: Core SDK wrapper with comprehensive board manipulation methods (106KB - the main workhorse)
+- **projectSyncOrchestrator**: Coordinates DB <-> Miro synchronization
+- **miroClient**: REST API wrapper for Miro v2 API operations
+- **miroReportService**: Generates visual reports on Miro boards
+- **miroClientReportService**: Client-facing report generation
+- **miroHelpers**: Utility functions for Miro operations
+- **miroItemRegistry**: Tracks Miro items and their database relationships
+- **constants/**: Layout constants, colors, and briefing templates for board elements
+
+## Database & Backend
+
+### Database Tables
 
 - `users` (with role enum: admin, designer, client)
 - `projects` (with status enum: draft, in_progress, review, done, archived)
@@ -126,6 +144,18 @@ const boardInfo = await miroAdapter.getBoardInfo(); // Returns null if not in Mi
 - `project_updates` (JSONB payload for audit trail)
 - `files` (linked to projects/deliverables)
 - `audit_logs`
+
+### Supabase Edge Functions
+
+Located in `supabase/functions/`, these Deno-based serverless functions handle:
+
+- `miro-oauth-start` - Initiates Miro OAuth flow
+- `miro-oauth-callback` - Handles OAuth callback and token exchange
+- `miro-webhook` - Processes Miro webhook events
+- `projects-create` - Server-side project creation logic
+- `projects-update` - Server-side project update logic
+- `sync-worker` - Background worker for board synchronization
+- `_shared` - Shared utilities for Edge Functions
 
 ## Design Tokens
 
@@ -165,3 +195,74 @@ export const projectKeys = {
   detail: (id: string) => [...projectKeys.details(), id] as const,
 };
 ```
+
+Similar patterns exist for:
+- `deliverableKeys.ts` in features/deliverables/services
+- `reportKeys.ts` in features/reports/services
+
+## Feature Modules
+
+Each feature follows a consistent structure:
+- `components/` - UI components specific to the feature
+- `pages/` - Page-level components
+- `hooks/` - React Query hooks and custom hooks
+- `services/` - Business logic, API clients, query keys
+- `domain/` - TypeScript types, Zod schemas, entities
+- `context/` (when needed) - React context providers (e.g., AuthProvider)
+
+Current features:
+- `auth` - Authentication with Miro OAuth and Supabase
+- `projects` - Project management core functionality
+- `deliverables` - Deliverables tracking
+- `boards` - Miro board integration (largest feature module)
+- `reports` - Analytics and reporting with PDF generation
+- `admin` - Admin tools, analytics, project type management
+- `notifications` - In-app and email notifications
+
+## Important Utilities
+
+- `logger.ts` - Structured logging with createLogger()
+- `miroAdapter.ts` - Singleton adapter for safe Miro SDK access with error handling
+- `supabase.ts` - Supabase client initialization
+- `supabaseRest.ts` - Direct REST API calls to Supabase
+- `queryClient.ts` - React Query configuration
+- `dateFormat.ts` - Date formatting utilities
+- `statusMapping.ts` - Maps between database statuses and Miro timeline statuses
+- `timelineStatus.ts` - Timeline-specific status logic
+- `priorityConfig.ts` - Priority levels and colors
+- `projectBroadcast.ts` - Cross-window/tab project updates
+- `miroNotifications.ts` - Miro-specific notification helpers
+
+## Design System
+
+Components in `src/shared/ui/` follow a consistent pattern:
+- Each component has its own folder with `ComponentName.tsx`, `ComponentName.module.css`, types, and index
+- Fully typed with TypeScript interfaces
+- CSS Modules with camelCase class names
+- Design tokens in `src/shared/ui/tokens/`
+
+Available components: Badge, Button, Card, Checkbox, CreditBar, Dialog, EmptyState, Icons, Input, Logo, Radio, Select, Skeleton, Spinner, SplashScreen, Table, Tabs, Textarea, Toast
+
+## Important Conventions
+
+### Logging
+Use the `createLogger` function from `@shared/lib/logger` for structured logging:
+```typescript
+import { createLogger } from '@shared/lib/logger';
+const logger = createLogger('ComponentName');
+logger.debug('Message', { context });
+```
+
+### Miro SDK Access
+Always use `miroAdapter` instead of directly accessing `window.miro`:
+- Provides error handling and initialization checks
+- Returns null on failure instead of throwing (for optional operations)
+- Includes caching and retry logic
+
+### TypeScript Strict Checks
+Due to `noUncheckedIndexedAccess` and `exactOptionalPropertyTypes`:
+- Array/object access requires null checks: `array[0]` returns `T | undefined`
+- Optional properties must explicitly include `undefined` when setting values
+
+### Legacy Code
+The `/src/legacy` directory contains old code that's excluded from TypeScript compilation. Avoid modifying legacy code; prefer migrating to the new feature-based structure when needed.
