@@ -1,6 +1,6 @@
 import type { ProjectBriefing, ProjectRowState } from '../domain/board.types';
 import type { Project } from '@features/projects/domain/project.types';
-import { PROJECT_ROWS, TIMELINE } from './constants/layout.constants';
+import { PROJECT_ROWS } from './constants/layout.constants';
 
 // Layout constants
 const PROJECT_ROWS_START_X = PROJECT_ROWS.START_X;
