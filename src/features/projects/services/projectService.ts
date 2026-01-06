@@ -345,10 +345,15 @@ class ProjectService {
    * Get a single project using direct REST API (for Miro iframe context)
    */
   private async getProjectViaRest(id: string): Promise<Project> {
+    // Get auth token to satisfy RLS policies
+    const { data: sessionData } = await supabase.auth.getSession();
+    const authToken = sessionData.session?.access_token || null;
+
     const result = await supabaseRestQuery<Record<string, unknown>>('projects', {
       select: '*',
       eq: { id },
       single: true,
+      authToken, // Pass auth token for RLS policies
     });
 
     if (result.error) {
