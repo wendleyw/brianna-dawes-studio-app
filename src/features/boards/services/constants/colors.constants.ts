@@ -32,7 +32,12 @@ export const TIMELINE_COLUMNS: Array<{
 
 // ==================== PROJECT TYPE COLORS ====================
 
-/** Colors and config for project types */
+/**
+ * @deprecated For React components, use useProjectTypeConfig() hook from @features/projects/hooks
+ * which fetches project types from the database. This hardcoded config is kept as a fallback
+ * for non-React contexts (e.g., Miro SDK services) and should be kept in sync with the
+ * project_types database table.
+ */
 export const PROJECT_TYPE_CONFIG: Record<string, { label: string; color: string; icon: string }> = {
   'social-post-design': { label: 'Social Post', color: '#F59E0B', icon: '📱' },
   'email-design': { label: 'Email', color: '#7C3AED', icon: '📧' },

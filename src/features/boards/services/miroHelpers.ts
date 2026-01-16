@@ -84,8 +84,12 @@ export function getTimelineStatus(project: { status: ProjectStatus; dueDate?: st
 }
 
 /**
- * Extract project type from project data
- * Checks briefing.projectType first, then timeline, then description
+ * Extract project type from project data using hardcoded config.
+ * Checks briefing.projectType first, then timeline, then description.
+ *
+ * @deprecated For React components, use useProjectTypeConfig() hook from @features/projects/hooks
+ * which fetches project types from the database. This function is kept for non-React contexts
+ * (e.g., Miro SDK services during board sync).
  */
 export function getProjectType(
   project: { briefing?: { timeline?: string | null; projectType?: string | null } | null; description?: string | null }

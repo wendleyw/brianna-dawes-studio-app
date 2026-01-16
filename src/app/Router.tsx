@@ -40,6 +40,9 @@ const ClientReportsPage = lazy(() =>
 const ReportDetailsPage = lazy(() =>
   import('@features/reports').then((module) => ({ default: module.ReportDetailsPage }))
 );
+const PublicKpiDashboardPage = lazy(() =>
+  import('@features/reports').then((module) => ({ default: module.PublicKpiDashboardPage }))
+);
 
 // Loading fallback component
 function PageLoader() {
@@ -107,6 +110,7 @@ export function Router() {
           {/* Public routes */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/auth/miro/oauth/callback" element={<MiroOAuthCallbackPage />} />
+          <Route path="/kpi" element={<PublicKpiDashboardPage />} />
 
           {/* Protected layout */}
           <Route

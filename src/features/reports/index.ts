@@ -39,5 +39,6 @@ export { ReportPDFDocument } from './components/ReportPDFDocument';
 
 // Pages
 export { DashboardPage } from './pages';
+export { PublicKpiDashboardPage } from './pages/PublicKpiDashboardPage';
 export { ClientReportsPage } from './pages/ClientReportsPage';
 export { ReportDetailsPage } from './pages/ReportDetailsPage';

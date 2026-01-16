@@ -1,2 +1,1 @@
-export { DashboardPage } from './DashboardPage';
 export { PublicKpiDashboardPage } from './PublicKpiDashboardPage';

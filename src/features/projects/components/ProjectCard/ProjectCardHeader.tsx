@@ -6,15 +6,17 @@ import { memo } from 'react';
 import { Badge } from '@shared/ui';
 import { getStatusColumn } from '@shared/lib/timelineStatus';
 import { PRIORITY_CONFIG, BADGE_COLORS } from '@features/boards/services/constants/colors.constants';
-import { getProjectType } from '@features/boards/services/miroHelpers';
+import { useProjectTypeConfig } from '../../hooks';
 import { useProjectCard } from './ProjectCardContext';
 import styles from './ProjectCard.module.css';
 
 export const ProjectCardHeader = memo(function ProjectCardHeader() {
   const { project, isClient, isInReview, isDone, isArchived } = useProjectCard();
+  const { getProjectType } = useProjectTypeConfig();
 
   const statusColumn = getStatusColumn(project.status);
   const priority = PRIORITY_CONFIG[project.priority];
+  const projectType = getProjectType(project);
 
   return (
     <div className={styles.header}>
@@ -99,18 +101,15 @@ export const ProjectCardHeader = memo(function ProjectCardHeader() {
         )}
 
         {/* 2. Project Type badge */}
-        {(() => {
-          const projectType = getProjectType(project);
-          return projectType ? (
-            <Badge
-              color="neutral"
-              size="sm"
-              style={{ backgroundColor: projectType.color, color: 'var(--color-text-inverse)', border: 'none' }}
-            >
-              {projectType.label.toUpperCase()}
-            </Badge>
-          ) : null;
-        })()}
+        {projectType && (
+          <Badge
+            color="neutral"
+            size="sm"
+            style={{ backgroundColor: projectType.color, color: 'var(--color-text-inverse)', border: 'none' }}
+          >
+            {projectType.label.toUpperCase()}
+          </Badge>
+        )}
 
         {/* 3. Status badge - uses exact color from timeline config, or ARCHIVED if archived */}
         <Badge

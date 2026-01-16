@@ -23,13 +23,11 @@ import { createLogger } from '@shared/lib/logger';
 import { getStatusColumn, getStatusProgress, getTimelineStatus, STATUS_COLUMNS } from '@shared/lib/timelineStatus';
 import { PRIORITY_OPTIONS } from '@shared/lib/priorityConfig';
 import { PRIORITY_CONFIG, BADGE_COLORS } from '@features/boards/services/constants/colors.constants';
-import { getProjectType } from '@features/boards/services/miroHelpers';
+import { useProjectTypeConfig } from '../../hooks';
 import type { ProjectCardProps } from './ProjectCard.types';
 import styles from './ProjectCard.module.css';
 
 const logger = createLogger('ProjectCard');
-
-// getProjectType is now imported from miroHelpers
 
 // Google Drive icon uses image (not SVG) for brand consistency
 const DriveIconImg = ({ hasLink }: { hasLink?: boolean }) => (
@@ -150,6 +148,9 @@ export const ProjectCard = memo(function ProjectCard({
   // Fetch all projects to calculate designer workload (skip role filter for this)
   const { data: allProjectsData } = useProjects({ skipRoleFilter: true });
   const allProjects = useMemo(() => allProjectsData?.data ?? [], [allProjectsData?.data]);
+
+  // Get project type config from database
+  const { getProjectType } = useProjectTypeConfig();
 
   // Calculate designer workload
   const designersWithWorkload = useMemo(() => {

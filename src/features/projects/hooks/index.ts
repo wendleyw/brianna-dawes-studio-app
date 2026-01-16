@@ -15,3 +15,5 @@ export {
   useProjectMutationsWithMiro,
 } from './useProjectWithMiro';
 export { useProjectTypes } from './useProjectTypes';
+export { useProjectTypeConfig } from './useProjectTypeConfig';
+export type { ProjectTypeConfig } from './useProjectTypeConfig';
