@@ -4,7 +4,7 @@ import { Router } from './Router';
 const appStyles: React.CSSProperties = {
   width: '100%',
   height: '100%',
-  overflow: 'hidden',
+  overflow: 'auto',
   display: 'flex',
   flexDirection: 'column',
 };
