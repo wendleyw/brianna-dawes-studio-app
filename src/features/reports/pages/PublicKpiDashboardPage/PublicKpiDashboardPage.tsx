@@ -321,12 +321,12 @@ export function PublicKpiDashboardPage() {
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <Logo size="lg" />
-        <h1 className={styles.title}>Brianna Dawes Studios</h1>
-        <p className={styles.subtitle}>Project Dashboard</p>
+        <div className={styles.headerTop}>
+          <Logo size="md" />
+          <h1 className={styles.title}>Brianna Dawes Studios</h1>
+        </div>
+        {overview && <OverviewStats overview={overview} />}
       </div>
-
-      {overview && <OverviewStats overview={overview} />}
 
       {/* Active Clients Section */}
       {activeClients.length > 0 && (
