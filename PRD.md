@@ -2487,7 +2487,11 @@ jobs:
       }),
       new Paragraph({
         numbering: { reference: "numbered-5", level: 0 },
-        children: [new TextRun({ text: "Reports & KPIs (summaries, exports)", size: 22 })]
+        children: [new TextRun({ text: "Reports & KPIs (summaries, exports, PDF generation)", size: 22 })]
+      }),
+      new Paragraph({
+        numbering: { reference: "numbered-5", level: 0 },
+        children: [new TextRun({ text: "Public KPI Dashboard (/kpi route - no auth required)", size: 22 })]
       }),
       new Paragraph({
         numbering: { reference: "numbered-5", level: 0 },

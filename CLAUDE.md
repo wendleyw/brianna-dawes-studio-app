@@ -130,20 +130,47 @@ The Miro integration uses several specialized services in `src/features/boards/s
 - **miroClient**: REST API wrapper for Miro v2 API operations
 - **miroReportService**: Generates visual reports on Miro boards
 - **miroClientReportService**: Client-facing report generation
-- **miroHelpers**: Utility functions for Miro operations
+- **miroHelpers**: Utility functions for Miro operations (timeline frame detection, safe item removal)
 - **miroItemRegistry**: Tracks Miro items and their database relationships
 - **constants/**: Layout constants, colors, and briefing templates for board elements
+
+### Timeline Frame Detection
+
+The `findTimelineFrame()` function in `miroHelpers.ts` identifies the Master Timeline frame by:
+1. **Title match** (primary): Frames with title containing "MASTER TIMELINE" or "Timeline Master"
+2. **Dimension match** (fallback): Frames with width ~1000px and height >= 550px
+
+Project briefing frames are positioned to the RIGHT of the timeline, aligned with its top edge.
 
 ## Database & Backend
 
 ### Database Tables
 
-- `users` (with role enum: admin, designer, client)
-- `projects` (with status enum: draft, in_progress, review, done, archived)
-- `deliverables` (with status: pending, wip, review, approved)
-- `project_updates` (JSONB payload for audit trail)
-- `files` (linked to projects/deliverables)
-- `audit_logs`
+**Core Tables:**
+- `users` - User profiles (role enum: admin, designer, client; has subscription plan, company info)
+- `projects` - Project management (status enum: critical, overdue, urgent, on_track, in_progress, review, done)
+- `deliverables` - Project deliverables (status: draft, in_progress, in_review, approved, rejected, delivered)
+- `project_designers` - Many-to-many link between projects and designers
+
+**Configuration:**
+- `project_types` - Dynamic project type definitions (label, color, icon, default days)
+- `subscription_plans` - Client subscription plans with deliverables limits
+- `app_settings` - Global application settings (key-value JSONB)
+
+**Miro Integration:**
+- `boards` - Registered Miro boards
+- `user_boards` - User-board associations (tracks primary board)
+- `miro_item_map` - Maps DB entities to Miro item IDs
+- `miro_oauth_tokens` - OAuth tokens (encrypted)
+- `miro_oauth_states` - OAuth flow state management
+
+**Sync & Logging:**
+- `sync_jobs` - Background sync job queue (queued, running, succeeded, failed)
+- `sync_logs` - Detailed sync operation logs
+
+**Reporting:**
+- `project_reports` - Generated PDF reports with storage URLs
+- `notifications` - In-app notifications
 
 ### Supabase Edge Functions
 
@@ -215,9 +242,30 @@ Current features:
 - `projects` - Project management core functionality
 - `deliverables` - Deliverables tracking
 - `boards` - Miro board integration (largest feature module)
-- `reports` - Analytics and reporting with PDF generation
+- `reports` - Analytics, reporting with PDF generation, and Public KPI Dashboard
 - `admin` - Admin tools, analytics, project type management
 - `notifications` - In-app and email notifications
+
+## Routes
+
+### Public Routes (no authentication required)
+- `/login` - Login page
+- `/auth/miro/oauth/callback` - Miro OAuth callback handler
+- `/kpi` - **Public KPI Dashboard** - Real-time studio metrics visible without login
+
+### Protected Routes (authentication required)
+- `/dashboard` - Main dashboard (home)
+- `/projects` - Projects list
+- `/projects/new` - Create new project (admin/client only)
+- `/projects/:id` - Project detail view
+- `/projects/:id/edit` - Edit project (admin only)
+- `/board/:boardId` - Miro board view
+- `/notifications` - Notifications center
+- `/reports` - Client reports list
+- `/reports/:id` - Report detail view
+- `/admin` - Admin dashboard (admin only)
+- `/admin/users` - User management (admin only)
+- `/admin/settings` - System settings (admin only)
 
 ## Important Utilities
 
