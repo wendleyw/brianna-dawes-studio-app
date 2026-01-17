@@ -1,8 +1,13 @@
 .container {
   min-height: 100vh;
   padding: 24px;
-  background: linear-gradient(135deg, #050038 0%, #1a1a2e 100%);
-  color: #fff;
+  background-color: var(--color-bg-primary);
+  background-image:
+    radial-gradient(circle at 15% 35%, rgba(37, 99, 235, 0.04), transparent 42%),
+    radial-gradient(circle at 85% 40%, rgba(5, 0, 56, 0.06), transparent 45%),
+    linear-gradient(to bottom, var(--color-bg-primary) 0%, var(--color-bg-secondary) 100%);
+  color: var(--color-text-primary);
+  font-family: var(--font-ui);
 }
 
 .header {
@@ -18,11 +23,12 @@
 }
 
 .title {
-  font-family: 'Playfair Display', serif;
-  font-size: 1.5rem;
-  font-weight: 600;
+  font-family: var(--font-ui);
+  font-size: 1.25rem;
+  font-weight: 700;
   margin: 0;
-  color: #fff;
+  color: var(--color-primary);
+  letter-spacing: -0.025em;
 }
 
 .loading {
@@ -45,8 +51,10 @@
   justify-content: center;
   gap: 24px;
   padding: 12px 20px;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 8px;
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-sm);
   max-width: 600px;
   margin: 0 auto;
 }
@@ -55,7 +63,11 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--color-text-secondary);
+}
+
+.overviewStat svg {
+  color: var(--color-primary);
 }
 
 .overviewStatContent {
@@ -66,20 +78,20 @@
 .overviewValue {
   font-size: 1.25rem;
   font-weight: 700;
-  color: #fff;
+  color: var(--color-text-primary);
   line-height: 1;
 }
 
 .overviewValueSuccess {
   font-size: 1.25rem;
   font-weight: 700;
-  color: #10b981;
+  color: var(--color-success);
   line-height: 1;
 }
 
 .overviewLabel {
   font-size: 0.625rem;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--color-text-tertiary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -91,9 +103,9 @@
 
 .sectionTitle {
   font-size: 1rem;
-  font-weight: 600;
+  font-weight: 700;
   margin: 0 0 16px;
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--color-text-primary);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -108,8 +120,8 @@
   padding: 0 8px;
   font-size: 0.75rem;
   font-weight: 600;
-  color: #fff;
-  background: #3b82f6;
+  color: var(--color-text-inverse);
+  background: var(--color-accent);
   border-radius: 12px;
 }
 
@@ -122,8 +134,8 @@
   padding: 0 8px;
   font-size: 0.75rem;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.6);
-  background: rgba(255, 255, 255, 0.1);
+  color: var(--color-text-tertiary);
+  background: var(--color-gray-100);
   border-radius: 12px;
 }
 
@@ -136,16 +148,17 @@
 
 /* Client Card */
 .clientCard {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
   border-radius: 12px;
   padding: 20px;
+  box-shadow: var(--shadow-sm);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .clientCard:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-md);
 }
 
 .clientHeader {
@@ -159,13 +172,13 @@
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  background: linear-gradient(135deg, var(--color-accent), var(--color-purple-500));
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 600;
   font-size: 0.875rem;
-  color: #fff;
+  color: var(--color-text-inverse);
   flex-shrink: 0;
   overflow: hidden;
 }
@@ -185,7 +198,7 @@
   font-size: 1rem;
   font-weight: 600;
   margin: 0;
-  color: #fff;
+  color: var(--color-text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -194,7 +207,7 @@
 .clientEmail {
   font-size: 0.75rem;
   margin: 2px 0 0;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--color-text-tertiary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -210,7 +223,7 @@
 .clientStat {
   text-align: center;
   padding: 8px 4px;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--color-bg-secondary);
   border-radius: 8px;
 }
 
@@ -218,7 +231,7 @@
   display: block;
   font-size: 1.25rem;
   font-weight: 700;
-  color: #fff;
+  color: var(--color-text-primary);
   line-height: 1;
 }
 
@@ -226,7 +239,7 @@
   display: block;
   font-size: 1.25rem;
   font-weight: 700;
-  color: #10b981;
+  color: var(--color-success);
   line-height: 1;
 }
 
@@ -234,14 +247,14 @@
   display: block;
   font-size: 1.25rem;
   font-weight: 700;
-  color: #3b82f6;
+  color: var(--color-accent);
   line-height: 1;
 }
 
 .statLabel {
   display: block;
   font-size: 0.625rem;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--color-text-tertiary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-top: 4px;
@@ -258,14 +271,14 @@
   justify-content: space-between;
   align-items: center;
   padding: 8px 12px;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--color-bg-secondary);
   border-radius: 6px;
   border-left: 3px solid;
 }
 
 .miniProjectName {
   font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--color-text-secondary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -274,18 +287,19 @@
 
 .miniProjectDate {
   font-size: 0.625rem;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--color-text-tertiary);
   margin-left: 8px;
   flex-shrink: 0;
 }
 
 /* Timeline */
 .timeline {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
   border-radius: 12px;
   padding: 24px;
   margin-bottom: 32px;
+  box-shadow: var(--shadow-sm);
 }
 
 .timelineHeader {
@@ -308,7 +322,7 @@
   align-items: center;
   gap: 6px;
   font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--color-text-secondary);
 }
 
 .legendDot {
@@ -329,12 +343,12 @@
 }
 
 .timelineContent::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--color-gray-100);
   border-radius: 3px;
 }
 
 .timelineContent::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--color-gray-300);
   border-radius: 3px;
 }
 
@@ -346,12 +360,12 @@
 .monthLabel {
   font-size: 0.75rem;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--color-text-tertiary);
   text-transform: uppercase;
   letter-spacing: 1px;
   margin-bottom: 12px;
   padding-bottom: 8px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .monthProjects {
@@ -385,7 +399,7 @@
 .projectName {
   font-size: 0.875rem;
   font-weight: 600;
-  color: #fff;
+  color: var(--color-text-inverse);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -428,7 +442,7 @@
 .timelineEmpty {
   text-align: center;
   padding: 40px 20px;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--color-text-tertiary);
 }
 
 /* Inactive Clients */
@@ -443,19 +457,19 @@
   align-items: center;
   gap: 8px;
   padding: 8px 16px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
   border-radius: 20px;
 }
 
 .inactiveClientName {
   font-size: 0.875rem;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--color-text-secondary);
 }
 
 .inactiveClientStats {
   font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--color-text-tertiary);
 }
 
 /* Footer */
@@ -463,13 +477,13 @@
   text-align: center;
   margin-top: 40px;
   padding-top: 24px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid var(--color-border);
 }
 
 .footer p {
   margin: 0;
   font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--color-text-tertiary);
 }
 
 .footerNote {
@@ -483,7 +497,7 @@
   }
 
   .title {
-    font-size: 1.5rem;
+    font-size: 1.125rem;
   }
 
   .overviewStats {

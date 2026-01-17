@@ -39,22 +39,47 @@ export function isMiroAvailable(): boolean {
 
 /**
  * Find timeline frame on the board by title or dimensions
+ * The frame can be identified by:
+ * 1. Title containing 'MASTER TIMELINE' or 'Timeline Master'
+ * 2. Having width close to TIMELINE.FRAME_WIDTH (height may vary as frame expands)
  */
 export async function findTimelineFrame(): Promise<MiroFrame | null> {
   const miro = getMiroSDK();
   const existingFrames = (await miro.board.get({ type: 'frame' })) as MiroFrame[];
 
-  const timelineFrame = existingFrames.find(
+  // First, try to find by title (most reliable)
+  const byTitle = existingFrames.find(
     (f) =>
       f.title?.includes('MASTER TIMELINE') ||
-      f.title?.includes('Timeline Master') ||
-      (f.width &&
-        f.height &&
-        Math.abs(f.width - TIMELINE.FRAME_WIDTH) < 10 &&
-        Math.abs(f.height - TIMELINE.FRAME_HEIGHT) < 10)
+      f.title?.includes('Timeline Master')
   );
 
-  return timelineFrame || null;
+  if (byTitle) {
+    timelineLogger.debug('Found timeline frame by title', { id: byTitle.id, title: byTitle.title });
+    return byTitle;
+  }
+
+  // Fallback: find by dimensions (width matches, height >= minimum)
+  // Height can be larger if the frame expanded to fit more cards
+  const byDimensions = existingFrames.find(
+    (f) =>
+      f.width &&
+      f.height &&
+      Math.abs(f.width - TIMELINE.FRAME_WIDTH) < 50 &&
+      f.height >= TIMELINE.FRAME_HEIGHT - 50
+  );
+
+  if (byDimensions) {
+    timelineLogger.debug('Found timeline frame by dimensions', {
+      id: byDimensions.id,
+      width: byDimensions.width,
+      height: byDimensions.height
+    });
+    return byDimensions;
+  }
+
+  timelineLogger.debug('No timeline frame found on board');
+  return null;
 }
 
 /**

@@ -512,11 +512,11 @@ class MiroMasterTimelineService {
       },
     });
 
-    // Create timeline frame with white background (no title in frame itself)
+    // Create timeline frame with proper title for identification
     // Note: Miro SDK doesn't support locking frames programmatically,
     // but users can manually lock via right-click > Lock
     const frame = await miro.board.createFrame({
-      title: '',
+      title: 'MASTER TIMELINE',
       x: this.frameCenterX,
       y: this.frameCenterY,
       width: TIMELINE.FRAME_WIDTH,
@@ -1558,30 +1558,37 @@ class MiroProjectRowService {
       await miroTimelineService.initializeTimeline();
     }
 
-    // Get timeline position from the service
-    let timelineRightEdge = miroTimelineService.getTimelineRightEdge();
-    let timelineTopY = miroTimelineService.getTimelineTopY();
+    // ALWAYS scan board for timeline to get its actual current position
+    // This ensures we use the real position even if the frame was moved
+    const timelineFrame = await findTimelineFrame();
+    let timelineRightEdge: number;
+    let timelineTopY: number;
 
-    // If timeline position is still 0, find it on the board
-    if (timelineRightEdge === 0) {
-      log('MiroProject', 'Timeline position is 0, scanning board...');
+    if (timelineFrame) {
+      const frameWidth = timelineFrame.width ?? TIMELINE.FRAME_WIDTH;
+      const frameHeight = timelineFrame.height ?? TIMELINE.FRAME_HEIGHT;
+      timelineRightEdge = timelineFrame.x + frameWidth / 2;
+      timelineTopY = timelineFrame.y - frameHeight / 2;
+      log('MiroProject', 'Found timeline frame on board', {
+        id: timelineFrame.id,
+        title: timelineFrame.title,
+        x: timelineFrame.x,
+        y: timelineFrame.y,
+        width: frameWidth,
+        height: frameHeight,
+        rightEdge: timelineRightEdge,
+        topY: timelineTopY
+      });
+    } else {
+      // Fallback: use service positions or default
+      timelineRightEdge = miroTimelineService.getTimelineRightEdge();
+      timelineTopY = miroTimelineService.getTimelineTopY();
 
-      const timelineFrame = await findTimelineFrame();
-
-      if (timelineFrame) {
-        const frameWidth = timelineFrame.width ?? TIMELINE.FRAME_WIDTH;
-        const frameHeight = timelineFrame.height ?? TIMELINE.FRAME_HEIGHT;
-        timelineRightEdge = timelineFrame.x + frameWidth / 2;
-        timelineTopY = timelineFrame.y - frameHeight / 2;
-        log('MiroProject', 'Found timeline on board', { rightEdge: timelineRightEdge, topY: timelineTopY });
+      // If still at default (0,0 center), use explicit default position
+      if (timelineRightEdge === TIMELINE.FRAME_WIDTH / 2 && timelineTopY === -TIMELINE.FRAME_HEIGHT / 2) {
+        log('MiroProject', 'Using default timeline position (0,0 center)');
       } else {
-        // Fallback: use FIXED position (same as timeline fixed position)
-        // Timeline is at (0, 0), so calculate from there
-        const FIXED_TIMELINE_X = 0;
-        const FIXED_TIMELINE_Y = 0;
-        timelineRightEdge = FIXED_TIMELINE_X + TIMELINE.FRAME_WIDTH / 2;
-        timelineTopY = FIXED_TIMELINE_Y - TIMELINE.FRAME_HEIGHT / 2;
-        log('MiroProject', 'No timeline found, using FIXED position fallback');
+        log('MiroProject', 'Using timeline service position', { rightEdge: timelineRightEdge, topY: timelineTopY });
       }
     }
 
@@ -1591,7 +1598,14 @@ class MiroProjectRowService {
     // Default: first project aligned with TOP of timeline
     this.nextY = timelineTopY + FRAME.HEIGHT / 2;
 
-    log('MiroProject', 'Initialized positions', { baseX: this.baseX, nextY: this.nextY });
+    log('MiroProject', 'Project positions calculated', {
+      baseX: this.baseX,
+      nextY: this.nextY,
+      timelineRightEdge,
+      timelineTopY,
+      gap: TIMELINE.GAP_TO_PROJECTS,
+      frameWidth: FRAME.WIDTH
+    });
 
     // Scan board for existing BRIEFING frames to find lowest Y
     const allFrames = await miro.board.get({ type: 'frame' }) as MiroFrame[];
