@@ -57,9 +57,10 @@ export function ProjectsPage() {
   const { syncProject } = useMiroBoardSync();
   const { boardId: masterBoardId } = useMasterBoardSettings();
   const [searchQuery, setSearchQuery] = useState('');
-  const [timelineFilter, setTimelineFilter] = useState<TimelineStatus | ''>('');
+  const [timelineFilter, setTimelineFilter] = useState<TimelineStatus | 'active' | ''>('');
   const [projectTypeFilter, setProjectTypeFilter] = useState<string>('');
-  const [dueThisWeekOnly, setDueThisWeekOnly] = useState(false);
+  // Due this week filter temporarily disabled
+  const [dueThisWeekOnly /* , setDueThisWeekOnly */] = useState(false);
   const [isCompactView, setIsCompactView] = useState(false);
   const [isFiltersOpen, setIsFiltersOpen] = useState(() => {
     return searchParams.has('clientId');
@@ -114,12 +115,17 @@ export function ProjectsPage() {
   }, [hasActiveFilters]);
 
   useEffect(() => {
-    const statusParam = searchParams.get('status') as TimelineStatus | null;
+    const statusParam = searchParams.get('status');
     if (!statusParam) return;
-    const normalized = statusParam.toLowerCase() as TimelineStatus;
+    const normalized = statusParam.toLowerCase();
+    // Support "active" as a virtual filter (all non-done projects)
+    if (normalized === 'active') {
+      setTimelineFilter((prev) => (prev === 'active' ? prev : 'active'));
+      return;
+    }
     const isValid = TIMELINE_COLUMNS.some((col) => col.id === normalized);
     if (!isValid) return;
-    setTimelineFilter((prev) => (prev === normalized ? prev : normalized));
+    setTimelineFilter((prev) => (prev === normalized ? prev : normalized as TimelineStatus));
   }, [searchParams]);
 
   // Splash screen state - show if requested via navigation state or if not shown this session
@@ -385,7 +391,9 @@ export function ProjectsPage() {
     let filtered = allProjects;
 
     // Filter by timeline status
-    if (timelineFilter) {
+    if (timelineFilter === 'active') {
+      filtered = filtered.filter(p => getTimelineStatus(p) !== 'done');
+    } else if (timelineFilter) {
       filtered = filtered.filter(p => getTimelineStatus(p) === timelineFilter);
     }
 
@@ -909,9 +917,10 @@ export function ProjectsPage() {
           <select
             className={styles.filterSelect}
             value={timelineFilter}
-            onChange={(e) => setTimelineFilter(e.target.value as TimelineStatus | '')}
+            onChange={(e) => setTimelineFilter(e.target.value as TimelineStatus | 'active' | '')}
           >
             <option value="">All Status</option>
+            <option value="active">ACTIVE</option>
             {TIMELINE_COLUMNS.map(col => (
               <option key={col.id} value={col.id}>{col.label}</option>
             ))}
@@ -926,6 +935,7 @@ export function ProjectsPage() {
               <option key={type.value} value={type.value}>{type.label}</option>
             ))}
           </select>
+          {/* Due this week filter temporarily disabled
           <button
             className={`${styles.filterChip} ${dueThisWeekOnly ? styles.filterChipActive : ''}`}
             type="button"
@@ -933,6 +943,7 @@ export function ProjectsPage() {
           >
             Due this week
           </button>
+          */}
         </div>
       </div>
 
