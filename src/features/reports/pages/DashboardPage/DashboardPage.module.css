@@ -547,6 +547,26 @@
   line-height: 1.3;
 }
 
+.analyticsLabelLink {
+  composes: analyticsLabel;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.analyticsCardClickable {
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.analyticsCardClickable:hover {
+  border-color: rgba(148, 163, 184, 0.45);
+  box-shadow: var(--dash-shadow);
+}
+
+.analyticsCardClickable:active {
+  transform: scale(0.98);
+}
+
 .analyticsValue {
   font-size: 22px;
   font-weight: 800;

@@ -741,13 +741,51 @@ export function DashboardPage() {
           )}
         </div>
         <div className={styles.analyticsGrid}>
-          <div className={styles.analyticsCard}>
+          <div
+            className={`${styles.analyticsCard} ${styles.analyticsCardClickable}`}
+            role="button"
+            tabIndex={0}
+            onClick={() => {
+              const params = new URLSearchParams();
+              params.set('status', 'active');
+              if (selectedClientId) params.set('clientId', selectedClientId);
+              navigateToProjects(`/projects?${params.toString()}`);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                const params = new URLSearchParams();
+                params.set('status', 'active');
+                if (selectedClientId) params.set('clientId', selectedClientId);
+                navigateToProjects(`/projects?${params.toString()}`);
+              }
+            }}
+          >
             <span className={styles.analyticsValue}>{activeProjects}</span>
-            <span className={styles.analyticsLabel}>Projects Active</span>
+            <span className={styles.analyticsLabelLink}>Projects Active</span>
           </div>
-          <div className={styles.analyticsCard}>
+          <div
+            className={`${styles.analyticsCard} ${styles.analyticsCardClickable}`}
+            role="button"
+            tabIndex={0}
+            onClick={() => {
+              const params = new URLSearchParams();
+              params.set('status', 'done');
+              if (selectedClientId) params.set('clientId', selectedClientId);
+              navigateToProjects(`/projects?${params.toString()}`);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                const params = new URLSearchParams();
+                params.set('status', 'done');
+                if (selectedClientId) params.set('clientId', selectedClientId);
+                navigateToProjects(`/projects?${params.toString()}`);
+              }
+            }}
+          >
             <span className={styles.analyticsValueSuccess}>{completedProjects}</span>
-            <span className={styles.analyticsLabel}>Projects Done</span>
+            <span className={styles.analyticsLabelLink}>Projects Done</span>
           </div>
           <div className={`${styles.analyticsCard} ${styles.deliveredCard}`}>
             <span className={styles.analyticsValue}>{totalDeliverables}</span>
