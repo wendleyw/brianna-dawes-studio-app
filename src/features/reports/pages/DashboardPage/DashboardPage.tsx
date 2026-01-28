@@ -663,7 +663,19 @@ export function DashboardPage() {
               const extraDesigners = designers.length - visibleDesigners.length;
               const dueLabel = project.dueDate ? formatDateShort(project.dueDate) : 'No due date';
               return (
-                <div key={project.id} className={styles.deliverableCard}>
+                <div
+                  key={project.id}
+                  className={styles.deliverableCard}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => navigateToProjects(`/projects/${project.id}`)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      navigateToProjects(`/projects/${project.id}`);
+                    }
+                  }}
+                >
                   <span
                     className={styles.deliverableAccent}
                     style={{ backgroundColor: statusMeta.accent }}
