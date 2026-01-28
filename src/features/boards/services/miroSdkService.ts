@@ -42,6 +42,7 @@ import {
 } from './constants';
 import { getProjectTypeFromBriefing } from './miroHelpers';
 import { createLogger } from '@shared/lib/logger';
+import { getDaysEarly, formatDateShort } from '@shared/lib/dateFormat';
 import { miroAdapter } from '@shared/lib/miroAdapter';
 import { registerMiroItem } from './miroItemRegistry';
 
@@ -1193,6 +1194,9 @@ class MiroMasterTimelineService {
             existingInMemory.miroCardId = existingMiroCardId;
           }
 
+          // Add/remove completion date text for Done cards
+          await this.handleCompletionDateText(project, status, finalX, finalY);
+
           return existingInMemory || {
             id: crypto.randomUUID(),
             projectId: project.id,
@@ -1267,6 +1271,9 @@ class MiroMasterTimelineService {
         this.state.cards = this.state.cards.filter(c => c.projectId !== project.id);
         this.state.cards.push(updatedCard);
 
+        // Add/remove completion date text for Done cards
+        await this.handleCompletionDateText(project, status, existingCardFinalCheck.x, existingCardFinalCheck.y);
+
         return updatedCard;
       }
     } catch (e) {
@@ -1307,6 +1314,9 @@ class MiroMasterTimelineService {
 
     this.state.cards.push(newCard);
     log('MiroTimeline', `Created card ${newMiroCard.id} for project "${project.name}" at Y=${cardY}`);
+
+    // Add/remove completion date text for Done cards
+    await this.handleCompletionDateText(project, status, cardX, cardY);
 
     return newCard;
   }
@@ -1507,6 +1517,105 @@ class MiroMasterTimelineService {
   getTimelineCenterX() { return this.frameCenterX; }
   getTimelineRightEdge() { return this.frameCenterX + TIMELINE.FRAME_WIDTH / 2; }
   getTimelineTopY() { return this.frameCenterY - TIMELINE.FRAME_HEIGHT / 2; }
+
+  /**
+   * Create/update/remove a green completion date text element below Done cards on timeline.
+   * Shows "Due: Dec 6 | Done: Dec 3" and optionally "N days early" in green.
+   */
+  private async handleCompletionDateText(
+    project: Project,
+    status: ProjectStatus,
+    cardX: number,
+    cardY: number
+  ): Promise<void> {
+    const miro = getMiroSDK();
+    const isDone = status === 'done';
+    const textTag = `completion_text:${project.id}`;
+
+    // Find existing completion text element by searching all text items
+    let existingText: { id: string; content: string; x: number; y: number; width?: number } | undefined;
+    try {
+      const allTexts = await miro.board.get({ type: 'text' }) as Array<{
+        id: string;
+        content: string;
+        x: number;
+        y: number;
+        width?: number;
+      }>;
+      existingText = allTexts.find(t => t.content?.includes(textTag));
+    } catch {
+      // Ignore errors fetching texts
+    }
+
+    if (!isDone) {
+      // Remove completion text if project is no longer done
+      if (existingText) {
+        try {
+          await safeRemove(existingText.id);
+        } catch {
+          // Ignore removal errors
+        }
+      }
+      return;
+    }
+
+    // Build completion text content
+    const completedDate = project.completedAt
+      ? formatDateShort(project.completedAt)
+      : formatDateShort(new Date().toISOString());
+    const dueDate = project.dueDate ? formatDateShort(project.dueDate) : null;
+    const early = getDaysEarly(project.dueDate, project.completedAt);
+
+    let displayText = '';
+    if (dueDate) {
+      displayText = `Due: ${dueDate} | Done: ${completedDate}`;
+    } else {
+      displayText = `Done: ${completedDate}`;
+    }
+    if (early) {
+      displayText += `\n${early.text}`;
+    }
+
+    // Build HTML content with hidden tag for identification
+    const fullContent = `<p><b>${displayText}</b></p><!-- ${textTag} -->`;
+
+    // Position: below the card
+    const textY = cardY + TIMELINE.CARD_HEIGHT / 2 + 14;
+
+    if (existingText) {
+      // Update existing text element
+      try {
+        const item = await miro.board.getById(existingText.id);
+        if (item && 'content' in item) {
+          (item as { content: string }).content = fullContent;
+          (item as { x: number }).x = cardX;
+          (item as { y: number }).y = textY;
+          await miro.board.sync(item);
+          return;
+        }
+      } catch {
+        // If update fails, try to remove and recreate
+        try { await safeRemove(existingText.id); } catch { /* ignore */ }
+      }
+    }
+
+    // Create new text element
+    try {
+      await miro.board.createText({
+        content: fullContent,
+        x: cardX,
+        y: textY,
+        width: TIMELINE.CARD_WIDTH + 20,
+        style: {
+          fontSize: 9,
+          textAlign: 'center',
+          color: '#10B981', // Green (success color)
+        },
+      });
+    } catch (e) {
+      projectLogger.error('[handleCompletionDateText] Failed to create text', e);
+    }
+  }
 
   // Reset the service state (for dev tools)
   reset(): void {
@@ -1972,9 +2081,20 @@ class MiroProjectRowService {
 
     // === HEADER (clean, dark with project name centered) ===
     const headerY = top + BRIEFING.PADDING + 20;
-    const dueDateText = project.dueDate
-      ? new Date(project.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-      : 'No deadline';
+    let dueDateText: string;
+    if (project.status === 'done' && project.completedAt) {
+      const dueStr = project.dueDate ? formatDateShort(project.dueDate) : 'No deadline';
+      const completedStr = formatDateShort(project.completedAt);
+      const early = getDaysEarly(project.dueDate, project.completedAt);
+      dueDateText = `Due: ${dueStr} | Completed: ${completedStr}`;
+      if (early) {
+        dueDateText += ` (${early.text})`;
+      }
+    } else {
+      dueDateText = project.dueDate
+        ? new Date(project.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+        : 'No deadline';
+    }
 
     // Header background (dark, no border)
     await miro.board.createShape({

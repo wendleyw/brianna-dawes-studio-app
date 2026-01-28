@@ -2347,3 +2347,42 @@
 .viewDetailsButton:hover {
   transform: translateY(-1px);
 }
+
+/* Completion date display for Done projects */
+.completionDates {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: 100%;
+}
+
+.datePair {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  line-height: 1.2;
+}
+
+.dateLabel {
+  color: var(--color-text-tertiary);
+  font-weight: 500;
+}
+
+.dateValue {
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
+.daysEarlyBadge {
+  display: inline-block;
+  margin-top: 2px;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  background-color: var(--color-success);
+  color: var(--color-text-inverse);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}

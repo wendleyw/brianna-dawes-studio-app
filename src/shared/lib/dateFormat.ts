@@ -137,3 +137,32 @@ export function getDaysRemaining(dateString: string | Date | null): {
   }
   return { days: diff, text: `${diff} days left`, isOverdue: false };
 }
+
+/**
+ * Calculate days saved (completed early) for Done projects.
+ * Returns positive number if completed before due date, null otherwise.
+ * Used in: ProjectCard, Miro timeline, briefing frame
+ */
+export function getDaysEarly(
+  dueDate: string | Date | null,
+  completedAt: string | Date | null
+): { days: number; text: string } | null {
+  if (!dueDate || !completedAt) return null;
+
+  const due = typeof dueDate === 'string' ? new Date(dueDate) : dueDate;
+  const completed = typeof completedAt === 'string' ? new Date(completedAt) : completedAt;
+
+  // Compare dates only (ignore time)
+  const dueDay = new Date(due.getFullYear(), due.getMonth(), due.getDate());
+  const completedDay = new Date(completed.getFullYear(), completed.getMonth(), completed.getDate());
+
+  const diffMs = dueDay.getTime() - completedDay.getTime();
+  const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (days <= 0) return null;
+
+  return {
+    days,
+    text: `${days} day${days === 1 ? '' : 's'} early`,
+  };
+}

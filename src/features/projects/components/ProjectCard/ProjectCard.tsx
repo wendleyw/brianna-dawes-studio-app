@@ -20,6 +20,7 @@ import { DELIVERABLE_TYPES, DELIVERABLE_STATUSES, DEFAULT_DELIVERABLE_FORM } fro
 import { useUsers } from '@features/admin/hooks/useUsers';
 import { useProjects } from '../../hooks/useProjects';
 import { createLogger } from '@shared/lib/logger';
+import { formatDateShort, getDaysEarly } from '@shared/lib/dateFormat';
 import { getStatusColumn, getStatusProgress, getTimelineStatus, STATUS_COLUMNS } from '@shared/lib/timelineStatus';
 import { PRIORITY_OPTIONS } from '@shared/lib/priorityConfig';
 import { PRIORITY_CONFIG, BADGE_COLORS } from '@features/boards/services/constants/colors.constants';
@@ -211,7 +212,15 @@ export const ProjectCard = memo(function ProjectCard({
 
   const daysMeta = useMemo(() => {
     if (project.status === 'done') {
-      return { value: '✓', label: 'Completed', state: 'done' as const };
+      const early = getDaysEarly(project.dueDate, project.completedAt);
+      return {
+        value: '✓',
+        label: 'Completed',
+        state: 'done' as const,
+        completedAt: project.completedAt ?? undefined,
+        dueDateStr: project.dueDate ?? undefined,
+        daysEarly: early ?? undefined,
+      };
     }
     if (daysInfo?.isPending) {
       return { value: '—', label: 'Pending', state: 'pending' as const };
@@ -227,7 +236,7 @@ export const ProjectCard = memo(function ProjectCard({
       return { value: number, label: 'Overdue', state: 'overdue' as const };
     }
     return { value: number, label: 'Days Left', state: 'default' as const };
-  }, [daysInfo, project.status]);
+  }, [daysInfo, project.status, project.dueDate, project.completedAt]);
 
   const cardStyle = {
     '--status-color': statusColor,
@@ -737,7 +746,7 @@ export const ProjectCard = memo(function ProjectCard({
         {/* Review Ready banner - shown to client when project is in review status (hide if already approved) */}
         {isInReview && isClient && !project.wasApproved && (
           <div className={styles.reviewReadyBanner}>
-            <span className={styles.reviewReadyText}>★ REVIEW READY</span>
+            <span className={styles.reviewReadyText}>★ Ready for Review</span>
           </div>
         )}
         {/* Approved banner - shown when client has approved (ready for admin to finalize) */}
@@ -873,6 +882,24 @@ export const ProjectCard = memo(function ProjectCard({
                   </div>
                 )}
               </>
+            ) : daysMeta.state === 'done' && 'completedAt' in daysMeta && daysMeta.completedAt ? (
+              <div className={styles.completionDates}>
+                {'dueDateStr' in daysMeta && daysMeta.dueDateStr && (
+                  <div className={styles.datePair}>
+                    <span className={styles.dateLabel}>Due:</span>
+                    <span className={styles.dateValue}>{formatDateShort(daysMeta.dueDateStr as string)}</span>
+                  </div>
+                )}
+                <div className={styles.datePair}>
+                  <span className={styles.dateLabel}>Completed:</span>
+                  <span className={styles.dateValue}>{formatDateShort(daysMeta.completedAt as string)}</span>
+                </div>
+                {'daysEarly' in daysMeta && daysMeta.daysEarly && (
+                  <span className={styles.daysEarlyBadge}>
+                    {(daysMeta.daysEarly as { text: string }).text}
+                  </span>
+                )}
+              </div>
             ) : (
               <>
                 <span className={styles.statValue}>{daysMeta.value}</span>

@@ -23,7 +23,7 @@ export const ProjectCardHeader = memo(function ProjectCardHeader() {
       {/* Review Ready banner - shown to client when project is in review status (hide if already approved) */}
       {isInReview && isClient && !project.wasApproved && (
         <div className={styles.reviewReadyBanner}>
-          <span className={styles.reviewReadyText}>★ REVIEW READY</span>
+          <span className={styles.reviewReadyText}>★ Ready for Review</span>
         </div>
       )}
 
