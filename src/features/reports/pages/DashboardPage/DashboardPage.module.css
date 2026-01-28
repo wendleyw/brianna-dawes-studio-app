@@ -589,6 +589,11 @@
   padding: 18px 12px;
 }
 
+.deliveredCard.analyticsCardClickable:hover {
+  border-color: transparent;
+  box-shadow: 0 4px 16px rgba(5, 0, 56, 0.35);
+}
+
 .deliveredCard::after {
   content: '';
   position: absolute;
@@ -607,6 +612,13 @@
 
 .deliveredCard .analyticsLabel {
   color: rgba(226, 232, 240, 0.85);
+}
+
+.analyticsLabelLinkLight {
+  composes: analyticsLabel;
+  color: rgba(226, 232, 240, 0.85);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .assetsSub {
@@ -942,4 +954,18 @@
   .topbarTitle {
     font-size: 13px;
   }
+}
+
+/* Drive URL Modal */
+.driveModalContent {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-top: 8px;
+}
+
+.driveModalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
 }

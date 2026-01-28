@@ -27,8 +27,18 @@ export function useAppSettingsMutations() {
     },
   });
 
+  const upsertSetting = useMutation({
+    mutationFn: (input: UpdateAppSettingInput & { description?: string }) =>
+      adminService.upsertSetting(input),
+    onSuccess: (_, { key }) => {
+      queryClient.invalidateQueries({ queryKey: adminKeys.settings() });
+      queryClient.invalidateQueries({ queryKey: adminKeys.setting(key) });
+    },
+  });
+
   return {
     updateSetting,
-    isUpdating: updateSetting.isPending,
+    upsertSetting,
+    isUpdating: updateSetting.isPending || upsertSetting.isPending,
   };
 }

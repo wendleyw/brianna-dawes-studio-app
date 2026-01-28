@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
-import { Skeleton, Logo } from '@shared/ui';
+import { Skeleton, Logo, Dialog, Button, Input } from '@shared/ui';
 import { ChevronDownIcon } from '@shared/ui/Icons';
 import { useAuth } from '@features/auth';
 import { useProjects } from '@features/projects';
@@ -16,6 +16,7 @@ import { STATUS_COLUMNS, getStatusColumn, getStatusProgress, getTimelineStatus }
 import { formatDateShort, formatDateMonthYear } from '@shared/lib/dateFormat';
 import { useRealtimeSubscription } from '@shared/hooks/useRealtimeSubscription';
 import type { AdminTab } from '@features/admin/domain/types';
+import { useSetting, useAppSettingsMutations } from '@features/admin/hooks/useAppSettings';
 import { createLogger } from '@shared/lib/logger';
 import styles from './DashboardPage.module.css';
 
@@ -186,6 +187,12 @@ export function DashboardPage() {
   const { boardId: masterBoardId } = useMasterBoardSettings();
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [boardCreatedAt, setBoardCreatedAt] = useState<string | null>(null);
+
+  // Deliverables Drive URL (admin-configurable)
+  const { data: driveUrl } = useSetting<string>('deliverables_drive_url');
+  const { upsertSetting, isUpdating: isSavingDriveUrl } = useAppSettingsMutations();
+  const [isDriveModalOpen, setIsDriveModalOpen] = useState(false);
+  const [driveUrlInput, setDriveUrlInput] = useState('');
   // Handler to open Admin Dashboard in panel view
   const openAdminDashboard = useCallback((tab: AdminTab) => {
     navigate(`/admin?tab=${encodeURIComponent(tab)}`);
@@ -787,9 +794,34 @@ export function DashboardPage() {
             <span className={styles.analyticsValueSuccess}>{completedProjects}</span>
             <span className={styles.analyticsLabelLink}>Projects Done</span>
           </div>
-          <div className={`${styles.analyticsCard} ${styles.deliveredCard}`}>
+          <div
+            className={`${styles.analyticsCard} ${styles.deliveredCard} ${driveUrl || isAdmin ? styles.analyticsCardClickable : ''}`}
+            role={driveUrl || isAdmin ? 'button' : undefined}
+            tabIndex={driveUrl || isAdmin ? 0 : undefined}
+            onClick={() => {
+              if (isAdmin) {
+                setDriveUrlInput((driveUrl as string) || '');
+                setIsDriveModalOpen(true);
+              } else if (driveUrl) {
+                window.open(driveUrl as string, '_blank', 'noopener,noreferrer');
+              }
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                if (isAdmin) {
+                  setDriveUrlInput((driveUrl as string) || '');
+                  setIsDriveModalOpen(true);
+                } else if (driveUrl) {
+                  window.open(driveUrl as string, '_blank', 'noopener,noreferrer');
+                }
+              }
+            }}
+          >
             <span className={styles.analyticsValue}>{totalDeliverables}</span>
-            <span className={styles.analyticsLabel}>Deliverables Delivered</span>
+            <span className={driveUrl || isAdmin ? styles.analyticsLabelLinkLight : styles.analyticsLabel}>
+              Deliverables Delivered
+            </span>
             <span className={styles.assetsSub}>
               <span>Assets: {totalAssets}</span>
               {totalBonusAssets > 0 && (
@@ -947,6 +979,66 @@ export function DashboardPage() {
       </nav>
       <div className={styles.bottomSpacer} aria-hidden="true" />
     </div>
+
+    {/* Drive URL modal (admin only) */}
+    {isAdmin && (
+      <Dialog
+        open={isDriveModalOpen}
+        onClose={() => setIsDriveModalOpen(false)}
+        title="Google Drive Link"
+        description="Set the Google Drive URL for delivered assets. Clients and designers will be able to click to open it."
+        size="sm"
+      >
+        <div className={styles.driveModalContent}>
+          <Input
+            value={driveUrlInput}
+            onChange={(e) => setDriveUrlInput(e.target.value)}
+            placeholder="https://drive.google.com/..."
+          />
+          <div className={styles.driveModalActions}>
+            {driveUrlInput && driveUrl && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={async () => {
+                  await upsertSetting.mutateAsync({
+                    key: 'deliverables_drive_url',
+                    value: '',
+                    description: 'Google Drive URL for delivered assets',
+                  });
+                  setIsDriveModalOpen(false);
+                }}
+                disabled={isSavingDriveUrl}
+              >
+                Remove link
+              </Button>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsDriveModalOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={async () => {
+                await upsertSetting.mutateAsync({
+                  key: 'deliverables_drive_url',
+                  value: driveUrlInput.trim(),
+                  description: 'Google Drive URL for delivered assets',
+                });
+                setIsDriveModalOpen(false);
+              }}
+              disabled={isSavingDriveUrl || !driveUrlInput.trim()}
+            >
+              {isSavingDriveUrl ? 'Saving...' : 'Save'}
+            </Button>
+          </div>
+        </div>
+      </Dialog>
+    )}
     </>
   );
 }
