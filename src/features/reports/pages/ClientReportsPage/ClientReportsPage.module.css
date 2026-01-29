@@ -2,60 +2,74 @@
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: #fafafa;
+  background-color: var(--color-bg-primary);
+  background-image: linear-gradient(to bottom, var(--color-bg-primary) 0%, var(--color-bg-primary) 200px, var(--color-bg-secondary) 100%);
+  padding: 18px;
+  gap: 20px;
+  font-family: var(--font-ui);
 }
 
 .content {
   flex: 1;
-  padding: 16px;
   max-width: 1200px;
   margin: 0 auto;
   width: 100%;
   padding-bottom: 100px; /* Space for bottom nav */
 }
 
-/* Header */
+/* Header - matching ProjectsPage pattern */
 .header {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px;
-  background: #fff;
-  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
-  position: sticky;
-  top: 0;
-  z-index: 20;
+  flex-direction: column;
+  gap: 24px;
 }
 
-.headerLeft {
-  display: flex;
+.headerTop {
+  display: grid;
+  grid-template-columns: 50px 1fr 50px;
   align-items: center;
   gap: 12px;
 }
 
-.backButton {
+.headerBrand {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
-  border: none;
-  background: rgba(15, 23, 42, 0.06);
-  border-radius: 10px;
+  gap: 10px;
+}
+
+.brandName {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--color-primary);
+}
+
+.headerLogoWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.iconButton {
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
+  border: 1px solid var(--color-border);
+  background-color: var(--color-bg-primary);
+  color: var(--color-primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
-  color: #0f172a;
-  transition: background 0.2s ease;
+  transition: all 0.2s ease;
+  box-shadow: var(--shadow-md);
 }
 
-.backButton:hover {
-  background: rgba(15, 23, 42, 0.12);
-}
-
-.headerTitle {
-  font-size: 18px;
-  font-weight: 700;
-  color: #0f172a;
-  margin: 0;
+.iconButton:hover {
+  transform: translateY(-1px);
+  border-color: rgba(148, 163, 184, 0.45);
 }
 
 /* Content header */

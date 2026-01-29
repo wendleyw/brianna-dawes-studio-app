@@ -94,18 +94,22 @@ export function NotificationsPage() {
     return (
       <div className={styles.container}>
         <header className={styles.header}>
-          <div className={styles.headerLeft}>
+          <div className={styles.headerTop}>
             <button
               type="button"
-              className={styles.backButton}
+              className={styles.iconButton}
               onClick={() => navigate('/dashboard')}
               aria-label="Back to dashboard"
             >
               <ArrowLeftIcon size={18} />
             </button>
-            <h1 className={styles.headerTitle}>Notifications</h1>
+            <div className={styles.headerBrand}>
+              <span className={styles.brandName}>Notifications</span>
+            </div>
+            <div className={styles.headerLogoWrapper}>
+              <Logo size="md" />
+            </div>
           </div>
-          <Logo size="sm" />
         </header>
         <div className={styles.content}>
           <div className={styles.empty}>Loading notifications...</div>
@@ -118,18 +122,22 @@ export function NotificationsPage() {
     <div className={styles.container}>
       {/* Header */}
       <header className={styles.header}>
-        <div className={styles.headerLeft}>
+        <div className={styles.headerTop}>
           <button
             type="button"
-            className={styles.backButton}
+            className={styles.iconButton}
             onClick={() => navigate('/dashboard')}
             aria-label="Back to dashboard"
           >
             <ArrowLeftIcon size={18} />
           </button>
-          <h1 className={styles.headerTitle}>Notifications</h1>
+          <div className={styles.headerBrand}>
+            <span className={styles.brandName}>Notifications</span>
+          </div>
+          <div className={styles.headerLogoWrapper}>
+            <Logo size="md" />
+          </div>
         </div>
-        <Logo size="sm" />
       </header>
 
       {/* Content */}

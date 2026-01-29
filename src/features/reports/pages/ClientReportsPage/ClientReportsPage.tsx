@@ -74,18 +74,22 @@ export function ClientReportsPage() {
     return (
       <div className={styles.container}>
         <header className={styles.header}>
-          <div className={styles.headerLeft}>
+          <div className={styles.headerTop}>
             <button
               type="button"
-              className={styles.backButton}
+              className={styles.iconButton}
               onClick={() => navigate('/dashboard')}
               aria-label="Back to dashboard"
             >
               <ArrowLeftIcon size={18} />
             </button>
-            <h1 className={styles.headerTitle}>My Reports</h1>
+            <div className={styles.headerBrand}>
+              <span className={styles.brandName}>My Reports</span>
+            </div>
+            <div className={styles.headerLogoWrapper}>
+              <Logo size="md" />
+            </div>
           </div>
-          <Logo size="sm" />
         </header>
         <div className={styles.content}>
           <div className={styles.loading}>Loading reports...</div>
@@ -98,18 +102,22 @@ export function ClientReportsPage() {
     <div className={styles.container}>
       {/* Header */}
       <header className={styles.header}>
-        <div className={styles.headerLeft}>
+        <div className={styles.headerTop}>
           <button
             type="button"
-            className={styles.backButton}
+            className={styles.iconButton}
             onClick={() => navigate('/dashboard')}
             aria-label="Back to dashboard"
           >
             <ArrowLeftIcon size={18} />
           </button>
-          <h1 className={styles.headerTitle}>My Reports</h1>
+          <div className={styles.headerBrand}>
+            <span className={styles.brandName}>My Reports</span>
+          </div>
+          <div className={styles.headerLogoWrapper}>
+            <Logo size="md" />
+          </div>
         </div>
-        <Logo size="sm" />
       </header>
 
       {/* Content */}
