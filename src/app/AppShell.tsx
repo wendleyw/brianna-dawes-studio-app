@@ -15,10 +15,12 @@ export function AppShell() {
 
   const isProjectsRoute = location.pathname.startsWith('/projects');
   const isNotificationsRoute = location.pathname.startsWith('/notifications');
+  const isReportsRoute = location.pathname.startsWith('/reports');
   const isAdminRoute = location.pathname.startsWith('/admin') || location.pathname.includes('admin-modal');
   const isDashboardRoute = location.pathname === '/' || location.pathname === '/dashboard';
   const showBackButton = isProjectsRoute || isNotificationsRoute;
-  const showTopbar = !isDashboardRoute && !isAdminRoute && !isProjectsRoute;
+  // Hide topbar on pages that have their own header/navigation
+  const showTopbar = !isDashboardRoute && !isAdminRoute && !isProjectsRoute && !isNotificationsRoute && !isReportsRoute;
 
   return (
     <div className={styles.shell}>
