@@ -358,7 +358,7 @@ export function ProjectsPage() {
 
   // Fetch projects filtered by current board (for data isolation)
   // On Master Board: show all projects (optionally filtered by selected client)
-  // On regular boards: filter by board ID
+  // On regular boards: filter by board ID (except for admins who should see all)
   const filters: ProjectFiltersType = useMemo(() => {
     const f: ProjectFiltersType = {};
     if (searchQuery) f.search = searchQuery;
@@ -370,10 +370,13 @@ export function ProjectsPage() {
       // If we have a selectedClientId (from dropdown or URL), filter by it
       // This takes precedence over board filter
       f.clientId = selectedClientId;
+    } else if (user?.role === 'admin') {
+      // Admins should see all projects - no board filter applied
+      // This ensures admins always see everything regardless of Master Board config
     } else if (isMasterBoard) {
       // On Master Board without client selected - show all projects (no filter)
     } else if (isInMiro && currentBoardId) {
-      // On regular board - filter by board ID for data isolation
+      // On regular board - filter by board ID for data isolation (designers only)
       f.miroBoardId = currentBoardId;
     }
     return f;

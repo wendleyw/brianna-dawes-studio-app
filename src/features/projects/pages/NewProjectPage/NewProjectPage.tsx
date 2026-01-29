@@ -144,7 +144,7 @@ export function NewProjectPage() {
     styleNotes: '',
     additionalNotes: '',
     targetDate: '',
-    priority: 'medium',
+    priority: 'low',
   });
 
   // Find selected client info (for board mismatch detection)

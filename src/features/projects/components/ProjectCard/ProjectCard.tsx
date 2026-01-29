@@ -644,13 +644,35 @@ export const ProjectCard = memo(function ProjectCard({
     onUpdate?.(project.id, { dueDateApproved: true });
   };
 
-  // Admin: Reject pending due date (clears the due date)
-  const handleRejectDueDate = (e: React.MouseEvent) => {
+  // Admin: Edit pending due date - inline editing state
+  const [isEditingDueDate, setIsEditingDueDate] = useState(false);
+  const [editDueDate, setEditDueDate] = useState('');
+
+  const handleEditDueDate = (e: React.MouseEvent) => {
     e.stopPropagation();
-    onUpdate?.(project.id, {
-      dueDate: null,
-      dueDateApproved: true, // No longer pending since we cleared it
-    });
+    // Pre-fill with current due date formatted as YYYY-MM-DD
+    const currentDate = project.dueDate?.split('T')[0] ?? '';
+    setEditDueDate(currentDate);
+    setIsEditingDueDate(true);
+  };
+
+  const handleSaveEditedDueDate = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (editDueDate) {
+      // Save the new date AND approve it in one action
+      onUpdate?.(project.id, {
+        dueDate: new Date(editDueDate).toISOString(),
+        dueDateApproved: true,
+      });
+    }
+    setIsEditingDueDate(false);
+    setEditDueDate('');
+  };
+
+  const handleCancelEditDueDate = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsEditingDueDate(false);
+    setEditDueDate('');
   };
 
   // Deliverable CRUD handlers
@@ -855,31 +877,65 @@ export const ProjectCard = memo(function ProjectCard({
           >
             {daysInfo?.isPending ? (
               <>
-                <div className={styles.pendingDateInfo}>
-                  <span className={styles.pendingLabel}>{daysMeta.label}</span>
-                  <span className={styles.pendingDate}>
-                    {project.dueDate
-                      ? new Date(project.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-                      : ''}
-                  </span>
-                </div>
-                {isAdmin && (
-                  <div className={styles.dueDateApprovalButtons}>
-                    <button
-                      className={styles.approveSmall}
-                      onClick={handleApproveDueDate}
-                      title="Approve date"
-                    >
-                      ✓
-                    </button>
-                    <button
-                      className={styles.rejectSmall}
-                      onClick={handleRejectDueDate}
-                      title="Reject date"
-                    >
-                      ✕
-                    </button>
+                {isEditingDueDate ? (
+                  <div className={styles.editDateContainer}>
+                    <input
+                      type="date"
+                      className={styles.editDateInput}
+                      value={editDueDate}
+                      onChange={(e) => setEditDueDate(e.target.value)}
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                    <div className={styles.editDateActions}>
+                      <button
+                        type="button"
+                        className={styles.approveSmall}
+                        onClick={handleSaveEditedDueDate}
+                        title="Save date"
+                      >
+                        ✓
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.editSmall}
+                        onClick={handleCancelEditDueDate}
+                        title="Cancel"
+                      >
+                        ✕
+                      </button>
+                    </div>
                   </div>
+                ) : (
+                  <>
+                    <div className={styles.pendingDateInfo}>
+                      <span className={styles.pendingLabel}>{daysMeta.label}</span>
+                      <span className={styles.pendingDate}>
+                        {project.dueDate
+                          ? new Date(project.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                          : ''}
+                      </span>
+                    </div>
+                    {isAdmin && (
+                      <div className={styles.dueDateApprovalButtons}>
+                        <button
+                          type="button"
+                          className={styles.approveSmall}
+                          onClick={handleApproveDueDate}
+                          title="Approve date"
+                        >
+                          ✓
+                        </button>
+                        <button
+                          type="button"
+                          className={styles.editSmall}
+                          onClick={handleEditDueDate}
+                          title="Edit date"
+                        >
+                          ✎
+                        </button>
+                      </div>
+                    )}
+                  </>
                 )}
               </>
             ) : daysMeta.state === 'done' && 'completedAt' in daysMeta && daysMeta.completedAt ? (
