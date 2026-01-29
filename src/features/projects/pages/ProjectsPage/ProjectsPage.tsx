@@ -55,7 +55,7 @@ export function ProjectsPage() {
   const { user } = useAuth();
   const { miro, isInMiro, boardId: miroBoardId } = useMiro();
   const { syncProject } = useMiroBoardSync();
-  const { boardId: masterBoardId } = useMasterBoardSettings();
+  const { boardId: masterBoardId, isLoading: isMasterBoardLoading } = useMasterBoardSettings();
   const [searchQuery, setSearchQuery] = useState('');
   const [timelineFilter, setTimelineFilter] = useState<TimelineStatus | 'active' | ''>('');
   const [projectTypeFilter, setProjectTypeFilter] = useState<string>('');
@@ -358,7 +358,7 @@ export function ProjectsPage() {
 
   // Fetch projects filtered by current board (for data isolation)
   // On Master Board: show all projects (optionally filtered by selected client)
-  // On regular boards: filter by board ID (except for admins who should see all)
+  // On regular boards: filter by board ID
   const filters: ProjectFiltersType = useMemo(() => {
     const f: ProjectFiltersType = {};
     if (searchQuery) f.search = searchQuery;
@@ -370,17 +370,20 @@ export function ProjectsPage() {
       // If we have a selectedClientId (from dropdown or URL), filter by it
       // This takes precedence over board filter
       f.clientId = selectedClientId;
-    } else if (user?.role === 'admin') {
-      // Admins should see all projects - no board filter applied
-      // This ensures admins always see everything regardless of Master Board config
     } else if (isMasterBoard) {
       // On Master Board without client selected - show all projects (no filter)
     } else if (isInMiro && currentBoardId) {
-      // On regular board - filter by board ID for data isolation (designers only)
-      f.miroBoardId = currentBoardId;
+      // On regular board - filter by board ID for data isolation
+      // But if masterBoardId is still loading for admins, don't filter yet
+      // to avoid showing empty state while settings load
+      if (user?.role === 'admin' && isMasterBoardLoading) {
+        // Wait for masterBoardId to load before applying filter
+      } else {
+        f.miroBoardId = currentBoardId;
+      }
     }
     return f;
-  }, [searchQuery, isInMiro, currentBoardId, isMasterBoard, selectedClientId, user?.role, user?.id]);
+  }, [searchQuery, isInMiro, currentBoardId, isMasterBoard, isMasterBoardLoading, selectedClientId, user?.role, user?.id]);
 
   // Fetch ALL projects (pageSize: 1000 to avoid pagination limits)
   const { data: projectsData, isLoading, refetch } = useProjects({ filters, pageSize: 1000 });
