@@ -167,9 +167,10 @@
 .headerRow {
   display: flex;
   gap: 12px;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
 }
 
 .titleBlock {
@@ -182,17 +183,18 @@
 }
 
 .subtitle {
-  font-size: 12px;
-  color: var(--color-gray-500);
-  margin-top: 2px;
+  font-size: 13px;
+  color: var(--color-gray-600);
+  margin: 0;
 }
 
 .actions {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   align-items: center;
-  flex-wrap: wrap;
-  justify-content: flex-end;
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+  margin-bottom: 16px;
 }
 
 .list {
