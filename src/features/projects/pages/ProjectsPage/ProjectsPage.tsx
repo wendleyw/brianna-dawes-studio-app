@@ -692,10 +692,20 @@ export function ProjectsPage() {
           if (input.status || input.dueDate || input.wasApproved !== undefined || input.wasReviewed !== undefined) {
             syncProject(updatedProject).catch(err => logger.error('Sync failed', err));
           }
+
+          // Update the due date badge in the briefing frame when due date changes
+          if (input.dueDate && isInMiro) {
+            logger.debug('Updating briefing due date badge', { projectId, dueDate: input.dueDate });
+            miroProjectRowService.updateBriefingDueDate(
+              projectId,
+              updatedProject.dueDate,
+              updatedProject.name
+            ).catch(err => logger.error('Failed to update briefing due date', err));
+          }
         },
       }
     );
-  }, [updateProject, syncProject]);
+  }, [updateProject, syncProject, isInMiro]);
 
   // Scroll to selected project when loaded
   useEffect(() => {

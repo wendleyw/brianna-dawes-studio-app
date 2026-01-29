@@ -2674,6 +2674,156 @@ class MiroProjectRowService {
   }
 
   /**
+   * Update the due date badge in the briefing frame
+   * Called when admin edits the due date
+   */
+  async updateBriefingDueDate(projectId: string, dueDate: string | null, projectName?: string): Promise<boolean> {
+    projectLogger.debug('[updateBriefingDueDate] Starting update', { project: projectName || projectId, dueDate });
+
+    const miro = getMiroSDK();
+    const row = this.rows.get(projectId);
+
+    // Format the due date text
+    const dueDateText = dueDate
+      ? new Date(dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+      : 'No deadline';
+
+    projectLogger.debug('[updateBriefingDueDate] Formatted date', { dueDateText });
+
+    // Search for the badge on the board by finding briefing frame and due date shape
+    try {
+      let briefingFrame: MiroFrame | undefined;
+
+      // First try using stored briefingFrameId from memory
+      if (row?.briefingFrameId) {
+        try {
+          const frame = await miro.board.getById(row.briefingFrameId) as MiroFrame;
+          if (frame) {
+            projectLogger.debug('[updateBriefingDueDate] Using stored briefingFrameId', { id: row.briefingFrameId });
+            briefingFrame = frame;
+          }
+        } catch {
+          projectLogger.debug('[updateBriefingDueDate] Stored briefingFrameId invalid, searching');
+        }
+      }
+
+      // If not found in memory, search all frames
+      if (!briefingFrame) {
+        const allFrames = await miro.board.get({ type: 'frame' }) as MiroFrame[];
+        projectLogger.debug('[updateBriefingDueDate] Found frames on board', { count: allFrames.length });
+
+        // Try exact match by project name (format: "Project Name - BRIEFING [PROJ-YYYY-MM-XXX]")
+        if (projectName) {
+          briefingFrame = allFrames.find(f => {
+            if (!f.title) return false;
+            const isBriefing = f.title.toUpperCase().includes('BRIEFING');
+            if (!isBriefing) return false;
+            return f.title.toUpperCase().startsWith(projectName.toUpperCase() + ' -');
+          });
+        }
+
+        // Fallback: contains (for partial matches)
+        if (!briefingFrame && projectName) {
+          briefingFrame = allFrames.find(f => {
+            if (!f.title) return false;
+            const isBriefing = f.title.toUpperCase().includes('BRIEFING');
+            const matchesProject = f.title.toUpperCase().includes(projectName.toUpperCase());
+            return isBriefing && matchesProject;
+          });
+        }
+      }
+
+      if (!briefingFrame) {
+        projectLogger.debug('[updateBriefingDueDate] No briefing frame found', { project: projectName || projectId });
+        return false;
+      }
+
+      projectLogger.debug('[updateBriefingDueDate] Found briefing frame', { title: briefingFrame.title });
+
+      // Get all shapes on the board
+      const allShapes = await miro.board.get({ type: 'shape' }) as Array<{
+        id: string;
+        x: number;
+        y: number;
+        content?: string;
+        style?: { fillColor?: string };
+      }>;
+
+      // Find shapes that are inside the briefing frame
+      const frameLeft = briefingFrame.x - (briefingFrame.width || 800) / 2;
+      const frameRight = briefingFrame.x + (briefingFrame.width || 800) / 2;
+      const frameTop = briefingFrame.y - (briefingFrame.height || 600) / 2;
+      const frameBottom = briefingFrame.y + (briefingFrame.height || 600) / 2;
+
+      const shapesInFrame = allShapes.filter(s => {
+        return s.x >= frameLeft && s.x <= frameRight && s.y >= frameTop && s.y <= frameBottom;
+      });
+
+      // Filter shapes with content
+      const shapesWithContent = shapesInFrame.filter(s => s.content && s.content.length > 0);
+
+      // Find all shapes that could be badges - look for shapes in a horizontal line (same Y)
+      const yGroups: Map<number, typeof shapesWithContent> = new Map();
+      for (const shape of shapesWithContent) {
+        const roundedY = Math.round(shape.y / 10) * 10;
+        const group = yGroups.get(roundedY) || [];
+        group.push(shape);
+        yGroups.set(roundedY, group);
+      }
+
+      // Find the badge row (near top, has multiple items)
+      let badgeRow: typeof shapesWithContent = [];
+      for (const [y, group] of yGroups) {
+        if (group.length >= 3 && group.length <= 7 && y < frameTop + (frameBottom - frameTop) / 3) {
+          if (group.length > badgeRow.length) {
+            badgeRow = group;
+          }
+        }
+      }
+
+      if (badgeRow.length === 0) {
+        projectLogger.debug('[updateBriefingDueDate] No badge row found');
+        return false;
+      }
+
+      // Sort badges by X position (left to right)
+      badgeRow.sort((a, b) => a.x - b.x);
+
+      // Due date badge is the rightmost one (position 4, index 3)
+      // Or find by content pattern (date-like text or "No deadline")
+      let dueDateShape = badgeRow[badgeRow.length - 1]; // Rightmost badge
+
+      // Verify it's the due date badge by checking content pattern
+      const datePattern = /^\s*<p><b>(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|No deadline|Due:)/i;
+      if (dueDateShape?.content && !datePattern.test(dueDateShape.content)) {
+        // Try to find by content pattern
+        const foundByPattern = badgeRow.find(s => s.content && datePattern.test(s.content));
+        if (foundByPattern) {
+          dueDateShape = foundByPattern;
+        }
+      }
+
+      if (dueDateShape) {
+        projectLogger.debug('[updateBriefingDueDate] Found due date shape', { x: Math.round(dueDateShape.x), currentContent: dueDateShape.content?.substring(0, 50) });
+
+        const shape = await miro.board.getById(dueDateShape.id);
+        if (shape && 'content' in shape) {
+          (shape as { content: string }).content = `<p><b>${dueDateText}</b></p>`;
+          await miro.board.sync(shape);
+          projectLogger.info('[updateBriefingDueDate] SUCCESS - Updated due date badge', { dueDateText });
+          return true;
+        }
+      }
+
+      projectLogger.debug('[updateBriefingDueDate] No due date shape found in briefing frame');
+    } catch (error) {
+      projectLogger.error('[updateBriefingDueDate] ERROR', error);
+    }
+
+    return false;
+  }
+
+  /**
    * Handle the gray "done" overlay on the briefing frame
    * Creates a semi-transparent gray overlay when status is "done", removes it otherwise
    */
