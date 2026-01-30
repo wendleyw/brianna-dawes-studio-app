@@ -1107,9 +1107,14 @@ class MiroMasterTimelineService {
     });
 
     if (needsExpansion) {
-      // Calculate new frame height needed - add smaller buffer since bottomPadding now accounts for next card
-      const extraBuffer = 50; // Extra space for additional cards (reduced since bottomPadding is larger)
-      const newHeight = (lowestCardBottom + bottomPadding + extraBuffer) - ORIGINAL_FRAME_TOP;
+      // Triple the current frame height to create plenty of room for upcoming cards
+      // This avoids frequent small expansions and gives a large buffer at once
+      const tripledHeight = currentFrameHeight * 3;
+      // Also calculate the minimum needed height as a safety floor
+      const extraBuffer = 50;
+      const minNeededHeight = (lowestCardBottom + bottomPadding + extraBuffer) - ORIGINAL_FRAME_TOP;
+      // Use whichever is larger: tripled height or minimum needed
+      const newHeight = Math.max(tripledHeight, minNeededHeight);
       // IMPORTANT: When frame grows, its center Y moves down to keep TOP fixed
       // newCenterY = frameTop + newHeight / 2 = ORIGINAL_FRAME_TOP + newHeight / 2
       const newCenterY = ORIGINAL_FRAME_TOP + newHeight / 2;

@@ -6,6 +6,7 @@ import { useMiro } from '@features/boards';
 import { supabase } from '@shared/lib/supabase';
 import { useCreateReport } from '../../hooks';
 import type { ProjectReportType } from '../../domain/report.types';
+import styles from './CreateReportModal.module.css';
 
 interface CreateReportModalProps {
   open: boolean;
@@ -165,9 +166,9 @@ export function CreateReportModal({
         if (uniqueClients.size !== 1) return;
         const [clientEntry] = uniqueClients.entries();
         if (!clientEntry) return;
-        const [clientId, clientMeta] = clientEntry;
+        const [cId, clientMeta] = clientEntry;
         if (!isActive) return;
-        setBoardClientId(clientId);
+        setBoardClientId(cId);
         setBoardClientName(clientMeta.name);
       } catch (error) {
         console.error('Failed to infer board client', error);
@@ -290,70 +291,55 @@ export function CreateReportModal({
     []
   );
 
+  const canSubmit =
+    (!!title || !!defaultTitle) &&
+    !!startDate &&
+    !!endDate &&
+    (scope === 'project' ? !!projectId : !!effectiveClientId) &&
+    !isSubmitting;
+
   const dialogTitle =
     lockToClientScope || scope === 'client' ? 'Create Client Report' : 'Create Project Report';
 
   return (
-    <Dialog open={open} onClose={onClose} title={dialogTitle}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', minWidth: '400px' }}>
+    <Dialog open={open} onClose={onClose} title={dialogTitle} size="lg">
+      <div className={styles.form}>
+        {/* Scope Selection */}
         {!lockToClientScope ? (
-          <div>
-            <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
-              Report Scope (default: Client)
-            </label>
-            <div style={{ display: 'flex', gap: '8px' }}>
+          <div className={styles.fieldGroup}>
+            <label className={styles.label}>Report Scope</label>
+            <div className={styles.scopeButtons}>
               <button
                 type="button"
+                className={`${styles.scopeBtn} ${scope === 'project' ? styles.scopeBtnActive : ''}`}
                 onClick={() => setScope('project')}
-                style={{
-                  padding: '6px 10px',
-                  borderRadius: '999px',
-                  border: scope === 'project' ? '1px solid #2563EB' : '1px solid #ddd',
-                  background: scope === 'project' ? '#EFF6FF' : '#fff',
-                  color: scope === 'project' ? '#1D4ED8' : '#111827',
-                  fontSize: '12px',
-                  cursor: 'pointer',
-                }}
               >
                 Single Project
               </button>
               <button
                 type="button"
+                className={`${styles.scopeBtn} ${scope === 'client' ? styles.scopeBtnActive : ''}`}
                 onClick={() => setScope('client')}
-                style={{
-                  padding: '6px 10px',
-                  borderRadius: '999px',
-                  border: scope === 'client' ? '1px solid #2563EB' : '1px solid #ddd',
-                  background: scope === 'client' ? '#EFF6FF' : '#fff',
-                  color: scope === 'client' ? '#1D4ED8' : '#111827',
-                  fontSize: '12px',
-                  cursor: 'pointer',
-                }}
               >
                 Client (All Projects)
               </button>
             </div>
           </div>
         ) : (
-          <div>
-            <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
-              Report Scope
-            </label>
-            <div style={{ fontSize: '12px', color: '#6b7280' }}>
-              {lockToClientScope ? 'Client (All Projects)' : 'Single Project'}
-            </div>
+          <div className={styles.fieldGroup}>
+            <label className={styles.label}>Report Scope</label>
+            <div className={styles.scopeInfo}>Client (All Projects)</div>
           </div>
         )}
 
+        {/* Project Selection */}
         {scope === 'project' && !lockToClientScope && (
-          <div>
-            <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
-              Project *
-            </label>
+          <div className={styles.fieldGroup}>
+            <label className={styles.label}>Project *</label>
             <select
               value={projectClientId}
               onChange={(e) => setProjectClientId(e.target.value)}
-              style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd', marginBottom: '8px' }}
+              className={`${styles.select} ${styles.selectSpaced}`}
             >
               <option value="">All Clients</option>
               {clients.map((client) => (
@@ -365,7 +351,7 @@ export function CreateReportModal({
             <select
               value={projectId}
               onChange={(e) => setProjectId(e.target.value)}
-              style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
+              className={styles.select}
             >
               <option value="">Select a project</option>
               {filteredProjects.map((p: any) => (
@@ -377,20 +363,19 @@ export function CreateReportModal({
           </div>
         )}
 
+        {/* Client Selection */}
         {scope === 'client' && (
-          <div>
-            <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
-              Client *
-            </label>
+          <div className={styles.fieldGroup}>
+            <label className={styles.label}>Client *</label>
             {lockToClientScope && boardClientId ? (
-              <div style={{ fontSize: '14px', color: '#111827', padding: '8px 0' }}>
+              <div className={styles.clientLocked}>
                 {boardClientName || selectedClient?.companyName || selectedClient?.name || 'Client from board'}
               </div>
             ) : (
               <select
                 value={clientId}
                 onChange={(e) => setClientId(e.target.value)}
-                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
+                className={styles.select}
               >
                 <option value="">Select a client</option>
                 {clients.map((client) => (
@@ -401,25 +386,20 @@ export function CreateReportModal({
               </select>
             )}
             {lockToClientScope && boardClientId && (
-              <p style={{ marginTop: '6px', fontSize: '12px', color: '#6b7280' }}>
-                Client is locked to this board.
-              </p>
+              <p className={styles.hint}>Client is locked to this board.</p>
             )}
             {boardClientName && (
-              <p style={{ marginTop: '6px', fontSize: '12px', color: '#6b7280' }}>
-                Board client detected: {boardClientName}
-              </p>
+              <p className={styles.hint}>Board client detected: {boardClientName}</p>
             )}
-            <p style={{ marginTop: '6px', fontSize: '12px', color: '#6b7280' }}>
+            <p className={styles.hint}>
               Generates a single report covering all projects for the selected client.
             </p>
           </div>
         )}
 
-        <div>
-          <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
-            Report Title *
-          </label>
+        {/* Title */}
+        <div className={styles.fieldGroup}>
+          <label className={styles.label}>Report Title *</label>
           <input
             type="text"
             value={title}
@@ -428,30 +408,28 @@ export function CreateReportModal({
               setTitle(e.target.value);
             }}
             placeholder={defaultTitle || 'Monthly Progress Report'}
-            style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
+            className={styles.input}
           />
         </div>
 
-        <div>
-          <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
-            Description
-          </label>
+        {/* Description */}
+        <div className={styles.fieldGroup}>
+          <label className={styles.label}>Description</label>
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={2}
-            style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd', resize: 'vertical' }}
+            className={styles.textarea}
           />
         </div>
 
-        <div>
-          <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
-            Report Type
-          </label>
+        {/* Report Type */}
+        <div className={styles.fieldGroup}>
+          <label className={styles.label}>Report Type</label>
           <select
             value={reportType}
             onChange={(e) => setReportType(e.target.value as ProjectReportType)}
-            style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
+            className={styles.select}
           >
             <option value="project_summary">Project Summary</option>
             <option value="milestone">Milestone Report</option>
@@ -459,100 +437,78 @@ export function CreateReportModal({
           </select>
         </div>
 
-        <div>
-          <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500' }}>
-            Report Period
-          </label>
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '8px' }}>
+        {/* Date Range */}
+        <div className={styles.fieldGroup}>
+          <label className={styles.label}>Report Period</label>
+          <div className={styles.presetButtons}>
             {presets.map((preset) => (
               <button
                 key={preset.label}
                 type="button"
+                className={styles.presetBtn}
                 onClick={() => {
                   const range = preset.getValue();
                   setStartDate(range.startDate);
                   setEndDate(range.endDate);
-                }}
-                style={{
-                  padding: '6px 10px',
-                  borderRadius: '999px',
-                  border: '1px solid #ddd',
-                  background: '#fff',
-                  fontSize: '12px',
-                  cursor: 'pointer',
                 }}
               >
                 {preset.label}
               </button>
             ))}
           </div>
-          <div style={{ display: 'flex', gap: '12px' }}>
-            <div style={{ flex: 1 }}>
-              <label style={{ display: 'block', marginBottom: '4px', fontSize: '12px', color: '#666' }}>
-                Start
-              </label>
+          <div className={styles.dateRow}>
+            <div className={styles.dateCol}>
+              <label className={styles.labelSmall}>Start</label>
               <input
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
+                className={styles.input}
               />
             </div>
-            <div style={{ flex: 1 }}>
-              <label style={{ display: 'block', marginBottom: '4px', fontSize: '12px', color: '#666' }}>
-                End
-              </label>
+            <div className={styles.dateCol}>
+              <label className={styles.labelSmall}>End</label>
               <input
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
+                className={styles.input}
               />
             </div>
           </div>
         </div>
 
-        <div>
-          <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', fontWeight: '500' }}>
-            Admin Notes
-          </label>
+        {/* Admin Notes */}
+        <div className={styles.fieldGroup}>
+          <label className={styles.label}>Admin Notes</label>
           <textarea
             value={adminNotes}
             onChange={(e) => setAdminNotes(e.target.value)}
             rows={3}
             placeholder="Additional notes to include in the report..."
-            style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd', resize: 'vertical' }}
+            className={styles.textarea}
           />
         </div>
 
-        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '8px' }}>
+        {/* Footer */}
+        <div className={styles.footer}>
           <Button variant="ghost" onClick={onClose}>
             Cancel
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={
-              (!title && !defaultTitle) ||
-              !startDate ||
-              !endDate ||
-              (scope === 'project' && !projectId) ||
-              (scope === 'client' && !effectiveClientId) ||
-              isSubmitting
-            }
+            disabled={!canSubmit}
             isLoading={isSubmitting}
           >
             {scope === 'client' ? 'Generate Client Report' : 'Generate & Send Report'}
           </Button>
         </div>
+
         {batchProgress && (
-          <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '8px' }}>
-            {batchProgress}
-          </div>
+          <div className={styles.progressMessage}>{batchProgress}</div>
         )}
         {submitError && (
-          <div style={{ fontSize: '12px', color: '#dc2626', marginTop: '8px' }}>
-            {submitError}
-          </div>
+          <div className={styles.errorMessage}>{submitError}</div>
         )}
       </div>
     </Dialog>

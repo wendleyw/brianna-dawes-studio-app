@@ -1,0 +1,149 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.label {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
+.labelSmall {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 12px;
+  color: #666;
+}
+
+.scopeInfo {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.scopeButtons {
+  display: flex;
+  gap: 8px;
+}
+
+.scopeBtn {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.scopeBtnActive {
+  border-color: var(--color-accent);
+  background: rgba(37, 99, 235, 0.08);
+  color: var(--color-accent);
+}
+
+.input,
+.select,
+.textarea {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-primary);
+  font-size: 13px;
+  font-family: var(--font-ui);
+  color: var(--color-text-primary);
+  transition: border-color 0.15s ease;
+}
+
+.input:focus,
+.select:focus,
+.textarea:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
+}
+
+.textarea {
+  resize: vertical;
+}
+
+.selectSpaced {
+  margin-bottom: 8px;
+}
+
+.clientLocked {
+  font-size: 14px;
+  color: var(--color-text-primary);
+  padding: 8px 0;
+}
+
+.hint {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.presetButtons {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.presetBtn {
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-primary);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  color: var(--color-text-primary);
+}
+
+.presetBtn:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.dateRow {
+  display: flex;
+  gap: 12px;
+}
+
+.dateCol {
+  flex: 1;
+  min-width: 0;
+}
+
+.footer {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-gray-200);
+}
+
+.progressMessage {
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 8px;
+}
+
+.errorMessage {
+  font-size: 12px;
+  color: #dc2626;
+  margin-top: 8px;
+}

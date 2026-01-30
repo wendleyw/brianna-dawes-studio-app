@@ -88,26 +88,22 @@ export const ProjectCardActions = memo(function ProjectCardActions() {
         </div>
       )}
 
-      {/* Client Actions - Only visible for the ASSIGNED client */}
-      {isAssignedClient && (
+      {/* Client Actions - Only visible for the ASSIGNED client when in review */}
+      {isAssignedClient && isInReview && (
         <div className={styles.adminActions}>
           <h4 className={styles.actionsTitle}>YOUR ACTIONS</h4>
           <div className={styles.actionsGrid}>
-            {/* Request Changes - ONLY when in REVIEW status (sends back to in_progress) */}
-            {isInReview && (
-              <button className={`${styles.adminBtn} ${styles.warning}`} onClick={(e) => handleClick(e, 'clientRequestChanges')}>
-                <div className={styles.adminBtnIcon}><EditIcon /></div>
-                <span>Request Changes</span>
-              </button>
-            )}
+            {/* Request Changes - sends back to in_progress */}
+            <button className={`${styles.adminBtn} ${styles.warning}`} onClick={(e) => handleClick(e, 'clientRequestChanges')}>
+              <div className={styles.adminBtnIcon}><EditIcon /></div>
+              <span>Request Changes</span>
+            </button>
 
-            {/* Approve - ONLY when in REVIEW status (marks as approved for admin to finalize) */}
-            {isInReview && (
-              <button className={`${styles.adminBtn} ${styles.success}`} onClick={(e) => handleClick(e, 'clientApprove')}>
-                <div className={styles.adminBtnIcon}><CheckIcon /></div>
-                <span>Approve</span>
-              </button>
-            )}
+            {/* Approve - marks as approved for admin to finalize */}
+            <button className={`${styles.adminBtn} ${styles.success}`} onClick={(e) => handleClick(e, 'clientApprove')}>
+              <div className={styles.adminBtnIcon}><CheckIcon /></div>
+              <span>Approve</span>
+            </button>
           </div>
         </div>
       )}

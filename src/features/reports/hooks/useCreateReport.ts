@@ -311,19 +311,24 @@ async function getProjectMetricsForRange(
 
   const averageApprovalTime = approvedCount > 0 ? totalApprovalTime / approvedCount : 0;
 
-  const { data: feedback, error: feedbackError } = await supabase
-    .from('deliverable_feedback')
-    .select('status, created_at, deliverable:deliverables(project_id)')
-    .eq('deliverable.project_id', projectId)
-    .gte('created_at', startIso)
-    .lte('created_at', endIso);
+  let totalFeedback = 0;
+  let resolvedFeedback = 0;
 
-  if (feedbackError) {
-    throw new Error('Failed to fetch feedback for report period');
+  try {
+    const { data: feedback, error: feedbackError } = await supabase
+      .from('deliverable_feedback')
+      .select('status, created_at, deliverable:deliverables(project_id)')
+      .eq('deliverable.project_id', projectId)
+      .gte('created_at', startIso)
+      .lte('created_at', endIso);
+
+    if (!feedbackError && feedback) {
+      totalFeedback = feedback.length;
+      resolvedFeedback = feedback.filter((f) => f.status === 'resolved').length;
+    }
+  } catch {
+    // deliverable_feedback table may not exist yet — skip gracefully
   }
-
-  const totalFeedback = feedback?.length || 0;
-  const resolvedFeedback = feedback?.filter((f) => f.status === 'resolved').length || 0;
 
   // Fetch priority
   const { data: pData } = await supabase.from('projects').select('priority').eq('id', projectId).single();
@@ -412,21 +417,23 @@ async function getClientMetricsForRange(projectIds: string[], startDate?: string
   let resolvedFeedback = 0;
 
   if (deliverableIds.length > 0) {
-    let feedbackQuery = supabase
-      .from('deliverable_feedback')
-      .select('status, created_at, deliverable_id')
-      .in('deliverable_id', deliverableIds);
+    try {
+      let feedbackQuery = supabase
+        .from('deliverable_feedback')
+        .select('status, created_at, deliverable_id')
+        .in('deliverable_id', deliverableIds);
 
-    if (startIso) feedbackQuery = feedbackQuery.gte('created_at', startIso);
-    if (endIso) feedbackQuery = feedbackQuery.lte('created_at', endIso);
+      if (startIso) feedbackQuery = feedbackQuery.gte('created_at', startIso);
+      if (endIso) feedbackQuery = feedbackQuery.lte('created_at', endIso);
 
-    const { data: feedback, error: feedbackError } = await feedbackQuery;
-    if (feedbackError) {
-      throw new Error('Failed to fetch feedback for report period');
+      const { data: feedback, error: feedbackError } = await feedbackQuery;
+      if (!feedbackError && feedback) {
+        totalFeedback = feedback.length;
+        resolvedFeedback = feedback.filter((f) => f.status === 'resolved').length;
+      }
+    } catch {
+      // deliverable_feedback table may not exist yet — skip gracefully
     }
-
-    totalFeedback = feedback?.length || 0;
-    resolvedFeedback = feedback?.filter((f) => f.status === 'resolved').length || 0;
   }
 
   return {

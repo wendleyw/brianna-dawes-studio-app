@@ -1266,13 +1266,13 @@ export const ProjectCard = memo(function ProjectCard({
             </div>
           )}
 
-          {/* Client Actions - Only visible for the ASSIGNED client */}
-          {isAssignedClient && (
+          {/* Client Actions - Only visible for the ASSIGNED client when there are actions */}
+          {isAssignedClient && !isDone && (isInReview || (project.status !== 'urgent' && project.status !== 'overdue')) && (
             <div className={styles.adminActions}>
               <h4 className={styles.actionsTitle}>YOUR ACTIONS</h4>
               <div className={styles.actionsGrid}>
-                {/* Urgent - available for assigned client, hidden when Done */}
-                {!isDone && !isInReview && project.status !== 'urgent' && project.status !== 'overdue' && (
+                {/* Urgent - available for assigned client, hidden when in review/urgent/overdue */}
+                {!isInReview && project.status !== 'urgent' && project.status !== 'overdue' && (
                   <button className={`${styles.adminBtn} ${styles.danger}`} onClick={handleClientCriticalClick}>
                     <div className={styles.adminBtnIcon}><StarIcon /></div>
                     <span>Urgent</span>

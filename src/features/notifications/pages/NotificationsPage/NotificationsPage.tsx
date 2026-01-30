@@ -144,6 +144,7 @@ export function NotificationsPage() {
       <div className={styles.content}>
         <div className={styles.headerRow}>
           <div className={styles.titleBlock}>
+            <h1 className={styles.title}>Notifications</h1>
             <p className={styles.subtitle}>
               {unreadCount > 0
                 ? `You have ${unreadCount} unread notification${unreadCount > 1 ? 's' : ''}`
@@ -169,7 +170,7 @@ export function NotificationsPage() {
             </Button>
           )}
           {notifications.length > 0 && (
-            <Button size="sm" variant="ghost" onClick={clearAll} style={{ color: '#EF4444' }}>
+            <Button size="sm" variant="ghost" onClick={clearAll} className={styles.clearAllBtn}>
               Clear All
             </Button>
           )}
@@ -177,14 +178,9 @@ export function NotificationsPage() {
 
         {visibleNotifications.length === 0 ? (
           <div className={styles.empty}>
-            <p style={{ fontSize: '16px', marginBottom: '8px' }}>
-              {unreadOnly ? 'No unread notifications' : 'No notifications'}
-            </p>
-            <p style={{ fontSize: '13px', color: '#9ca3af' }}>
-              {unreadOnly
-                ? 'All caught up! Check back later for updates.'
-                : 'Notifications about projects, deliverables, and updates will appear here.'}
-            </p>
+            {unreadOnly
+              ? 'No unread notifications. All caught up! Check back later for updates.'
+              : 'No notifications. Notifications about projects, deliverables, and updates will appear here.'}
           </div>
         ) : (
           <>

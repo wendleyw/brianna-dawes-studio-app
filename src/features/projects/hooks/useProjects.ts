@@ -1,7 +1,9 @@
-import { useQuery, keepPreviousData } from '@tanstack/react-query';
+import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
+import { useCallback } from 'react';
 import { projectService } from '../services/projectService';
 import { projectKeys } from '../services/projectKeys';
 import { useAuth } from '@features/auth';
+import { useRealtimeSubscription } from '@shared/hooks/useRealtimeSubscription';
 import type { ProjectsQueryParams } from '../domain/project.types';
 
 interface UseProjectsOptions extends ProjectsQueryParams {
@@ -12,6 +14,22 @@ interface UseProjectsOptions extends ProjectsQueryParams {
 export function useProjects(options: UseProjectsOptions = {}) {
   const { user } = useAuth();
   const { skipRoleFilter, ...params } = options;
+  const queryClient = useQueryClient();
+
+  // Invalidate project queries when realtime changes occur
+  const handleChange = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: projectKeys.all });
+  }, [queryClient]);
+
+  // Subscribe to realtime changes on projects table
+  useRealtimeSubscription<{ id: string }>({
+    table: 'projects',
+    event: '*',
+    onInsert: handleChange,
+    onUpdate: handleChange,
+    onDelete: handleChange,
+    enabled: !!user,
+  });
 
   // Determine query function based on user role
   const getQueryFn = () => {

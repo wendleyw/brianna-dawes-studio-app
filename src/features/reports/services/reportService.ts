@@ -305,11 +305,17 @@ class ReportService {
       .gte('created_at', startDate)
       .lte('created_at', endDate);
 
-    const { data: feedback } = await supabase
-      .from('deliverable_feedback')
-      .select('created_at')
-      .gte('created_at', startDate)
-      .lte('created_at', endDate);
+    let feedback: Array<{ created_at: string }> | null = null;
+    try {
+      const { data, error } = await supabase
+        .from('deliverable_feedback')
+        .select('created_at')
+        .gte('created_at', startDate)
+        .lte('created_at', endDate);
+      if (!error) feedback = data;
+    } catch {
+      // deliverable_feedback table may not exist yet
+    }
 
     // Group by date
     const metricsMap: Record<string, TimelineMetrics> = {};
@@ -357,7 +363,7 @@ class ReportService {
     });
 
     feedback?.forEach((f) => {
-      const date = f.created_at.split('T')[0];
+      const date = f.created_at.split('T')[0] ?? f.created_at;
       if (!metricsMap[date]) {
         metricsMap[date] = {
           date,
@@ -367,7 +373,7 @@ class ReportService {
           feedbackCount: 0,
         };
       }
-      metricsMap[date].feedbackCount++;
+      metricsMap[date]!.feedbackCount++;
     });
 
     return Object.values(metricsMap).sort((a, b) => a.date.localeCompare(b.date));
@@ -397,7 +403,7 @@ class ReportService {
     } catch (error) {
       logger.warn('activity_feed view not available; falling back to base tables', error);
 
-      const [projectsRes, deliverablesRes, feedbackRes] = await Promise.all([
+      const [projectsRes, deliverablesRes] = await Promise.all([
         supabase
           .from('projects')
           .select('id, name, created_at')
@@ -408,12 +414,19 @@ class ReportService {
           .select('id, name, project_id, created_at, updated_at')
           .order('updated_at', { ascending: false })
           .limit(limit),
-        supabase
+      ]);
+
+      // deliverable_feedback table may not exist yet
+      let feedbackRes: { data: any[] | null } = { data: null };
+      try {
+        feedbackRes = await supabase
           .from('deliverable_feedback')
           .select('id, deliverable_id, user_id, created_at, deliverable:deliverables(id, name, project_id, project:projects(id, name)), user:users(id, name)')
           .order('created_at', { ascending: false })
-          .limit(limit),
-      ]);
+          .limit(limit);
+      } catch {
+        // table may not exist — skip
+      }
 
       const projectCreated: ActivityItem[] = (projectsRes.data || []).map((p) => ({
         id: p.id,

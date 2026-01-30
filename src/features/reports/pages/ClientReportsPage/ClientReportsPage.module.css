@@ -1,18 +1,22 @@
 .container {
-  min-height: 100vh;
   display: flex;
   flex-direction: column;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
   background-color: var(--color-bg-primary);
   background-image: linear-gradient(to bottom, var(--color-bg-primary) 0%, var(--color-bg-primary) 200px, var(--color-bg-secondary) 100%);
   padding: 18px;
-  gap: 20px;
+  gap: var(--space-5);
   font-family: var(--font-ui);
+  color: var(--color-primary);
 }
 
 .content {
   flex: 1;
-  max-width: 1200px;
-  margin: 0 auto;
   width: 100%;
   padding-bottom: 100px; /* Space for bottom nav */
 }
@@ -21,7 +25,7 @@
 .header {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 32px;
 }
 
 .headerTop {
@@ -74,48 +78,38 @@
 
 /* Content header */
 .contentHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
   margin-bottom: 24px;
 }
 
+.pageTitle {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--color-primary);
+  margin: 0;
+}
+
 .subtitle {
-  font-size: 14px;
-  color: #6b7280;
+  font-size: 12px;
+  color: var(--color-text-secondary);
   margin: 0;
 }
 
 /* Reports grid */
 .reportsGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
 }
 
-/* Empty state */
+/* Empty & Loading states */
+.loading,
 .empty {
-  padding: 64px 24px;
   text-align: center;
-  border: 2px dashed #e5e7eb;
-  border-radius: 12px;
-  background: #fff;
-}
-
-.emptyTitle {
-  font-size: 18px;
-  color: #6b7280;
-  margin: 0 0 8px 0;
-}
-
-.emptySubtitle {
-  font-size: 14px;
-  color: #9ca3af;
-  margin: 0;
-}
-
-/* Loading state */
-.loading {
-  padding: 40px;
-  text-align: center;
-  color: #6b7280;
+  padding: 32px 16px;
+  color: var(--color-text-secondary);
 }
 
 /* Bottom Navigation */
@@ -164,7 +158,7 @@
 .navToggle {
   border: none;
   background: rgba(15, 23, 42, 0.08);
-  color: #0f172a;
+  color: var(--color-primary);
   width: 38px;
   height: 38px;
   border-radius: 14px;
@@ -189,13 +183,13 @@
   gap: 4px;
   font-size: 10px;
   font-weight: 600;
-  color: #94a3b8;
+  color: var(--color-text-tertiary);
   cursor: pointer;
   padding: 4px 6px;
 }
 
 .navButtonActive {
-  color: #0f172a;
+  color: var(--color-primary);
 }
 
 .navButtonDisabled {

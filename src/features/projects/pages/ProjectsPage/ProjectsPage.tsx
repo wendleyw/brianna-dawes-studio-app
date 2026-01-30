@@ -689,13 +689,13 @@ export function ProjectsPage() {
           // Sync with Miro if there was a status, approval, review, or due date change
           // wasApproved: client approved the project (shows ✓ icon on card)
           // wasReviewed: client requested changes (shows 🔄 icon on card)
-          if (input.status || input.dueDate || input.wasApproved !== undefined || input.wasReviewed !== undefined) {
+          if (input.status || input.dueDate || input.dueDateApproved !== undefined || input.wasApproved !== undefined || input.wasReviewed !== undefined) {
             syncProject(updatedProject).catch(err => logger.error('Sync failed', err));
           }
 
-          // Update the due date badge in the briefing frame when due date changes
-          if (input.dueDate && isInMiro) {
-            logger.debug('Updating briefing due date badge', { projectId, dueDate: input.dueDate });
+          // Update the due date badge in the briefing frame when due date changes or is approved
+          if ((input.dueDate || input.dueDateApproved) && isInMiro && updatedProject.dueDate) {
+            logger.debug('Updating briefing due date badge', { projectId, dueDate: updatedProject.dueDate });
             miroProjectRowService.updateBriefingDueDate(
               projectId,
               updatedProject.dueDate,
