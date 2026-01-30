@@ -2750,6 +2750,8 @@ class MiroProjectRowService {
         id: string;
         x: number;
         y: number;
+        width?: number;
+        height?: number;
         content?: string;
         style?: { fillColor?: string };
       }>;
@@ -2764,52 +2766,41 @@ class MiroProjectRowService {
         return s.x >= frameLeft && s.x <= frameRight && s.y >= frameTop && s.y <= frameBottom;
       });
 
-      // Filter shapes with content
-      const shapesWithContent = shapesInFrame.filter(s => s.content && s.content.length > 0);
+      projectLogger.debug('[updateBriefingDueDate] Shapes in frame', { count: shapesInFrame.length });
 
-      // Find all shapes that could be badges - look for shapes in a horizontal line (same Y)
-      const yGroups: Map<number, typeof shapesWithContent> = new Map();
-      for (const shape of shapesWithContent) {
-        const roundedY = Math.round(shape.y / 10) * 10;
-        const group = yGroups.get(roundedY) || [];
-        group.push(shape);
-        yGroups.set(roundedY, group);
+      // Strategy 1: Find the due date badge by its unique gray fill color (#E5E7EB)
+      // The due date badge is the only shape with this fill color in the briefing frame
+      const DUE_DATE_FILL = '#E5E7EB';
+      let dueDateShape = shapesInFrame.find(s =>
+        s.style?.fillColor?.toUpperCase() === DUE_DATE_FILL.toUpperCase() &&
+        s.content && s.content.length > 0
+      );
+
+      // Strategy 2: Find by content pattern (date text or "No deadline")
+      if (!dueDateShape) {
+        const datePattern = /<p><b>(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|No deadline|Due:)/i;
+        dueDateShape = shapesInFrame.find(s => s.content && datePattern.test(s.content));
       }
 
-      // Find the badge row (near top, has multiple items)
-      let badgeRow: typeof shapesWithContent = [];
-      for (const [y, group] of yGroups) {
-        if (group.length >= 3 && group.length <= 7 && y < frameTop + (frameBottom - frameTop) / 3) {
-          if (group.length > badgeRow.length) {
-            badgeRow = group;
-          }
-        }
-      }
-
-      if (badgeRow.length === 0) {
-        projectLogger.debug('[updateBriefingDueDate] No badge row found');
-        return false;
-      }
-
-      // Sort badges by X position (left to right)
-      badgeRow.sort((a, b) => a.x - b.x);
-
-      // Due date badge is the rightmost one (position 4, index 3)
-      // Or find by content pattern (date-like text or "No deadline")
-      let dueDateShape = badgeRow[badgeRow.length - 1]; // Rightmost badge
-
-      // Verify it's the due date badge by checking content pattern
-      const datePattern = /^\s*<p><b>(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|No deadline|Due:)/i;
-      if (dueDateShape?.content && !datePattern.test(dueDateShape.content)) {
-        // Try to find by content pattern
-        const foundByPattern = badgeRow.find(s => s.content && datePattern.test(s.content));
-        if (foundByPattern) {
-          dueDateShape = foundByPattern;
+      // Strategy 3: Find the rightmost small shape in the top area (badge row)
+      if (!dueDateShape) {
+        const topAreaShapes = shapesInFrame.filter(s =>
+          s.content && s.content.length > 0 &&
+          s.y < frameTop + (frameBottom - frameTop) / 3 &&
+          (s.width ?? 200) <= 130 && (s.height ?? 50) <= 40
+        );
+        if (topAreaShapes.length > 0) {
+          topAreaShapes.sort((a, b) => b.x - a.x); // rightmost first
+          dueDateShape = topAreaShapes[0];
         }
       }
 
       if (dueDateShape) {
-        projectLogger.debug('[updateBriefingDueDate] Found due date shape', { x: Math.round(dueDateShape.x), currentContent: dueDateShape.content?.substring(0, 50) });
+        projectLogger.debug('[updateBriefingDueDate] Found due date shape', {
+          strategy: dueDateShape.style?.fillColor?.toUpperCase() === DUE_DATE_FILL.toUpperCase() ? 'fillColor' : 'fallback',
+          x: Math.round(dueDateShape.x),
+          currentContent: dueDateShape.content?.substring(0, 50),
+        });
 
         const shape = await miro.board.getById(dueDateShape.id);
         if (shape && 'content' in shape) {

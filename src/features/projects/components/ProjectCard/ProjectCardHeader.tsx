@@ -42,7 +42,7 @@ export const ProjectCardHeader = memo(function ProjectCardHeader() {
               padding: '4px 12px',
             }}
           >
-            ✓ CLIENT APPROVED
+            ✓ APPROVED
           </Badge>
         </div>
       )}
