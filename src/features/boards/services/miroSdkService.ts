@@ -837,7 +837,18 @@ class MiroMasterTimelineService {
     try {
       // Wait for previous sync to complete
       await previousLock;
-      return await this._syncProjectInternal(project, options);
+      const result = await this._syncProjectInternal(project, options);
+
+      // Also update briefing frame badges (due date + status) so they stay in sync
+      // miroProjectRowService is a module-level singleton initialized after this class
+      try {
+        await miroProjectRowService.updateBriefingDueDate(project.id, project.dueDate ?? null, project.name);
+        await miroProjectRowService.updateBriefingStatus(project.id, project.status, project.name);
+      } catch (err) {
+        log('MiroTimeline', 'Briefing badge sync during timeline sync failed (non-fatal)', err);
+      }
+
+      return result;
     } finally {
       this.syncingProjects.delete(project.id);
       // Release the lock for next sync
@@ -919,6 +930,22 @@ class MiroMasterTimelineService {
 
     titleLines.push(`${statusTag}${project.name}`.trim());
     titleLines.push(priorityIcon);
+
+    // For Done projects: add completion dates and "days early" inside the card
+    if (status === 'done' && project.completedAt) {
+      const completedDate = formatDateShort(project.completedAt);
+      const dueDate = project.dueDate ? formatDateShort(project.dueDate) : null;
+      const early = getDaysEarly(project.dueDate, project.completedAt);
+
+      if (dueDate) {
+        titleLines.push(`Due: ${dueDate} | Done: ${completedDate}`);
+      } else {
+        titleLines.push(`Done: ${completedDate}`);
+      }
+      if (early) {
+        titleLines.push(`🟢 ${early.text}`);
+      }
+    }
 
     // Use plain text with newlines for card title (Miro SDK v2 supports \n in title)
     const cardTitle = titleLines.join('\n');
@@ -1525,100 +1552,30 @@ class MiroMasterTimelineService {
 
   /**
    * Create/update/remove a green completion date text element below Done cards on timeline.
-   * Shows "Due: Dec 6 | Done: Dec 3" and optionally "N days early" in green.
+   * Cleans up legacy external completion text elements below cards.
+   * Completion info is now displayed inside the card title itself.
    */
   private async handleCompletionDateText(
     project: Project,
-    status: ProjectStatus,
-    cardX: number,
-    cardY: number
+    _status: ProjectStatus,
+    _cardX: number,
+    _cardY: number
   ): Promise<void> {
     const miro = getMiroSDK();
-    const isDone = status === 'done';
     const textTag = `completion_text:${project.id}`;
 
-    // Find existing completion text element by searching all text items
-    let existingText: { id: string; content: string; x: number; y: number; width?: number } | undefined;
+    // Remove any existing external completion text element (legacy cleanup)
     try {
       const allTexts = await miro.board.get({ type: 'text' }) as Array<{
         id: string;
         content: string;
-        x: number;
-        y: number;
-        width?: number;
       }>;
-      existingText = allTexts.find(t => t.content?.includes(textTag));
-    } catch {
-      // Ignore errors fetching texts
-    }
-
-    if (!isDone) {
-      // Remove completion text if project is no longer done
+      const existingText = allTexts.find(t => t.content?.includes(textTag));
       if (existingText) {
-        try {
-          await safeRemove(existingText.id);
-        } catch {
-          // Ignore removal errors
-        }
+        await safeRemove(existingText.id);
       }
-      return;
-    }
-
-    // Build completion text content
-    const completedDate = project.completedAt
-      ? formatDateShort(project.completedAt)
-      : formatDateShort(new Date().toISOString());
-    const dueDate = project.dueDate ? formatDateShort(project.dueDate) : null;
-    const early = getDaysEarly(project.dueDate, project.completedAt);
-
-    let displayText = '';
-    if (dueDate) {
-      displayText = `Due: ${dueDate} | Done: ${completedDate}`;
-    } else {
-      displayText = `Done: ${completedDate}`;
-    }
-    if (early) {
-      displayText += `\n${early.text}`;
-    }
-
-    // Build HTML content with hidden tag for identification
-    const fullContent = `<p><b>${displayText}</b></p><!-- ${textTag} -->`;
-
-    // Position: below the card
-    const textY = cardY + TIMELINE.CARD_HEIGHT / 2 + 14;
-
-    if (existingText) {
-      // Update existing text element
-      try {
-        const item = await miro.board.getById(existingText.id);
-        if (item && 'content' in item) {
-          (item as { content: string }).content = fullContent;
-          (item as { x: number }).x = cardX;
-          (item as { y: number }).y = textY;
-          await miro.board.sync(item);
-          return;
-        }
-      } catch {
-        // If update fails, try to remove and recreate
-        try { await safeRemove(existingText.id); } catch { /* ignore */ }
-      }
-    }
-
-    // Create new text element
-    try {
-      await miro.board.createText({
-        content: fullContent,
-        x: cardX,
-        y: textY,
-        width: TIMELINE.CARD_WIDTH + 20,
-        style: {
-          fontSize: 9,
-          textAlign: 'center',
-          color: '#10B981', // Green (success color)
-        },
-      });
-    } catch (e) {
-      projectLogger.error('[handleCompletionDateText] Failed to create text', e);
+    } catch {
+      // Ignore errors
     }
   }
 
@@ -2768,11 +2725,22 @@ class MiroProjectRowService {
 
       projectLogger.debug('[updateBriefingDueDate] Shapes in frame', { count: shapesInFrame.length });
 
+      // Helper to normalize Miro fill colors for comparison (handles #hex, hex, lowercase)
+      const normColor = (c?: string) => (c || '').replace('#', '').toLowerCase();
+      const DUE_DATE_FILL_NORM = normColor('#E5E7EB'); // e5e7eb
+
+      // Log fill colors of shapes in top area for debugging
+      const topShapes = shapesInFrame.filter(s =>
+        s.y < frameTop + (frameBottom - frameTop) / 3 && s.content && s.content.length > 0
+      );
+      projectLogger.debug('[updateBriefingDueDate] Top-area shapes', {
+        count: topShapes.length,
+        fills: topShapes.map(s => ({ fill: s.style?.fillColor, content: s.content?.substring(0, 30), x: Math.round(s.x) })),
+      });
+
       // Strategy 1: Find the due date badge by its unique gray fill color (#E5E7EB)
-      // The due date badge is the only shape with this fill color in the briefing frame
-      const DUE_DATE_FILL = '#E5E7EB';
       let dueDateShape = shapesInFrame.find(s =>
-        s.style?.fillColor?.toUpperCase() === DUE_DATE_FILL.toUpperCase() &&
+        normColor(s.style?.fillColor) === DUE_DATE_FILL_NORM &&
         s.content && s.content.length > 0
       );
 
@@ -2780,6 +2748,11 @@ class MiroProjectRowService {
       if (!dueDateShape) {
         const datePattern = /<p><b>(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|No deadline|Due:)/i;
         dueDateShape = shapesInFrame.find(s => s.content && datePattern.test(s.content));
+        if (!dueDateShape) {
+          // Also try without HTML tags (Miro might strip them)
+          const plainDatePattern = /(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2},\s+\d{4}|No deadline/i;
+          dueDateShape = shapesInFrame.find(s => s.content && plainDatePattern.test(s.content));
+        }
       }
 
       // Strategy 3: Find the rightmost small shape in the top area (badge row)
@@ -2797,7 +2770,7 @@ class MiroProjectRowService {
 
       if (dueDateShape) {
         projectLogger.debug('[updateBriefingDueDate] Found due date shape', {
-          strategy: dueDateShape.style?.fillColor?.toUpperCase() === DUE_DATE_FILL.toUpperCase() ? 'fillColor' : 'fallback',
+          strategy: normColor(dueDateShape.style?.fillColor) === DUE_DATE_FILL_NORM ? 'fillColor' : 'fallback',
           x: Math.round(dueDateShape.x),
           currentContent: dueDateShape.content?.substring(0, 50),
         });
